@@ -2,12 +2,20 @@
 
 This project is a boilerplate for building a web application using Express.js. It includes TypeScript for static typing, Prisma as an ORM, and various utilities to enhance the development process.
 
+## Features
+
+- **Api Versioning**: Versioning the API endpoints for better control and maintenance.
+- **Authentication**: User authentication using JWT.
+- **Error Handling**: Centralized error handling.
+
 ## Table of Contents
 
 - [Express Boilerplate](#express-boilerplate)
+  - [Features](#features)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
+  - [Services](#services)
   - [Development](#development)
   - [Dependencies](#dependencies)
   - [License](#license)
@@ -34,6 +42,12 @@ To start the application in development mode:
 ```bash
 npm run dev # or `npm run start`
 ```
+
+## Services
+
+The following services are available:
+- Authentication
+- 
 
 ## Development
 

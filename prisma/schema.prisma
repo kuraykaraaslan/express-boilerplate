@@ -8,77 +8,98 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
- 
+
 generator client {
   provider = "prisma-client-js"
 }
- 
+
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  email         String          @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  // Optional for WebAuthn support
-  Authenticator Authenticator[]
- 
+  userId String  @id @default(cuid())
+  name   String?
+
+  email String @unique
+
+  verified Boolean @default(false)
+  verificationToken String?
+  verificationTokenExpires DateTime?
+
+  phone Int?   @unique
+  phoneVerified Boolean @default(false)
+  phoneVerificationToken String?
+  phoneVerificationTokenExpires DateTime?
+
+  password String?
+  passwordResetToken String?
+  passwordResetTokenExpires DateTime?
+
+  emailChangeAddress String?
+  emailChangeToken String?
+  emailChangeTokenExpires DateTime?
+
+  phoneChangeNumber Int?
+  phoneChangeToken String?
+  phoneChangeTokenExpires DateTime?
+
+  language String? @default("en")
+  theme String? @default("light")
+
+  OTPEnabled Boolean @default(false)
+
+  sessions Session[]
+  roles Role[] @default([USER])
+
+  lastLogin DateTime?
+  lastEmailSent DateTime?
+  lastPhoneSent DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
 }
- 
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
- 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
-  @@id([provider, providerAccountId])
-}
- 
+
 model Session {
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+  token  String @unique @id
+  userId String
+
+  expiresAt DateTime
+
+  // Agent
+  browser  String?
+  os       String?
+  device   String?
+  platform String?
+  ip       String?
+
+  OTPNeeded Boolean @default(false)
+
+  OTPVerificationPhoneCode String?
+  OTPVerificationPhoneCodeExpires DateTime?
+
+  OTPVerificationEmailCode String?
+  OTPVerificationEmailCodeExpires DateTime?
+
+  user User @relation(fields: [userId], references: [userId])
+}
+
+
+model Incident {
+  logId String @id @default(cuid())
+
+  userId String?
+  requestId String?
+  sessionId String?
+
+  status String  @default("INFO") // INFO, WARN, ERROR
+  message String
+
+  path String?
+  ip String?
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
- 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
- 
-  @@id([identifier, token])
-}
- 
-// Optional for WebAuthn support
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
-  @@id([userId, credentialID])
 }

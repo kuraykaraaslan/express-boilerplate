@@ -55,3 +55,10 @@ Thumbs.db
 /prisma/.env.test
 /prisma/migration-lock.toml
 /prisma/migrations/
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# Env
+.env
+.env.local
+.env.development.local
