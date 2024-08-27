@@ -1,5 +1,8 @@
 # Express Boilerplate
 
+![express](/static/logo.png)
+
+
 This project is a boilerplate for building a web application using Express.js. It includes TypeScript for static typing, Prisma as an ORM, and various utilities to enhance the development process.
 
 ## Features
@@ -9,10 +12,15 @@ This project is a boilerplate for building a web application using Express.js. I
 - **Error Handling**: Centralized error handling.
 - **Logging**: Logging requests and errors.
 
+## Screenshots
+
+![screenshot](/static/screenshot.png)
+
 ## Table of Contents
 
 - [Express Boilerplate](#express-boilerplate)
   - [Features](#features)
+  - [Screenshots](#screenshots)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
