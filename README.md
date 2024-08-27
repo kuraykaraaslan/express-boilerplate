@@ -96,4 +96,4 @@ If you like the template and want to support my work, you can buy me a coffee:
 
 ## Hire Me
 
-If you need help with your Next.js project, feel free to reach out to me. I'm available for freelance work.
+If you need help with your next project, feel free to reach out to me. I'm available for freelance work.
