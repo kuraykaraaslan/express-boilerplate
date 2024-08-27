@@ -7,6 +7,7 @@ This project is a boilerplate for building a web application using Express.js. I
 - **Api Versioning**: Versioning the API endpoints for better control and maintenance.
 - **Authentication**: User authentication using JWT.
 - **Error Handling**: Centralized error handling.
+- **Logging**: Logging requests and errors.
 
 ## Table of Contents
 
@@ -19,6 +20,9 @@ This project is a boilerplate for building a web application using Express.js. I
   - [Development](#development)
   - [Dependencies](#dependencies)
   - [License](#license)
+  - [Support](#support)
+  - [Donate](#donate)
+  - [Hire Me](#hire-me)
 
 ## Installation
 
@@ -71,9 +75,25 @@ npm run start
 - [nodemon](https://www.npmjs.com/package/nodemon)
 
 
+
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-```
+Diplomat is licensed under the MIT license. See [LICENSE](/LICENSE) for more information.
 
 
+## Support
+
+If you have any questions or need help with customizing the template, feel free to reach out to me on [Twitter](https://twitter.com/kuraykaraaslan) or [GitHub](https://github.com/kuraykaraaslan).
+
+## Donate
+
+If you like the template and want to support my work, you can buy me a coffee:
+
+<a href="https://www.buymeacoffee.com/kuraykaraaslan" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+<a href="https://www.patreon.com/kuraykaraaslan" target="_blank"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron!" style="height: 60px !important;width: 217px !important;" ></a>
+
+
+## Hire Me
+
+If you need help with your Next.js project, feel free to reach out to me. I'm available for freelance work.

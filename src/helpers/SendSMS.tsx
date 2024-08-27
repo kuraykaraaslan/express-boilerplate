@@ -1,7 +1,58 @@
 import { Twilio } from 'twilio';
 import axios from 'axios';
 
-export class SendSMS {
+import OTPSMSTemplate from './SMSTemplates/OTPSMSTemplate';
+import PhoneChangeSMSTemplate from './SMSTemplates/PhoneChangeSMSTemplate';
+import PhoneChangedSMSNotifcationTemplate from './SMSTemplates/PhoneChangedSMSNotifcationTemplate';
+
+export default class SendSMS {
+
+    public static async sendOTP(phone: number, code: string): Promise<void> {
+
+        const message = OTPSMSTemplate({ code: code });
+        await this.MultiVendorSelector(phone.toString(), message);
+
+    }
+
+    public static async sendPhoneChangeCode(phone: number, code: string): Promise<void> {
+
+        const message = PhoneChangeSMSTemplate({ code: code });
+        await this.MultiVendorSelector(phone.toString(), message);
+
+    }
+
+    public static async sendPhoneChangedNotification(targetPhone: number, newPhone: number): Promise<void> {
+
+        const message = PhoneChangedSMSNotifcationTemplate({ targetPhone: targetPhone.toString(), newPhone: newPhone.toString() });
+        await this.MultiVendorSelector(targetPhone.toString(), message);
+
+    }
+
+
+
+    /* 
+    This function is responsible for selecting the SMS provider based on the country code of the phone number.
+    If the phone number starts with +90, it is the country code of Turkey then use NETGSM
+    If it is other than +90, it is the country code of another country then use TWILIO
+    */
+   
+    public static async MultiVendorSelector(phone: string, message: string): Promise<void> {
+
+        // PHONE_NUMBER is the phone number of the recipient and starts with the country code with plus sign
+        // For example, +905555555555
+        // if it is +90, it is the country code of Turkey then use NETGSM
+        // if it is other than +90, it is the country code of another country then use TWILIO
+
+        if (phone.startsWith("90")) {
+            const targetPhone = phone.replace("90", "");
+            await this.sendOTPbyNETGSM(phone, message);
+        } else {
+            const targetPhone = phone;
+            await this.sendOTPbyTwillo(phone, message);
+        }
+
+    }
+
 
     public static async sendOTPbyTwillo(phone: string, message: string): Promise<void> {
 
@@ -23,23 +74,6 @@ export class SendSMS {
                 console.error(err);
                 throw new Error("ERROR_SENDING_SMS");
             });
-
-    }
-
-    public static async sendOTPbySMS(phone: string, message: string): Promise<void> {
-
-        // PHONE_NUMBER is the phone number of the recipient and starts with the country code with plus sign
-        // For example, +905555555555
-        // if it is +90, it is the country code of Turkey then use NETGSM
-        // if it is other than +90, it is the country code of another country then use TWILIO
-
-        if (phone.startsWith("+90")) {
-            const targetPhone = phone.replace("+90", "");
-            await this.sendOTPbyNETGSM(phone, message);
-        } else {
-            const targetPhone = phone;
-            await this.sendOTPbyTwillo(phone, message);
-        }
 
     }
 

@@ -1,6 +1,9 @@
 import { User, Session, PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt'
+
 import SendMail from '../helpers/SendMail';
+import SendSMS from '../helpers/SendSMS';
+
 import Logger from '../helpers/Logger';
 
 const prisma = new PrismaClient();
@@ -92,8 +95,7 @@ export default class AuthService {
     }
 
     static async rateLimiterEmail(user: User): Promise<void> {
-        if (user.lastEmailSent && new Date(user.lastEmailSent) > new Date(Date.now() - 1000 * 60 * 2))
-        {
+        if (user.lastEmailSent && new Date(user.lastEmailSent) > new Date(Date.now() - 1000 * 60 * 2)) {
             throw new Error('EMAIL_RATE_LIMIT');
         }
 
@@ -108,8 +110,7 @@ export default class AuthService {
     }
 
     static async rateLimiterPhone(user: User): Promise<void> {
-        if (user.lastPhoneSent && new Date(user.lastPhoneSent) > new Date(Date.now() - 1000 * 60 * 5))
-        {
+        if (user.lastPhoneSent && new Date(user.lastPhoneSent) > new Date(Date.now() - 1000 * 60 * 5)) {
             throw new Error('PHONE_RATE_LIMIT');
         }
 
@@ -463,14 +464,29 @@ export default class AuthService {
                     select: {
                         email: true,
                         phone: true,
-                        userId: true
+                        userId: true,
+                        OTPEnabled: true,
+                        OTPCanUseEmail: true,
                     }
-                }
+                },
+                OTPNeeded: true
             }
         });
 
         if (!session) {
             throw new Error('SESSION_NOT_FOUND');
+        }
+
+        if (!session.user.OTPEnabled) {
+            throw new Error('OTP_NOT_ENABLED');
+        }
+
+        if (!session.user.OTPCanUseEmail) {
+            throw new Error('OTP_CANNOT_USE_EMAIL');
+        }
+
+        if (!session.OTPNeeded) {
+            throw new Error('OTP_NOT_NEEDED');
         }
 
         this.rateLimiterEmail(session.user as User);
@@ -525,6 +541,305 @@ export default class AuthService {
 
     }
 
-    
+    static async sendOTPPhone(sessionToken: string): Promise<void> {
+
+        /*
+        - Session Will not verify at this point
+        - We will only send OTP to the phone
+        - Be sure to check if the session the previous step is verified
+        */
+
+        const session = await prisma.session.findUnique({
+            where: {
+                token: sessionToken
+            },
+            select: {
+                user: {
+                    select: {
+                        email: true,
+                        phone: true,
+                        userId: true,
+                        OTPEnabled: true,
+                        OTPCanUsePhone: true,
+                    }
+                },
+                OTPNeeded: true
+            }
+        });
+
+        if (!session) {
+            throw new Error('SESSION_NOT_FOUND');
+        }
+
+        if (!session.user.OTPEnabled) {
+            throw new Error('OTP_NOT_ENABLED');
+        }
+
+        if (!session.user.OTPCanUsePhone) {
+            throw new Error('OTP_CANNOT_USE_PHONE');
+        }
+
+        if (!session.OTPNeeded) {
+            throw new Error('OTP_NOT_NEEDED');
+        }
+
+        if (!session.user.phone) {
+            throw new Error('PHONE_NOT_FOUND');
+        }
+
+        this.rateLimiterPhone(session.user as User);
+
+        const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+        Logger.info(`OTP for ${session.user.phone}: ${OTP}`);
+
+        await prisma.session.update({
+            where: {
+                token: sessionToken
+            },
+            data: {
+                OTPVerificationPhoneCode: OTP,
+                OTPVerificationPhoneCodeExpires: new Date(Date.now() + 1000 * 60 * 15) // 15 minutes
+            }
+        });
+
+        SendSMS.sendOTP(session.user.phone, OTP);
+    }
+
+    static async verifyOTPPhone(sessionToken: string, code: string): Promise<void> {
+
+        const session = await prisma.session.findUnique({
+            where: {
+                token: sessionToken,
+                OTPVerificationPhoneCode: code,
+                OTPVerificationPhoneCodeExpires: {
+                    gt: new Date()
+                }
+            },
+            select: {
+                OTPVerificationPhoneCode: true,
+                OTPVerificationPhoneCodeExpires: true
+            }
+        });
+
+        if (!session) {
+            throw new Error('INVALID_OTP');
+        }
+
+        await prisma.session.update({
+            where: {
+                token: sessionToken
+            },
+            data: {
+                OTPNeeded: false,
+                OTPVerificationPhoneCode: null,
+                OTPVerificationPhoneCodeExpires: null
+            }
+        });
+
+    }
+
+    /* Updaters */
+    static async sendEmailChangeEmail(userId: string, newEmail: string): Promise<void> {
+
+        const user = await prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        if (user.email === newEmail) {
+            throw new Error('SAME_EMAIL');
+        }
+
+        if (await this.findUserByEmail(newEmail)) {
+            throw new Error('EMAIL_ALREADY_EXISTS');
+        }
+
+        this.rateLimiterEmail(user);
+
+        const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+        Logger.info(`Change token for ${user.email}: ${changeToken}`);
+
+        await prisma.user.update({
+            where: {
+                userId: userId
+            },
+            data: {
+                emailChangeToken: changeToken,
+                emailChangeTokenExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+                emailChangeAddress: newEmail
+            }
+        });
+
+        SendMail.sendEmailChangeEmail(newEmail, changeToken);
+    }
+
+    static async verifyEmailChangeEmail(userId: string, code: string): Promise<void> {
+
+        const user = await prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        if (user.emailChangeToken !== code) {
+            throw new Error('INVALID_CHANGE_CODE');
+        }
+
+        if (typeof user.emailChangeTokenExpires === 'undefined' || user.emailChangeTokenExpires === null) {
+            throw new Error('CHANGE_CODE_EXPIRED');
+        }
+
+        if (new Date(user.emailChangeTokenExpires) < new Date()) {
+            throw new Error('CHANGE_CODE_EXPIRED');
+        }
+
+        if (user.emailChangeAddress === null) {
+            throw new Error('CHANGE_EMAIL_NOT_FOUND');
+        }
+
+        if (await this.findUserByEmail(user.emailChangeAddress)) {
+            throw new Error('EMAIL_ALREADY_EXISTS');
+        }
+
+        SendMail.sendEmailChangedNotificationMail(user.email, user.emailChangeAddress);
+
+
+        await prisma.user.update({
+            where: {
+                userId: userId
+            },
+            data: {
+                email: user.emailChangeAddress,
+                emailChangeToken: null,
+                emailChangeTokenExpires: null,
+                emailChangeAddress: null
+            }
+        });
+
+
+    }
+
+    static async sendPhoneChangeSMS(userId: string, newPhone: number): Promise<void> {
+
+        const user = await prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        if (user.phone === newPhone) {
+            throw new Error('SAME_PHONE');
+        }
+
+        if (await this.findUserByPhone(newPhone)) {
+            throw new Error('PHONE_ALREADY_EXISTS');
+        }
+
+        this.rateLimiterPhone(user);
+
+        const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+        Logger.info(`Change token for ${user.phone}: ${changeToken}`);
+
+        const updatedUser = await prisma.user.update({
+            where: {
+                userId: userId
+            },
+            data: {
+                phoneChangeToken: changeToken,
+                phoneChangeTokenExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+                phoneChangeNumber: newPhone
+            }
+        });
+
+
+        SendSMS.sendPhoneChangeCode(newPhone, changeToken);
+    }
+
+    static async verifyPhoneChangeSMS(userId: string, code: string): Promise<void> {
+
+        const user = await prisma.user.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        if (user.phoneChangeToken !== code) {
+            throw new Error('INVALID_CHANGE_CODE');
+        }
+
+        if (typeof user.phoneChangeTokenExpires === 'undefined' || user.phoneChangeTokenExpires === null) {
+            throw new Error('CHANGE_CODE_EXPIRED');
+        }
+
+        if (new Date(user.phoneChangeTokenExpires) < new Date()) {
+            throw new Error('CHANGE_CODE_EXPIRED');
+        }
+
+        if (user.phoneChangeNumber === null) {
+            throw new Error('CHANGE_PHONE_NOT_FOUND');
+        }
+
+        if (await this.findUserByPhone(user.phoneChangeNumber)) {
+            throw new Error('PHONE_ALREADY_EXISTS');
+        }
+
+        if (user.phone) {
+            SendSMS.sendPhoneChangedNotification(user.phone, user.phoneChangeNumber);
+            Logger.info(`Phone changed Info SMS sent to ${user.phone}: ${user.phoneChangeNumber}`);
+        }
+
+        await prisma.user.update({
+            where: {
+                userId: userId
+            },
+            data: {
+                phone: user.phoneChangeNumber,
+                phoneChangeToken: null,
+                phoneChangeTokenExpires: null,
+                phoneChangeNumber: null
+            }
+        });
+
+    }
+
+    /* Deleters */
+    static async revokeSession(token: string): Promise<void> {
+        await prisma.session.delete({
+            where: {
+                token: token
+            }
+        });
+    }
+
+    static async revokeAllSessionsbyUserId(userId: string): Promise<void> {
+        await prisma.session.deleteMany({
+            where: {
+                userId: userId
+            }
+        });
+    }
+
+
 }
+
 

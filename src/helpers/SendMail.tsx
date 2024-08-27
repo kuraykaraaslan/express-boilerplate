@@ -4,6 +4,7 @@ import FirstVerifyMailTemplate from './MailTemplates/FirstVerifyMailTemplate';
 import PasswordResetMailTemplate from './MailTemplates/PasswordResetMailTemplate';
 import OTPMailTemplate from './MailTemplates/OTPMailTemplate';
 import EmailChangeMailTemplate from './MailTemplates/EmailChangeMailTemplate';
+import EmailChangedNotificationMailTemplate from './MailTemplates/EmailChangedNotificationMailTemplate';
 
 
 import Logger from './Logger';
@@ -97,6 +98,24 @@ export default class SendMail {
 
         } catch (error : any) {
             Logger.error("Error sending email to " + email + ": " + code, error);
+        }
+    }
+
+    static async sendEmailChangedNotificationMail(targetEmail: string, newEmail: string): Promise<void> {
+        try {
+            const mailBody = EmailChangedNotificationMailTemplate({ targetEmail, newEmail });
+
+            await SendMail.transporter.sendMail({
+                from: process.env.NODEMAILER_USER,
+                to: targetEmail,
+                subject: 'Your email address has been changed ' + process.env.APP_NAME,
+                html: mailBody
+            });
+
+            Logger.info("Email sent to " + targetEmail + ": " + newEmail);
+
+        } catch (error : any) {
+            Logger.error("Error sending email to " + targetEmail + ": " + newEmail, error);
         }
     }
 

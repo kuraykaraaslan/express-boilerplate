@@ -49,6 +49,8 @@ model User {
   theme String? @default("light")
 
   OTPEnabled Boolean @default(false)
+  OTPCanUseEmail Boolean @default(false)
+  OTPCanUsePhone Boolean @default(false)
 
   sessions Session[]
   roles Role[] @default([USER])
