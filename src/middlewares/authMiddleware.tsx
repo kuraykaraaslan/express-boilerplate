@@ -26,18 +26,7 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction) {
         return;
     }
 
-    // Check if token is present
-    if (!token ||  token.length < 7) {
-        Logger.error("[AUTH] Token not present for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-        res.status(401).json({ message: "USER_NOT_LOGGED_IN" });
-        return;
-    }
-
-    // Check if token is valid
-    const tokenWithoutBearer = token.substring(7);
-    const sessionWithUser = await AuthService.getUserFromTokenAndExtendAday(tokenWithoutBearer);
-
-
+    const sessionWithUser = await AuthService.getSessionFromBearerToken(token as string);
 
     // Check if OTP verification is needed
     if (sessionWithUser.OTPNeeded) {

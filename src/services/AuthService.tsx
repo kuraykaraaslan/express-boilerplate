@@ -258,7 +258,21 @@ export default class AuthService {
 
     }
 
-    static async getUserFromTokenAndExtendAday(token: string): Promise<any> {
+
+    static async getSessionFromBearerToken(token?: string): Promise<any> {
+        // Check if token is present
+        if (!token || token.length < 7) {
+            Logger.error("[AUTH SERVICE] Token not present");
+            return null;
+        }
+
+        // Check if token is valid
+        const tokenWithoutBearer = token.substring(7);
+        const sessionWithUser = await AuthService.getSessionFromTokenAndExtendAday(tokenWithoutBearer);
+        return sessionWithUser;
+    }
+
+    static async getSessionFromTokenAndExtendAday(token: string): Promise<any> {
 
         const session = await prisma.session.update({
             where: {
@@ -822,6 +836,59 @@ export default class AuthService {
 
     }
 
+    static async sendForgotPasswordEmail(email: string): Promise<void> {
+
+        this.validateEmail(email);
+
+        const user = await this.findUserByEmail(email);
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        this.rateLimiterEmail(user);
+
+        this.sendPasswordResetEmail(user.userId);
+    }
+
+    static async verifyForgotPasswordEmail(email: string, code: string, password: string): Promise<void> {
+
+        this.validateEmail(email);
+        this.validatePassword(password);
+
+        const user = await this.findUserByEmail(email);
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        if (user.passwordResetToken !== code) {
+            throw new Error('INVALID_RESET_CODE');
+        }
+
+        if (typeof user.passwordResetTokenExpires === 'undefined' || user.passwordResetTokenExpires === null) {
+            throw new Error('RESET_CODE_EXPIRED');
+        }
+
+        if (new Date(user.passwordResetTokenExpires) < new Date()) {
+            throw new Error('RESET_CODE_EXPIRED');
+        }
+
+        const hashedPassword = await this.hashPassword(password);
+
+        await prisma.user.update({
+            where: {
+                userId: user.userId
+            },
+            data: {
+                password: hashedPassword,
+                passwordResetToken: null,
+                passwordResetTokenExpires: null
+            }
+        });
+
+    }
+
     /* Deleters */
     static async revokeSession(token: string): Promise<void> {
         await prisma.session.delete({
@@ -838,6 +905,7 @@ export default class AuthService {
             }
         });
     }
+
 
 
 }
