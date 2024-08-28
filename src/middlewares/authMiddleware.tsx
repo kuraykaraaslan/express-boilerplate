@@ -28,6 +28,12 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction) {
 
     const sessionWithUser = await AuthService.getSessionFromBearerToken(token as string);
 
+    if (!sessionWithUser) {
+        Logger.error("[AUTH] User not authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+        res.status(401).json({ message: "USER_NOT_AUTHENTICATED" });
+        return;
+    }
+
     // Check if OTP verification is needed
     if (sessionWithUser.OTPNeeded) {
         Logger.error("[AUTH] OTP verification needed for Route: " + req.originalUrl + " from IP: " + ip, req, res);

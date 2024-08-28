@@ -54,6 +54,7 @@ model User {
 
   sessions Session[]
   roles Role[] @default([USER])
+  wallets Wallet[]
 
   lastLogin DateTime?
   lastEmailSent DateTime?
@@ -105,3 +106,22 @@ model Incident {
 
   createdAt DateTime @default(now())
 }
+
+model Wallet {
+  walletId String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [userId])
+
+  network String
+  memonic String?
+  address String
+  privateKey String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, network])
+
+}
+

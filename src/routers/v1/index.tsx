@@ -4,13 +4,18 @@
 */
 import express from "express"
 import AuthRouter from "./AuthRouter";
+import WalletRouter from "./WalletRouter";
+import UserRouter from "./UserRouter";
 
 const v1Router = express.Router();
 
 v1Router.get('/', (req, res) => {
-    res.send('Welcome to the version 1 router');
+    res.send({ message: "API_VERSION_1_OK" });
 });
 
 v1Router.use('/auth', AuthRouter);
+v1Router.use('/wallets', WalletRouter);
+v1Router.use('/users', UserRouter);
+
 
 export default v1Router;
