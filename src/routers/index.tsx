@@ -16,7 +16,7 @@ mainRouter.get('/', (req, res) => {
     res.send('Welcome to the main router');
 });
 
-mainRouter.use('/v1', V1Router);
+mainRouter.use('/api/v1', V1Router);
 
 
 // return 404 if no route matched

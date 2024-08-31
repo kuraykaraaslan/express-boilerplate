@@ -1,6 +1,7 @@
 import axios from "axios";
 
 export class SolanaWalletService {
+
     static axios = axios.create({
         baseURL: process.env.TATUM_API_URL,
         headers: {
@@ -38,6 +39,18 @@ export class SolanaWalletService {
         } catch (error) {
             return null;
         }
+    }
+
+    static async getSolanaBalance(address: string) : Promise<any> {
+
+        try {
+         const response = await this.axios.get(`/v3/solana/account/balance/${address}`);
+        return response.data;
+
+        } catch (error) {
+            return null;
+        }
+
     }
    
 }

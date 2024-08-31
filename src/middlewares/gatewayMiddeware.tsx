@@ -15,6 +15,8 @@ async function gatewayMiddleware(req: Request, res: Response, next: NextFunction
     const requestId = Math.random().toString(36).substring(7);
     req.requestId = requestId;
 
+    console.log(req.body);
+
     Logger.connect(req, res);
     next();
 }

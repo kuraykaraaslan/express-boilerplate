@@ -148,7 +148,7 @@ AuthRouter.post('/otp/email-verify',
     It uses the authMiddleware to authenticate the user.
 */
 
-AuthRouter.post('/me',
+AuthRouter.get('/me',
     authMiddleware,
     errorHandlerWrapper(
         async (req: Request, res: Response) => {

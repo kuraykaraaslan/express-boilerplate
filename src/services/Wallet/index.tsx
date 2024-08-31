@@ -174,5 +174,20 @@ export default class WalletService {
 
     }
 
+    static async getBalance(walletId: string): Promise<any> {
+        const wallet = await this.getWallet(walletId);
+
+        if (!wallet) {
+            throw new Error('WALLET_NOT_FOUND');
+        }
+
+        switch (wallet.network) {
+            case 'SOL':
+                return await SolanaWalletService.getSolanaBalance(wallet.address);
+            default:
+                throw new Error('NETWORK_NOT_SUPPORTED');
+        }
+    }
+
 }
 

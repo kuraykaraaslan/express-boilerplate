@@ -78,6 +78,8 @@ UserRouter.get('/:userId',
 );
 
 
+/* Wallet Related Routes */
+
 UserRouter.get('/:userId/wallets',
         
         errorHandlerWrapper(
@@ -91,8 +93,7 @@ UserRouter.get('/:userId/wallets',
     
             }
         )
-    );
-
+);
 
 UserRouter.post('/:userId/wallets',
 
@@ -107,6 +108,36 @@ UserRouter.post('/:userId/wallets',
             }
 
             const result = await WalletService.createWalletWithUserAndNetwork(userId, network);
+
+            return res.status(201).json(result);
+
+        }
+    )
+);
+
+UserRouter.get('/:userId/wallets/:walletId',
+    
+    errorHandlerWrapper(
+        async (req, res) => {
+
+            const { userId, walletId } = req.params;
+
+            const result = await WalletService.getWallet(walletId);
+
+            return res.status(201).json(result);
+
+        }
+    )
+);
+
+UserRouter.get('/:userId/wallets/:walletId/balance',
+    
+    errorHandlerWrapper(
+        async (req, res) => {
+
+            const { userId, walletId } = req.params;
+
+            const result = await WalletService.getBalance(walletId);
 
             return res.status(201).json(result);
 
