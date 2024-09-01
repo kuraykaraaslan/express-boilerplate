@@ -6,10 +6,11 @@ import SendSMS from '../helpers/SendSMS';
 
 import Logger from '../helpers/Logger';
 
+import axios from 'axios';
+
 const prisma = new PrismaClient();
 
 export default class AuthService {
-
     /* Validaters */
 
     static validateEmail(email: string): void {
@@ -251,7 +252,11 @@ export default class AuthService {
                 email: user.email,
                 phone: user.phone,
                 name: user.name,
-                verified: user.verified
+                verified: user.verified,
+                roles: user.roles,
+                language: user.language,
+                theme: user.theme,
+                avatar: user.avatar
             }
         };
 
@@ -268,6 +273,9 @@ export default class AuthService {
 
         // Check if token is valid
         const tokenWithoutBearer = token.substring(7);
+
+        console.log("Token without Bearer: " + tokenWithoutBearer); 
+
         const sessionWithUser = await AuthService.getSessionFromTokenAndExtendAday(tokenWithoutBearer);
         return sessionWithUser;
     }
@@ -296,6 +304,7 @@ export default class AuthService {
                         roles: true,
                         language: true,
                         theme: true,
+                        avatar: true,
                     }
                 },
                 expiresAt: true,
@@ -419,7 +428,9 @@ export default class AuthService {
             throw new Error('USER_NOT_FOUND');
         }
 
+        /*
         await this.rateLimiterEmail(user);
+        */
 
         const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -862,7 +873,9 @@ export default class AuthService {
             throw new Error('USER_NOT_FOUND');
         }
 
+        /*
         await this.rateLimiterEmail(user);
+        */
 
         this.sendPasswordResetEmail(user.userId);
     }
@@ -922,8 +935,169 @@ export default class AuthService {
         });
     }
 
+    static async loginOrRegisterWithOAuth(email: string, name: string, avatar: string): Promise<any> {
+
+        this.validateEmail(email);
+
+        const user = await this.findUserByEmail(email);
+
+        if (!user) {
+            const newUser = await prisma.user.create({
+                data: {
+                    email: email,
+                    name: name,
+                    avatar: avatar,
+                    verified: true
+                }
+            });
+
+            const session = await this.createSession(newUser.userId);
+
+            return {
+                token: session.token,
+                user: {
+                    userId: newUser.userId,
+                    email: newUser.email,
+                    phone: newUser.phone,
+                    name: newUser.name,
+                    verified: newUser.verified
+                }
+            };
+
+        }
+
+        this.checkIfUserIsVerified(user);
+
+        const session = await this.createSession(user.userId);
+
+        //update user name and avatar
+        const updatedUser = await prisma.user.update({
+            where: {
+                userId: user.userId
+            },
+            data: {
+                name: name,
+                avatar: avatar,
+                userId: user.userId,
+                email: user.email,
+                phone: user.phone,
+            }
+        });
+
+        return {
+            token: session.token,
+            user: {
+                userId: updatedUser.userId,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                name: updatedUser.name,
+                avatar: updatedUser.avatar,
+                verified: updatedUser.verified
+            }
+        };
+
+    }
+    
+
+    static async callback(provider: string, code: string, state: string): Promise<any> {
+
+        let user = null;
+
+        switch (provider) {
+            case 'github':
+                user = await this.callbackGithub(code, state);
+                break;
+            default:
+                throw new Error('PROVIDER_NOT_FOUND');
+        }
+
+        if (!user) {
+            throw new Error('AUTH_FAILED');
+        }
+
+        return this.loginOrRegisterWithOAuth(user.email, user.name, user.avatar);
+
+    }
+
+    static async callbackGithub(code: string, state: string): Promise<any> {
+
+        const { token_type, access_token } =
+
+        await axios.post('https://github.com/login/oauth/access_token', {
+                client_id: process.env.GITHUB_CLIENT_ID,
+                client_secret: process.env.GITHUB_CLIENT_SECRET,
+                code: code,
+                scope: 'user'
+            }, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then((response) => {
+                return response.data;
+            }
+        ).catch((e) => {
+            console.log(e);
+            return null;
+        } );
+
+        if (!access_token) {
+            throw new Error('GITHUB_AUTH_FAILED');
+        }
+
+        const user = await axios.get('https://api.github.com/user', {
+            headers: {
+                authorization: `token ${access_token}`
+            }
+        }).then((response) => {
+            return response.data;
+        }
+        ).catch((e) => {
+            console.log(e);
+            return null;
+        });
+
+        if (!user) {
+            throw new Error('GITHUB_USER_NOT_FOUND');
+        }
+
+        //
+
+        var temp_user = {
+            email: user.email,
+            name: user.name,
+            avatar: user.avatar_url
+        };
+        
+        if (!user.email) {
+            const emails = await axios.get('https://api.github.com/user/emails', {
+                headers: {
+                    authorization: `token ${access_token}`
+                }
+            }).then((response) => {
+                return response.data;
+            }
+            ).catch((e) => {
+                console.log(e);
+                return null;
+            });
+
+            if (!emails) {
+                throw new Error('GITHUB_EMAIL_NOT_FOUND');
+            }
+
+            const primaryEmail = emails.find((email: any) => email.primary);
+
+            if (!primaryEmail) {
+                throw new Error('GITHUB_PRIMARY_EMAIL_NOT_FOUND');
+            }
+
+            temp_user.email = primaryEmail.email;
+        }
+
+        return temp_user;
+        
+    }
 
 
 }
-
 

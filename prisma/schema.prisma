@@ -20,6 +20,8 @@ model User {
 
   email String @unique
 
+  avatar String?
+
   verified Boolean @default(false)
   verificationToken String?
   verificationTokenExpires DateTime?

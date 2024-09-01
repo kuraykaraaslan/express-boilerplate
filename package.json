@@ -39,7 +39,7 @@
   "dependencies": {
     "@prisma/client": "^5.16.2",
     "@tatumio/tatum": "^4.2.40",
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

@@ -8,11 +8,34 @@ import Response from '../../response/Response';
 import Request from '../../request/Request';
 import authMiddleware from "../../middlewares/authMiddleware";
 
+import axios from 'axios';
+
 const AuthRouter = express.Router();
 
 /*
     Those routes are public and can be accessed by anyone.
 */
+
+AuthRouter.get('/callback/:provider',
+    errorHandlerWrapper(
+        async (req: Request, res: Response) => {
+
+            console.log(req.body);
+
+            const { provider } = req.params;
+            const { code , state } = req.query;
+
+
+            const callback = await AuthService.callback(provider, code as string, state as string);
+
+            console.log(callback);
+
+            return res.redirect("http://localhost:3000/auth/sso?token=" + callback.token);
+
+        }
+    )
+);
+
 
 AuthRouter.post('/register',
 
@@ -79,7 +102,7 @@ AuthRouter.post('/forgot-password',
     
             const { email } = req.body;
     
-            const result = await AuthService.sendForgotPasswordEmail(email);
+            await AuthService.sendForgotPasswordEmail(email);
     
             return res.json({ message: 'FORGOT_PASSWORD' });
         }
@@ -169,6 +192,8 @@ AuthRouter.get('/me',
         async (req: Request, res: Response) => {
 
             const user = req.user;
+
+            console.log(user);
 
             return res.json(user);
         }
