@@ -331,7 +331,7 @@ export default class AuthService {
             throw new Error('USER_ALREADY_VERIFIED');
         }
 
-        this.rateLimiterEmail(user);
+        await this.rateLimiterEmail(user);
 
         const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -342,15 +342,31 @@ export default class AuthService {
                 userId: userId
             },
             data: {
-                verificationToken: verificationToken
+                verificationToken: verificationToken,
+                verificationTokenExpires: new Date(Date.now() + 1000 * 60 * 15) // 15 minutes
             }
         });
 
 
-        SendMail.sendFirstVerifyMail(user.email, verificationToken);
+        await SendMail.sendFirstVerifyMail(user.email, verificationToken);
 
 
     }
+
+    static async sendFirstVerificationEmailByEmail(email: string): Promise<void> {
+
+        this.validateEmail(email);
+
+        const user = await this.findUserByEmail(email);
+
+        if (!user) {
+            throw new Error('USER_NOT_FOUND');
+        }
+
+        await this.sendFirstVerificationEmail(user.userId);
+
+    }
+
 
     static async verifyFirstVerificationEmail(email: string, code: string): Promise<void> {
 
@@ -403,7 +419,7 @@ export default class AuthService {
             throw new Error('USER_NOT_FOUND');
         }
 
-        this.rateLimiterEmail(user);
+        await this.rateLimiterEmail(user);
 
         const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -503,7 +519,7 @@ export default class AuthService {
             throw new Error('OTP_NOT_NEEDED');
         }
 
-        this.rateLimiterEmail(session.user as User);
+        await this.rateLimiterEmail(session.user as User);
 
         const OTP = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -601,7 +617,7 @@ export default class AuthService {
             throw new Error('PHONE_NOT_FOUND');
         }
 
-        this.rateLimiterPhone(session.user as User);
+        await this.rateLimiterPhone(session.user as User);
 
         const OTP = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -674,7 +690,7 @@ export default class AuthService {
             throw new Error('EMAIL_ALREADY_EXISTS');
         }
 
-        this.rateLimiterEmail(user);
+        await this.rateLimiterEmail(user);
 
         const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -764,7 +780,7 @@ export default class AuthService {
             throw new Error('PHONE_ALREADY_EXISTS');
         }
 
-        this.rateLimiterPhone(user);
+        await this.rateLimiterPhone(user);
 
         const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -846,7 +862,7 @@ export default class AuthService {
             throw new Error('USER_NOT_FOUND');
         }
 
-        this.rateLimiterEmail(user);
+        await this.rateLimiterEmail(user);
 
         this.sendPasswordResetEmail(user.userId);
     }

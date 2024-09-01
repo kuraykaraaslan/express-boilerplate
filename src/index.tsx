@@ -23,6 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
 
+
 // Middlewares
 app.use(gatewayMiddleware);
 
@@ -35,3 +36,6 @@ app.listen(port, () => {
   console.clear();
   Logger.operation("[EXPRESS] Server is running on " + host + ":" + port);
 });
+
+
+module.exports = app;

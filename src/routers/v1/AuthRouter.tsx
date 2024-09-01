@@ -23,7 +23,7 @@ AuthRouter.post('/register',
 
             const result = await AuthService.createUser(email, password);
 
-            return res.status(201).json(result);
+            return res.status(201).json({ message: 'USER_CREATED' });
 
         }
     )
@@ -56,6 +56,21 @@ AuthRouter.post('/verify',
     }
     )
 );
+
+AuthRouter.post('/resend-verification',
+    
+        errorHandlerWrapper(
+        async (req, res) => {
+    
+            const { email } = req.body;
+    
+            const result = await AuthService.sendFirstVerificationEmailByEmail(email);
+    
+            return res.json({ message: 'VERIFICATION_EMAIL_RESENT' });
+        }
+        )
+    );
+    
 
 AuthRouter.post('/forgot-password',
     

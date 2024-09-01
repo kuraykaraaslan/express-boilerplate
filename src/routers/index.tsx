@@ -11,9 +11,20 @@ import V1Router from "./v1";
 
 const mainRouter = express.Router();
 
+mainRouter.use(express.static('public'));
+
 
 mainRouter.get('/', (req, res) => {
-    res.send('Welcome to the main router');
+    return res.send(
+        {
+            message: 'Welcome to the ExpressJS Boilerplate',
+            version: '1.0.0',
+            developer: 'Kuray Karaaslan',
+            repo: 'github.com/kuraykaraslan/expressjs-boilerplate',
+            github: 'github.com/kuraykaraslan',
+            linkedin: 'linkedin.com/in/kuraykaraslan'
+        }
+    );
 });
 
 mainRouter.use('/api/v1', V1Router);
@@ -21,9 +32,9 @@ mainRouter.use('/api/v1', V1Router);
 
 // return 404 if no route matched
 mainRouter.use((req: Request, res: Response) => {
-    res.status(404).send({ error: 'NOT_FOUND' });
-  });
+    return res.status(404).send({ error: 'NOT_FOUND' });
+});
 
-  
+
 
 export default mainRouter;

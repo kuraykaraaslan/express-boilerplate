@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { User } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
@@ -61,7 +61,7 @@ export default class UserService {
         return user as User;
     }
 
-    static async addRoles(userId: string, roles: Role[]): Promise<void> {
+    static async addRoles(userId: string, roles: String[]): Promise<void> {
         const user = await prisma.user.findUnique({
             where: {
                 userId
@@ -76,8 +76,8 @@ export default class UserService {
         var rolesArray = user.roles ? user.roles : [];
 
         for (let role of roles) {
-            if (!rolesArray.includes(role)) {
-                rolesArray.push(role);
+            if (!rolesArray.includes(role as string)) {
+                rolesArray.push(role as string);
             }
         }
 
@@ -93,7 +93,7 @@ export default class UserService {
 
     }
 
-    static async removeRoles(userId: string, roles: Role[]): Promise<void> {
+    static async removeRoles(userId: string, roles: String[]): Promise<void> {
         const user = await prisma.user.findUnique({
             where: {
                 userId
@@ -108,7 +108,7 @@ export default class UserService {
         var rolesArray = user.roles ? user.roles : [];
 
         for (let role of roles) {
-            if (rolesArray.includes(role)) {
+            if (rolesArray.includes(role as string)) {
                 rolesArray = rolesArray.filter((r) => r !== role);
             }
         }

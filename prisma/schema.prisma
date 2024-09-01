@@ -13,10 +13,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  USER
-  ADMIN
-}
 
 model User {
   userId String  @id @default(cuid())
@@ -53,7 +49,7 @@ model User {
   OTPCanUsePhone Boolean @default(false)
 
   sessions Session[]
-  roles Role[] @default([USER])
+  roles String[] @default(["USER"])
   wallets Wallet[]
 
   lastLogin DateTime?
