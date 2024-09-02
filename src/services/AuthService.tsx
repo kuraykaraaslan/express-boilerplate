@@ -1100,7 +1100,7 @@ export default class AuthService {
 
 
     static async callbackGoogle(code: string, state: string): Promise<any> {
-        //TODO
+        //TODO : Implement Google OAuth
         return null;
     }
 
