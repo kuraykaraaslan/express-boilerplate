@@ -52,7 +52,8 @@ model User {
 
   sessions Session[]
   roles String[] @default(["USER"])
-  wallets Wallet[]
+  cryptoWallets CryptoWallet[]
+  orders StoreOrder[]
 
   lastLogin DateTime?
   lastEmailSent DateTime?
@@ -105,7 +106,7 @@ model Incident {
   createdAt DateTime @default(now())
 }
 
-model Wallet {
+model CryptoWallet {
   walletId String @id @default(cuid())
 
   userId String
@@ -123,3 +124,64 @@ model Wallet {
 
 }
 
+// Ecommerce 
+model StoreCategory {
+  categoryId String @id @default(cuid())
+  name String
+  description String?
+  image String?
+  parentCategoryId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products StoreProduct[]
+
+}
+
+model StoreProduct {
+  productId String @id @default(cuid())
+  type String @default("PRODUCT") // PRODUCT, SERVICE, SUBSCRIPTION
+  delivery String @default("DIGITAL") // DIGITAL, PHYSICAL
+  name String
+  description String?
+  image String?
+  price Float
+  currency String
+
+  categoryId String
+  category StoreCategory @relation(fields: [categoryId], references: [categoryId])
+
+  stock Int? @default(0)
+  sold Int? @default(0)
+
+  orders StoreOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StoreOrder {
+  orderId String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [userId])
+
+  productId String
+  product StoreProduct @relation(fields: [productId], references: [productId])
+
+  status String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
+  paymentMethod String @default("WALLET") // WALLET, CARD, BANK, CRYPTO
+  paymentStatus String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
+  paymentId String?
+  paymentAmount Float
+  paymentCurrency String
+
+  deliveryStatus String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
+  deliveryMethod String @default("DIGITAL") // DIGITAL, PHYSICAL
+  deliveryAddress String?
+  deliveryDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

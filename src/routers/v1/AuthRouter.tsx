@@ -1,5 +1,6 @@
 /*
     This file is responsible for handling all the routes related to the authentication of the user.
+    If there is a route that is related to the authentication of the user, it should be here.
 */
 import express from "express"
 import AuthService from "../../services/AuthService";
@@ -8,32 +9,29 @@ import Response from '../../response/Response';
 import Request from '../../request/Request';
 import authMiddleware from "../../middlewares/authMiddleware";
 
-import axios from 'axios';
-
 const AuthRouter = express.Router();
 
 /*
     Those routes are public and can be accessed by anyone.
 */
 
+
 AuthRouter.get('/callback/:provider',
-    errorHandlerWrapper(
         async (req: Request, res: Response) => {
 
-            console.log(req.body);
+            try {
+                const { provider } = req.params;
+                const { code , state, scope } = req.query;
 
-            const { provider } = req.params;
-            const { code , state } = req.query;
+                let callback = await AuthService.callback(provider, code as string, state as string);
 
+                return res.redirect("http://localhost:3000/auth/sso?token=" + callback.token);
 
-            const callback = await AuthService.callback(provider, code as string, state as string);
-
-            console.log(callback);
-
-            return res.redirect("http://localhost:3000/auth/sso?token=" + callback.token);
+            } catch (error : any) {
+                return res.redirect("http://localhost:3000/auth/sso?error=SOMETHING_WENT_WRONG");
+            }
 
         }
-    )
 );
 
 

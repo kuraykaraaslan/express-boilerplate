@@ -274,8 +274,6 @@ export default class AuthService {
         // Check if token is valid
         const tokenWithoutBearer = token.substring(7);
 
-        console.log("Token without Bearer: " + tokenWithoutBearer); 
-
         const sessionWithUser = await AuthService.getSessionFromTokenAndExtendAday(tokenWithoutBearer);
         return sessionWithUser;
     }
@@ -935,9 +933,14 @@ export default class AuthService {
         });
     }
 
-    static async loginOrRegisterWithOAuth(email: string, name: string, avatar: string): Promise<any> {
+    static async loginOrRegisterWithOAuth(email: string, name: string, avatar?: string): Promise<any> {
 
         this.validateEmail(email);
+
+        console.log("loginOrRegisterWithOAuth");
+        console.log(email);
+        console.log(name);
+        console.log(avatar);
 
         const user = await this.findUserByEmail(email);
 
@@ -977,7 +980,7 @@ export default class AuthService {
             },
             data: {
                 name: name,
-                avatar: avatar,
+                //avatar: avatar ? avatar : user.avatar,
                 userId: user.userId,
                 email: user.email,
                 phone: user.phone,
@@ -997,15 +1000,26 @@ export default class AuthService {
         };
 
     }
-    
 
-    static async callback(provider: string, code: string, state: string): Promise<any> {
+
+    static async callback(provider: string, code: string, state: string, scope?: string): Promise<any> {
 
         let user = null;
+
+        const sqlInjectionRegex = /[\s\';"]/;
+
+        /*
+        if (sqlInjectionRegex.test(code) || sqlInjectionRegex.test(state) || (scope && sqlInjectionRegex.test(scope))) {
+            throw new Error('INVALID_INPUT');
+        }
+        */
 
         switch (provider) {
             case 'github':
                 user = await this.callbackGithub(code, state);
+                break;
+            case 'google':
+                user = await this.callbackGoogle(code, state);
                 break;
             default:
                 throw new Error('PROVIDER_NOT_FOUND');
@@ -1023,7 +1037,7 @@ export default class AuthService {
 
         const { token_type, access_token } =
 
-        await axios.post('https://github.com/login/oauth/access_token', {
+            await axios.post('https://github.com/login/oauth/access_token', {
                 client_id: process.env.GITHUB_CLIENT_ID,
                 client_secret: process.env.GITHUB_CLIENT_SECRET,
                 code: code,
@@ -1035,10 +1049,9 @@ export default class AuthService {
             }).then((response) => {
                 return response.data;
             }
-        ).catch((e) => {
-            console.log(e);
-            return null;
-        } );
+            ).catch((e) => {
+                return null;
+            });
 
         if (!access_token) {
             throw new Error('GITHUB_AUTH_FAILED');
@@ -1052,7 +1065,6 @@ export default class AuthService {
             return response.data;
         }
         ).catch((e) => {
-            console.log(e);
             return null;
         });
 
@@ -1067,7 +1079,7 @@ export default class AuthService {
             name: user.name,
             avatar: user.avatar_url
         };
-        
+
         if (!user.email) {
             const emails = await axios.get('https://api.github.com/user/emails', {
                 headers: {
@@ -1077,7 +1089,6 @@ export default class AuthService {
                 return response.data;
             }
             ).catch((e) => {
-                console.log(e);
                 return null;
             });
 
@@ -1095,13 +1106,93 @@ export default class AuthService {
         }
 
         return temp_user;
-        
+
     }
 
 
     static async callbackGoogle(code: string, state: string): Promise<any> {
-        //TODO : Implement Google OAuth
-        return null;
+        
+        var { expires_in, access_token , refresh_token } = await axios.post('https://oauth2.googleapis.com/token', {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            code: code,
+            redirect_uri: process.env.BACKEND_URL + '/api/v1/auth/callback/google',
+            grant_type: 'authorization_code'
+        }, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then((response) => {
+            return response.data;
+        }
+        ).catch((e) => {
+            return null;
+        });
+
+
+        console.log("access_token");
+        console.log(access_token);
+
+        if (!access_token) {
+            throw new Error('GOOGLE_AUTH_FAILED');
+        }
+
+        // https://oauth2.googleapis.com/token
+
+        var token_response = await axios.post('https://oauth2.googleapis.com/token?refresh_token=' + access_token + '&client_id=' + process.env.GOOGLE_CLIENT_ID + '&client_secret=' + process.env.GOOGLE_CLIENT_SECRET + '&grant_type=refresh_token', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then((response) => {
+            return response.data;
+        }
+        ).catch((e) => {
+            console.log(e);
+            return null;
+        });
+
+        const access_token_long = token_response.access_token;
+
+        console.log("access_token_long");
+
+        console.log(access_token_long);
+
+        if (!access_token_long) {
+            throw new Error('GOOGLE_AUTH_FAILED');
+        }
+
+        const user = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo?alt=json', {
+            headers: {
+                authorization: `Bearer ${access_token_long}`
+            }
+        }).then((response) => {
+            return response.data;
+        }
+        ).catch((e) => {
+            return null;
+        });
+
+        if (!user) {
+            console.log("GOOGLE_USER_NOT_FOUND");
+            throw new Error('GOOGLE_USER_NOT_FOUND');
+        }
+
+        const temp_user = {
+            email: user.email,
+            name: user.name,
+            avatar: user.picture
+        };
+
+        if (!user.email) {
+            throw new Error('GOOGLE_EMAIL_NOT_FOUND');
+        }
+
+        return temp_user;
+                
+    }
+
+    static async callbackFacebook(code: string, state: string): Promise<any> {
+        //TODO
     }
 
 }

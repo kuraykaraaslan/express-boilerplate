@@ -11,7 +11,7 @@ import WalletService from "../../services/Wallet/";
 
 const WalletRouter = express.Router();
 
-WalletRouter.use(authMiddleware);
+WalletRouter.use(authMiddleware('ADMIN'));
 
 /*
     Those routes are private and can only be accessed by authenticated users.

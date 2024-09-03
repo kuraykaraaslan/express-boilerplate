@@ -25,6 +25,7 @@ This project is a boilerplate for building a web application using Express.js. I
   - [Installation](#installation)
   - [Usage](#usage)
   - [Services](#services)
+  - [Roadmap](#roadmap)
   - [Development](#development)
   - [Dependencies](#dependencies)
   - [License](#license)
@@ -59,7 +60,24 @@ npm run dev # or `npm run start`
 
 The following services are available:
 - Authentication
-- 
+- Users
+- Crypto Wallets (by tatum.io)
+
+
+## Roadmap
+
+- [x] Add Prisma ORM
+- [x] Add User authentication
+- [ ] OTP authentication
+- [X] OAuth authentication
+- [x] Add API versioning
+- [ ] Add unit tests
+- [x] Add logging
+- [x] Add error handling
+- [ ] Add Blog service (posts, comments)
+- [ ] Add Ecommerce service (products, orders, payments)
+- [ ] Add Chat service (messages, rooms)
+- [ ] Add Notifications service
 
 ## Development
 

@@ -1,62 +1,66 @@
-import express , { NextFunction } from 'express';
+/*
+    This middleware is used to check if the user is authenticated and has the required role
+    If the user is not authenticated, it will return 401
+    If the user is authenticated but does not have the required role, it will return 401
+    If the user is authenticated and has the required role, it will call the next middleware
+    Default required role is 'USER'
+*/
+import express, { NextFunction } from 'express';
 import Response from '../response/Response';
 import Request from '../request/Request';
-import { User, Session } from '@prisma/client';
-
-import AuthService from '../services/AuthService';
 import Logger from '../helpers/Logger';
 
+import AuthService from '../services/AuthService';
+import errorHandlerWrapper from '../utils/errorHandlerWrapper';
 
-
-async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-
-    const NODE_ENV = process.env.NODE_ENV || 'development';
-    
-    const token = req.headers.authorization;
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    //TODO
-    const needAuth = req.needAuth || true;
-    const needAdmin = req.needAdmin || false;
-
-    // Allow guest if token is not present
-    if (!needAuth) {
-        Logger.info("[AUTH] Allow guest for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-        next();
-        return;
+const authMiddleware = function (requiredRoles: string | string[] | undefined) {
+    if (!requiredRoles) {
+        requiredRoles = ['USER'];
     }
 
-    const sessionWithUser = await AuthService.getSessionFromBearerToken(token as string);
-
-    if (!sessionWithUser) {
-        Logger.error("[AUTH] User not authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-        res.status(401).json({ message: "USER_NOT_AUTHENTICATED" });
-        return;
+    if (typeof requiredRoles === 'string') {
+        requiredRoles = [requiredRoles];
     }
 
-    // Check if OTP verification is needed
-    if (sessionWithUser.OTPNeeded) {
-        Logger.error("[AUTH] OTP verification needed for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-        res.status(401).json({ message: "OTP_VERIFICATION_NEEDED" });
-        return;
-    }
+    return errorHandlerWrapper(
+        async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+            const NODE_ENV = process.env.NODE_ENV || 'development';
+            const token = req.headers.authorization;
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    // Add user to request
-    const user = sessionWithUser.user;
+            // Allow guest if token is not present
+            if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
+                return next();
+            }
 
-    if (needAdmin && user.role !== 'SYSTEM_ADMIN') {
-        Logger.error("[AUTH] User not system admin for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-        res.status(401).json({ message: "USER_NOT_SYSTEM_ADMIN" });
-        return;
-    }
+            const sessionWithUser = await AuthService.getSessionFromBearerToken(token as string);
 
-    req.user = user;
+            if (!sessionWithUser) {
+                Logger.error("[AUTH] User not authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+                return res.status(401).json({ message: "USER_NOT_AUTHENTICATED" });
+            }
 
-    Logger.info("[AUTH] User authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+            // Check if OTP verification is needed
+            if (sessionWithUser.OTPNeeded) {
+                Logger.error("[AUTH] OTP verification needed for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+                return res.status(401).json({ message: "OTP_VERIFICATION_NEEDED" });
+            }
 
-    next();
+            // Add user to request
+            req.user = sessionWithUser.user;
+
+            for (let role of requiredRoles) {
+                if (!req.user.roles.includes(role)) {
+                    Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+                    return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
+                }
+            }
+
+            Logger.info("[AUTH] User authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+
+            next();
+        }
+    );
 }
 
-export default authMiddleware;
-
-
+export default authMiddleware ;

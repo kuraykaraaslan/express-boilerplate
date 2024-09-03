@@ -9,9 +9,21 @@ const prisma = new PrismaClient();
 export default class UserService {
 
     static listAllUsers(page: number, pageSize: number): Promise<any> {
-        return prisma.user.findMany({
-            skip: page * pageSize,
-            take: pageSize
+        return prisma.$transaction(
+            [
+                prisma.user.findMany({
+                    skip: page * pageSize,
+                    take: pageSize
+                }),
+                prisma.user.count()
+            ]
+        ).then((query) => {
+            return {
+                users: query[0],
+                total: query[1],
+                page,
+                pageSize
+            };
         });
     }
 

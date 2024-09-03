@@ -15,55 +15,58 @@ const UserRouter = express.Router();
 /*
     Those routes are private and can only be accessed by authenticated users.
 */
-UserRouter.use(authMiddleware);
+
+UserRouter.use(authMiddleware('ADMIN'));
 
 UserRouter.get('/',
+
     
-        errorHandlerWrapper(
-            async (req, res) => {
 
-                var { page, pageSize } = req.query as any;
+    errorHandlerWrapper(
+        async (req, res) => {
 
-                if (!page) {
-                  page = 0;
-                }
+            var { page, pageSize } = req.query as any;
 
-                if (!pageSize) {
-                  pageSize = 10;
-                }
-
-                const regex = /^[0-9]+$/;
-
-                if (!regex.test(page) || !regex.test(pageSize)) {
-                    return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
-                }
-
-                const result = await UserService.listAllUsers(page, pageSize);
-
-                return res.status(201).json(result);
-    
+            if (!page) {
+                page = 0;
             }
-        )
+
+            if (!pageSize) {
+                pageSize = 10;
+            }
+
+            const regex = /^[0-9]+$/;
+
+            if (!regex.test(page) || !regex.test(pageSize)) {
+                return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
+            }
+
+            const result = await UserService.listAllUsers(page, pageSize);
+
+            return res.status(201).json(result);
+
+        }
+    )
 );
 
 UserRouter.post('/',
-    
-        errorHandlerWrapper(
-            async (req, res) => {
 
-                const { email, password } = req.body as any;
+    errorHandlerWrapper(
+        async (req, res) => {
 
-                const result = await UserService.createUser(email, password);
+            const { email, password } = req.body as any;
 
-                return res.status(201).json(result);
+            const result = await UserService.createUser(email, password);
 
-            }
-        )
+            return res.status(201).json(result);
+
+        }
+    )
 );
 
 
 UserRouter.get('/:userId',
-    
+
     errorHandlerWrapper(
         async (req, res) => {
 
@@ -81,18 +84,18 @@ UserRouter.get('/:userId',
 /* Wallet Related Routes */
 
 UserRouter.get('/:userId/wallets',
-        
-        errorHandlerWrapper(
-            async (req, res) => {
-    
-                const { userId } = req.params;
-    
-                const result = await WalletService.getWalletsByUserId(userId);
-    
-                return res.status(201).json(result);
-    
-            }
-        )
+
+    errorHandlerWrapper(
+        async (req, res) => {
+
+            const { userId } = req.params;
+
+            const result = await WalletService.getWalletsByUserId(userId);
+
+            return res.status(201).json(result);
+
+        }
+    )
 );
 
 UserRouter.post('/:userId/wallets',
@@ -116,7 +119,7 @@ UserRouter.post('/:userId/wallets',
 );
 
 UserRouter.get('/:userId/wallets/:walletId',
-    
+
     errorHandlerWrapper(
         async (req, res) => {
 
@@ -131,7 +134,7 @@ UserRouter.get('/:userId/wallets/:walletId',
 );
 
 UserRouter.get('/:userId/wallets/:walletId/balance',
-    
+
     errorHandlerWrapper(
         async (req, res) => {
 

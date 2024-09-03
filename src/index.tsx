@@ -11,6 +11,17 @@ import cors from 'cors';
 import mainRouter from './routers';
 import Logger from './helpers/Logger';
 
+//dot env
+import dotenv from 'dotenv';
+
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+if (NODE_ENV === 'development') {
+  dotenv.config( { path: path.resolve(__dirname, '../.env.development') });
+} else {
+  dotenv.config({ path: '../.env.production' });
+}
+
 
 const app = express();
 const host = process.env.EXPRESS_HOST || 'http://localhost';

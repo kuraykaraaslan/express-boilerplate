@@ -1,4 +1,4 @@
-import { Wallet, PrismaClient } from "@prisma/client";
+import { CryptoWallet, PrismaClient } from "@prisma/client";
 import SolanaWalletService from "./SolanaWalletService";
 
 const prisma = new PrismaClient();
@@ -21,14 +21,14 @@ export default class WalletService {
 
         const query = await prisma.$transaction(
             [
-                prisma.wallet.findMany({
+                prisma.cryptoWallet.findMany({
                     skip,
                     take,
                     where: {
                         network: network ? network !== 'ALL' ? network : undefined : undefined
                     }
                 }),
-                prisma.wallet.count({
+                prisma.cryptoWallet.count({
                     where: {
                         network: network ? network !== 'ALL' ? network : undefined : undefined
                     }
@@ -46,7 +46,7 @@ export default class WalletService {
     }
 
     static async getWallet(walletId: string): Promise<any> {
-        return await prisma.wallet.findUnique({
+        return await prisma.cryptoWallet.findUnique({
             where: {
                 walletId: walletId
             }
@@ -55,7 +55,7 @@ export default class WalletService {
 
     static async getWalletByAddress(address: string): Promise<any> {
 
-        return await prisma.wallet.findFirst({
+        return await prisma.cryptoWallet.findFirst({
             where: {
                 address: address
             }
@@ -64,7 +64,7 @@ export default class WalletService {
 
     static async getWalletsByUserId(userId: string): Promise<any> {
 
-        return await prisma.wallet.findMany({
+        return await prisma.cryptoWallet.findMany({
             where: {
                 userId: userId
             },
@@ -79,7 +79,7 @@ export default class WalletService {
 
     static async getWalletsByUserIdAndNetwork(userId: string, network: string): Promise<any> {
 
-        return await prisma.wallet.findMany({
+        return await prisma.cryptoWallet.findMany({
             where: {
                 userId: userId,
                 network: network
@@ -117,7 +117,7 @@ export default class WalletService {
             throw new Error('WALLET_CREATION_FAILED');
         }
 
-        var created = await prisma.wallet.create({
+        var created = await prisma.cryptoWallet.create({
             data: {
                 memonic: wallet.memonic,
                 address: wallet.address,
