@@ -2,7 +2,6 @@
 
 ![express](/static/logo.png)
 
-
 This project is a boilerplate for building a web application using Express.js. It includes TypeScript for static typing, Prisma as an ORM, and various utilities to enhance the development process.
 
 ## Features
@@ -36,22 +35,25 @@ This project is a boilerplate for building a web application using Express.js. I
 ## Installation
 
 1. Clone the repository:
-    ```bash
-    git clone https://github.com/kuraykaraaslan/express-boilerplate.git
-    cd express-boilerplate
-    ```
+
+   ```bash
+   git clone https://github.com/kuraykaraaslan/express-boilerplate.git
+   cd express-boilerplate
+   ```
 
 2. Install dependencies:
-    ```bash
-    npm install
-    ```
+
+   ```bash
+   npm install
+   ```
 
 3. Set up your environment variables:
-    Create a `.env` file in the root directory and add your environment variables (e.g., database connection string).
+   Create a `.env` file in the root directory and add your environment variables (e.g., database connection string).
 
 ## Usage
 
 To start the application in development mode:
+
 ```bash
 npm run dev # or `npm run start`
 ```
@@ -59,17 +61,17 @@ npm run dev # or `npm run start`
 ## Services
 
 The following services are available:
+
 - Authentication
 - Users
 - Crypto Wallets (by tatum.io)
-
 
 ## Roadmap
 
 - [x] Add Prisma ORM
 - [x] Add User authentication
 - [ ] OTP authentication
-- [X] OAuth authentication
+- [x] OAuth authentication
 - [x] Add API versioning
 - [ ] Add unit tests
 - [x] Add logging
@@ -82,11 +84,13 @@ The following services are available:
 ## Development
 
 To build the application:
+
 ```bash
 npm run build
 ```
 
 To run the application in production mode:
+
 ```bash
 npm run start
 ```
@@ -100,12 +104,9 @@ npm run start
 - [morgan](https://www.npmjs.com/package/morgan)
 - [nodemon](https://www.npmjs.com/package/nodemon)
 
-
-
 ## License
 
 Diplomat is licensed under the MIT license. See [LICENSE](/LICENSE) for more information.
-
 
 ## Support
 
@@ -118,7 +119,6 @@ If you like the template and want to support my work, you can buy me a coffee:
 <a href="https://www.buymeacoffee.com/kuraykaraaslan" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 <a href="https://www.patreon.com/kuraykaraaslan" target="_blank"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patron!" style="height: 60px !important;width: 217px !important;" ></a>
-
 
 ## Hire Me
 

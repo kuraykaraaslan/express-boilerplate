@@ -1,18 +1,13 @@
-import { Request as R} from "express";
+import { Request as R } from "express";
 
 interface Request extends R {
+  user?: any;
+  body: any;
 
+  requestId?: string;
 
-    user?: any;
-    body: any;
-
-
-    requestId?: string;
-
-    needAuth?: boolean;
-    needAdmin?: boolean;
-    
-    
+  needAuth?: boolean;
+  needAdmin?: boolean;
 }
 
 export default Request;

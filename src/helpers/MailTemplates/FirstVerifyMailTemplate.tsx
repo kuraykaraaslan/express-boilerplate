@@ -1,11 +1,10 @@
-const FirstVerifyMailTemplate = (props: { email: string, code: string }) =>  {
-   
-    const {  email, code } = props;
+const FirstVerifyMailTemplate = (props: { email: string; code: string }) => {
+  const { email, code } = props;
 
-    const url = process.env.FRONTEND_URL + `/auth/verify-first?email=${email}&code=${code}`;
-    
+  const url =
+    process.env.FRONTEND_URL + `/auth/verify-first?email=${email}&code=${code}`;
 
-    const mailBody = `<div>
+  const mailBody = `<div>
     <p>Hi,</p>
     <p>Thank you for signing up with ${process.env.APP_NAME}!</p>
     <p>Your verification code is: ${code}</p>
@@ -15,9 +14,7 @@ const FirstVerifyMailTemplate = (props: { email: string, code: string }) =>  {
     <p
     </div>
     <p>If you did not sign up for ${process.env.APP_NAME}, please ignore this email.</p>`;
-    return mailBody;
-}
-
+  return mailBody;
+};
 
 export default FirstVerifyMailTemplate;
-

@@ -1,7 +1,10 @@
-const EmailChangedNotificationMailTemplate = (props: { targetEmail: string , newEmail: string }) => {
-    const { targetEmail , newEmail } = props;
+const EmailChangedNotificationMailTemplate = (props: {
+  targetEmail: string;
+  newEmail: string;
+}) => {
+  const { targetEmail, newEmail } = props;
 
-    const mailBody = `<div>
+  const mailBody = `<div>
         <p>Hi,</p>
         <p>Your email address ${targetEmail} has been changed to ${newEmail}.</p>
         <p>If you did not make this change, please contact us immediately.</p>
@@ -9,7 +12,7 @@ const EmailChangedNotificationMailTemplate = (props: { targetEmail: string , new
         <p>Thank you!</p>
         </div>`;
 
-    return mailBody;
-}
+  return mailBody;
+};
 
 export default EmailChangedNotificationMailTemplate;

@@ -1,82 +1,68 @@
 /*
     This file is responsible for handling all the routes related to the user.
 */
-import express from "express"
+import express from "express";
 import errorHandlerWrapper from "../../utils/errorHandlerWrapper";
 import authMiddleware from "../../middlewares/authMiddleware";
 
 import UserService from "../../services/UserService";
- 
+
 const UserRouter = express.Router();
 
 /*
     Those routes are private and can only be accessed by authenticated users.
 */
 
-UserRouter.use(authMiddleware('ADMIN'));
+UserRouter.use(authMiddleware("ADMIN"));
 
-UserRouter.get('/',
+UserRouter.get(
+  "/",
 
-    
+  errorHandlerWrapper(async (req, res) => {
+    let { page, pageSize } = req.query as any;
 
-    errorHandlerWrapper(
-        async (req, res) => {
+    if (!page) {
+      page = 0;
+    }
 
-            let { page, pageSize } = req.query as any;
+    if (!pageSize) {
+      pageSize = 10;
+    }
 
-            if (!page) {
-                page = 0;
-            }
+    const regex = /^[0-9]+$/;
 
-            if (!pageSize) {
-                pageSize = 10;
-            }
+    if (!regex.test(page) || !regex.test(pageSize)) {
+      return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
+    }
 
-            const regex = /^[0-9]+$/;
+    const result = await UserService.listAllUsers(page, pageSize);
 
-            if (!regex.test(page) || !regex.test(pageSize)) {
-                return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
-            }
-
-            const result = await UserService.listAllUsers(page, pageSize);
-
-            return res.status(201).json(result);
-
-        }
-    )
+    return res.status(201).json(result);
+  }),
 );
 
-UserRouter.post('/',
+UserRouter.post(
+  "/",
 
-    errorHandlerWrapper(
-        async (req, res) => {
+  errorHandlerWrapper(async (req, res) => {
+    const { email, password } = req.body as any;
 
-            const { email, password } = req.body as any;
+    const result = await UserService.createUser(email, password);
 
-            const result = await UserService.createUser(email, password);
-
-            return res.status(201).json(result);
-
-        }
-    )
+    return res.status(201).json(result);
+  }),
 );
 
+UserRouter.get(
+  "/:userId",
 
-UserRouter.get('/:userId',
+  errorHandlerWrapper(async (req, res) => {
+    const { userId } = req.params;
 
-    errorHandlerWrapper(
-        async (req, res) => {
+    const result = await UserService.getUserById(userId);
 
-            const { userId } = req.params;
-
-            const result = await UserService.getUserById(userId);
-
-            return res.status(201).json(result);
-
-        }
-    )
+    return res.status(201).json(result);
+  }),
 );
-
-
 
 export default UserRouter;
