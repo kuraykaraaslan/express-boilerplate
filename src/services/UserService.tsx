@@ -73,7 +73,7 @@ export default class UserService {
         return user as User;
     }
 
-    static async addRoles(userId: string, roles: String[]): Promise<void> {
+    static async addRoles(userId: string, roles: string[]): Promise<void> {
         const user = await prisma.user.findUnique({
             where: {
                 userId
@@ -85,9 +85,9 @@ export default class UserService {
         }
 
         //roles should be ['USER', 'ADMIN', 'SYSTEM_ADMIN']
-        var rolesArray = user.roles ? user.roles : [];
+        const rolesArray = user.roles ? user.roles : [];
 
-        for (let role of roles) {
+        for (const role of roles) {
             if (!rolesArray.includes(role as string)) {
                 rolesArray.push(role as string);
             }
@@ -105,7 +105,7 @@ export default class UserService {
 
     }
 
-    static async removeRoles(userId: string, roles: String[]): Promise<void> {
+    static async removeRoles(userId: string, roles: string[]): Promise<void> {
         const user = await prisma.user.findUnique({
             where: {
                 userId
@@ -117,9 +117,9 @@ export default class UserService {
         }
 
         //roles should be ['USER', 'ADMIN', 'SYSTEM_ADMIN']
-        var rolesArray = user.roles ? user.roles : [];
+        let rolesArray = user.roles ? user.roles : [];
 
-        for (let role of roles) {
+        for (const role of roles) {
             if (rolesArray.includes(role as string)) {
                 rolesArray = rolesArray.filter((r) => r !== role);
             }

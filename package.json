@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/kuraykaraaslan/express-boilerplate#readme",
   "devDependencies": {
+    "@eslint/js": "^9.9.1",
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
@@ -32,22 +33,23 @@
     "@types/node": "^20.14.10",
     "@types/nodemailer": "^6.4.15",
     "dotenv": "^16.4.5",
+    "eslint": "^9.9.1",
     "express": "^4.19.2",
+    "globals": "^15.9.0",
     "nodemon": "^3.1.4",
     "prisma": "^5.16.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^8.4.0"
   },
   "dependencies": {
     "@prisma/client": "^5.16.2",
-    "@tatumio/tatum": "^4.2.40",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "morgan": "^1.10.0",
     "nodemailer": "^6.9.14",
-    "path": "^0.12.7",
     "twilio": "^5.2.3"
   }
 }

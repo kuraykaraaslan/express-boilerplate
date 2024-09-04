@@ -1,9 +1,8 @@
 import { Response as R } from "express";
 
 class Response {
-    //@ts-ignore
+    
     status: (status: number) => Response;
-    //@ts-ignore
     json: (json: any) => void;
 
     constructor() {
@@ -11,7 +10,8 @@ class Response {
         this.json = (json: any) => {};
     }
 }
-// @ts-ignore
+
+// @ts-expect-error
 interface Response extends R {}
 
 export default Response;

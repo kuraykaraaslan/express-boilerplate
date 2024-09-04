@@ -1,8 +1,8 @@
 // Express server
-import express , { Request, Response } from 'express';
+import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
-import logger from 'morgan';
+//import logger from 'morgan';
 import gatewayMiddleware from './middlewares/gatewayMiddeware';
 import cors from 'cors';
 

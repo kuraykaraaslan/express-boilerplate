@@ -3,12 +3,10 @@
 */
 import express from "express"
 import errorHandlerWrapper from "../../utils/errorHandlerWrapper";
-import Response from '../../response/Response';
-import Request from '../../request/Request';
 import authMiddleware from "../../middlewares/authMiddleware";
 
 import UserService from "../../services/UserService";
-
+ 
 const UserRouter = express.Router();
 
 /*
@@ -24,7 +22,7 @@ UserRouter.get('/',
     errorHandlerWrapper(
         async (req, res) => {
 
-            var { page, pageSize } = req.query as any;
+            let { page, pageSize } = req.query as any;
 
             if (!page) {
                 page = 0;

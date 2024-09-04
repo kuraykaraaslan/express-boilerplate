@@ -1,4 +1,3 @@
-import { Incident } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import Response from '../response/Response';
 import Request from '../request/Request';

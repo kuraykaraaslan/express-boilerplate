@@ -23,7 +23,7 @@ AuthRouter.get('/callback/:provider',
                 const { provider } = req.params;
                 const { code , state, scope } = req.query;
 
-                let callback = await AuthService.callback(provider, code as string, state as string);
+                const callback = await AuthService.callback(provider, code as string, state as string);
 
                 return res.redirect("http://localhost:3000/auth/sso?token=" + callback.token);
 
@@ -42,7 +42,7 @@ AuthRouter.post('/register',
 
             const { email, password } = req.body;
 
-            const result = await AuthService.createUser(email, password);
+            await AuthService.createUser(email, password);
 
             return res.status(201).json({ message: 'USER_CREATED' });
 
@@ -71,7 +71,7 @@ AuthRouter.post('/verify',
 
         const { email, code } = req.body;
 
-        const result = await AuthService.verifyFirstVerificationEmail(email, code);
+        await AuthService.verifyFirstVerificationEmail(email, code);
 
         return res.json({ message: 'USER_VERIFIED' });
     }
@@ -85,7 +85,7 @@ AuthRouter.post('/resend-verification',
     
             const { email } = req.body;
     
-            const result = await AuthService.sendFirstVerificationEmailByEmail(email);
+            await AuthService.sendFirstVerificationEmailByEmail(email);
     
             return res.json({ message: 'VERIFICATION_EMAIL_RESENT' });
         }
@@ -114,7 +114,7 @@ AuthRouter.post('/reset-password',
     
             const { email, code, password } = req.body;
     
-            const result = await AuthService.verifyForgotPasswordEmail(email, code, password);
+            await AuthService.verifyForgotPasswordEmail(email, code, password);
     
             return res.json({ message: 'PASSWORD_RESET' });
         }
@@ -132,7 +132,7 @@ AuthRouter.post('/otp/sms-send',
 
             const { authorization } = req.body;
 
-            const result = await AuthService.sendOTPPhone(authorization as string);
+            await AuthService.sendOTPPhone(authorization as string);
 
             return res.json({ message: 'OTP_SENT' });
         }
@@ -145,7 +145,7 @@ AuthRouter.post('/otp/email-send',
 
             const { authorization } = req.body;
 
-            const result = await AuthService.sendOTPEmail(authorization as string);
+            await AuthService.sendOTPEmail(authorization as string);
 
             return res.json({ message: 'OTP_SENT' });
         }
@@ -158,7 +158,7 @@ AuthRouter.post('/otp/sms-verify',
 
             const { authorization, code } = req.body;
 
-            const result = await AuthService.verifyOTPPhone(authorization, code);
+            await AuthService.verifyOTPPhone(authorization, code);
 
             return res.json({ message: 'OTP_VERIFIED' });
         }
@@ -171,7 +171,7 @@ AuthRouter.post('/otp/email-verify',
 
             const { authorization, code } = req.body;
 
-            const result = await AuthService.verifyOTPEmail(authorization, code);
+            await AuthService.verifyOTPEmail(authorization, code);
 
             return res.json({ message: 'OTP_VERIFIED' });
         }
@@ -205,7 +205,7 @@ AuthRouter.post('/logout',
 
             const user = req.user;
 
-            const result = await AuthService.revokeAllSessionsbyUserId(user.id);
+            await AuthService.revokeAllSessionsbyUserId(user.id);
 
             return res.json({ message: 'LOGGED_OUT' });
         }

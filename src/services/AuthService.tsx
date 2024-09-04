@@ -308,7 +308,7 @@ export default class AuthService {
                 expiresAt: true,
                 OTPNeeded: true
             }
-        }).catch((e) => {
+        }).catch((error) => {
             return null;
         });
 
@@ -1006,7 +1006,7 @@ export default class AuthService {
 
         let user = null;
 
-        const sqlInjectionRegex = /[\s\';"]/;
+        const sqlInjectionRegex = /[\s\';"\\]/;
 
         /*
         if (sqlInjectionRegex.test(code) || sqlInjectionRegex.test(state) || (scope && sqlInjectionRegex.test(scope))) {
@@ -1074,7 +1074,7 @@ export default class AuthService {
 
         //
 
-        var temp_user = {
+        const temp_user = {
             email: user.email,
             name: user.name,
             avatar: user.avatar_url
@@ -1112,7 +1112,7 @@ export default class AuthService {
 
     static async callbackGoogle(code: string, state: string): Promise<any> {
         
-        var { expires_in, access_token , refresh_token } = await axios.post('https://oauth2.googleapis.com/token', {
+        const { expires_in, access_token , refresh_token } = await axios.post('https://oauth2.googleapis.com/token', {
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
             code: code,
@@ -1139,7 +1139,7 @@ export default class AuthService {
 
         // https://oauth2.googleapis.com/token
 
-        var token_response = await axios.post('https://oauth2.googleapis.com/token?refresh_token=' + access_token + '&client_id=' + process.env.GOOGLE_CLIENT_ID + '&client_secret=' + process.env.GOOGLE_CLIENT_SECRET + '&grant_type=refresh_token', {
+        const token_response = await axios.post('https://oauth2.googleapis.com/token?refresh_token=' + access_token + '&client_id=' + process.env.GOOGLE_CLIENT_ID + '&client_secret=' + process.env.GOOGLE_CLIENT_SECRET + '&grant_type=refresh_token', {
             headers: {
                 'Accept': 'application/json'
             }

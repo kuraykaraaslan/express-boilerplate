@@ -5,7 +5,7 @@
     If the user is authenticated and has the required role, it will call the next middleware
     Default required role is 'USER'
 */
-import express, { NextFunction } from 'express';
+import { NextFunction } from 'express';
 import Response from '../response/Response';
 import Request from '../request/Request';
 import Logger from '../helpers/Logger';
@@ -24,7 +24,6 @@ const authMiddleware = function (requiredRoles: string | string[] | undefined) {
 
     return errorHandlerWrapper(
         async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-            const NODE_ENV = process.env.NODE_ENV || 'development';
             const token = req.headers.authorization;
             const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
@@ -49,7 +48,7 @@ const authMiddleware = function (requiredRoles: string | string[] | undefined) {
             // Add user to request
             req.user = sessionWithUser.user;
 
-            for (let role of requiredRoles) {
+            for (const role of requiredRoles) {
                 if (!req.user.roles.includes(role)) {
                     Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl + " from IP: " + ip, req, res);
                     return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
