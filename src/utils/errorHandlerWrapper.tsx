@@ -8,12 +8,20 @@ const errorHandlerWrapper = (fn: (req: Request, res: Response, next: NextFunctio
         await fn(req, res, next);
     } catch (error: any) {
 
+        const NODE_ENV = process.env.NODE_ENV || 'production';
+
         Logger.error(error.message, req, res);
 
-        res.status(error.code || 500).json({
-            error: error.message || "Internal Server Error",
-        });
-    }
-};
+        if (NODE_ENV === 'development') {
+            res.status(error.code || 500).json({
+                error: error.message || "INTERNAL_SERVER_ERROR",
+            });
+        } else {
+            res.status(error.code || 500).json({
+                error: "INTERNAL_SERVER_ERROR",
+            });
+        }
+    };
+}
 
 export default errorHandlerWrapper;

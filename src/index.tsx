@@ -3,7 +3,6 @@ import express , { Request, Response } from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
-import errorMiddleware from './middlewares/errorMiddleware';
 import gatewayMiddleware from './middlewares/gatewayMiddeware';
 import cors from 'cors';
 

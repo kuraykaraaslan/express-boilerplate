@@ -8,7 +8,6 @@ import Request from '../../request/Request';
 import authMiddleware from "../../middlewares/authMiddleware";
 
 import UserService from "../../services/UserService";
-import WalletService from "../../services/Wallet";
 
 const UserRouter = express.Router();
 
@@ -81,71 +80,5 @@ UserRouter.get('/:userId',
 );
 
 
-/* Wallet Related Routes */
-
-UserRouter.get('/:userId/wallets',
-
-    errorHandlerWrapper(
-        async (req, res) => {
-
-            const { userId } = req.params;
-
-            const result = await WalletService.getWalletsByUserId(userId);
-
-            return res.status(201).json(result);
-
-        }
-    )
-);
-
-UserRouter.post('/:userId/wallets',
-
-    errorHandlerWrapper(
-        async (req, res) => {
-
-            const { userId } = req.params;
-            const { network } = req.body as any;
-
-            if (!network) {
-                return res.status(400).json({ message: "NETWORK_REQUIRED" });
-            }
-
-            const result = await WalletService.createWalletWithUserAndNetwork(userId, network);
-
-            return res.status(201).json(result);
-
-        }
-    )
-);
-
-UserRouter.get('/:userId/wallets/:walletId',
-
-    errorHandlerWrapper(
-        async (req, res) => {
-
-            const { userId, walletId } = req.params;
-
-            const result = await WalletService.getWallet(walletId);
-
-            return res.status(201).json(result);
-
-        }
-    )
-);
-
-UserRouter.get('/:userId/wallets/:walletId/balance',
-
-    errorHandlerWrapper(
-        async (req, res) => {
-
-            const { userId, walletId } = req.params;
-
-            const result = await WalletService.getBalance(walletId);
-
-            return res.status(201).json(result);
-
-        }
-    )
-);
 
 export default UserRouter;

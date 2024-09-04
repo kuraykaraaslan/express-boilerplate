@@ -4,7 +4,6 @@
 */
 import express from "express"
 import AuthRouter from "./AuthRouter";
-import WalletRouter from "./WalletRouter";
 import UserRouter from "./UserRouter";
 
 const v1Router = express.Router();
@@ -14,7 +13,6 @@ v1Router.get('/', (req, res) => {
 });
 
 v1Router.use('/auth', AuthRouter);
-v1Router.use('/wallets', WalletRouter);
 v1Router.use('/users', UserRouter);
 
 
