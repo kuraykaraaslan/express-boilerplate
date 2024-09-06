@@ -11,6 +11,7 @@ import axios from "axios";
 const prisma = new PrismaClient();
 
 export default class AuthService {
+
   /* Validaters */
 
   static validateEmail(email: string): void {
@@ -96,6 +97,7 @@ export default class AuthService {
   }
 
   static async rateLimiterEmail(user: User): Promise<void> {
+
     if (
       user.lastEmailSent &&
       new Date(user.lastEmailSent) > new Date(Date.now() - 1000 * 60 * 2)
@@ -133,7 +135,7 @@ export default class AuthService {
 
   static checkIfUserIsVerified(user: User): void {
     if (!user.verified) {
-      this.sendFirstVerificationEmail(user.userId);
+      this.sendFirstVerificationEmail(user);
 
       if (process.env.NODE_ENV === "development") {
         return;
@@ -186,14 +188,17 @@ export default class AuthService {
 
   /* Creators */
 
-  static async createSession(userId: string): Promise<Session> {
+  static async createSession(user: User, byOAuth: boolean = false): Promise<any> {
     const token = bcrypt.hashSync(Math.random().toString(36).substring(7), 10);
 
     const session = await prisma.session.create({
       data: {
-        userId: userId,
+        userId: user.userId,
         token: token,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 1 week
+        OTPNeeded: byOAuth ? false : user.OTPEnabled,
+        OTPCanUseEmail: user.OTPCanUseEmail,
+        OTPCanUsePhone: user.OTPCanUsePhone,
       },
     });
 
@@ -240,7 +245,7 @@ export default class AuthService {
 
     await this.comparePassword(password, user.password);
 
-    const session = await this.createSession(user.userId);
+    const session = await this.createSession(user);
 
     // update user last login
     await prisma.user.update({
@@ -254,6 +259,11 @@ export default class AuthService {
 
     return {
       token: session.token,
+      OTP: {
+        OTPNeeded: session.OTPNeeded,
+        OTPCanUseEmail: session.OTPCanUseEmail,
+        OTPCanUsePhone: session.OTPCanUsePhone,
+      },
       user: {
         userId: user.userId,
         email: user.email,
@@ -308,6 +318,10 @@ export default class AuthService {
               language: true,
               theme: true,
               avatar: true,
+              OTPEnabled: true,
+              OTPCanUseEmail: true,
+              OTPCanUsePhone: true,
+              lastLogin: true,
             },
           },
           expiresAt: true,
@@ -326,15 +340,8 @@ export default class AuthService {
   }
 
   /* Verifiers */
-  static async sendFirstVerificationEmail(userId: string): Promise<void> {
+  static async sendFirstVerificationEmail(user: User): Promise<void> {
     //TODO
-
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
-
     if (!user) {
       throw new Error("USER_NOT_FOUND");
     }
@@ -353,7 +360,7 @@ export default class AuthService {
 
     await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         verificationToken: verificationToken,
@@ -373,7 +380,7 @@ export default class AuthService {
       throw new Error("USER_NOT_FOUND");
     }
 
-    await this.sendFirstVerificationEmail(user.userId);
+    await this.sendFirstVerificationEmail(user);
   }
 
   static async verifyFirstVerificationEmail(
@@ -419,12 +426,7 @@ export default class AuthService {
     });
   }
 
-  static async sendPasswordResetEmail(userId: string): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
+  static async sendPasswordResetEmail(user: User): Promise<void> {
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -432,7 +434,7 @@ export default class AuthService {
 
     /*
         await this.rateLimiterEmail(user);
-        */
+    */
 
     const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -440,7 +442,7 @@ export default class AuthService {
 
     await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         passwordResetToken: resetToken,
@@ -501,6 +503,10 @@ export default class AuthService {
         - Be sure to check if the session the previous step is verified
         */
 
+    if (!sessionToken) {
+      throw new Error("SESSION_NOT_FOUND");
+    }
+
     const session = await prisma.session.findUnique({
       where: {
         token: sessionToken,
@@ -513,6 +519,8 @@ export default class AuthService {
             userId: true,
             OTPEnabled: true,
             OTPCanUseEmail: true,
+            lastEmailSent: true,
+            lastPhoneSent: true,
           },
         },
         OTPNeeded: true,
@@ -558,6 +566,15 @@ export default class AuthService {
     sessionToken: string,
     code: string,
   ): Promise<void> {
+
+    if (!sessionToken) {
+      throw new Error("SESSION_NOT_FOUND");
+    }
+
+    if (!code) {
+      throw new Error("INVALID_OTP_CODE");
+    }
+
     const session = await prisma.session.findUnique({
       where: {
         token: sessionToken,
@@ -586,6 +603,8 @@ export default class AuthService {
         OTPVerificationEmailCodeExpires: null,
       },
     });
+
+    Logger.info(`OTP for ${sessionToken} verified`);
   }
 
   static async sendOTPPhone(sessionToken: string): Promise<void> {
@@ -594,6 +613,10 @@ export default class AuthService {
         - We will only send OTP to the phone
         - Be sure to check if the session the previous step is verified
         */
+
+    if (!sessionToken) {
+      throw new Error("SESSION_NOT_FOUND");
+    }
 
     const session = await prisma.session.findUnique({
       where: {
@@ -607,6 +630,8 @@ export default class AuthService {
             userId: true,
             OTPEnabled: true,
             OTPCanUsePhone: true,
+            lastEmailSent: true,
+            lastPhoneSent: true,
           },
         },
         OTPNeeded: true,
@@ -656,6 +681,16 @@ export default class AuthService {
     sessionToken: string,
     code: string,
   ): Promise<void> {
+
+    if (!sessionToken) {
+      throw new Error("SESSION_NOT_FOUND");
+    }
+
+    if (!code) {
+      throw new Error("INVALID_OTP");
+    }
+
+
     const session = await prisma.session.findUnique({
       where: {
         token: sessionToken,
@@ -684,18 +719,15 @@ export default class AuthService {
         OTPVerificationPhoneCodeExpires: null,
       },
     });
+
+    Logger.info(`OTP for ${sessionToken} verified`);
   }
 
   /* Updaters */
   static async sendEmailChangeEmail(
-    userId: string,
+    user: User,
     newEmail: string,
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -717,7 +749,7 @@ export default class AuthService {
 
     await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         emailChangeToken: changeToken,
@@ -730,14 +762,9 @@ export default class AuthService {
   }
 
   static async verifyEmailChangeEmail(
-    userId: string,
+    user: User,
     code: string,
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -773,7 +800,7 @@ export default class AuthService {
 
     await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         email: user.emailChangeAddress,
@@ -785,14 +812,9 @@ export default class AuthService {
   }
 
   static async sendPhoneChangeSMS(
-    userId: string,
+    user: User,
     newPhone: number,
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -814,7 +836,7 @@ export default class AuthService {
 
     const updatedUser = await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         phoneChangeToken: changeToken,
@@ -827,14 +849,9 @@ export default class AuthService {
   }
 
   static async verifyPhoneChangeSMS(
-    userId: string,
+    user: User,
     code: string,
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
-      where: {
-        userId: userId,
-      },
-    });
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -872,7 +889,7 @@ export default class AuthService {
 
     await prisma.user.update({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
       data: {
         phone: user.phoneChangeNumber,
@@ -896,7 +913,7 @@ export default class AuthService {
         await this.rateLimiterEmail(user);
         */
 
-    this.sendPasswordResetEmail(user.userId);
+    this.sendPasswordResetEmail(user);
   }
 
   static async verifyForgotPasswordEmail(
@@ -951,10 +968,10 @@ export default class AuthService {
     });
   }
 
-  static async revokeAllSessionsbyUserId(userId: string): Promise<void> {
+  static async revokeAllSessionsbyUserId(user: User): Promise<void> {
     await prisma.session.deleteMany({
       where: {
-        userId: userId,
+        userId: user.userId,
       },
     });
   }
@@ -965,11 +982,6 @@ export default class AuthService {
     avatar?: string,
   ): Promise<any> {
     this.validateEmail(email);
-
-    console.log("loginOrRegisterWithOAuth");
-    console.log(email);
-    console.log(name);
-    console.log(avatar);
 
     const user = await this.findUserByEmail(email);
 
@@ -983,10 +995,15 @@ export default class AuthService {
         },
       });
 
-      const session = await this.createSession(newUser.userId);
+      const session = await this.createSession(newUser, false);
 
       return {
         token: session.token,
+        OTP: {
+          OTPNeeded: session.OTPNeeded,
+          OTPCanUseEmail: session.OTPCanUseEmail,
+          OTPCanUsePhone: session.OTPCanUsePhone,
+        },
         user: {
           userId: newUser.userId,
           email: newUser.email,
@@ -999,7 +1016,7 @@ export default class AuthService {
 
     this.checkIfUserIsVerified(user);
 
-    const session = await this.createSession(user.userId);
+    const session = await this.createSession(user);
 
     //update user name and avatar
     const updatedUser = await prisma.user.update({
@@ -1169,9 +1186,6 @@ export default class AuthService {
         return null;
       });
 
-    console.log("access_token");
-    console.log(access_token);
-
     if (!access_token) {
       throw new Error("GOOGLE_AUTH_FAILED");
     }
@@ -1197,15 +1211,11 @@ export default class AuthService {
         return response.data;
       })
       .catch((e) => {
-        console.log(e);
         return null;
       });
 
     const access_token_long = token_response.access_token;
 
-    console.log("access_token_long");
-
-    console.log(access_token_long);
 
     if (!access_token_long) {
       throw new Error("GOOGLE_AUTH_FAILED");
@@ -1225,7 +1235,6 @@ export default class AuthService {
       });
 
     if (!user) {
-      console.log("GOOGLE_USER_NOT_FOUND");
       throw new Error("GOOGLE_USER_NOT_FOUND");
     }
 
@@ -1245,4 +1254,182 @@ export default class AuthService {
   static async callbackFacebook(code: string, state: string): Promise<any> {
     //TODO
   }
+
+  static async enableEmailOTP(user: User): Promise<void> {
+    
+    if (user.OTPCanUseEmail) {
+      throw new Error("OTP_ALREADY_ENABLED");
+    }
+
+    //check if user has email
+    if (!user.email) {
+      throw new Error("EMAIL_NOT_FOUND");
+    }
+
+    //check if user is verified
+    if (!user.verified) {
+      throw new Error("USER_NOT_VERIFIED");
+    }
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        OTPEnabled: true,
+        OTPCanUseEmail: true,
+      },
+    });
+  }
+
+  static async enablePhoneOTP(user: User): Promise<void> {
+    if (user.OTPCanUsePhone) {
+      throw new Error("OTP_ALREADY_ENABLED");
+    }
+
+    //check if user has phone
+    if (!user.phone) {
+      throw new Error("PHONE_NOT_FOUND");
+    }
+
+    //check if user is verified
+    if (!user.verified) {
+      throw new Error("USER_NOT_VERIFIED");
+    }
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        OTPEnabled: true,
+        OTPCanUsePhone: true,
+      },
+    });
+  }
+
+  static async disableEmailOTP(user: User): Promise<void> {
+    if (!user.OTPCanUseEmail) {
+      throw new Error("OTP_ALREADY_DISABLED");
+    }
+
+    //if user has no phone otp enabled, disable otp
+    if (!user.OTPCanUsePhone) {
+      await prisma.user.update({
+        where: {
+          userId: user.userId,
+        },
+        data: {
+          OTPEnabled: false,
+          OTPCanUseEmail: false,
+        },
+      });
+      return;
+    } else {
+      await prisma.user.update({
+        where: {
+          userId: user.userId,
+        },
+        data: {
+          OTPCanUseEmail: false,
+        },
+      });
+    }
+  }
+
+  static async disablePhoneOTP(user: User): Promise<void> {
+    if (!user.OTPCanUsePhone) {
+      throw new Error("OTP_ALREADY_DISABLED");
+    }
+
+    //if user has no email otp enabled, disable otp
+    if (!user.OTPCanUseEmail) {
+      await prisma.user.update({
+        where: {
+          userId: user.userId,
+        },
+        data: {
+          OTPEnabled: false,
+          OTPCanUsePhone: false,
+        },
+      });
+      return;
+    } else {
+      await prisma.user.update({
+        where: {
+          userId: user.userId,
+        },
+        data: {
+          OTPCanUsePhone: false,
+        },
+      });
+    }
+  }
+
+  static async disableOTP(user: User): Promise<void> {
+    
+    if (!user.OTPEnabled) {
+      throw new Error("OTP_ALREADY_DISABLED");
+    }
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        OTPEnabled: false,
+        OTPCanUseEmail: false,
+        OTPCanUsePhone: false,
+      },
+    });
+
+    return;
+  }
+
+
+  // This function is only for development purposes
+
+  static async getTheEmailFromEnvAndMakeItAdmin(): Promise<void> {
+    const email = process.env.SUPER_ADMIN_EMAIL;
+
+    if (!email) {
+      throw new Error("ADMIN_EMAIL_NOT_FOUND");
+    }
+
+    const user = await this.findUserByEmail(email);
+
+    if (!user) {
+      throw new Error("ADMIN_USER_NOT_FOUND");
+    }
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        roles: {
+          set: ["ADMIN", "USER"],
+        },
+        verified: true,
+        verificationToken: null,
+        verificationTokenExpires: null,
+      },
+    });
+  }
+
+  
+  static checkIfUserHasRole(user: User, roles: string[] | string): boolean {
+
+    if (!user.roles) {
+      return false;
+    }
+    if (!Array.isArray(roles)) {
+      roles = [roles];
+    }
+    
+    const result = roles.every(role => user.roles.includes(role));
+    return result;
+  }
+
+
 }

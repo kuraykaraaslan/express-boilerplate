@@ -6,6 +6,7 @@ import PhoneChangeSMSTemplate from "./SMSTemplates/PhoneChangeSMSTemplate";
 import PhoneChangedSMSNotifcationTemplate from "./SMSTemplates/PhoneChangedSMSNotifcationTemplate";
 
 export default class SendSMS {
+
   public static async sendOTP(phone: number, code: string): Promise<void> {
     const message = OTPSMSTemplate({ code: code });
     await this.MultiVendorSelector(phone.toString(), message);

@@ -1,17 +1,19 @@
 {
   "name": "express-boilerplate",
   "version": "1.0.0",
-  "description": "ExpressJS based API boilerplate for my app development",
+  "description": "ExpressJS based API boilerplate",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index.tsx",
     "dev": "NODE_ENV=development nodemon --exec ts-node src/index.tsx",
     "build": "NODE_ENV=production tsc -p .",
-    "migrate:dev": "dotenv -e  .env.development prisma migrate dev --name init",
-    "migrate:prod": "dotenv -e  .env.production prisma migrate deploy",
+    "migrate:dev": "npx dotenv -e  .env.development prisma migrate dev --name init",
+    "migrate:prod": "npx dotenv -e  .env.production prisma migrate deploy",
     "generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "eslint . --ext .ts,.tsx",
+    "prettier": "prettier ."
   },
   "repository": {
     "type": "git",

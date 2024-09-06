@@ -13,6 +13,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model SystemSetting {
+  key String @unique @id
+  value String
+}
 
 model User {
   userId String  @id @default(cuid())
@@ -45,6 +49,7 @@ model User {
 
   language String? @default("en")
   theme String? @default("light")
+  timezone String? @default("UTC")
 
   OTPEnabled Boolean @default(false)
   OTPCanUseEmail Boolean @default(false)
@@ -52,9 +57,7 @@ model User {
 
   sessions Session[]
   roles String[] @default(["USER"])
-  cryptoWallets CryptoWallet[]
-  orders StoreOrder[]
-
+  
   lastLogin DateTime?
   lastEmailSent DateTime?
   lastPhoneSent DateTime?
@@ -62,6 +65,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+
+  // Relations
+  tenantmemberships TenantMember[]
 
 }
 
@@ -80,15 +86,16 @@ model Session {
 
   OTPNeeded Boolean @default(false)
 
+  OTPCanUsePhone Boolean @default(false)
   OTPVerificationPhoneCode String?
   OTPVerificationPhoneCodeExpires DateTime?
 
+  OTPCanUseEmail Boolean @default(false)
   OTPVerificationEmailCode String?
   OTPVerificationEmailCodeExpires DateTime?
 
   user User @relation(fields: [userId], references: [userId])
 }
-
 
 model Incident {
   logId String @id @default(cuid())
@@ -106,82 +113,45 @@ model Incident {
   createdAt DateTime @default(now())
 }
 
-model CryptoWallet {
-  walletId String @id @default(cuid())
+// Tenant
 
+model TenantSetting {
+  tenantId String
+  key String
+  value String
+
+  @@id([tenantId, key])
+}
+
+model Tenant {
+  tenantId String @id @default(cuid())
+  name String
+  domain String @unique
+  logo String?
+  favicon String?
+  theme String? @default("light")
+  language String? @default("en")
+  timezone String? @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Members
+  members TenantMember[] 
+}
+
+model TenantMember {
+
+  tenantMemberId String @id @default(cuid())
+  tenantId String
   userId String
+
+  roles String[] @default(["USER"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [tenantId])
   user User @relation(fields: [userId], references: [userId])
 
-  network String
-  memonic String?
-  address String
-  privateKey String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, network])
-
-}
-
-// Ecommerce 
-model StoreCategory {
-  categoryId String @id @default(cuid())
-  name String
-  description String?
-  image String?
-  parentCategoryId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  products StoreProduct[]
-
-}
-
-model StoreProduct {
-  productId String @id @default(cuid())
-  type String @default("PRODUCT") // PRODUCT, SERVICE, SUBSCRIPTION
-  delivery String @default("DIGITAL") // DIGITAL, PHYSICAL
-  name String
-  description String?
-  image String?
-  price Float
-  currency String
-
-  categoryId String
-  category StoreCategory @relation(fields: [categoryId], references: [categoryId])
-
-  stock Int? @default(0)
-  sold Int? @default(0)
-
-  orders StoreOrder[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model StoreOrder {
-  orderId String @id @default(cuid())
-
-  userId String
-  user User @relation(fields: [userId], references: [userId])
-
-  productId String
-  product StoreProduct @relation(fields: [productId], references: [productId])
-
-  status String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
-  paymentMethod String @default("WALLET") // WALLET, CARD, BANK, CRYPTO
-  paymentStatus String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
-  paymentId String?
-  paymentAmount Float
-  paymentCurrency String
-
-  deliveryStatus String @default("PENDING") // PENDING, PROCESSING, COMPLETED, CANCELLED
-  deliveryMethod String @default("DIGITAL") // DIGITAL, PHYSICAL
-  deliveryAddress String?
-  deliveryDate DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }

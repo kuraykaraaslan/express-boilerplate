@@ -1,10 +1,14 @@
-import { PrismaClient } from "@prisma/client";
-import { User } from "@prisma/client";
+import prisma, { User }  from "../libs/prisma";
 import bcrypt from "bcrypt";
+import AuthService from "./AuthService";
 
-const prisma = new PrismaClient();
 
 export default class UserService {
+
+  // Link to AuthService static methods
+  static checkIfUserHasRole = AuthService.checkIfUserHasRole;
+
+  
   static listAllUsers(page: number, pageSize: number): Promise<any> {
     return prisma
       .$transaction([
@@ -134,4 +138,13 @@ export default class UserService {
       },
     });
   }
+
+  static async deleteUser(userId: string): Promise<void> {
+    await prisma.user.delete({
+      where: {
+        userId,
+      },
+    });
+  }
+
 }

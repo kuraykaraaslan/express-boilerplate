@@ -5,6 +5,7 @@
 import express from "express";
 import AuthRouter from "./AuthRouter";
 import UserRouter from "./UserRouter";
+import TenantRouter from "./TenantRouter";
 
 const v1Router = express.Router();
 
@@ -14,5 +15,6 @@ v1Router.get("/", (req, res) => {
 
 v1Router.use("/auth", AuthRouter);
 v1Router.use("/users", UserRouter);
+v1Router.use("/tenants", TenantRouter);
 
 export default v1Router;

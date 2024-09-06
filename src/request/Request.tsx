@@ -1,13 +1,16 @@
 import { Request as R } from "express";
 
 interface Request extends R {
-  user?: any;
-  body: any;
 
   requestId?: string;
 
-  needAuth?: boolean;
-  needAdmin?: boolean;
+  // User and Tenant are set by the auth middleware and tenant middleware
+  user?: any;
+  tenant?: any;
+  tenantMember?: any;
+
+  body: any;
+
 }
 
 export default Request;
