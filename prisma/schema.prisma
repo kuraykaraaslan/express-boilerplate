@@ -155,3 +155,26 @@ model TenantMember {
   user User @relation(fields: [userId], references: [userId])
 
 }
+
+// S3 Bucket File
+model File {
+
+  fileId String @id @default(cuid())
+
+  tenantId String
+  userId String
+
+  key String
+  url String
+
+
+  size Int
+  mimetype String 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  relatedToModel String?
+  relatedToId String?
+
+}

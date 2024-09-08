@@ -997,6 +997,8 @@ export default class AuthService {
 
       const session = await this.createSession(newUser, false);
 
+
+
       return {
         token: session.token,
         OTP: {
@@ -1016,7 +1018,10 @@ export default class AuthService {
 
     this.checkIfUserIsVerified(user);
 
-    const session = await this.createSession(user);
+    const session = await this.createSession(user, true);
+
+    console.log("session");
+    console.log(session);
 
     //update user name and avatar
     const updatedUser = await prisma.user.update({
