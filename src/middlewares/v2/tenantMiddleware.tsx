@@ -6,15 +6,15 @@
     Default required role is 'USER'
 */
 import express, { NextFunction } from 'express';
-import Response from '../response/Response';
-import Request from '../request/Request';
-import Logger from '../helpers/Logger';
-import { Tenant, TenantMember } from '../libs/prisma';
+import Response from '../../response/Response';
+import Request from '../../request/Request';
+import Logger from '../../helpers/Logger';
+import { Tenant, TenantMember } from '../../libs/prisma';
 
-import TenantService from '../services/TenantService';
-import TenantMemberService from '../services/TenantMemberService';
+import TenantService from '../../services/TenantService';
+import TenantMemberService from '../../services/TenantMemberService';
 
-import errorHandlerWrapper from '../utils/errorHandlerWrapper';
+import errorHandlerWrapper from '../../utils/errorHandlerWrapper';
 
 const tenantMiddleware = function (incomingReqRoles?: string | string[] | undefined) {
 
@@ -39,21 +39,17 @@ const tenantMiddleware = function (incomingReqRoles?: string | string[] | undefi
       }
 
   
-      const tenantIdByParam = req.params.tenantId as string;
-
+      const tenantDomainByHeader = req.headers['x-tenant-domain'] as string;
       // Allow guest if token is not present
       if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
         Logger.info("[AUTH] Guest allowed for Route: " + req.originalUrl, req, res);
         return next();
       }
-
-      const tenant = await TenantService.getTenantById(tenantIdByParam);
-
+      const tenant = await TenantService.getTenantByDomain(tenantDomainByHeader);
       if (!tenant) {
         Logger.error("[AUTH] Tenant not found for Route: " + req.originalUrl, req, res);
         return res.status(404).json({ message: "TENANT_NOT_FOUND" });
       }
-
       req.tenant = tenant;
 
       var tenantMember = await TenantMemberService.getMembership(tenant, req.user);

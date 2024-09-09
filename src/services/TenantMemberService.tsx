@@ -27,7 +27,7 @@ export default class TenantMemberService {
                     tenantMemberId: "TEMP",
                     tenantId: tenant.tenantId,
                     userId: user.userId,
-                    roles: ["USER","ADMIN"],
+                    roles: ["USER", "ADMIN"],
                     createdAt: new Date(),
                     updatedAt: new Date()
                 };
@@ -66,10 +66,10 @@ export default class TenantMemberService {
 
     }
 
-    static checkIfMemberHasRole(tenant: Tenant, member: TenantMember, roles: string[] | string): boolean { 
+    static checkIfMemberHasRole(tenant: Tenant, member: TenantMember, roles: string[] | string): boolean {
         // Check if the user has the required roles
         if (!tenant || !member) {
-          return false;
+            return false;
         }
 
         // Check if the tenantId of the tenant and member are same
@@ -79,17 +79,75 @@ export default class TenantMemberService {
 
         // Convert the roles to array if it is not
         if (typeof roles === 'string') {
-          roles = [roles];
+            roles = [roles];
         }
-    
+
         // Check if the user has the required roles
         if (member.roles.includes('ADMIN')) {
-          return true
+            return true
         }
 
         const result = roles.every(role => member.roles.includes(role));
 
         return result;
-      }
+    }
+
+    static async removeMembership(tenant: Tenant, user: User): Promise<void> {
+
+        if (!tenant) {
+            throw new Error("INVALID_TENANT");
+        }
+
+        if (!user) {
+            throw new Error("INVALID_USER");
+        }
+
+        await prisma.tenantMember.deleteMany({
+            where: {
+                tenantId: tenant.tenantId,
+                userId: user.userId
+            }
+        });
+    }
+
+    static async getTenantMembershipsByUser(user: User, page: number, pageSize: number): Promise<TenantMember[]> {
+
+        if (!user) {
+            throw new Error("INVALID_USER");
+        }
+
+        if (!page) {
+            page = 0;
+        }
+
+        if (!pageSize) {
+            pageSize = 10;
+        }
+
+        if (page < 0 || pageSize < 0) {
+            throw new Error("INVALID_PAGE_OR_PAGE_SIZE");
+        }
+
+        const memberships = await prisma.tenantMember.findMany({
+            where: {
+                userId: user.userId
+            },
+            skip: page * pageSize,
+            take: pageSize,
+            include: {
+                tenant: {
+                    select: {
+                        tenantId: true,
+                        domain: true,
+                        name: true
+                    }
+                }
+            }
+        });
+
+        return memberships;
+
+    }
+
 }
 

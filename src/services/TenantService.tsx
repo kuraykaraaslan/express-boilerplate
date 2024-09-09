@@ -2,7 +2,6 @@ import prisma, { Tenant, TenantSetting, User, TenantMember } from "../libs/prism
 import TenantMemberService from "./TenantMemberService";
 
 export default class TenantService {
-    static getTenantById: any;
 
     static validateDomain(domain: string): void {
         // Validate domain can only contain alphanumeric characters, underscores, and hyphens, no spaces, no special characters
@@ -44,13 +43,28 @@ export default class TenantService {
     }
 
 
-    static async getTenantFromDomain(domain: string): Promise<Tenant> {
+    static async getTenantByDomain(domain: string): Promise<Tenant> {
 
         this.validateDomain(domain);
 
         const tenant = await prisma.tenant.findFirst({
             where: {
                 domain
+            }
+        });
+
+        if (!tenant) {
+            throw new Error("TENANT_NOT_FOUND");
+        }
+
+        return tenant;
+    }
+
+    static async getTenantById(tenantId: string): Promise<Tenant> {
+
+        const tenant = await prisma.tenant.findUnique({
+            where: {
+                tenantId: tenantId
             }
         });
 

@@ -9,7 +9,7 @@ import errorHandlerWrapper from "../../utils/errorHandlerWrapper";
 import Response from "../../response/Response";
 import Request from "../../request/Request";
 import authMiddleware from "../../middlewares/authMiddleware";
-import tenantMiddleware from "../../middlewares/v1/tenantMiddleware";
+import tenantMiddleware from "../../middlewares/v2/tenantMiddleware";
 
 const TenantRouter = express.Router();
 
@@ -56,15 +56,13 @@ TenantRouter.post
         }),
     );
 
-
 TenantRouter.get
-    ("/:tenantId",
+    ("/:dynamic",
         tenantMiddleware("USER"), // Elevation of privilages
         errorHandlerWrapper(async (req : Request, res : Response) => {
-            const { tenantId } = req.params;
 
-            const result = await TenantService.getTenantById(tenantId);
-
+            const tenant = req.tenant;
+            const result = await TenantService.getTenantById(tenant.id);
             return res.status(201).json(result);
         }),
     );

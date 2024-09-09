@@ -34,6 +34,10 @@ app.use(cors());
 // Middlewares
 app.use(gatewayMiddleware);
 
+app.use("/.env", (req, res) => {
+  res.status(404).send("Fuck off");
+});
+
 // Routes
 app.use("/", mainRouter);
 

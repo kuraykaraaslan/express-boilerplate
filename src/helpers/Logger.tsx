@@ -50,14 +50,28 @@ class Logger {
     return;
   }
 
+
+
   static async connect(req: any, res: any) {
+    //tenant 
+    var tenant = req.headers["x-tenant-domain"] as string;
+
+    function getSubdomain(href: string) {
+      var subdomain = href.replace("http://", "").replace("https://", "").split(".")[0];
+      return subdomain;
+    }
+
+    if (!tenant) {
+      tenant = getSubdomain(req.headers["origin"]) || "default";
+    }
+
     const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
     const path = req.originalUrl;
     const method = req.method;
     const userAgent = req.headers["user-agent"] || "Unknown";
 
     //blue color
-    console.log("\x1b[34m", "[CONNECT]", ip, path, method, userAgent);
+    console.log("\x1b[34m", "[CONNECT]", tenant + ":" + ip, path, method, userAgent);
 
     return;
   }

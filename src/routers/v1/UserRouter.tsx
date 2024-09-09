@@ -9,6 +9,7 @@ import Request from "../../request/Request";
 
 import UserService from "../../services/UserService";
 import { User } from "../../libs/prisma";
+import TenantMemberService from "../../services/TenantMemberService";
 
 const UserRouter = express.Router();
 
@@ -21,7 +22,7 @@ UserRouter.use(authMiddleware("USER"));
 UserRouter.get(
   "/",
   authMiddleware("ADMIN"), // Elevation of privilages
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     let { page, pageSize } = req.query as any;
 
     if (!page) {
@@ -47,7 +48,7 @@ UserRouter.get(
 UserRouter.post(
   "/",
   authMiddleware("ADMIN"), // Elevation of privilages
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, password } = req.body as any;
 
     const result = await UserService.createUser(email, password);
@@ -57,9 +58,45 @@ UserRouter.post(
 );
 
 UserRouter.get(
+  "/me",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+
+    return res.json(user);
+  }),
+);
+
+UserRouter.get(
+  "/memberships",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+
+    let { page, pageSize } = req.query as any;
+
+    if (!page) {
+      page = 0;
+    }
+
+    if (!pageSize) {
+      pageSize = 10;
+    }
+
+    const regex = /^[0-9]+$/;
+
+    if (!regex.test(page) || !regex.test(pageSize)) {
+      return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
+    }
+
+    const result = await TenantMemberService.getTenantMembershipsByUser(req.user, page, pageSize);
+
+    return res.status(201).json(result);
+
+  })
+);
+
+UserRouter.get(
   "/:userId",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { userId } = req.params;
 
     if (req.user?.id !== userId && !req.user?.roles.includes("ADMIN")) {
@@ -75,7 +112,7 @@ UserRouter.get(
 UserRouter.delete(
   "/:userId",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { userId } = req.params;
 
     const result = await UserService.deleteUser(userId);
