@@ -56,7 +56,7 @@ class Logger {
     //tenant 
     var tenant = req.headers["x-tenant-domain"] as string;
 
-    function getSubdomain(href: string) {
+    function getSubdomain(href: string = "default.default") {
       var subdomain = href.replace("http://", "").replace("https://", "").split(".")[0];
       return subdomain;
     }

@@ -45,6 +45,12 @@ const tenantMiddleware = function (incomingReqRoles?: string | string[] | undefi
         Logger.info("[AUTH] Guest allowed for Route: " + req.originalUrl, req, res);
         return next();
       }
+
+      if (!tenantIdByParam) {
+        Logger.error("[AUTH] Tenant Id not found for Route: " + req.originalUrl, req, res);
+        return res.status(404).json({ message: "TENANT_ID_NOT_FOUND" });
+      }
+      
       const tenant = await TenantService.getTenantById(tenantIdByParam);
       if (!tenant) {
         Logger.error("[AUTH] Tenant not found for Route: " + req.originalUrl, req, res);

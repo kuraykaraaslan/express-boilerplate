@@ -1,4 +1,4 @@
-import { User, Session, PrismaClient } from "@prisma/client";
+import { User, Session, PrismaClient, Tenant } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 import SendMail from "../helpers/SendMail";
@@ -7,12 +7,27 @@ import SendSMS from "../helpers/SendSMS";
 import Logger from "../helpers/Logger";
 
 import axios from "axios";
+import Request from "../request/Request";
+import TenantService from "./TenantService";
+import TenantMemberService from "./TenantMemberService";
 
 const prisma = new PrismaClient();
 
 export default class AuthService {
 
   /* Validaters */
+
+  static validateID(id: string): void {
+    if (!id) {
+      throw new Error("INVALID_ID");
+    }
+
+    const idRegex = /^[a-zA-Z0-9_\-]+$/;
+    if (!id.match(idRegex)) {
+      throw new Error("INVALID_ID");
+    }
+  }
+
 
   static validateEmail(email: string): void {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -188,7 +203,8 @@ export default class AuthService {
 
   /* Creators */
 
-  static async createSession(user: User, byOAuth: boolean = false): Promise<any> {
+  static async createSession(user: User, byOAuth: boolean = false, tenant: Tenant | null = null): Promise<Session> {
+
     const token = bcrypt.hashSync(Math.random().toString(36).substring(7), 10);
 
     const session = await prisma.session.create({
@@ -199,6 +215,7 @@ export default class AuthService {
         OTPNeeded: byOAuth ? false : user.OTPEnabled,
         OTPCanUseEmail: user.OTPCanUseEmail,
         OTPCanUsePhone: user.OTPCanUsePhone,
+        tenantId: tenant ? tenant.tenantId : "default"
       },
     });
 
@@ -1197,12 +1214,12 @@ export default class AuthService {
     const token_response = await axios
       .post(
         "https://oauth2.googleapis.com/token?refresh_token=" +
-          access_token +
-          "&client_id=" +
-          process.env.GOOGLE_CLIENT_ID +
-          "&client_secret=" +
-          process.env.GOOGLE_CLIENT_SECRET +
-          "&grant_type=refresh_token",
+        access_token +
+        "&client_id=" +
+        process.env.GOOGLE_CLIENT_ID +
+        "&client_secret=" +
+        process.env.GOOGLE_CLIENT_SECRET +
+        "&grant_type=refresh_token",
         {
           headers: {
             Accept: "application/json",
@@ -1258,7 +1275,7 @@ export default class AuthService {
   }
 
   static async enableEmailOTP(user: User): Promise<void> {
-    
+
     if (user.OTPCanUseEmail) {
       throw new Error("OTP_ALREADY_ENABLED");
     }
@@ -1369,7 +1386,7 @@ export default class AuthService {
   }
 
   static async disableOTP(user: User): Promise<void> {
-    
+
     if (!user.OTPEnabled) {
       throw new Error("OTP_ALREADY_DISABLED");
     }
@@ -1419,7 +1436,7 @@ export default class AuthService {
     });
   }
 
-  
+
   static checkIfUserHasRole(user: User, roles: string[] | string): boolean {
 
     if (!user.roles) {
@@ -1428,9 +1445,39 @@ export default class AuthService {
     if (!Array.isArray(roles)) {
       roles = [roles];
     }
-    
+
     const result = roles.every(role => user.roles.includes(role));
     return result;
+  }
+
+
+  static async changeTenant(req: Request, tenantId: string): Promise<void> {
+
+    this.validateID(tenantId);
+
+    if (!req.user) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    const user = req.user as User;
+
+    const tenantToGo = await TenantService.getTenantById(tenantId);
+
+    if (!tenantToGo) {
+      throw new Error("TENANT_NOT_FOUND");
+    }
+
+    const tenantMembershipToGo = await TenantMemberService.getMembership(
+      tenantToGo,
+      user,
+    );
+
+    if (!tenantMembershipToGo) {
+      throw new Error("MEMBERSHIP_NOT_FOUND");
+    }
+
+    const session = await this.createSession(user, true, tenantToGo); 
+
   }
 
 

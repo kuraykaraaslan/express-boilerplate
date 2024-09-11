@@ -40,7 +40,7 @@ export default class TenantMemberService {
 
     }
 
-    static async createMembership(tenant: Tenant, user: User, roles: string[]): Promise<TenantMember> {
+    static async createMembership(tenant: Tenant, user: User, roles: string[] = ["USER"]) : Promise<TenantMember>  {
 
         if (!tenant) {
             throw new Error("INVALID_TENANT");
@@ -110,7 +110,7 @@ export default class TenantMemberService {
         });
     }
 
-    static async getTenantMembershipsByUser(user: User, page: number, pageSize: number): Promise<TenantMember[]> {
+    static async getTenantMembershipsByUser(user: User, page: number, pageSize: number): Promise<any> {
 
         if (!user) {
             throw new Error("INVALID_USER");
@@ -128,25 +128,79 @@ export default class TenantMemberService {
             throw new Error("INVALID_PAGE_OR_PAGE_SIZE");
         }
 
-        const memberships = await prisma.tenantMember.findMany({
-            where: {
-                userId: user.userId
-            },
-            skip: page * pageSize,
-            take: pageSize,
-            include: {
-                tenant: {
-                    select: {
-                        tenantId: true,
-                        domain: true,
-                        name: true
+        return await prisma.$transaction([
+            prisma.tenantMember.findMany({
+                where: {
+                    userId: user.userId
+                },
+                skip: page * pageSize,
+                take: pageSize,
+                include: {
+                    tenant: {
+                        select: {
+                            tenantId: true,
+                            domain: true,
+                            name: true
+                        }
                     }
                 }
-            }
-        });
+            }),
+            prisma.tenantMember.count({
+                where: {
+                    userId: user.userId
+                }
+            }),
+        ])
+            .then((query) => {
+                return {
+                    memberships: query[0],
+                    total: query[1],
+                    page,
+                    pageSize,
+                };
+            });
 
-        return memberships;
 
+    }
+
+    static async listAllTenantMemberships(page: number, pageSize: number): Promise<any> {
+
+        if (!page) {
+            page = 0;
+        }
+
+        if (!pageSize) {
+            pageSize = 10;
+        }
+
+        if (page < 0 || pageSize < 0) {
+            throw new Error("INVALID_PAGE_OR_PAGE_SIZE");
+        }
+
+        return await prisma.$transaction([
+            prisma.tenantMember.findMany({
+                skip: page * pageSize,
+                take: pageSize,
+                include: {
+                    tenant: {
+                        select: {
+                            tenantId: true,
+                            domain: true,
+                            name: true
+                        }
+                    }
+                }
+            }),
+            prisma.tenantMember.count(),
+        ])
+            .then((query) => {
+                return {
+                    memberships: query[0],
+                    total: query[1],
+                    page,
+                    pageSize,
+                };
+            });
     }
 
 }

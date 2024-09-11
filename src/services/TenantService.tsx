@@ -4,6 +4,9 @@ import TenantMemberService from "./TenantMemberService";
 export default class TenantService {
 
     static validateDomain(domain: string): void {
+        if (!domain) {
+            throw new Error("INVALID_DOMAIN");
+        }
         // Validate domain can only contain alphanumeric characters, underscores, and hyphens, no spaces, no special characters
         const regex = /^[a-zA-Z0-9_\-]+$/;
         if (!domain.match(regex)) {
@@ -61,6 +64,10 @@ export default class TenantService {
     }
 
     static async getTenantById(tenantId: string): Promise<Tenant> {
+
+        if (!tenantId) {
+            throw new Error("INVALID_TENANT_ID");
+        }
 
         const tenant = await prisma.tenant.findUnique({
             where: {

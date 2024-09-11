@@ -75,6 +75,8 @@ model Session {
   token  String @unique @id
   userId String
 
+  tenantId String @default("default")
+
   expiresAt DateTime
 
   // Agent
@@ -154,6 +156,18 @@ model TenantMember {
   tenant Tenant @relation(fields: [tenantId], references: [tenantId])
   user User @relation(fields: [userId], references: [userId])
 
+}
+
+model TenantMemberInvitation {
+  tenantMemberInvitationId String @id @default(cuid())
+  tenantId String
+  email String
+  roles String[] @default(["USER"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
 }
 
 // S3 Bucket File

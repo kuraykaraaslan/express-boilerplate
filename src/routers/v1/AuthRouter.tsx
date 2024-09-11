@@ -56,7 +56,7 @@ AuthRouter.get("/callback/:provider", async (req: Request, res: Response) => {
 AuthRouter.post(
   "/register",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     await AuthService.createUser(email, password);
@@ -68,7 +68,7 @@ AuthRouter.post(
 AuthRouter.post(
   "/login",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     const result = await AuthService.login(email, password);
@@ -80,7 +80,7 @@ AuthRouter.post(
 AuthRouter.post(
   "/verify",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, code } = req.body;
 
     await AuthService.verifyFirstVerificationEmail(email, code);
@@ -92,7 +92,7 @@ AuthRouter.post(
 AuthRouter.post(
   "/resend-verification",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email } = req.body;
 
     await AuthService.sendFirstVerificationEmailByEmail(email);
@@ -104,7 +104,7 @@ AuthRouter.post(
 AuthRouter.post(
   "/forgot-password",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email } = req.body;
 
     await AuthService.sendForgotPasswordEmail(email);
@@ -116,7 +116,7 @@ AuthRouter.post(
 AuthRouter.post(
   "/reset-password",
 
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, code, password } = req.body;
 
     await AuthService.verifyForgotPasswordEmail(email, code, password);
@@ -132,7 +132,7 @@ AuthRouter.post(
 
 AuthRouter.post(
   "/otp/sms-send",
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { token } = req.body;
 
     await AuthService.sendOTPPhone(token as string);
@@ -143,7 +143,7 @@ AuthRouter.post(
 
 AuthRouter.post(
   "/otp/email-send",
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { token } = req.body;
 
     await AuthService.sendOTPEmail(token as string);
@@ -154,7 +154,7 @@ AuthRouter.post(
 
 AuthRouter.post(
   "/otp/sms-verify",
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { token, code } = req.body;
 
     await AuthService.verifyOTPPhone(token, code);
@@ -165,7 +165,7 @@ AuthRouter.post(
 
 AuthRouter.post(
   "/otp/email-verify",
-  errorHandlerWrapper(async (req : Request, res : Response) => {
+  errorHandlerWrapper(async (req: Request, res: Response) => {
     const { token, code } = req.body;
 
     await AuthService.verifyOTPEmail(token, code);
@@ -186,7 +186,7 @@ AuthRouter.get(
   "/me",
   errorHandlerWrapper(async (req: Request, res: Response) => {
     const user = req.user;
-    
+
     return res.json(user);
   }),
 );
@@ -257,5 +257,20 @@ AuthRouter.post(
     return res.json({ message: "ALL_OTP_DISABLED" });
   }),
 );
+
+AuthRouter.post(
+  "/change-tenant",
+  authMiddleware("USER"),
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+
+    const { tenantId } = req.body;
+
+    const session = await AuthService.changeTenant(user, tenantId);
+
+    return res.json(session);
+  }),
+);
+
 
 export default AuthRouter;

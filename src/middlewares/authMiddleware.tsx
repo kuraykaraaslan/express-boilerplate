@@ -26,12 +26,11 @@ const authMiddleware = function (incomingReqRoles?: string | string[] | undefine
 
       if (req.user) {     
         //check if the user has the required role
-        for (let role of requiredRoles) {
-          if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
-            Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl, req, res);
-            return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
-          }
+        if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
+          Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl, req, res);
+          return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
         }
+        
         Logger.info("[AUTH] [ELEVATION OF PRIVILAGES] User authenticated for Route: " + req.originalUrl, req, res);
         return next();
       }
@@ -61,12 +60,11 @@ const authMiddleware = function (incomingReqRoles?: string | string[] | undefine
       // Add user to request
       req.user = sessionWithUser.user as User;
 
-      for (let role of requiredRoles) {
-        if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
-          Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl + " from IP: " + ip, req, res);
-          return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
-        }
+      if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
+        Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl + " from IP: " + ip, req, res);
+        return res.status(401).json({ message: "USER_DOES_NOT_HAVE_REQUIRED_ROLE" });
       }
+      
 
       Logger.info("[AUTH] User authenticated for Route: " + req.originalUrl + " from IP: " + ip, req, res);
 

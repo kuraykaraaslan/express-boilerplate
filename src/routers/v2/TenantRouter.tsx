@@ -46,7 +46,7 @@ TenantRouter.get
 
 TenantRouter.post
     ("/",
-        tenantMiddleware("ADMIN"), // Elevation of privilages
+        authMiddleware("ADMIN"), // Elevation of privilages
         errorHandlerWrapper(async (req : Request, res : Response) => {
             const { name , domain } = req.body as any;
 

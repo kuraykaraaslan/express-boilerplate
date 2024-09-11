@@ -67,7 +67,7 @@ UserRouter.get(
 );
 
 UserRouter.get(
-  "/memberships",
+  "/me/memberships",
   errorHandlerWrapper(async (req: Request, res: Response) => {
 
     let { page, pageSize } = req.query as any;

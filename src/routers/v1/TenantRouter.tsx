@@ -11,6 +11,9 @@ import Request from "../../request/Request";
 import authMiddleware from "../../middlewares/authMiddleware";
 import tenantMiddleware from "../../middlewares/v1/tenantMiddleware";
 
+// Child routers
+import TenantMemberRouter from "./TenantMemberRouter";
+
 const TenantRouter = express.Router();
 
 /*
@@ -46,7 +49,7 @@ TenantRouter.get
 
 TenantRouter.post
     ("/",
-        tenantMiddleware("ADMIN"), // Elevation of privilages
+        authMiddleware("ADMIN"), // Elevation of privilages
         errorHandlerWrapper(async (req : Request, res : Response) => {
             const { name , domain } = req.body as any;
 
@@ -63,11 +66,21 @@ TenantRouter.get
         errorHandlerWrapper(async (req : Request, res : Response) => {
             const { tenantId } = req.params;
 
+            if (!tenantId) {
+                return res.status(400).json({ message: "INVALID_TENANT_ID" });
+            }
+
             const result = await TenantService.getTenantById(tenantId);
 
             return res.status(201).json(result);
         }),
     );
+
+
+TenantRouter.use("/:tenantId/members",
+    tenantMiddleware("USER"),
+    TenantMemberRouter
+);
 
 
 
