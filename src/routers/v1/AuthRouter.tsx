@@ -267,7 +267,7 @@ AuthRouter.post(
     const { tenantId } = req.body;
 
     const session = await AuthService.changeTenant(user, tenantId);
-
+    console.log(session);
     return res.json(session);
   }),
 );

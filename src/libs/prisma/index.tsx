@@ -1,4 +1,4 @@
-import { PrismaClient as Orginal, User, Prisma, TenantSetting, SystemSetting, Tenant, TenantMember } from "@prisma/client";
+import { PrismaClient as Orginal, User, Prisma, TenantSetting, SystemSetting, Tenant, TenantMember, TenantMemberInvitation } from "@prisma/client";
 
 
 const prisma = new Orginal(
@@ -15,6 +15,6 @@ const prisma = new Orginal(
 })
 
 
-export type { User, Prisma, TenantSetting, SystemSetting , Tenant, TenantMember}
+export type { User, Prisma, TenantSetting, SystemSetting , Tenant, TenantMember, TenantMemberInvitation}
 
 export default prisma ;

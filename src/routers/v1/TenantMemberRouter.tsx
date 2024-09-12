@@ -66,7 +66,17 @@ TenantMemberRouter.get
         tenantMiddleware("ADMIN"),
         errorHandlerWrapper(async (req: Request, res: Response) => {
 
-            const result = await TenantMemberService.listAllInvitations(req.tenant);
+            var { page, pageSize } = req.query as any; 
+
+            if (!page) {
+                page = 0;
+            }
+
+            if (!pageSize) {
+                pageSize = 10;
+            }
+
+            const result = await TenantMemberService.listAllInvitationsByTenant(req.tenant, page, pageSize);
 
             return res.status(201).json(result);
         }),

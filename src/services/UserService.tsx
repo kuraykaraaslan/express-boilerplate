@@ -2,6 +2,9 @@ import prisma, { User }  from "../libs/prisma";
 import bcrypt from "bcrypt";
 import AuthService from "./AuthService";
 
+import Validater from "../helpers/Validater";
+
+
 
 export default class UserService {
 
@@ -10,11 +13,23 @@ export default class UserService {
 
   
   static listAllUsers(page: number, pageSize: number): Promise<any> {
+
+    Validater.validateNaturalNumber(page);
+    Validater.validateNaturalNumber(pageSize);
+
     return prisma
       .$transaction([
         prisma.user.findMany({
           skip: page * pageSize,
           take: pageSize,
+          select: {
+            userId: true,
+            email: true,
+            verified: true,
+            roles: true,
+            phone: true,
+            avatar: true,
+          },
         }),
         prisma.user.count(),
       ])
@@ -29,6 +44,10 @@ export default class UserService {
   }
 
   static async createUser(email: string, password: string): Promise<User> {
+
+    Validater.validateEmail(email);
+    Validater.validatePassword(password);
+
     const hashedPassword = await bcrypt.hash(password, 10);
     return prisma.user.create({
       data: {
@@ -41,6 +60,9 @@ export default class UserService {
   }
 
   static async getUserByEmail(email: string): Promise<User> {
+
+    Validater.validateEmail(email);
+
     const user = await prisma.user.findUnique({
       where: {
         email,
@@ -58,6 +80,9 @@ export default class UserService {
   }
 
   static async getUserById(userId: string): Promise<User> {
+
+    Validater.validateID(userId);
+
     const user = await prisma.user.findUnique({
       where: {
         userId,
@@ -75,6 +100,10 @@ export default class UserService {
   }
 
   static async addRoles(userId: string, roles: string[]): Promise<void> {
+
+    Validater.validateID(userId);
+    Validater.validateRoles(roles);
+
     const user = await prisma.user.findUnique({
       where: {
         userId,
@@ -105,6 +134,10 @@ export default class UserService {
   }
 
   static async removeRoles(userId: string, roles: string[]): Promise<void> {
+
+    Validater.validateID(userId);
+    Validater.validateRoles(roles);
+
     const user = await prisma.user.findUnique({
       where: {
         userId,
@@ -140,6 +173,9 @@ export default class UserService {
   }
 
   static async deleteUser(userId: string): Promise<void> {
+
+    Validater.validateID(userId);
+
     await prisma.user.delete({
       where: {
         userId,

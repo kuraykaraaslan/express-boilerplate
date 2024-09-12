@@ -1,31 +1,8 @@
 import prisma, { Tenant, TenantSetting, User, TenantMember } from "../libs/prisma";
 import TenantMemberService from "./TenantMemberService";
+import Validater from "../helpers/Validater";
 
 export default class TenantService {
-
-    static validateDomain(domain: string): void {
-        if (!domain) {
-            throw new Error("INVALID_DOMAIN");
-        }
-        // Validate domain can only contain alphanumeric characters, underscores, and hyphens, no spaces, no special characters
-        const regex = /^[a-zA-Z0-9_\-]+$/;
-        if (!domain.match(regex)) {
-            throw new Error("INVALID_DOMAIN");
-        }
-        return;
-    }
-
-    static validateName(name: string): void {
-        if (!name) {
-            throw new Error("INVALID_NAME");
-        }
-
-        const regex = /^[a-zA-Z0-9_\-]+$/;
-        if (!name.match(regex)) {
-            throw new Error("INVALID_NAME");
-        }
-        return;
-    }
 
     static async listAllTenants(page: number, pageSize: number): Promise<any> {
         return prisma.$transaction([
@@ -48,7 +25,7 @@ export default class TenantService {
 
     static async getTenantByDomain(domain: string): Promise<Tenant> {
 
-        this.validateDomain(domain);
+        Validater.validateDomain(domain);
 
         const tenant = await prisma.tenant.findFirst({
             where: {
@@ -84,8 +61,8 @@ export default class TenantService {
 
     static async createTenant(domain: string, name: string): Promise<Tenant> {
 
-        this.validateDomain(domain);
-        this.validateName(name);
+        Validater.validateDomain(domain);
+        Validater.validateName(name);
 
         const existingTenant = await prisma.tenant.findFirst({
             where: {
@@ -109,8 +86,8 @@ export default class TenantService {
 
     static async createTenantWithAdmin(domain: string, name: string, user: User): Promise<{ tenant: Tenant, membership: TenantMember }> {
 
-        this.validateDomain(domain);
-        this.validateName(name);
+        Validater.validateDomain(domain);
+        Validater.validateName(name);
 
         const existingTenant = await prisma.tenant.findFirst({
             where: {

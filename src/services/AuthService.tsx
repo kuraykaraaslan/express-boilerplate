@@ -3,113 +3,19 @@ import bcrypt from "bcrypt";
 
 import SendMail from "../helpers/SendMail";
 import SendSMS from "../helpers/SendSMS";
+import Validater from "../helpers/Validater";
 
 import Logger from "../helpers/Logger";
 
 import axios from "axios";
 import Request from "../request/Request";
+
 import TenantService from "./TenantService";
 import TenantMemberService from "./TenantMemberService";
 
 const prisma = new PrismaClient();
 
 export default class AuthService {
-
-  /* Validaters */
-
-  static validateID(id: string): void {
-    if (!id) {
-      throw new Error("INVALID_ID");
-    }
-
-    const idRegex = /^[a-zA-Z0-9_\-]+$/;
-    if (!id.match(idRegex)) {
-      throw new Error("INVALID_ID");
-    }
-  }
-
-
-  static validateEmail(email: string): void {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("INVALID_EMAIL");
-    }
-  }
-
-  static validatePassword(password: string | null): void {
-    // Allow empty password for password reset
-    if (!password) {
-      return;
-    }
-
-    if (password.length < 8) {
-      throw new Error("PASSWORD_TOO_SHORT");
-    }
-
-    if (password.length > 50) {
-      throw new Error("PASSWORD_TOO_LONG");
-    }
-
-    /* 
-            Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.
-            Password must not contain any whitespace.
-            No SQL injection.
-            Allow Turkish characters.
-        */
-    const passwordRegex =
-      /^(?=.*[a-zçğıöşü])(?=.*[A-ZÇĞİÖŞÜ])(?=.*\d)(?=.*[@$!%*?&])[A-Za-zçğıöşüÖÇŞİĞÜ0-9@$!%*?&]{8,50}$/;
-
-    if (!passwordRegex.test(password)) {
-      throw new Error("INVALID_PASSWORD");
-    }
-  }
-
-  static validateStringField(
-    field: string | null,
-    field_name: string,
-    allowEmpty: boolean = false,
-  ): void {
-    /*
-            No SQL injection.
-            Allow Turkish characters.
-        */
-
-    if (allowEmpty && !field) {
-      return;
-    }
-
-    if (!field && !allowEmpty) {
-      throw new Error(`EMPTY_${field_name.toUpperCase()}`);
-    }
-
-    if (field && field.length < 2) {
-      if (field_name) {
-        throw new Error(`INVALID_${field_name.toUpperCase()}`);
-      }
-      throw new Error("INVALID_STRING_FIELD");
-    }
-
-    const stringFieldRegex = /^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]*$/;
-
-    if (!stringFieldRegex.test("string")) {
-      if (field_name) {
-        throw new Error(`INVALID_${field_name.toUpperCase()}`);
-      }
-      throw new Error("INVALID_STRING_FIELD");
-    }
-  }
-
-  static validatePhone(phone: number | null): void {
-    // Allow empty phone for phone verification
-    if (!phone) {
-      return;
-    }
-    //starts with + and has numbers only
-    const phoneRegex = /^\+[0-9]+$/;
-    if (!phoneRegex.test(phone.toString())) {
-      throw new Error("INVALID_PHONE");
-    }
-  }
 
   static async rateLimiterEmail(user: User): Promise<void> {
 
@@ -162,6 +68,9 @@ export default class AuthService {
 
   /* Hashers */
   static async hashPassword(password: string): Promise<string> {
+
+    Validater.validatePassword(password);
+
     const saltRounds = 10;
     return await bcrypt.hash(password, saltRounds);
   }
@@ -174,6 +83,9 @@ export default class AuthService {
     if (!hashedPassword) {
       throw new Error("USER_HAS_NO_PASSWORD");
     }
+
+    Validater.validatePassword(plainPassword);
+    
     const isPasswordCorrect = await bcrypt.compare(
       plainPassword,
       hashedPassword,
@@ -186,6 +98,9 @@ export default class AuthService {
 
   /* Finders */
   static async findUserByEmail(email: string): Promise<User | null> {
+
+    Validater.validateEmail(email);
+
     return await prisma.user.findUnique({
       where: {
         email: email,
@@ -194,6 +109,9 @@ export default class AuthService {
   }
 
   static async findUserByPhone(phone: number): Promise<User | null> {
+
+    Validater.validatePhone(phone);
+
     return await prisma.user.findUnique({
       where: {
         phone: phone,
@@ -223,8 +141,9 @@ export default class AuthService {
   }
 
   static async createUser(email: string, password: string): Promise<any> {
-    this.validateEmail(email);
-    this.validatePassword(password);
+
+    Validater.validateEmail(email);
+    Validater.validatePassword(password);
 
     const existingUser = await this.findUserByEmail(email);
     if (existingUser) {
@@ -250,8 +169,9 @@ export default class AuthService {
   }
 
   static async login(email: string, password: string): Promise<any> {
-    this.validateEmail(email);
-    this.validatePassword(password);
+
+    Validater.validateEmail(email);
+    Validater.validatePassword(password);
 
     const user = await this.findUserByEmail(email);
     if (!user) {
@@ -296,6 +216,7 @@ export default class AuthService {
   }
 
   static async getSessionFromBearerToken(token?: string): Promise<any> {
+
     // Check if token is present
     if (!token || token.length < 7) {
       Logger.error("[AUTH SERVICE] Token not present");
@@ -304,6 +225,8 @@ export default class AuthService {
 
     // Check if token is valid
     const tokenWithoutBearer = token.substring(7);
+
+    Validater.validateToken(tokenWithoutBearer);
 
     const sessionWithUser =
       await AuthService.getSessionFromTokenAndExtendAday(tokenWithoutBearer);
@@ -389,7 +312,8 @@ export default class AuthService {
   }
 
   static async sendFirstVerificationEmailByEmail(email: string): Promise<void> {
-    this.validateEmail(email);
+    
+    Validater.validateEmail(email);
 
     const user = await this.findUserByEmail(email);
 
@@ -404,7 +328,9 @@ export default class AuthService {
     email: string,
     code: string,
   ): Promise<void> {
-    this.validateEmail(email);
+    
+    Validater.validateEmail(email);
+    Validater.validateSixDigitCode(code);
 
     const user = await this.findUserByEmail(email);
 
@@ -475,8 +401,10 @@ export default class AuthService {
     code: string,
     password: string,
   ): Promise<void> {
-    this.validateEmail(email);
-    this.validatePassword(password);
+
+    Validater.validateEmail(email);
+    Validater.validatePassword(password);
+    Validater.validateSixDigitCode(code);
 
     const user = await this.findUserByEmail(email);
 
@@ -519,10 +447,7 @@ export default class AuthService {
         - We will only send OTP to the email
         - Be sure to check if the session the previous step is verified
         */
-
-    if (!sessionToken) {
-      throw new Error("SESSION_NOT_FOUND");
-    }
+    Validater.validateToken(sessionToken);
 
     const session = await prisma.session.findUnique({
       where: {
@@ -584,13 +509,8 @@ export default class AuthService {
     code: string,
   ): Promise<void> {
 
-    if (!sessionToken) {
-      throw new Error("SESSION_NOT_FOUND");
-    }
-
-    if (!code) {
-      throw new Error("INVALID_OTP_CODE");
-    }
+    Validater.validateToken(sessionToken);
+    Validater.validateSixDigitCode(code);
 
     const session = await prisma.session.findUnique({
       where: {
@@ -631,9 +551,7 @@ export default class AuthService {
         - Be sure to check if the session the previous step is verified
         */
 
-    if (!sessionToken) {
-      throw new Error("SESSION_NOT_FOUND");
-    }
+    Validater.validateToken(sessionToken);
 
     const session = await prisma.session.findUnique({
       where: {
@@ -699,13 +617,8 @@ export default class AuthService {
     code: string,
   ): Promise<void> {
 
-    if (!sessionToken) {
-      throw new Error("SESSION_NOT_FOUND");
-    }
-
-    if (!code) {
-      throw new Error("INVALID_OTP");
-    }
+    Validater.validateToken(sessionToken);
+    Validater.validateSixDigitCode(code);
 
 
     const session = await prisma.session.findUnique({
@@ -746,6 +659,8 @@ export default class AuthService {
     newEmail: string,
   ): Promise<void> {
 
+    Validater.validateEmail(newEmail);
+
     if (!user) {
       throw new Error("USER_NOT_FOUND");
     }
@@ -782,6 +697,8 @@ export default class AuthService {
     user: User,
     code: string,
   ): Promise<void> {
+
+    Validater.validateSixDigitCode(code);
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -833,6 +750,8 @@ export default class AuthService {
     newPhone: number,
   ): Promise<void> {
 
+    Validater.validatePhone(newPhone);
+
     if (!user) {
       throw new Error("USER_NOT_FOUND");
     }
@@ -869,6 +788,8 @@ export default class AuthService {
     user: User,
     code: string,
   ): Promise<void> {
+
+    Validater.validateSixDigitCode(code);
 
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -918,7 +839,8 @@ export default class AuthService {
   }
 
   static async sendForgotPasswordEmail(email: string): Promise<void> {
-    this.validateEmail(email);
+    
+    Validater.validateEmail(email);
 
     const user = await this.findUserByEmail(email);
 
@@ -938,8 +860,10 @@ export default class AuthService {
     code: string,
     password: string,
   ): Promise<void> {
-    this.validateEmail(email);
-    this.validatePassword(password);
+
+    Validater.validateEmail(email);
+    Validater.validatePassword(password);
+    Validater.validateSixDigitCode(code);
 
     const user = await this.findUserByEmail(email);
 
@@ -978,6 +902,9 @@ export default class AuthService {
 
   /* Deleters */
   static async revokeSession(token: string): Promise<void> {
+
+    Validater.validateToken(token);
+
     await prisma.session.delete({
       where: {
         token: token,
@@ -998,7 +925,10 @@ export default class AuthService {
     name: string,
     avatar?: string,
   ): Promise<any> {
-    this.validateEmail(email);
+
+    Validater.validateEmail(email);
+    Validater.validateName(name);
+    Validater.validateURL(avatar, true);
 
     const user = await this.findUserByEmail(email);
 
@@ -1070,6 +1000,9 @@ export default class AuthService {
     state: string,
     scope?: string,
   ): Promise<any> {
+
+    //TODO: OAUTH VALIDATION
+
     let user = null;
 
     const sqlInjectionRegex = /[\s\';"\\]/;
@@ -1099,6 +1032,9 @@ export default class AuthService {
   }
 
   static async callbackGithub(code: string, state: string): Promise<any> {
+
+    //TODO : VALIDATE STATE
+
     const { token_type, access_token } = await axios
       .post(
         "https://github.com/login/oauth/access_token",
@@ -1181,6 +1117,9 @@ export default class AuthService {
   }
 
   static async callbackGoogle(code: string, state: string): Promise<any> {
+
+    //TODO : VALIDATE STATE
+
     const { expires_in, access_token, refresh_token } = await axios
       .post(
         "https://oauth2.googleapis.com/token",
@@ -1439,9 +1378,12 @@ export default class AuthService {
 
   static checkIfUserHasRole(user: User, roles: string[] | string): boolean {
 
+    Validater.validateRoles(roles);
+
     if (!user.roles) {
       return false;
     }
+
     if (!Array.isArray(roles)) {
       roles = [roles];
     }
@@ -1453,7 +1395,7 @@ export default class AuthService {
 
   static async changeTenant(req: Request, tenantId: string): Promise<void> {
 
-    this.validateID(tenantId);
+    Validater.validateID(tenantId);
 
     if (!req.user) {
       throw new Error("USER_NOT_FOUND");
@@ -1476,7 +1418,7 @@ export default class AuthService {
       throw new Error("MEMBERSHIP_NOT_FOUND");
     }
 
-    const session = await this.createSession(user, true, tenantToGo); 
+    const session = await this.createSession(user, true, tenantToGo);
 
   }
 

@@ -33,12 +33,6 @@ UserRouter.get(
       pageSize = 10;
     }
 
-    const regex = /^[0-9]+$/;
-
-    if (!regex.test(page) || !regex.test(pageSize)) {
-      return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
-    }
-
     const result = await UserService.listAllUsers(page, pageSize);
 
     return res.status(201).json(result);

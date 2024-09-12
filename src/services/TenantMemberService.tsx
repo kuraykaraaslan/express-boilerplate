@@ -1,7 +1,10 @@
-import prisma, { Tenant, TenantMember, User } from "../libs/prisma";
+import prisma, { Tenant, TenantMember, User, TenantMemberInvitation } from "../libs/prisma";
+import AuthService from "./AuthService";
+import TenantService from "./TenantService";
+import Validater from "../helpers/Validater";
 
 export default class TenantMemberService {
-
+    
     static async getMembership(tenant: Tenant, user: User): Promise<TenantMember> {
 
         if (!tenant) {
@@ -40,7 +43,7 @@ export default class TenantMemberService {
 
     }
 
-    static async createMembership(tenant: Tenant, user: User, roles: string[] = ["USER"]) : Promise<TenantMember>  {
+    static async createMembership(tenant: Tenant, user: User, roles: string[] = ["USER"]): Promise<TenantMember> {
 
         if (!tenant) {
             throw new Error("INVALID_TENANT");
@@ -203,5 +206,109 @@ export default class TenantMemberService {
             });
     }
 
+
+    static async listAllInvitationsByTenant(tenant: Tenant, page?: number, pageSize?: number): Promise<any> {
+
+        if (!tenant) {
+            throw new Error("INVALID_TENANT");
+        }
+
+        if (!page) {
+            page = 0;
+        }
+
+        if (!pageSize) {
+            pageSize = 10;
+        }
+
+        if (page < 0 || pageSize < 0) {
+            throw new Error("INVALID_PAGE_OR_PAGE_SIZE");
+        }
+
+        return await prisma.$transaction([
+            prisma.tenantMemberInvitation.findMany({
+                where: {
+                    tenantId: tenant.tenantId
+                },
+                skip: page * pageSize,
+                take: pageSize
+            }),
+            prisma.tenantMemberInvitation.count({
+                where: {
+                    tenantId: tenant.tenantId
+                }
+            }),
+
+        ])
+            .then((query) => {
+                return {
+                    invitations: query[0],
+                    total: query[1],
+                    page,
+                    pageSize,
+                };
+            });
+
+    }
+
+    static async inviteUser(tenant: Tenant, email: string): Promise<TenantMemberInvitation> {
+
+        if (!tenant) {
+            throw new Error("INVALID_TENANT");
+        }
+
+        if (!email) {
+            throw new Error("INVALID_EMAIL");
+        }
+
+        Validater.validateEmail(email);
+
+        const invitation = await prisma.tenantMemberInvitation.create({
+            data: {
+                tenantId: tenant.tenantId,
+                email
+            }
+        });
+
+        return invitation;
+
+    }
+
+    static async acceptInvitation(tenant: Tenant, user: User, invitationId: string): Promise<TenantMember> {
+
+        if (!user) {
+            throw new Error("INVALID_USER");
+        }
+
+        if (!invitationId) {
+            throw new Error("INVALID_INVITATION_ID");
+        }
+
+        Validater.validateID(invitationId);
+
+        const invitation = await prisma.tenantMemberInvitation.findUnique({
+            where: {
+                tenantMemberInvitationId: invitationId
+            }
+        });
+
+        if (!invitation) {
+            throw new Error("INVITATION_NOT_FOUND");
+        }
+
+        if (invitation.tenantId !== tenant.tenantId) {
+            throw new Error("INVALID_INVITATION");
+        }
+
+        const membership = await TenantMemberService.createMembership(tenant, user);
+
+        await prisma.tenantMemberInvitation.delete({
+            where: {
+                tenantMemberInvitationId: invitationId
+            }
+        });
+
+        return membership;
+    }
 }
 
