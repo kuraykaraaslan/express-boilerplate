@@ -42,11 +42,13 @@ AuthRouter.get("/callback/:provider", async (req: Request, res: Response) => {
       state as string,
     );
 
+    console.log(callback);
 
     return res.redirect(
       `${FRONTEND_URL}/auth/sso?token=` + callback.token,
     );
   } catch (error: any) {
+    console.log(error);
     return res.redirect(
       `${FRONTEND_URL}/auth/sso?error=SOMETHING_WENT_WRONG`,
     );
@@ -174,6 +176,36 @@ AuthRouter.post(
   }),
 );
 
+
+AuthRouter.post(
+  "/change-tenant",
+  async (req: Request, res: Response) => {
+
+    const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    try {
+      const { tenantId, token, fallback } = req.params;
+
+      const result = await AuthService.changeTenant(token, tenantId);
+
+      if (!result) {
+        throw new Error("SORRY_SOMETHING_WENT_WRONG");
+      }
+
+
+      return res.redirect(
+        result.redirectURL,
+      );
+
+    } catch (error: any) {
+
+      return res.redirect(
+        `${FRONTEND_URL}/auth/sso?error=SOMETHING_WENT_WRONG`,
+      );
+
+    }
+  });
+
 /* 
     Those routes are protected by the authMiddleware.
     It uses the authMiddleware to authenticate the user.
@@ -258,19 +290,7 @@ AuthRouter.post(
   }),
 );
 
-AuthRouter.post(
-  "/change-tenant",
-  authMiddleware("USER"),
-  errorHandlerWrapper(async (req: Request, res: Response) => {
-    const user = req.user;
 
-    const { tenantId } = req.body;
-
-    const session = await AuthService.changeTenant(user, tenantId);
-    console.log(session);
-    return res.json(session);
-  }),
-);
 
 
 export default AuthRouter;

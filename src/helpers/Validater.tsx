@@ -112,10 +112,12 @@ export default class Validator {
       throw new Error("INVALID_NAME");
     }
 
-    const regex = /^[a-zA-Z0-9_\-]+$/;
+    const regex = /^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/;
+
     if (!name.match(regex)) {
       throw new Error("INVALID_NAME");
     }
+    
     return;
   }
 
@@ -162,7 +164,7 @@ export default class Validator {
     }
 
     // $2b$10$WSIIQClD4OZ.MGTYKSUO6O2h7kp0JP17X.DdaAC3B3pB7wJ3yiTAi
-    const tokenRegex = /^\$2b\$10\$.{53}$/;
+    const tokenRegex = /^[a-zA-Z0-9./$]+$/;
     if (!token.match(tokenRegex)) {
       throw new Error("INVALID_TOKEN");
     }

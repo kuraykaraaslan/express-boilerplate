@@ -16,6 +16,24 @@ import TenantMemberRouter from "./TenantMemberRouter";
 
 const TenantRouter = express.Router();
 
+TenantRouter.get("/get-by-domain/:domain",
+    errorHandlerWrapper(async (req: Request, res: Response) => {
+        const { domain } = req.params;
+        const result = await TenantService.getTenantByDomain(domain);
+       
+        const publicade = {
+            tenantId: result.tenantId,
+            name: result.name,
+            domain: result.domain,
+            logo: result.logo,
+            favicon: result.favicon,
+        };
+
+        return res.status(201).json(publicade);
+    }),
+);
+
+
 /*
     Those routes are private and can only be accessed by authenticated users.
 */

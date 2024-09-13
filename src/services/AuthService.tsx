@@ -133,7 +133,6 @@ export default class AuthService {
         OTPNeeded: byOAuth ? false : user.OTPEnabled,
         OTPCanUseEmail: user.OTPCanUseEmail,
         OTPCanUsePhone: user.OTPCanUsePhone,
-        tenantId: tenant ? tenant.tenantId : "default"
       },
     });
 
@@ -1393,15 +1392,18 @@ export default class AuthService {
   }
 
 
-  static async changeTenant(req: Request, tenantId: string): Promise<void> {
+  static async changeTenant(token: string, tenantId: string): Promise<any> {
 
     Validater.validateID(tenantId);
+    Validater.validateToken(token);
 
-    if (!req.user) {
-      throw new Error("USER_NOT_FOUND");
+    const session = await AuthService.getSessionFromTokenAndExtendAday(token);
+
+    if (!session) {
+      throw new Error("SESSION_NOT_FOUND");
     }
 
-    const user = req.user as User;
+    const user = session.user as User;
 
     const tenantToGo = await TenantService.getTenantById(tenantId);
 
@@ -1409,16 +1411,35 @@ export default class AuthService {
       throw new Error("TENANT_NOT_FOUND");
     }
 
-    const tenantMembershipToGo = await TenantMemberService.getMembership(
+    const tenantMemberToGo = await TenantMemberService.getMembership(
       tenantToGo,
       user,
     );
 
-    if (!tenantMembershipToGo) {
+    if (!tenantMemberToGo) {
       throw new Error("MEMBERSHIP_NOT_FOUND");
     }
 
-    const session = await this.createSession(user, true, tenantToGo);
+    const result = {
+      token: session.token,
+      user: {
+        userId: user.userId,
+        email: user.email,
+        phone: user.phone,
+        name: user.name,
+        verified: user.verified,
+        roles: user.roles,
+      },
+      tenant: {
+        tenantId: tenantToGo.tenantId,
+        name: tenantToGo.name,
+        roles: tenantMemberToGo.roles,
+        domain: tenantToGo.domain,
+      },
+      redirectUrl : tenantToGo.domain + "." + `${process.env.FRONTEND_URL}/auth/sso?token=` + session.token
+    };
+   
+    return result;
 
   }
 

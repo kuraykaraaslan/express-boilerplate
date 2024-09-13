@@ -75,8 +75,6 @@ model Session {
   token  String @unique @id
   userId String
 
-  tenantId String @default("default")
-
   expiresAt DateTime
 
   // Agent

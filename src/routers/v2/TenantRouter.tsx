@@ -16,6 +16,15 @@ const TenantRouter = express.Router();
 /*
     Those routes are private and can only be accessed by authenticated users.
 */
+
+TenantRouter.get("/get-by-domain/:domain",
+    errorHandlerWrapper(async (req: Request, res: Response) => {
+        const { domain } = req.params;
+        const result = await TenantService.getTenantByDomain(domain);
+        return res.status(201).json(result);
+    }),
+);
+
 TenantRouter.use(authMiddleware("USER"));
 
 TenantRouter.get
