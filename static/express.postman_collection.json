@@ -1,0 +1,1237 @@
+{
+	"info": {
+		"_postman_id": "e85d4b4c-9dc3-4111-a8d4-a40348377852",
+		"name": "V1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28465113",
+		"_collection_link": "https://www.postman.com/kuray-dev/workspace/express-boilerplate/collection/28465113-e85d4b4c-9dc3-4111-a8d4-a40348377852?action=share&source=collection_link&creator=28465113"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "First Verify",
+					"item": [
+						{
+							"name": "Verify Send",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\" : \"dev@kuray.dev\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/resend-verification",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"resend-verification"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verify User",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\" : \"dev@kuray.dev\",\r\n    \"code\" : \"362372\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/verify",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"verify"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Password Reset",
+					"item": [
+						{
+							"name": "Send Email",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\" : \"kuraykaraaslan@gmail.com\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/forgot-password",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"forgot-password"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reset Password",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\" : \"kuraykaraaslan@gmail.com\",\r\n    \"code\" : \"973508\",\r\n    \"password\" : \"WeeBoo@123\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/reset-password",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"reset-password"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "OTP Setting",
+					"item": [
+						{
+							"name": "Disable OTP",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/disable-all",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"disable-all"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Enable Phone OTP",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/enable-phone",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"enable-phone"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Enable Email OTP",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/enable-email",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"enable-email"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"item": [
+						{
+							"name": "Login",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"email\" : \"kuraykaraaslan@gmail.com\",\r\n    \"password\" : \"WeeBoo@123\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/login",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login OTP Send Mail",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"token\" : \"$2b$10$XFBobXhMbTybaoMmzfdit.EjwOBeOw7y7Ef6XaXD0O3qZy5FDX8lW\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/email-send",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"email-send"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login OTP Send SMS",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"token\" : \"$2b$10$uitaMCyjgleh5p1K3x1C1ODTh1LxX5XCs5dq/9IDdIx7KmqufgKyW\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/sms-send",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"sms-send"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login OTP Verify Mail",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"token\" : \"$2b$10$uitaMCyjgleh5p1K3x1C1ODTh1LxX5XCs5dq/9IDdIx7KmqufgKyW\",\r\n    \"code\" :  \"337509\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/email-verify",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"email-verify"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Login OTP Verify SMS",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"token\" : \"$2b$10$uitaMCyjgleh5p1K3x1C1ODTh1LxX5XCs5dq/9IDdIx7KmqufgKyW\",\r\n    \"code\" :  \"337509\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/auth/otp/sms-verify",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"auth",
+										"otp",
+										"sms-verify"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\" : \"kuraykaraaslan@gmail.com\",\r\n    \"password\" : \"WeeBoo@123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/v1/auth/register",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Admin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/v1/auth/create-admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"create-admin"
+							]
+						},
+						"description": "Check the ENV file for the **SUPER_ADMIN_EMAIL** variable, this route makes the selected user admin."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Wallets",
+			"item": [
+				{
+					"name": "All Wallets",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/v1/wallets",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"wallets"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "User",
+					"item": [
+						{
+							"name": "User Wallets",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/users/cm0cfrnaz0000qreblu21upyf/wallets",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"cm0cfrnaz0000qreblu21upyf",
+										"wallets"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Wallet",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"network\" : \"SOL\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/users/cm0cfrnaz0000qreblu21upyf/wallets",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"cm0cfrnaz0000qreblu21upyf",
+										"wallets"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/users",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"users"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Me",
+					"item": [
+						{
+							"name": "Me",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/users/me",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"me"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "My Memberships",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{API_URL}}/v1/users/me/memberships",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"users",
+										"me",
+										"memberships"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get Single User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/v1/users/cm0cfrnaz0000qreblu21upyf",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"cm0cfrnaz0000qreblu21upyf"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/v1/users/cm0cfrnaz0000qreblu21upyf",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"users",
+								"cm0cfrnaz0000qreblu21upyf"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenants",
+			"item": [
+				{
+					"name": "Single Tenant",
+					"item": [
+						{
+							"name": "Members",
+							"item": [
+								{
+									"name": "Single Member",
+									"item": [
+										{
+											"name": "Get Member",
+											"protocolProfileBehavior": {
+												"disableBodyPruning": true
+											},
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{TOKEN}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "GET",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08/members/cm162sh8k0001n39gvudfeea1",
+													"host": [
+														"{{API_URL}}"
+													],
+													"path": [
+														"v1",
+														"tenants",
+														"cm0xte3zo0002147blbn28j08",
+														"members",
+														"cm162sh8k0001n39gvudfeea1"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Update Member",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{TOKEN}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "POST",
+												"header": [],
+												"body": {
+													"mode": "raw",
+													"raw": "{\r\n    \"roles\": [\r\n        \"USER\",\r\n        \"ADMIN\"\r\n    ],\r\n\t\"status\": \"ENABLED\"\r\n}",
+													"options": {
+														"raw": {
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08/members/cm162sh8k0001n39gvudfeea1",
+													"host": [
+														"{{API_URL}}"
+													],
+													"path": [
+														"v1",
+														"tenants",
+														"cm0xte3zo0002147blbn28j08",
+														"members",
+														"cm162sh8k0001n39gvudfeea1"
+													]
+												}
+											},
+											"response": []
+										},
+										{
+											"name": "Delete Member",
+											"request": {
+												"auth": {
+													"type": "bearer",
+													"bearer": [
+														{
+															"key": "token",
+															"value": "{{TOKEN}}",
+															"type": "string"
+														}
+													]
+												},
+												"method": "DELETE",
+												"header": [],
+												"url": {
+													"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08/members/cm162sh8k0001n39gvudfeea1",
+													"host": [
+														"{{API_URL}}"
+													],
+													"path": [
+														"v1",
+														"tenants",
+														"cm0xte3zo0002147blbn28j08",
+														"members",
+														"cm162sh8k0001n39gvudfeea1"
+													]
+												}
+											},
+											"response": []
+										}
+									]
+								},
+								{
+									"name": "Get Members",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{TOKEN}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08/members",
+											"host": [
+												"{{API_URL}}"
+											],
+											"path": [
+												"v1",
+												"tenants",
+												"cm0xte3zo0002147blbn28j08",
+												"members"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Add Member",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{TOKEN}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"userId\" : \"cm0kqkxks0000v5f30uxzibs3\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08/members",
+											"host": [
+												"{{API_URL}}"
+											],
+											"path": [
+												"v1",
+												"tenants",
+												"cm0xte3zo0002147blbn28j08",
+												"members"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Get Tenant",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"tenants",
+										"cm0xte3zo0002147blbn28j08"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Tenant",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"tenantId\": \"cm0xte3zo0002147blbn28j08\",\r\n    \"name\": \"kuray dev\",\r\n    \"domain\": \"kuray\",\r\n    \"logo\": null,\r\n    \"favicon\": null,\r\n    \"theme\": \"light\",\r\n    \"language\": \"en\",\r\n    \"timezone\": \"UTC\",\r\n    \"createdAt\": \"2024-09-11T12:06:01.141Z\",\r\n    \"updatedAt\": \"2024-09-11T12:06:01.141Z\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"tenants",
+										"cm0xte3zo0002147blbn28j08"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Tenant",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{TOKEN}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{API_URL}}/v1/tenants/cm0xte3zo0002147blbn28j08",
+									"host": [
+										"{{API_URL}}"
+									],
+									"path": [
+										"v1",
+										"tenants",
+										"cm0xte3zo0002147blbn28j08"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "List Tenants",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/v1/tenants",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"tenants"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tenant",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"domain\" : \"kuray-dev\",\r\n    \"name\": \"kuray-dev\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/v1/tenants",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"tenants"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By URL",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/v1/tenants/get-by-url/kuray-dev.localhost:3000",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"tenants",
+								"get-by-url",
+								"kuray-dev.localhost:3000"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By URL Copy",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/v1/tenants/get-by-url/kuray-dev.localhost:3000",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"v1",
+								"tenants",
+								"get-by-url",
+								"kuray-dev.localhost:3000"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health V1",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"page\" : 0,\r\n    \"pageSize\": 10\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{API_URL}}/v1/",
+					"host": [
+						"{{API_URL}}"
+					],
+					"path": [
+						"v1",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

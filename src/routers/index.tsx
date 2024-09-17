@@ -15,12 +15,12 @@ mainRouter.use(express.static("public"));
 
 mainRouter.get("/", (req, res) => {
   return res.send({
-    message: "Welcome to the ExpressJS Boilerplate",
+    message: "Welcome to the Express Boilerplate",
     version: "1.0.0",
     developer: "Kuray Karaaslan",
-    repo: "github.com/kuraykaraslan/expressjs-boilerplate",
-    github: "github.com/kuraykaraslan",
-    linkedin: "linkedin.com/in/kuraykaraslan",
+    repo: "github.com/kuraykaraaslan/express-boilerplate",
+    github: "github.com/kuraykaraaslan",
+    linkedin: "linkedin.com/in/kuraykaraaslan",
   });
 });
 

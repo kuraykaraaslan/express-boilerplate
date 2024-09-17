@@ -96,6 +96,7 @@ TenantMemberRouter.post
 
 TenantMemberRouter.post
     ("/invitations/:invitationId/accept",
+        tenantMiddleware("USER"),
         errorHandlerWrapper(async (req: Request, res: Response) => {
 
             const { invitationId } = req.params;
@@ -105,6 +106,44 @@ TenantMemberRouter.post
             return res.status(201).json(result);
         }),
     );
+
+TenantMemberRouter.post
+    ("/invitations/:invitationId/reject",
+        tenantMiddleware("USER"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const { invitationId } = req.params;
+
+            const result = await TenantMemberService.rejectInvitation(req.tenant, req.user, invitationId);
+
+            return res.status(201).json(result);
+        }),
+    );
+
+TenantMemberRouter.get
+    ("/invitations/:invitationId",
+        tenantMiddleware("ADMIN"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const { invitationId } = req.params;
+
+            const result = await TenantMemberService.getInvitationById(invitationId);
+
+            return res.status(201).json(result);
+        }),
+    );
+
+TenantMemberRouter.delete
+    ("/invitations/:invitationId",
+        tenantMiddleware("ADMIN"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const { invitationId } = req.params;
+            const result = await TenantMemberService.deleteInvitation(req.tenant, invitationId);
+            return res.status(201).json({ message: "INVITATION_DELETED" });
+        }),
+    );
+
 
 TenantMemberRouter.get
     ("/:tenantMemberId",

@@ -5,9 +5,23 @@ import Validater from "../helpers/Validater";
 import UserService from "./UserService";
 
 export default class TenantMemberService {
-    static getInvitationById(invitationId: string) {
-        throw new Error("Method not implemented.");
+    static async getInvitationById(invitationId: string) : Promise<TenantMemberInvitation> {
+        Validater.validateID(invitationId);
+
+        const invitation = await prisma.tenantMemberInvitation.findUnique({
+            where: {
+                tenantMemberInvitationId: invitationId
+            }
+        });
+
+        if (!invitation) {
+            throw new Error("INVITATION_NOT_FOUND");
+        }
+
+        return invitation;
+
     }
+    
     static async updateMembership(membership: TenantMember, roles: string[], status: string = "ACTIVE", force: boolean = false): Promise<TenantMember> {
         Validater.validateRoles(roles);
         Validater.validateStatus(status);

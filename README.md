@@ -5,11 +5,18 @@
 This project is a boilerplate for building a web application using Express.js. It includes TypeScript for static typing, Prisma as an ORM, and various utilities to enhance the development process.
 
 ## Features
-
+- **Clean Architecture**: A clean, scalable architecture for building web applications.
 - **Api Versioning**: Versioning the API endpoints for better control and maintenance.
+- **Api Documentation**: API documentation using Postman.
 - **Authentication**: User authentication using JWT.
 - **Error Handling**: Centralized error handling.
 - **Logging**: Logging requests and errors.
+- **Prisma ORM**: Database access using Prisma.
+- **TypeScript**: Static typing for JavaScript.
+- **Validation**: Request validation using Validator.
+- **Environment Variables**: Environment variables using dotenv.
+
+
 
 ## Screenshots
 
@@ -27,6 +34,7 @@ This project is a boilerplate for building a web application using Express.js. I
   - [Roadmap](#roadmap)
   - [Development](#development)
   - [Dependencies](#dependencies)
+  - [Postman Collection](#postman-collection)
   - [License](#license)
   - [Support](#support)
   - [Donate](#donate)
@@ -70,16 +78,15 @@ The following services are available:
 
 - [x] Add Prisma ORM
 - [x] Add User authentication
-- [ ] OTP authentication
+- [x] OTP authentication
 - [x] OAuth authentication
 - [x] Add API versioning
 - [ ] Add unit tests
 - [x] Add logging
 - [x] Add error handling
-- [ ] Add Blog service (posts, comments)
-- [ ] Add Ecommerce service (products, orders, payments)
-- [ ] Add Chat service (messages, rooms)
 - [ ] Add Notifications service
+- [ ] Better documentation
+- [ ] Add more services
 
 ## Development
 
@@ -103,6 +110,12 @@ npm run start
 - [dotenv](https://www.npmjs.com/package/dotenv)
 - [morgan](https://www.npmjs.com/package/morgan)
 - [nodemon](https://www.npmjs.com/package/nodemon)
+
+## Postman Collection
+
+You can import the Postman collection from the following link:
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](/static/V1.postman_collection.json)
 
 ## License
 

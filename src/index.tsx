@@ -31,11 +31,17 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
 
+
+// Documentation
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../swagger.json');
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Middlewares
 app.use(gatewayMiddleware);
 
 app.use("/.env", (req, res) => {
-  res.status(404).send("Fuck off");
+  res.status(404).send("Not Found");
 });
 
 // Routes
