@@ -5,7 +5,9 @@
 import express from "express";
 import Response from "../response/Response";
 import Request from "../request/Request";
+
 import V1Router from "./v1";
+import V2Router from "./v2";
 
 const mainRouter = express.Router();
 
@@ -23,6 +25,7 @@ mainRouter.get("/", (req, res) => {
 });
 
 mainRouter.use("/api/v1", V1Router);
+mainRouter.use("/api/v2", V2Router);
 
 // return 404 if no route matched
 mainRouter.use((req: Request, res: Response) => {

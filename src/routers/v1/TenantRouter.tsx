@@ -16,11 +16,37 @@ import TenantMemberRouter from "./TenantMemberRouter";
 
 const TenantRouter = express.Router();
 
+/*
+    Those routes are public and can be accessed by anyone.  Sensible data should not be exposed here.
+*/
 TenantRouter.get("/get-by-domain/:domain",
     errorHandlerWrapper(async (req: Request, res: Response) => {
         const { domain } = req.params;
+
+        console.log(domain);
+
         const result = await TenantService.getTenantByDomain(domain);
-       
+
+        const publicade = {
+            tenantId: result.tenantId,
+            name: result.name,
+            domain: result.domain,
+            logo: result.logo,
+            favicon: result.favicon,
+        };
+
+        return res.status(201).json(publicade);
+    }),
+);
+
+TenantRouter.get("/get-by-url/:url",
+    errorHandlerWrapper(async (req: Request, res: Response) => {
+        const { url } = req.params;
+
+        console.log(url);
+
+        const result = await TenantService.getTenantByURL(url);
+
         const publicade = {
             tenantId: result.tenantId,
             name: result.name,
@@ -42,7 +68,7 @@ TenantRouter.use(authMiddleware("USER"));
 TenantRouter.get
     ("/",
         authMiddleware("ADMIN"), // Elevation of privilages
-        errorHandlerWrapper(async (req : Request, res : Response) => {
+        errorHandlerWrapper(async (req: Request, res: Response) => {
             let { page, pageSize } = req.query as any;
 
             if (!page) {
@@ -68,8 +94,8 @@ TenantRouter.get
 TenantRouter.post
     ("/",
         authMiddleware("ADMIN"), // Elevation of privilages
-        errorHandlerWrapper(async (req : Request, res : Response) => {
-            const { name , domain } = req.body as any;
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+            const { name, domain } = req.body as any;
 
             const result = await TenantService.createTenant(domain, name);
 
@@ -81,7 +107,7 @@ TenantRouter.post
 TenantRouter.get
     ("/:tenantId",
         tenantMiddleware("USER"), // Elevation of privilages
-        errorHandlerWrapper(async (req : Request, res : Response) => {
+        errorHandlerWrapper(async (req: Request, res: Response) => {
             const { tenantId } = req.params;
 
             if (!tenantId) {
@@ -89,6 +115,45 @@ TenantRouter.get
             }
 
             const result = await TenantService.getTenantById(tenantId);
+
+            return res.status(201).json(result);
+        }),
+    );
+
+TenantRouter.put
+    ("/:tenantId",
+        tenantMiddleware("ADMIN"), // Elevation of privilages
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+            const { tenantId } = req.params;
+            const { name, domain, logo, favicon, theme, timezone } = req.body as any;
+
+            // if there is domain, check if the user is admin
+            console.log(req.user.roles);
+
+            const data = {
+                name,
+                domain,
+                logo,
+                favicon,
+                theme,
+                timezone
+            };
+
+            const result = await TenantService.updateTenant(tenantId, data);
+
+            return res.status(201).json(result);
+        }
+        ),
+    );
+
+TenantRouter.delete
+    ("/:tenantId",
+        tenantMiddleware("ADMIN"), // Elevation of privilages
+        authMiddleware("ADMIN"), // Elevation of privilages
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+            const { tenantId } = req.params;
+
+            const result = await TenantService.deleteTenant(tenantId);
 
             return res.status(201).json(result);
         }),

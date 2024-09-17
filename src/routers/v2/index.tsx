@@ -5,12 +5,12 @@
 import express from "express";
 import TenantRouter from "./TenantRouter";
 
-const v1Router = express.Router();
+const v2Router = express.Router();
 
-v1Router.get("/", (req, res) => {
+v2Router.get("/", (req, res) => {
   res.send({ message: "API_VERSION_2_OK" });
 });
 
-v1Router.use("/tenants", TenantRouter);
+v2Router.use("/tenants", TenantRouter);
 
-export default v1Router;
+export default v2Router;

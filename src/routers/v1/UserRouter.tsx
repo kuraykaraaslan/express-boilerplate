@@ -89,7 +89,6 @@ UserRouter.get(
 
 UserRouter.get(
   "/:userId",
-
   errorHandlerWrapper(async (req: Request, res: Response) => {
     const { userId } = req.params;
 
@@ -105,7 +104,7 @@ UserRouter.get(
 
 UserRouter.delete(
   "/:userId",
-
+  authMiddleware("ADMIN"), // Elevation of privilages
   errorHandlerWrapper(async (req: Request, res: Response) => {
     const { userId } = req.params;
 

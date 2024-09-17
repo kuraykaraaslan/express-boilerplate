@@ -17,6 +17,12 @@ const prisma = new PrismaClient();
 
 export default class AuthService {
 
+  static count = 0;
+
+  static async increaseCount(): Promise<void> {
+    this.count++;
+  }
+
   static async rateLimiterEmail(user: User): Promise<void> {
 
     if (

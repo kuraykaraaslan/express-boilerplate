@@ -12,14 +12,37 @@ export default class TenantService {
             }),
             prisma.tenant.count(),
         ])
-        .then((query) => {
-            return {
-                tenants: query[0],
-                total: query[1],
-                page,
-                pageSize,
-            };
-        });
+            .then((query) => {
+                return {
+                    tenants: query[0],
+                    total: query[1],
+                    page,
+                    pageSize,
+                };
+            });
+    }
+
+    static async getTenantByURL(urlString: string): Promise<Tenant> {
+
+        try {
+            //add https if not present
+            if (!urlString.startsWith("http")) {
+                urlString = "https://" + urlString;
+            }
+
+            const url = new URL(urlString);
+
+            const FRONTEND_URL = process.env.FRONTEND_URL || "https://localhost:3000";
+
+            const subdomain = url.hostname.replace("." + new URL(FRONTEND_URL).hostname, "");
+
+            return this.getTenantByDomain(subdomain);
+
+        } catch (error) {
+            throw new Error("INVALID_URL");
+        }
+
+
     }
 
 
@@ -107,6 +130,76 @@ export default class TenantService {
             tenant,
             membership
         };
+    }
+
+
+    static async updateTenant(tenantId: string, data: any): Promise<Tenant> {
+
+        Validater.validateID(tenantId);
+        Validater.validateName(data.name);
+        Validater.validateDomain(data.domain);
+        Validater.validateURL(data.logo, true);
+        Validater.validateURL(data.favicon, true);
+        Validater.validateStringField(data.theme, "theme", true);
+        Validater.validateStringField(data.timezone, "timezone", true);
+
+        if (!tenantId) {
+            throw new Error("INVALID_TENANT_ID");
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+            where: {
+                tenantId: tenantId
+            }
+        });
+
+        if (!tenant) {
+            throw new Error("TENANT_NOT_FOUND");
+        }
+
+    
+        //if data has created at or updated at, remove them
+        delete data.createdAt;
+        delete data.updatedAt;
+
+        const updatedTenant = await prisma.tenant.update({
+            where: {
+                tenantId: tenantId
+            },
+            data: {
+                ...data,
+                updatedAt: new Date()
+            }
+        });
+
+        return updatedTenant;
+    }
+
+    static async deleteTenant(tenantId: string): Promise<Tenant> {
+
+        Validater.validateID(tenantId);
+
+        if (!tenantId) {
+            throw new Error("INVALID_TENANT_ID");
+        }
+
+        const tenant = await prisma.tenant.findUnique({
+            where: {
+                tenantId: tenantId
+            }
+        });
+
+        if (!tenant) {
+            throw new Error("TENANT_NOT_FOUND");
+        }
+
+        await prisma.tenant.delete({
+            where: {
+                tenantId: tenantId
+            }
+        });
+
+        return tenant;
     }
 
 

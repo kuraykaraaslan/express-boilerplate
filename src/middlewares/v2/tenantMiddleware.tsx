@@ -28,34 +28,38 @@ const tenantMiddleware = function (incomingReqRoles?: string | string[] | undefi
       //if we have tenant and tenantMember already in the request, it means we have already checked the user, so it will be elavation of privilages
       if (req.tenant && req.tenantMember) {
         //check if the user has the required role
-        
+
         if (!TenantMemberService.checkIfMemberHasRole(req.tenant, req.tenantMember, requiredRoles)) {
-          Logger.error("[AUTH] User does not have required role for Route: " + req.originalUrl, req, res);
+          Logger.error("[TENANT] User does not have required role for Route: " + req.originalUrl, req, res);
           return res.status(401).json({ message: "UNAUTHORIZED_ACCESS" });
         }
-                
-        Logger.info("[AUTH] [ELEVATION OF PRIVILAGES] User authenticated for Route: " + req.originalUrl, req, res);
+
+        Logger.info("[TENANT] [ELEVATION OF PRIVILAGES] User authenticated for Route: " + req.originalUrl, req, res);
         return next();
       }
 
-  
+      const xforwardedhost = req.headers['x-forwarded-host'] as string;
       const tenantDomainByHeader = req.headers['x-tenant-domain'] as string;
-      // Allow guest if token is not present
-      if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
-        Logger.info("[AUTH] Guest allowed for Route: " + req.originalUrl, req, res);
-        return next();
-      }
-      const tenant = await TenantService.getTenantByDomain(tenantDomainByHeader);
+
+
+      const tenant = await TenantService.getTenantByDomain(tenantDomainByHeader || xforwardedhost);
+
       if (!tenant) {
-        Logger.error("[AUTH] Tenant not found for Route: " + req.originalUrl, req, res);
+        Logger.error("[TENANT] Tenant not found for Route: " + req.originalUrl, req, res);
         return res.status(404).json({ message: "TENANT_NOT_FOUND" });
       }
       req.tenant = tenant;
 
+      // Allow guest if token is not present
+      if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
+        Logger.info("[TENANT] Guest allowed for Route: " + req.originalUrl, req, res);
+        return next();
+      }
+
       var tenantMember = await TenantMemberService.getMembership(tenant, req.user);
 
       if (!tenantMember) {
-        Logger.error("[AUTH] Tenant Member not found for Route: " + req.originalUrl, req, res);
+        Logger.error("[TENANT] Tenant Member not found for Route: " + req.originalUrl, req, res);
         return res.status(404).json({ message: "MEMBERSHIP_NOT_FOUND" });
       }
 
@@ -63,10 +67,10 @@ const tenantMiddleware = function (incomingReqRoles?: string | string[] | undefi
 
       // Check if the user has the required roles
       if (!TenantMemberService.checkIfMemberHasRole(req.tenant, req.tenantMember, requiredRoles)) {
-        Logger.error("[AUTH] User does not have the required roles for Route: " + req.originalUrl, req, res);
+        Logger.error("[TENANT] User does not have the required roles for Route: " + req.originalUrl, req, res);
         return res.status(401).json({ message: "UNAUTHORIZED_ACCESS" });
       }
-      
+
       next();
     }
   );

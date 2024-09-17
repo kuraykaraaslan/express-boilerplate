@@ -9,7 +9,7 @@ import Validater from "../helpers/Validater";
 export default class UserService {
 
   // Link to AuthService static methods
-  static checkIfUserHasRole = AuthService.checkIfUserHasRole;
+  checkIfUserHasRole = AuthService.checkIfUserHasRole;
 
   
   static listAllUsers(page: number, pageSize: number): Promise<any> {

@@ -49,13 +49,12 @@ TenantMemberRouter.get
 
 TenantMemberRouter.post
     ("/",
-        tenantMiddleware("ADMIN"),
         authMiddleware("ADMIN"),
         errorHandlerWrapper(async (req: Request, res: Response) => {
 
-            const { email } = req.body as any;
+            const { userId, roles } = req.body as any;
 
-            const result = await TenantMemberService.createMembership(req.tenant, email);
+            const result = await TenantMemberService.createMembershipWithUserId(req.tenant, userId, roles);
 
             return res.status(201).json(result);
         }),
@@ -66,7 +65,7 @@ TenantMemberRouter.get
         tenantMiddleware("ADMIN"),
         errorHandlerWrapper(async (req: Request, res: Response) => {
 
-            var { page, pageSize } = req.query as any; 
+            var { page, pageSize } = req.query as any;
 
             if (!page) {
                 page = 0;
@@ -104,6 +103,66 @@ TenantMemberRouter.post
             const result = await TenantMemberService.acceptInvitation(req.tenant, req.user, invitationId);
 
             return res.status(201).json(result);
+        }),
+    );
+
+TenantMemberRouter.get
+    ("/:tenantMemberId",
+        tenantMiddleware("USER"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const membership = req.tenantMember;
+
+            const tenant = req.tenant;
+
+            if (membership.tenantId !== tenant.tenantId) {
+                throw new Error("INVALID_MEMBERSHIP");
+            }
+
+            return res.status(201).json(membership);
+
+        }),
+    );
+
+TenantMemberRouter.post
+    ("/:tenantMemberId",
+        tenantMiddleware("ADMIN"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const { roles, status } = req.body as any;
+
+            const tenant = req.tenant;
+
+            const membership = req.tenantMember;
+
+            if (membership.tenantId !== tenant.tenantId) {
+                throw new Error("INVALID_MEMBERSHIP");
+            }
+
+            const result = await TenantMemberService.updateMembership(membership, roles);
+
+            return res.status(201).json(result);
+
+        }),
+    );
+
+TenantMemberRouter.delete
+    ("/:tenantMemberId",
+        tenantMiddleware("ADMIN"),
+        errorHandlerWrapper(async (req: Request, res: Response) => {
+
+            const membership = req.tenantMember;
+
+            const tenant = req.tenant;
+
+            if (membership.tenantId !== tenant.tenantId) {
+                throw new Error("INVALID_MEMBERSHIP");
+            }
+
+            const result = await TenantMemberService.deleteMembership(membership);
+
+            return res.status(201).json(result);
+
         }),
     );
 

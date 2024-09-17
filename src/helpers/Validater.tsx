@@ -1,4 +1,16 @@
 export default class Validator {
+  static validateStatus(status: string) {
+      
+    if (!status) {
+      throw new Error("INVALID_STATUS");
+    }
+
+    const statuses = ["ACTIVE", "INACTIVE", "PENDING", "BLOCKED"];
+    if (!statuses.includes(status)) {
+      throw new Error("INVALID_STATUS");
+    }
+    
+  }
   /* Validaters */
 
   static validateID(id: string): void {
@@ -99,11 +111,13 @@ export default class Validator {
     if (!domain) {
       throw new Error("INVALID_DOMAIN");
     }
-    // Validate domain can only contain alphanumeric characters, underscores, and hyphens, no spaces, no special characters
-    const regex = /^[a-zA-Z0-9_\-]+$/;
-    if (!domain.match(regex)) {
+
+    // domain can only contain letters, numbers, hyphens, and dots
+    const domainRegex = /^[a-zA-Z0-9.-]+$/;
+    if (!domain.match(domainRegex)) {
       throw new Error("INVALID_DOMAIN");
     }
+
     return;
   }
 
@@ -117,7 +131,7 @@ export default class Validator {
     if (!name.match(regex)) {
       throw new Error("INVALID_NAME");
     }
-    
+
     return;
   }
 
@@ -199,5 +213,6 @@ export default class Validator {
     if (url && !url.match(urlRegex)) {
       throw new Error("INVALID_URL");
     }
+
   }
 }

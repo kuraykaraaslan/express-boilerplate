@@ -5,6 +5,7 @@ import PasswordResetMailTemplate from "./MailTemplates/PasswordResetMailTemplate
 import OTPMailTemplate from "./MailTemplates/OTPMailTemplate";
 import EmailChangeMailTemplate from "./MailTemplates/EmailChangeMailTemplate";
 import EmailChangedNotificationMailTemplate from "./MailTemplates/EmailChangedNotificationMailTemplate";
+import InviteUserTemplate from "./MailTemplates/InviteUserTemplate";
 
 import Logger from "./Logger";
 
@@ -118,6 +119,28 @@ export default class SendMail {
         "Error sending email to " + targetEmail + ": " + newEmail,
         error,
       );
+    }
+  }
+
+
+  static async sendInviteUserMail(
+    tenantName: string,
+    email: string,
+    code: string,
+  ): Promise<void> {
+    try {
+      const mailBody = InviteUserTemplate({ tenantName, email, code });
+
+      await SendMail.transporter.sendMail({
+        from: process.env.NODEMAILER_USER,
+        to: email,
+        subject: "You have been invited to " + tenantName + " on " + process.env.APP_NAME,
+        html: mailBody,
+      });
+
+      Logger.info("Email sent to " + email + ": " + code);
+    } catch (error: any) {
+      Logger.error("Error sending email to " + email + ": " + code, error);
     }
   }
 }

@@ -150,6 +150,8 @@ model TenantMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  status String @default("ACTIVE") // ENABLED, DISABLED
+
   // Relations
   tenant Tenant @relation(fields: [tenantId], references: [tenantId])
   user User @relation(fields: [userId], references: [userId])
@@ -162,6 +164,7 @@ model TenantMemberInvitation {
   email String
   roles String[] @default(["USER"])
 
+  expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
