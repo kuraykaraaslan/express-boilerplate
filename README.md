@@ -72,7 +72,8 @@ The following services are available:
 
 - Authentication
 - Users
-- Crypto Wallets (by tatum.io)
+- Tenants
+- Tenant Members
 
 ## Roadmap
 
