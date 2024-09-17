@@ -62,5 +62,8 @@ Thumbs.db
 .env
 .env.local
 .env.production
+.env.development
+.env.development.x
+.env.test
 .env.development.local
 .vercel
