@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 //import logger from 'morgan';
 import gatewayMiddleware from "./middlewares/gatewayMiddeware";
 import cors from "cors";
+import logger from 'morgan';
 
 // Main router
 import mainRouter from "./routers";
@@ -25,7 +26,7 @@ const app = express();
 const host = process.env.EXPRESS_HOST || "http://localhost";
 const port = process.env.EXPRESS_PORT || 3000;
 
-//app.use(logger('dev'));
+app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
