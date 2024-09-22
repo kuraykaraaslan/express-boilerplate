@@ -10,6 +10,7 @@ import express from "express";
 import AuthRouter from "./AuthRouter";
 import UserRouter from "./UserRouter";
 import TenantRouter from "./TenantRouter";
+import BlogRouter from "./BlogRouter";
 import AuthService from "../../services/AuthService";
 
 const v1Router = express.Router();
@@ -21,9 +22,55 @@ v1Router.get("/", (req: Request, res: Response) => {
   res.send({ message: AuthService.count}); 
 });
 
+console.log(process.env);
 
-v1Router.use("/auth", AuthRouter);
-v1Router.use("/users", UserRouter);
-v1Router.use("/tenants", TenantRouter);
+
+// Correcting the ENABLE_TENANCY variable to be evaluated dynamically
+const ENABLE_TENANCY = () => process.env.ENABLE_TENANCY === "true";
+
+// Improving the handling of routing based on the dynamic value of ENABLE_TENANCY
+v1Router.use("/tenants", (req, res, next) => {
+  if (ENABLE_TENANCY()) {
+    TenantRouter(req, res, next);
+  } else {
+    res.status(404).send({ message: "Not Found" });
+  }
+});
+
+// Correcting the ENABLE_AUTH variable to be evaluated dynamically
+const ENABLE_AUTH = () => process.env.ENABLE_AUTH === "true";
+
+// Improving the handling of routing based on the dynamic value of ENABLE_AUTH
+v1Router.use("/auth", (req, res, next) => {
+  if (ENABLE_AUTH()) {
+    AuthRouter(req, res, next);
+  } else {
+    res.status(404).send({ message: "Not Found" });
+  }
+});
+
+// Correcting the ENABLE_USER variable to be evaluated dynamically
+const ENABLE_USER = () => process.env.ENABLE_USER === "true";
+
+// Improving the handling of routing based on the dynamic value of ENABLE_USER
+v1Router.use("/users", (req, res, next) => {
+  if (ENABLE_USER()) {
+    UserRouter(req, res, next);
+  } else {
+    res.status(404).send({ message: "Not Found" });
+  }
+}); 
+
+// Correcting the ENABLE_BLOG variable to be evaluated dynamically
+const ENABLE_BLOG = () => process.env.ENABLE_BLOG === "true";
+
+// Improving the handling of routing based on the dynamic value of ENABLE_BLOG
+v1Router.use("/blog", (req, res, next) => {
+  if (ENABLE_BLOG()) {
+    BlogRouter(req, res, next);
+  } else {
+    res.status(404).send({ message: "Not Found" });
+  }
+});
 
 export default v1Router;

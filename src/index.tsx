@@ -24,15 +24,30 @@ if (NODE_ENV === "development") {
 const app = express();
 const host = process.env.EXPRESS_HOST || "http://localhost";
 const port = process.env.EXPRESS_PORT || 3000;
+const env = process.env.NODE_ENV || "development";
+
+
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+
+      if (env === 'development') {
+          callback(null, true)
+          return;
+      }
+
+  },
+  credentials: true 
+}
+
 
 //app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(cors());
+app.use(cors(corsOptions));
 
 
-// Documentation
+// Documentation Alternative
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -49,7 +64,7 @@ app.use("/", mainRouter);
 
 app.listen(port, () => {
   console.clear();
-  Logger.operation("[EXPRESS] Server is running on " + host + ":" + port);
+  Logger.operation("[EXPRESS] Server is running on " + host + ":" + port + "env: " + NODE_ENV + "dotenv: ");
 });
 
 module.exports = app;

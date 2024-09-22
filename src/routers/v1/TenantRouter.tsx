@@ -13,6 +13,8 @@ import tenantMiddleware from "../../middlewares/v1/tenantMiddleware";
 
 // Child routers
 import TenantMemberRouter from "./TenantMemberRouter";
+import AuthService from "../../services/AuthService";
+import TenantMemberService from "../../services/TenantMemberService";
 
 const TenantRouter = express.Router();
 
@@ -64,6 +66,26 @@ TenantRouter.get("/get-by-url/:url",
     Those routes are private and can only be accessed by authenticated users.
 */
 TenantRouter.use(authMiddleware("USER"));
+
+TenantRouter.get("/me",
+    errorHandlerWrapper(async (req: Request, res: Response) => {
+
+        let {page, pageSize} = req.query as any;
+
+        if (!page) {
+            page = 0;
+        }
+
+        if (!pageSize) {
+            pageSize = 10;
+        }
+
+        const result = await TenantMemberService.getTenantMembershipsByUser(req.user, page, pageSize);
+
+        return res.status(201).json(result);
+    }),
+);
+
 
 TenantRouter.get
     ("/",

@@ -177,35 +177,6 @@ AuthRouter.post(
 );
 
 
-AuthRouter.post(
-  "/change-tenant",
-  async (req: Request, res: Response) => {
-
-    const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-
-    try {
-      const { tenantId, token, fallback } = req.params;
-
-      const result = await AuthService.changeTenant(token, tenantId);
-
-      if (!result) {
-        throw new Error("SORRY_SOMETHING_WENT_WRONG");
-      }
-
-
-      return res.redirect(
-        result.redirectURL,
-      );
-
-    } catch (error: any) {
-
-      return res.redirect(
-        `${FRONTEND_URL}/auth/sso?error=SOMETHING_WENT_WRONG`,
-      );
-
-    }
-  });
-
 /* 
     Those routes are protected by the authMiddleware.
     It uses the authMiddleware to authenticate the user.
@@ -290,7 +261,40 @@ AuthRouter.post(
   }),
 );
 
+AuthRouter.post(
+  "/change-password",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+    const { oldPassword, newPassword } = req.body;
 
+    await AuthService.changePassword(user, oldPassword, newPassword);
 
+    return res.json({ message: "PASSWORD_CHANGED" });
+  }),
+);
+
+AuthRouter.post(
+  "/change-email",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+    const { email } = req.body;
+
+    await AuthService.changeEmail(user, email);
+
+    return res.json({ message: "EMAIL_CHANGED" });
+  }),
+);
+
+AuthRouter.post(
+  "/change-phone",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+    const { phone } = req.body;
+
+    await AuthService.changePhone(user, phone);
+
+    return res.json({ message: "PHONE_CHANGED" });
+  }),
+);
 
 export default AuthRouter;

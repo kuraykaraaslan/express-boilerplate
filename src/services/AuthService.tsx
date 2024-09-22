@@ -10,9 +10,6 @@ import Logger from "../helpers/Logger";
 import axios from "axios";
 import Request from "../request/Request";
 
-import TenantService from "./TenantService";
-import TenantMemberService from "./TenantMemberService";
-
 const prisma = new PrismaClient();
 
 export default class AuthService {
@@ -1397,57 +1394,125 @@ export default class AuthService {
     return result;
   }
 
-
-  static async changeTenant(token: string, tenantId: string): Promise<any> {
-
-    Validater.validateID(tenantId);
-    Validater.validateToken(token);
-
-    const session = await AuthService.getSessionFromTokenAndExtendAday(token);
-
-    if (!session) {
-      throw new Error("SESSION_NOT_FOUND");
-    }
-
-    const user = session.user as User;
-
-    const tenantToGo = await TenantService.getTenantById(tenantId);
-
-    if (!tenantToGo) {
-      throw new Error("TENANT_NOT_FOUND");
-    }
-
-    const tenantMemberToGo = await TenantMemberService.getMembership(
-      tenantToGo,
-      user,
-    );
-
-    if (!tenantMemberToGo) {
-      throw new Error("MEMBERSHIP_NOT_FOUND");
-    }
-
-    const result = {
-      token: session.token,
-      user: {
+  static async changePassword(user: User, oldPassword: string, newPassword: string): Promise<void> {
+    
+    const userFromDB = await prisma.user.findUnique({
+      where: {
         userId: user.userId,
-        email: user.email,
-        phone: user.phone,
-        name: user.name,
-        verified: user.verified,
-        roles: user.roles,
       },
-      tenant: {
-        tenantId: tenantToGo.tenantId,
-        name: tenantToGo.name,
-        roles: tenantMemberToGo.roles,
-        domain: tenantToGo.domain,
+    });
+
+    if (!userFromDB) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    await this.comparePassword(oldPassword, userFromDB.password);
+
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    //check if the user has the same password
+    if (userFromDB.password === hashedPassword) {
+      throw new Error("SAME_PASSWORD");
+    }
+
+  
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
       },
-      redirectUrl : tenantToGo.domain + "." + `${process.env.FRONTEND_URL}/auth/sso?token=` + session.token
-    };
-   
-    return result;
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return;
 
   }
 
+  static async changeEmail(user: User, email: string): Promise<void> {
+    
+    Validater.validateEmail(email);
+
+    const userFromDB = await prisma.user.findUnique({
+      where: {
+        userId: user.userId,
+      },
+    });
+
+    if (!userFromDB) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    if (userFromDB.email === email) {
+      throw new Error("SAME_EMAIL");
+    }
+
+    if (await this.findUserByEmail(email)) {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+
+    await this.rateLimiterEmail(userFromDB);
+
+    const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+    Logger.info(`Change token for ${userFromDB.email}: ${changeToken}`);
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        emailChangeToken: changeToken,
+        emailChangeTokenExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+        emailChangeAddress: email,
+      },
+    });
+
+    SendMail.sendEmailChangeEmail(email, changeToken);
+  }
+
+  static async changePhone(user: User, phone: number): Promise<void> {
+    
+    Validater.validatePhone(phone);
+
+    const userFromDB = await prisma.user.findUnique({
+      where: {
+        userId: user.userId,
+      },
+    });
+
+    if (!userFromDB) {
+      throw new Error("USER_NOT_FOUND");
+    }
+
+    if (userFromDB.phone === phone) {
+      throw new Error("SAME_PHONE");
+    }
+
+    if (await this.findUserByPhone(phone)) {
+      throw new Error("PHONE_ALREADY_EXISTS");
+    }
+
+    await this.rateLimiterPhone(userFromDB);
+
+    const changeToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+    Logger.info(`Change token for ${userFromDB.phone}: ${changeToken}`);
+
+    await prisma.user.update({
+      where: {
+        userId: user.userId,
+      },
+      data: {
+        phoneChangeToken: changeToken,
+        phoneChangeTokenExpires: new Date(Date.now() + 1000 * 60 * 15), // 15 minutes
+        phoneChangeNumber: phone,
+      },
+    });
+
+    SendSMS.sendPhoneChangeCode(phone, changeToken);
+  }
+
+  
 
 }
