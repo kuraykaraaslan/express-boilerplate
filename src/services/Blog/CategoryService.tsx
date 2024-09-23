@@ -92,5 +92,34 @@ export default class CategoryService {
         return category;
     }
 
+    static async getPostsByCategory(categoryId: string, page: number, pageSize: number): Promise<Post[]> {
+
+        Validator.validateStringField("categoryId", categoryId);
+        Validator.validateNaturalNumber(page);
+        Validator.validateNaturalNumber(pageSize);
+
+        const posts = await prisma.post.findMany({
+            where: {
+                categoryId,
+            },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        });
+
+        return posts;
+    }
+
+    static async getPostsCountByCategory(categoryId: string): Promise<number> {
+
+        Validator.validateStringField("categoryId", categoryId);
+
+        const count = await prisma.post.count({
+            where: {
+                categoryId,
+            },
+        });
+
+        return count;
+    }
 }
 
