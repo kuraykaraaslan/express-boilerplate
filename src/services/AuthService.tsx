@@ -175,6 +175,8 @@ export default class AuthService {
     Validater.validateEmail(email);
     Validater.validatePassword(password);
 
+    Logger.info(`Login attempt for ${email}`);
+
     const user = await this.findUserByEmail(email);
     if (!user) {
       throw new Error("USER_NOT_FOUND");
@@ -195,6 +197,8 @@ export default class AuthService {
         lastLogin: new Date(),
       },
     });
+
+    Logger.info(`Login success for ${email}`);
 
     return {
       token: session.token,
