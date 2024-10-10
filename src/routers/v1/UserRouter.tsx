@@ -9,7 +9,7 @@ import Request from "../../request/Request";
 
 import UserService from "../../services/UserService";
 import { User } from "../../libs/prisma";
-import TenantMemberService from "../../services/TenantMemberService";
+//import TenantMemberService from "../../services/TenantMemberService";
 
 const UserRouter = express.Router();
 
@@ -60,32 +60,6 @@ UserRouter.get(
   }),
 );
 
-UserRouter.get(
-  "/me/memberships",
-  errorHandlerWrapper(async (req: Request, res: Response) => {
-
-    let { page, pageSize } = req.query as any;
-
-    if (!page) {
-      page = 0;
-    }
-
-    if (!pageSize) {
-      pageSize = 10;
-    }
-
-    const regex = /^[0-9]+$/;
-
-    if (!regex.test(page) || !regex.test(pageSize)) {
-      return res.status(400).json({ message: "INVALID_PAGE_OR_PAGE_SIZE" });
-    }
-
-    const result = await TenantMemberService.getTenantMembershipsByUser(req.user, page, pageSize);
-
-    return res.status(201).json(result);
-
-  })
-);
 
 UserRouter.get(
   "/:userId",

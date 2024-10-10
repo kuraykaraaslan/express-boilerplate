@@ -1,8 +1,8 @@
-import prisma, { Tenant, TenantMember, User, TenantMemberInvitation } from "../libs/prisma";
-import AuthService from "./AuthService";
-import TenantService from "./TenantService";
-import Validater from "../helpers/Validater";
-import UserService from "./UserService";
+import prisma, { Tenant, TenantMember, User, TenantMemberInvitation } from "../../libs/prisma";
+import AuthService from "../AuthService";
+import TenantService from "../TenantService";
+import Validater from "../../helpers/Validater";
+import UserService from "../UserService";
 
 export default class TenantMemberService {
     static async getInvitationById(invitationId: string) : Promise<TenantMemberInvitation> {

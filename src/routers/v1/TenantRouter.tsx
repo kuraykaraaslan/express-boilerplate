@@ -14,7 +14,7 @@ import tenantMiddleware from "../../middlewares/v1/tenantMiddleware";
 // Child routers
 import TenantMemberRouter from "./TenantMemberRouter";
 import AuthService from "../../services/AuthService";
-import TenantMemberService from "../../services/TenantMemberService";
+import TenantMemberService from "../../services/Tenant/TenantMemberService";
 
 const TenantRouter = express.Router();
 

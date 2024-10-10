@@ -1,20 +1,9 @@
-import { PrismaClient as Orginal, User, Prisma, TenantSetting, SystemSetting, Tenant, TenantMember, TenantMemberInvitation , Category, Post} from "@prisma/client";
+import { PrismaClient as Orginal, User, TenantSetting, SystemSetting, Tenant, TenantMember, TenantMemberInvitation , Notification} from "@prisma/client";
 
 
-const prisma = new Orginal(
-  
-
-).$extends({
-  model: {
-    user: {
-      async sayhello() {
-        console.log("Hello from PrismaClient");
-      }
-    },
-  },
-})
+const prisma = new Orginal();
 
 
-export type { User, Prisma, TenantSetting, SystemSetting , Tenant, TenantMember, TenantMemberInvitation, Category, Post}
+export type { User, TenantSetting, SystemSetting , Tenant, TenantMember, TenantMemberInvitation, Notification}
 
 export default prisma ;

@@ -5,7 +5,7 @@
 
 import express from "express";
 import TenantService from "../../services/TenantService";
-import TenantMemberService from "../../services/TenantMemberService";
+import TenantMemberService from "../../services/Tenant/TenantMemberService";
 import errorHandlerWrapper from "../../utils/errorHandlerWrapper";
 import Response from "../../response/Response";
 import Request from "../../request/Request";

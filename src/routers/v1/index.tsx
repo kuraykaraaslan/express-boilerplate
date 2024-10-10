@@ -12,17 +12,9 @@ import UserRouter from "./UserRouter";
 import TenantRouter from "./TenantRouter";
 import BlogRouter from "./BlogRouter";
 import AuthService from "../../services/AuthService";
+import NotificationRouter from "./NotificationRouter";
 
 const v1Router = express.Router();
-
-v1Router.get("/", (req: Request, res: Response) => {
-  
-  AuthService.increaseCount();
-
-  res.send({ message: AuthService.count}); 
-});
-
-console.log(process.env);
 
 
 // Correcting the ENABLE_TENANCY variable to be evaluated dynamically
@@ -64,10 +56,23 @@ v1Router.use("/users", (req, res, next) => {
 // Correcting the ENABLE_BLOG variable to be evaluated dynamically
 const ENABLE_BLOG = () => process.env.ENABLE_BLOG === "true";
 
-// Improving the handling of routing based on the dynamic value of ENABLE_BLOG
+/* Improving the handling of routing based on the dynamic value of ENABLE_BLOG
 v1Router.use("/blog", (req, res, next) => {
   if (ENABLE_BLOG()) {
     BlogRouter(req, res, next);
+  } else {
+    res.status(404).send({ message: "Not Found" });
+  }
+});
+*/
+
+// Correcting the ENABLE_NOTIFICATION variable to be evaluated dynamically
+const ENABLE_NOTIFICATIONS = () => process.env.ENABLE_NOTIFICATIONS === "true";
+
+// Improving the handling of routing based on the dynamic value of ENABLE_NOTIFICATION
+v1Router.use("/notifications", (req, res, next) => {
+  if (ENABLE_NOTIFICATIONS()) {
+    NotificationRouter(req, res, next);
   } else {
     res.status(404).send({ message: "Not Found" });
   }

@@ -67,3 +67,6 @@ Thumbs.db
 .env.test
 .env.development.local
 .vercel
+
+#Geo
+/src/libs/geoip/GeoLite2-City.mmdb

@@ -73,11 +73,12 @@ AuthRouter.post(
   errorHandlerWrapper(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
-    const result = await AuthService.login(email, password);
+    const result = await AuthService.login(email, password, req);
 
     return res.json(result);
   }),
 );
+
 
 AuthRouter.post(
   "/verify",
@@ -131,7 +132,6 @@ AuthRouter.post(
     Those routes are for sending OTP to the user.
 */
 
-
 AuthRouter.post(
   "/otp/sms-send",
   errorHandlerWrapper(async (req: Request, res: Response) => {
@@ -183,6 +183,17 @@ AuthRouter.post(
 */
 
 AuthRouter.use(authMiddleware("USER"));
+
+AuthRouter.post(
+  "/logout",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const token = req.headers.authorization as string;
+
+    await AuthService.logout(token);
+
+    return res.json({ message: "LOGGED_OUT" });
+  }),
+);
 
 
 AuthRouter.get(
@@ -294,6 +305,62 @@ AuthRouter.post(
     await AuthService.changePhone(user, phone);
 
     return res.json({ message: "PHONE_CHANGED" });
+  }),
+);
+
+AuthRouter.get(
+  "/sessions",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+
+    const sessions = await AuthService.listAllSessionsByUser(user);
+
+    const confidantelizedSessions = sessions.map((session) => {
+      return {
+        sessionId: session.sessionId,
+        os: session.os,
+        browser: session.browser,
+        device: session.device,
+        ip: session.ip,
+        region: session.region,
+        city: session.city,
+        country: session.country,
+        isp: session.isp
+      };
+    }
+    );
+
+    return res.json(confidantelizedSessions);
+  }),
+);
+
+AuthRouter.delete(
+  "/sessions",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+
+    await AuthService.revokeAllSessionsbyUserId(user);
+
+    return res.json({ message: "ALL_SESSIONS_REVOKED" });
+  }),
+);
+
+AuthRouter.delete(
+  "/sessions/:sessionId",
+  errorHandlerWrapper(async (req: Request, res: Response) => {
+    const user = req.user;
+
+    const { sessionId } = req.params;
+
+    const session = await AuthService.getSessionBySessionId(sessionId);
+
+    if (session.userId !== user.userId) {
+      return res.status(403).json({ message: "FORBIDDEN" });
+    }
+
+    await AuthService.revokeSessionByToken(session.token);
+
+    return res.json({ message: "SESSION_REVOKED" });
   }),
 );
 

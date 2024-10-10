@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+// Blog
+model Category {
+  categoryId String @id @default(cuid())
+  name String
+  slug String @unique
+  description String?
+
+  parentId String?
+
+  parent Category? @relation("CategoryParent", fields: [parentId], references: [categoryId])
+  children Category[] @relation("CategoryParent")
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  postId String @id @default(cuid())
+  title String
+  slug String @unique
+  content String
+
+  status String @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  publishedAt DateTime?
+
+  categoryId String
+  category Category @relation(fields: [categoryId], references: [categoryId])
+
+  featuredImage String?
+
+  authorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+

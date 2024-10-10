@@ -9,15 +9,111 @@ import Logger from "../helpers/Logger";
 
 import axios from "axios";
 import Request from "../request/Request";
+import NotificationService from "./NotificationService";
 
 const prisma = new PrismaClient();
 
 export default class AuthService {
 
-  static count = 0;
+  static async WriteSessionParametersfromRequest(session: Session, req: Request): Promise<void> {
+    // ip , os, browser, device, platform
 
-  static async increaseCount(): Promise<void> {
-    this.count++;
+    console.log(req.headers);
+
+    var ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    
+    if (process.env.NODE_ENV === "development") {
+    ip = (ip === "::1") ? "85.111.49.176" : ip; // Using Turk Telekom IP for local testing
+    }
+
+    var os = "Unknown OS";
+    var browser = "Unknown Browser";
+    var device = "Unknown Device";
+
+    const knownOS = ["Windows", "Mac", "Linux", "Android", "iOS"];
+    const knownBrowsers = ["Firefox", "Chrome", "Safari", "Edge", "Opera", "PostmanRuntime"];
+
+
+    const userAgent = req.headers["user-agent"] ? req.headers["user-agent"] : "";
+
+    knownOS.forEach((os) => {
+      if (userAgent.includes(os)) {
+        os = os;
+      }
+    });
+
+    knownBrowsers.forEach((browser) => {
+      if (userAgent.includes(browser)) {
+        browser = browser;
+      }
+    });
+    
+    switch (os) {
+      case "Windows":
+        if (userAgent.includes("Windows Phone")) {
+          device = "Windows Phone";
+        } else {
+          device = "Windows PC";
+        }
+        break;
+      case "Mac":
+        device = "Mac";
+        break;
+      case "Linux":
+        device = "Linux";
+        break;
+      case "Android":
+        device = "Android";
+        break;
+      case "iOS":
+        device = "iOS";
+        break;
+      default:
+        if (browser === "PostmanRuntime") {
+          device = "Postman";
+        } else {
+          device = "Unknown Device";
+        }
+      break; 
+    }
+
+    var region = "Unknown Region";
+    var city = "Unknown City";
+    var country = "Unknown Country";
+    var isp = "Unknown ISP";
+
+    try {
+      const url = "https://ipapi.co/" + ip + "/json/";
+      console.log(url);
+      const response = await axios.get(url);
+
+      console.log(response.data);
+     
+      region = response.data.region ? response.data.region : "Unknown Region";
+      country = response.data.country_name ? response.data.country_name : "Unknown Country";
+      city = response.data.city ? response.data.city : "Unknown City";
+      isp = response.data.org ? response.data.org : "Unknown ISP";
+    }
+    catch (error) {
+      console.log(error);
+    }
+
+    await prisma.session.update({
+      where: {
+        token: session.token,
+      },
+      data: {
+        ip: ip ? ip.toString() : "Unknown IP",
+        os: os ? os : "Unknown OS",
+        browser: browser ? browser : "Unknown Browser",
+        device: device ? device : "Unknown Device",
+        region: region ? region : "Unknown Region",
+        city: city ? city : "Unknown City",
+        country: country ? country : "Unknown Country",
+        isp: isp ? isp : "Unknown ISP",
+      },
+    });
+
   }
 
   static async rateLimiterEmail(user: User): Promise<void> {
@@ -88,7 +184,7 @@ export default class AuthService {
     }
 
     Validater.validatePassword(plainPassword);
-    
+
     const isPasswordCorrect = await bcrypt.compare(
       plainPassword,
       hashedPassword,
@@ -170,7 +266,7 @@ export default class AuthService {
     };
   }
 
-  static async login(email: string, password: string): Promise<any> {
+  static async login(email: string, password: string, req: Request): Promise<any> {
 
     Validater.validateEmail(email);
     Validater.validatePassword(password);
@@ -186,8 +282,13 @@ export default class AuthService {
 
     await this.comparePassword(password, user.password);
 
+
     const session = await this.createSession(user);
 
+    // write session parameters like ip, os, browser, device, platform
+    await this.WriteSessionParametersfromRequest(session, req);
+
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
     // update user last login
     await prisma.user.update({
       where: {
@@ -195,10 +296,12 @@ export default class AuthService {
       },
       data: {
         lastLogin: new Date(),
+        lastLoginIP: ip ? ip.toString() : "Unknown IP",
       },
     });
 
     Logger.info(`Login success for ${email}`);
+    NotificationService.createLoginNotification(user);
 
     return {
       token: session.token,
@@ -285,6 +388,39 @@ export default class AuthService {
     return session;
   }
 
+  static async logout(token: string): Promise<void> {
+    // Check if token is present
+    if (!token || token.length < 7) {
+      throw new Error("TOKEN_NOT_PRESENT");
+    }
+
+    // Check if token is valid
+    const tokenWithoutBearer = token.substring(7);
+
+    Validater.validateToken(tokenWithoutBearer);
+
+    // Check if token is valid
+    const session = await prisma.session.findUnique({
+      where: {
+        token: tokenWithoutBearer,
+      },
+    });
+
+    if (!session) {
+      throw new Error("SESSION_NOT_FOUND");
+    }
+
+    await prisma.session.delete({
+      where: {
+        token: tokenWithoutBearer,
+      },
+    });
+
+    Logger.info(`Logout success for ${session.token}`);
+  }
+
+
+
   /* Verifiers */
   static async sendFirstVerificationEmail(user: User): Promise<void> {
     //TODO
@@ -318,7 +454,7 @@ export default class AuthService {
   }
 
   static async sendFirstVerificationEmailByEmail(email: string): Promise<void> {
-    
+
     Validater.validateEmail(email);
 
     const user = await this.findUserByEmail(email);
@@ -334,7 +470,7 @@ export default class AuthService {
     email: string,
     code: string,
   ): Promise<void> {
-    
+
     Validater.validateEmail(email);
     Validater.validateSixDigitCode(code);
 
@@ -845,7 +981,7 @@ export default class AuthService {
   }
 
   static async sendForgotPasswordEmail(email: string): Promise<void> {
-    
+
     Validater.validateEmail(email);
 
     const user = await this.findUserByEmail(email);
@@ -1399,7 +1535,7 @@ export default class AuthService {
   }
 
   static async changePassword(user: User, oldPassword: string, newPassword: string): Promise<void> {
-    
+
     const userFromDB = await prisma.user.findUnique({
       where: {
         userId: user.userId,
@@ -1419,7 +1555,7 @@ export default class AuthService {
       throw new Error("SAME_PASSWORD");
     }
 
-  
+
     await prisma.user.update({
       where: {
         userId: user.userId,
@@ -1434,7 +1570,7 @@ export default class AuthService {
   }
 
   static async changeEmail(user: User, email: string): Promise<void> {
-    
+
     Validater.validateEmail(email);
 
     const userFromDB = await prisma.user.findUnique({
@@ -1476,7 +1612,7 @@ export default class AuthService {
   }
 
   static async changePhone(user: User, phone: number): Promise<void> {
-    
+
     Validater.validatePhone(phone);
 
     const userFromDB = await prisma.user.findUnique({
@@ -1517,6 +1653,47 @@ export default class AuthService {
     SendSMS.sendPhoneChangeCode(phone, changeToken);
   }
 
+  static async listAllSessionsByUser(user: User): Promise<Session[]> {
+    return await prisma.session.findMany({
+      where: {
+        userId: user.userId,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+  }
+
+  static async getSessionBySessionId(sessionId: string): Promise<Session> {
+      
+      Validater.validateID(sessionId);
   
+      const session = await prisma.session.findFirst({
+        where: {
+          sessionId: sessionId,
+        },
+      });
+  
+      if (!session) {
+        throw new Error("SESSION_NOT_FOUND");
+      }
+  
+      return session;
+    }
+  
+
+  static async revokeSessionByToken(token: string): Promise<void> {
+
+    Validater.validateToken(token);
+
+    await prisma.session.delete({
+      where: {
+        token: token,
+      },
+    });
+
+    return;
+  }
+
 
 }

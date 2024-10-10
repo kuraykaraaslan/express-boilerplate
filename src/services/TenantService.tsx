@@ -1,5 +1,5 @@
 import prisma, { Tenant, TenantSetting, User, TenantMember } from "../libs/prisma";
-import TenantMemberService from "./TenantMemberService";
+import TenantMemberService from "./Tenant/TenantMemberService";
 import Validater from "../helpers/Validater";
 
 export default class TenantService {

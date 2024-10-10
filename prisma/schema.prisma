@@ -59,6 +59,7 @@ model User {
   roles String[] @default(["USER"])
   
   lastLogin DateTime?
+  lastLoginIP String?
   lastEmailSent DateTime?
   lastPhoneSent DateTime?
 
@@ -68,11 +69,15 @@ model User {
 
   // Relations
   tenantmemberships TenantMember[]
+  notifications Notification[]
 
 }
 
 model Session {
+  sessionId String? @default(cuid())
+
   token  String @unique @id
+
   userId String
 
   expiresAt DateTime
@@ -81,8 +86,11 @@ model Session {
   browser  String?
   os       String?
   device   String?
-  platform String?
   ip       String?
+  region   String?
+  city     String?
+  country  String?
+  isp      String?
 
   OTPNeeded Boolean @default(false)
 
@@ -95,6 +103,8 @@ model Session {
   OTPVerificationEmailCodeExpires DateTime?
 
   user User @relation(fields: [userId], references: [userId])
+
+  createdAt DateTime @default(now())
 }
 
 model Incident {
@@ -138,7 +148,8 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   // Members
-  members TenantMember[] 
+  members TenantMember[]
+  notifications Notification[]
 }
 
 model TenantMember {
@@ -173,64 +184,22 @@ model TenantMemberInvitation {
   // Relations
 }
 
-// S3 Bucket File
-model File {
-
-  fileId String @id @default(cuid())
-
-  tenantId String
+// Notification
+model Notification {
+  notificationId String @id @default(cuid())
   userId String
-
-  key String
-  url String
-
-
-  size Int
-  mimetype String 
+  tenantId String?
+  type String // INFO, WARN, ERROR
+  title String
+  message String
+  read Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  additionalData Json?
 
   // Relations
-  relatedToModel String?
-  relatedToId String?
-
+  user User @relation(fields: [userId], references: [userId])
+  tenant Tenant? @relation(fields: [tenantId], references: [tenantId])
 }
-
-// Blog
-model Category {
-  categoryId String @id @default(cuid())
-  name String
-  slug String @unique
-  description String?
-
-  parentId String?
-
-  parent Category? @relation("CategoryParent", fields: [parentId], references: [categoryId])
-  children Category[] @relation("CategoryParent")
-  posts Post[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Post {
-  postId String @id @default(cuid())
-  title String
-  slug String @unique
-  content String
-
-  status String @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
-  publishedAt DateTime?
-
-  categoryId String
-  category Category @relation(fields: [categoryId], references: [categoryId])
-
-  featuredImage String?
-
-  authorId String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 

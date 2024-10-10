@@ -12,7 +12,7 @@ import Logger from '../../helpers/Logger';
 import { Tenant, TenantMember } from '../../libs/prisma';
 
 import TenantService from '../../services/TenantService';
-import TenantMemberService from '../../services/TenantMemberService';
+import TenantMemberService from '../../services/Tenant/TenantMemberService';
 
 import errorHandlerWrapper from '../../utils/errorHandlerWrapper';
 
