@@ -79,10 +79,7 @@ export default class UserService {
                     { email: { contains: search } },
                     { name: { contains: search } },
                 ],
-            },
-            include: {
-                tenant: true,
-            },
+            }
         };
 
         // Get all users
@@ -187,7 +184,20 @@ export default class UserService {
     }
 
 
+    /**
+     * Retrieves a user from the database by email.
+     * @param email - The email to retrieve.
+     * @returns The user details.
+     */
+    static async getByEmail(email: string): Promise<User | null> {
+        return prisma.user.findUnique({
+            where: { email },
+        });
+    }
+
 }
+
+
 
 
 

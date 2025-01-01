@@ -8,6 +8,8 @@ import AuthLoginRequest from "@/dtos/requests/AuthLoginRequest";
 import UserSessionResponse from "@/dtos/responses/UserSessionResponse";
 import GetSessionRequest from "@/dtos/requests/GetSessionRequest";
 import OmitPasswordUserResponse from "@/dtos/responses/OmitPasswordUserResponse";
+import AuthForgotPasswordRequest from "@/dtos/requests/AuthForgotPasswordRequest";
+import AuthResetPasswordRequest from "@/dtos/requests/AuthResetPasswordRequest";
 
 export default class AuthService {
 
@@ -194,4 +196,78 @@ export default class AuthService {
     static checkIfUserHasRole(user: OmitPasswordUserResponse, requiredRoles: string[]): boolean {
         return requiredRoles.includes(user.role);
     }
+
+
+    /**
+     * Sends a password reset email to the user.
+     * @param email - The user's email.
+     */
+    static async forgotPassword(data: AuthForgotPasswordRequest): Promise<void> {
+
+        const { email } = data;
+
+        // Get the user by email
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        // Generate a password reset token
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        
+
+        // Save the token to the user
+        await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+                resetToken: token,
+                resetTokenExpiry: new Date(Date.now() + 3600000), // 1 hour
+            },
+        });
+
+        // Send the password reset email
+        console.log(`Password reset token: ${token}`);
+    }
+
+
+    /**
+     * Resets the password of the user.
+     * @param token - The password reset token.
+     * @param password - The new password.
+     */
+    static async resetPassword(data: AuthResetPasswordRequest): Promise<void> {
+
+        const { email, token, password } = data;
+
+        // Get the user by token
+        const user = await prisma.user.findFirst({
+            where: { resetToken: token, resetTokenExpiry: { gte: new Date() } },
+        });
+
+        if (!user) {
+            throw new Error("USER_NOT_FOUND");
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update the user's password
+        await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiry: null,
+            },
+        });
+
+        // Send a confirmation email
+        console.log("Password reset successfully");
+
+    }  
+
+
 }

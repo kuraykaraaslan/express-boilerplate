@@ -13,6 +13,11 @@ import AuthRegisterRequest from '../../dtos/requests/AuthRegisterRequest';
 import UserSessionResponse from '../../dtos/responses/UserSessionResponse';
 import GetSessionRequest from '../../dtos/requests/GetSessionRequest';
 
+// Middlewares
+import AuthMiddleware from "../../middlewares/AuthMiddleware";
+import AuthForgotPasswordRequest from '@/dtos/requests/AuthForgotPasswordRequest';
+import AuthResetPasswordRequest from '@/dtos/requests/AuthResetPasswordRequest';
+
 
 const AuthRouter = Router();
 
@@ -52,6 +57,47 @@ AuthRouter.post('/login', async (req: Request<AuthLoginRequest>, res: Response<U
 });
 
 /**
+ * POST /forgot-password
+ * Send a password reset email to the user.
+ * 
+ * Request Body:
+ * - email (string): The email address of the user (required).
+ * 
+ * Response:
+ * - 200: Password reset email sent successfully.
+ * - 400: Validation error if email is missing.
+ * - 404: User not found if email does not exist in the database.
+ */
+AuthRouter.post('/forgot-password', async (req: Request<AuthForgotPasswordRequest>, res: Response) => {
+    await AuthService.forgotPassword(req.body);
+    res.sendStatus(200);
+});
+
+/**
+ * POST /reset-password
+ * Reset the password of the user.
+ * 
+ * Request Body:
+ * - token (string): The password reset token sent to the user's email (required).
+ * - password (string): The new password for the user (required).
+ * 
+ * Response:
+ * - 200: Password successfully reset.
+ * - 400: Validation error if token or password is missing.
+ * - 404: User not found if token is invalid.
+ */
+AuthRouter.post('/reset-password', async (req: Request<AuthResetPasswordRequest>, res: Response) => {
+    await AuthService.resetPassword(req.body);
+    res.sendStatus(200);
+});
+
+
+
+// All routes below this point require the user to be logged in
+
+AuthRouter.use(AuthMiddleware("USER"));
+
+/**
  * POST /logout
  * Logout the current user.
  * 
@@ -80,5 +126,6 @@ AuthRouter.post('/session', async (req: Request<GetSessionRequest>, res: Respons
     const session = await AuthService.getSession(req.body.token);
     res.json(session);
 });
+
 
 export default AuthRouter;

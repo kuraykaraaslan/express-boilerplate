@@ -7,6 +7,7 @@ import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
 import V1Router from "./routers/v1";
+import IndexRouter from "./routers";
 dotenv.config({ path: "../.env" });
 
 
@@ -21,19 +22,8 @@ app.use(cookieParser());
 app.use(cors());
 
 
-app.get("/", (req, res) => {
-  return res.send({
-    message: "Welcome to the Express Boilerplate",
-    version: "2.0.0",
-    developer: "Kuray Karaaslan",
-    repo: "github.com/kuraykaraaslan/express-boilerplate",
-    github: "github.com/kuraykaraaslan",
-    linkedin: "linkedin.com/in/kuraykaraaslan",
-  });
-});
-
 // Routes
-app.use("/api/v1", V1Router);
+app.use("/" , IndexRouter);
 app.use(ErrorHandler);
 
 app.listen(port, () => {
