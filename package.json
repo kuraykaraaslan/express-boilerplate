@@ -10,7 +10,8 @@
     "migrate": "prisma migrate dev --name init",
     "generate": "prisma generate",
     "lint": "eslint . --ext .ts,.tsx",
-    "prettier": "prettier ."
+    "prettier": "prettier .",
+    "postinstall": "prisma generate"
   },
   "repository": {
     "type": "git",
