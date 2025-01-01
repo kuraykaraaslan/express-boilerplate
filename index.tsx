@@ -8,6 +8,7 @@ import userRouter from "./routers/v1/UserRouter"
 import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
+import V1Router from "./routers/v1";
 dotenv.config({ path: "../.env" });
 
 
@@ -23,7 +24,7 @@ app.use(cors());
 
 
 // Routes
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1", V1Router);
 app.use(ErrorHandler);
 
 app.listen(port, () => {

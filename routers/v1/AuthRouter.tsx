@@ -4,14 +4,14 @@
  * This module provides endpoints to manage user authentication operations such as registration and login.
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
-import AuthService from '@/services/AuthService';
+import AuthService from '../../services/AuthService';
 import { Router, Request, Response } from "express";
 
 // DTOs
-import AuthLoginRequest from '@/dtos/requests/AuthRegisterRequest';
-import AuthRegisterRequest from '@/dtos/requests/AuthRegisterRequest';
-import UserSessionResponse from '@/dtos/responses/UserSessionResponse';
-import GetSessionRequest from '@/dtos/requests/GetSessionRequest';
+import AuthLoginRequest from '../../dtos/requests/AuthRegisterRequest';
+import AuthRegisterRequest from '../../dtos/requests/AuthRegisterRequest';
+import UserSessionResponse from '../../dtos/responses/UserSessionResponse';
+import GetSessionRequest from '../../dtos/requests/GetSessionRequest';
 
 
 const AuthRouter = Router();

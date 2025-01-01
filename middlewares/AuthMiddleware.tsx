@@ -13,22 +13,23 @@ import AuthService from '../services/AuthService';
 
 export default function (incomingReqRoles?: string | string[] | undefined) {
 
-    return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
 
+    try {
 
       var requiredRoles = incomingReqRoles ? typeof incomingReqRoles === 'string' ? [incomingReqRoles] : incomingReqRoles : ['USER'];
 
       //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
 
-      if (req.user) {     
+      if (req.user) {
         //check if the user has the required role
         if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
           throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
         }
-        
+
         return next();
       }
-       
+
       const token = req.headers.authorization;
       const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
@@ -53,7 +54,11 @@ export default function (incomingReqRoles?: string | string[] | undefined) {
       if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
-      
+
       next();
+
+    } catch (error: any) {
+      res.status(401).send({ error: error.message });
     }
+  }
 }

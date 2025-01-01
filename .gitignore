@@ -70,3 +70,8 @@ Thumbs.db
 
 #Geo
 /src/libs/geoip/GeoLite2-City.mmdb
+
+# prismajs
+/prisma/.env
+/prisma/.env.development
+/prisma/migration
