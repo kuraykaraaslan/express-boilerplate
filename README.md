@@ -1,26 +1,23 @@
 # Express Boilerplate
 
-![express](/static/logo.png)
+![express](/public/logo.png)
 
 This project is a boilerplate for building a web application using Express.js. It includes TypeScript for static typing, Prisma as an ORM, and various utilities to enhance the development process.
 
 ## Features
 - **Clean Architecture**: A clean, scalable architecture for building web applications.
 - **Api Versioning**: Versioning the API endpoints for better control and maintenance.
-- **Api Documentation**: API documentation using Postman.
 - **Authentication**: User authentication using JWT.
 - **Error Handling**: Centralized error handling.
-- **Logging**: Logging requests and errors.
 - **Prisma ORM**: Database access using Prisma.
 - **TypeScript**: Static typing for JavaScript.
 - **Validation**: Request validation using Validator.
 - **Environment Variables**: Environment variables using dotenv.
 
 
-
 ## Screenshots
 
-![screenshot](/static/screenshot.png)
+![screenshot](/public/screenshot.png)
 
 ## Table of Contents
 
@@ -79,13 +76,10 @@ The following services are available:
 
 - [x] Add Prisma ORM
 - [x] Add User authentication
-- [x] OTP authentication
-- [x] OAuth authentication
 - [x] Add API versioning
 - [ ] Add unit tests
-- [x] Add logging
+- [ ] Add logging
 - [x] Add error handling
-- [ ] Add Notifications service
 - [ ] Better documentation
 - [ ] Add more services
 

@@ -1,10 +1,8 @@
 // Express server
 import express from "express";
-import path from "path";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import logger from 'morgan';
-import userRouter from "./routers/v1/UserRouter"
 import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
