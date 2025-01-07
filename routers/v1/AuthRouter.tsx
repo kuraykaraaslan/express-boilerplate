@@ -34,8 +34,8 @@ const AuthRouter = Router();
  * - 400: Validation error if email or password is missing.
  */
 AuthRouter.post('/register', async (req: Request<AuthRegisterRequest>, res: Response<UserSessionResponse>) => {
-    const user = await AuthService.register(req.body);
-    res.json(user);
+    const { user, session } = await AuthService.register(req.body);
+    res.json({ user, session });
 });
 
 /**
@@ -52,8 +52,8 @@ AuthRouter.post('/register', async (req: Request<AuthRegisterRequest>, res: Resp
  * - 401: Unauthorized if email or password is incorrect.
  */
 AuthRouter.post('/login', async (req: Request<AuthLoginRequest>, res: Response<UserSessionResponse>) => {
-    const user = await AuthService.authenticate(req.body);
-    res.json(user);
+    const { user, session } = await AuthService.authenticate(req.body);
+    res.json({ user, session });
 });
 
 /**
@@ -70,7 +70,7 @@ AuthRouter.post('/login', async (req: Request<AuthLoginRequest>, res: Response<U
  */
 AuthRouter.post('/forgot-password', async (req: Request<AuthForgotPasswordRequest>, res: Response) => {
     await AuthService.forgotPassword(req.body);
-    res.sendStatus(200);
+    res.json({ message: "PASSWORD_RESET_EMAIL_SENT" });
 });
 
 /**
@@ -88,7 +88,7 @@ AuthRouter.post('/forgot-password', async (req: Request<AuthForgotPasswordReques
  */
 AuthRouter.post('/reset-password', async (req: Request<AuthResetPasswordRequest>, res: Response) => {
     await AuthService.resetPassword(req.body);
-    res.sendStatus(200);
+    res.json({ message: "PASSWORD_RESET_SUCCESS" });
 });
 
 
@@ -112,7 +112,7 @@ AuthRouter.post('/logout', async (req: Request<GetSessionRequest>, res: Response
 });
 
 /**
- * POST /session
+ * GET /session
  * Get the current user session.
  * 
  * Request Body:
@@ -122,9 +122,8 @@ AuthRouter.post('/logout', async (req: Request<GetSessionRequest>, res: Response
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.post('/session', async (req: Request<GetSessionRequest>, res: Response<any>) => {
-    const session = await AuthService.getSession(req.body.token);
-    res.json(session);
+AuthRouter.get('/session', async (req: Request<GetSessionRequest>, res: Response<any>) => {
+    res.json({ user: req.user, session: req.userSession });
 });
 
 

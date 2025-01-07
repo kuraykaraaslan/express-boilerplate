@@ -1,4 +1,4 @@
-import { User } from "@prisma/client";
+import { User, UserSession } from "@prisma/client";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
@@ -10,8 +10,30 @@ import GetSessionRequest from "@/dtos/requests/GetSessionRequest";
 import OmitPasswordUserResponse from "@/dtos/responses/OmitPasswordUserResponse";
 import AuthForgotPasswordRequest from "@/dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "@/dtos/requests/AuthResetPasswordRequest";
+import OmitOTPFieldsUserSessionResponse from "@/dtos/responses/OmitOTPFieldsUserSessionResponse";
 
 export default class AuthService {
+
+    /**
+     * Remove Not Safe Variables from User Object
+     * @param user - The user object.
+     * @returns The user object without the password, resetToken, and resetTokenExpiry.
+     */
+    static removeNotSafeVariables(user: User): OmitPasswordUserResponse {
+        const { password, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+
+    /**
+     * Remove Not Safe Variables from Session Object
+     * @param session - The session object.
+     * @returns The session object without the otpToken and otpTokenExpiry.
+     */
+    static removeNotSafeVariablesFromSession(session: UserSession): OmitOTPFieldsUserSessionResponse {
+        const { otpToken, otpTokenExpiry, ...sessionWithoutOTP } = session;
+        return sessionWithoutOTP;
+    }
+
 
     /**
      * Authenticates a user by email and password.
@@ -32,8 +54,8 @@ export default class AuthService {
             throw new Error("INVALID_EMAIL_OR_PASSWORD");
         }
 
-        // Remove the password from the user object
-        const { password: _, ...userWithoutPassword } = user;
+        // Remove the password , resetTokenExpiry, and resetToken from the user object
+        const { password: _, resetTokenExpiry: __, resetToken: ___, ...userWithoutPassword } = user;
 
         // Compare the password with the hash
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -48,12 +70,15 @@ export default class AuthService {
             data: {
                 userId: user.userId,
                 token,
+                otpNeeded: user.otpEnabled,
             },
         });
+
+        // Remove the otpToken and otpTokenExpiry from the session object
         
         return {
-            user : userWithoutPassword,
-            session,
+            user : AuthService.removeNotSafeVariables(user),
+            session : AuthService.removeNotSafeVariablesFromSession(session)
         };
     }
 
@@ -105,12 +130,9 @@ export default class AuthService {
             throw new Error("USER_NOT_FOUND");
         }
 
-        // Remove the password from the user object
-        const { password: _, ...userWithoutPassword } = user;
-
         return {
-            user: userWithoutPassword,
-            session,
+            user: AuthService.removeNotSafeVariables(user),
+            session: AuthService.removeNotSafeVariablesFromSession(session),
         };
 
     }
@@ -161,30 +183,15 @@ export default class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create the user
-        const user = await prisma.user.create({
+        const createdUser = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
             },
         });
-
-        // Remove the password from the user object
-        const { password: _, ...userWithoutPassword } = user;
-
-        // Create a session
-        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-        const session = await prisma.userSession.create({
-            data: {
-                userId: user.userId,
-                token,
-            },
-        });
-
-        return {
-            user: userWithoutPassword,
-            session,
-        };
+        
+        // Create a session for the user
+        return AuthService.authenticate({ email, password });
     }
 
     /**
@@ -240,15 +247,20 @@ export default class AuthService {
      */
     static async resetPassword(data: AuthResetPasswordRequest): Promise<void> {
 
-        const { email, token, password } = data;
+        const { email, code, password } = data;
 
         // Get the user by token
         const user = await prisma.user.findFirst({
-            where: { resetToken: token, resetTokenExpiry: { gte: new Date() } },
+            where: { email },
         });
 
         if (!user) {
             throw new Error("USER_NOT_FOUND");
+        }
+
+        // Check if the token is valid
+        if (user.resetToken !== code || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
+            throw new Error("INVALID_RESET_TOKEN");
         }
 
         // Hash the new password
@@ -263,9 +275,6 @@ export default class AuthService {
                 resetTokenExpiry: null,
             },
         });
-
-        // Send a confirmation email
-        console.log("Password reset successfully");
 
     }  
 

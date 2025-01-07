@@ -6,7 +6,7 @@ import { Router, Request, Response } from "express";
 const V1Router = Router();
 
 V1Router.get("/", (req: Request, res: Response) => {
-    res.send("API v1");
+    res.json({ message: "Welcome to the API v1" });
 } );
 
 V1Router.use("/users", UserRouter);

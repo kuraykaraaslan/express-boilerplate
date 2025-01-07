@@ -9,7 +9,7 @@ declare global {
         // See for example method-override.d.ts (https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/method-override/index.d.ts)
         interface Request {
             user?: OmitPasswordUserResponse,
-            session?: Session;
+            userSession?: OmitOTPFieldsUserSessionResponse   
         }
         interface Response {}
         interface Locals {}
@@ -21,7 +21,7 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import { ParsedQs } from "qs";
 import { Options as RangeParserOptions, Ranges as RangeParserRanges, Result as RangeParserResult } from "range-parser";
-import { User } from "@prisma/client";
+import { User, UserSession } from "@prisma/client";
 import { Session } from "inspector/promises";
 import OmitPasswordUserResponse from "@/dtos/responses/OmitPasswordUserResponse";
 
