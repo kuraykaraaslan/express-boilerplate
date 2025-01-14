@@ -4,8 +4,7 @@
  * This module provides endpoints to manage user authentication operations such as registration and login.
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
-import AuthService from '../../services/AuthService';
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, response } from "express";
 
 // DTOs
 import AuthLoginRequest from '../../dtos/requests/AuthRegisterRequest';
@@ -15,8 +14,10 @@ import GetSessionRequest from '../../dtos/requests/GetSessionRequest';
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
-import AuthForgotPasswordRequest from '@/dtos/requests/AuthForgotPasswordRequest';
-import AuthResetPasswordRequest from '@/dtos/requests/AuthResetPasswordRequest';
+import AuthForgotPasswordRequest from '../../dtos/requests/AuthForgotPasswordRequest';
+import AuthResetPasswordRequest from '../../dtos/requests/AuthResetPasswordRequest';
+import AuthController from '../../controllers/AuthController';
+import MessageResponse from "../../dtos/responses/MessageResponse";
 
 
 const AuthRouter = Router();
@@ -33,9 +34,8 @@ const AuthRouter = Router();
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-AuthRouter.post('/register', async (req: Request<AuthRegisterRequest>, res: Response<UserSessionResponse>) => {
-    const { user, session } = await AuthService.register(req.body);
-    res.json({ user, session });
+AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, response: Response<UserSessionResponse>) => {
+    return await AuthController.register(request, response);
 });
 
 /**
@@ -51,9 +51,8 @@ AuthRouter.post('/register', async (req: Request<AuthRegisterRequest>, res: Resp
  * - 400: Validation error if email or password is missing.
  * - 401: Unauthorized if email or password is incorrect.
  */
-AuthRouter.post('/login', async (req: Request<AuthLoginRequest>, res: Response<UserSessionResponse>) => {
-    const { user, session } = await AuthService.authenticate(req.body);
-    res.json({ user, session });
+AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+    return await AuthController.login(request, response);
 });
 
 /**
@@ -68,9 +67,8 @@ AuthRouter.post('/login', async (req: Request<AuthLoginRequest>, res: Response<U
  * - 400: Validation error if email is missing.
  * - 404: User not found if email does not exist in the database.
  */
-AuthRouter.post('/forgot-password', async (req: Request<AuthForgotPasswordRequest>, res: Response) => {
-    await AuthService.forgotPassword(req.body);
-    res.json({ message: "PASSWORD_RESET_EMAIL_SENT" });
+AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.forgotPassword(request, response);
 });
 
 /**
@@ -86,9 +84,8 @@ AuthRouter.post('/forgot-password', async (req: Request<AuthForgotPasswordReques
  * - 400: Validation error if token or password is missing.
  * - 404: User not found if token is invalid.
  */
-AuthRouter.post('/reset-password', async (req: Request<AuthResetPasswordRequest>, res: Response) => {
-    await AuthService.resetPassword(req.body);
-    res.json({ message: "PASSWORD_RESET_SUCCESS" });
+AuthRouter.post('/reset-password', async (request: Request<AuthResetPasswordRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.resetPassword(request, response);
 });
 
 
@@ -106,9 +103,8 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (req: Request<GetSessionRequest>, res: Response) => {
-    await AuthService.logout(req.body.token);
-    res.sendStatus(200);
+AuthRouter.post('/logout', async (request: Request<GetSessionRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.logout(request, response);
 });
 
 /**
@@ -122,8 +118,8 @@ AuthRouter.post('/logout', async (req: Request<GetSessionRequest>, res: Response
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (req: Request<GetSessionRequest>, res: Response<any>) => {
-    res.json({ user: req.user, session: req.userSession });
+AuthRouter.get('/session', async (request: Request<GetSessionRequest>, response: Response<any>) => {
+    return await AuthController.getSession(request, response);
 });
 
 

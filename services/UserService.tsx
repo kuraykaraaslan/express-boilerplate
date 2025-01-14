@@ -13,6 +13,17 @@ import PutUserRequest from "@/dtos/requests/PutUserRequest";
 export default class UserService {
 
     /**
+     * Omit sensitive fields from the user object.
+     * @param user - The user object.
+     * @returns The user object without the password, resetToken, and resetTokenExpiry.
+     */
+    static omitSensitiveFields(user: User): OmitPasswordUserResponse {
+        const { password, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+
+
+    /**
      * Creates a new user in the database after validating input and hashing the password.
      * @param data - Partial user data to create the user.
      * @returns The created user without sensitive fields like password.

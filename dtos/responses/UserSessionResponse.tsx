@@ -3,5 +3,5 @@ import OmitOTPFieldsUserSessionResponse from "./OmitOTPFieldsUserSessionResponse
 
 export default interface UserSessionResponse {
     user: OmitPasswordUserResponse;
-    session: OmitOTPFieldsUserSessionResponse;
+    userSession: OmitOTPFieldsUserSessionResponse;
 }

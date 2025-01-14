@@ -1,6 +1,9 @@
+import bcrypt from "bcrypt";
+
 export default class FieldValidater {
     static emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     static passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    static tokenRegex = /^[0-9]{6}$/;
 
     /**
      * Validates if the provided email matches the email regex pattern.
@@ -31,5 +34,27 @@ export default class FieldValidater {
     static validateWithRegex(value: string | undefined | null, pattern: RegExp): boolean {
         if (!value || typeof value !== "string") return false;
         return pattern.test(value);
+    }
+
+    /**
+     * Validates if the provided value is a valid Code for account verification.
+     * @param token - The code string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     * - Code must be 6 characters long.
+     * - Code must contain only numbers.
+     */
+    static isVerificationToken(token: string | undefined | null): boolean {
+        if (!token || typeof token !== "string") return false;
+        return this.tokenRegex.test(token);
+    }
+
+    /**
+     * Validates if the provided two passwords match.
+     * @param hashedPassword - The hashed password to compare.
+     * @param password - The password to compare.
+     */
+    static async comparePasswords(hashedPassword: string, password: string): Promise<boolean> {
+        return await bcrypt.compare(password, hashedPassword);
     }
 }

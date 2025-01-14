@@ -15,7 +15,7 @@ import OmitOTPFieldsUserSessionResponse from '@/dtos/responses/OmitOTPFieldsUser
 
 export default function (incomingReqRoles?: string | string[] | undefined) {
 
-  return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  return async function authMiddleware(request: Request, response: Response, next: NextFunction) {
 
     try {
 
@@ -23,19 +23,19 @@ export default function (incomingReqRoles?: string | string[] | undefined) {
 
       //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
 
-      if (req.user) {
+      if (request.user) {
         //check if the user has the required role
-        if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
+        if (!AuthService.checkIfUserHasRole(request.user, requiredRoles)) {
           throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
         }
 
         return next();
       }
 
-      const token = req.headers?.authorization ? req.headers.authorization.split(' ')[1] : null;
+      const token = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
       console.log('token', token);
-      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
 
       // Allow guest if token is not present
       if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
@@ -53,29 +53,29 @@ export default function (incomingReqRoles?: string | string[] | undefined) {
       }
 
       // Add user to request
-      req.user = sessionWithUser.user as User;
-      req.userSession = sessionWithUser.session as OmitOTPFieldsUserSessionResponse;
+      request.user = sessionWithUser.user as User;
+      request.userSession = sessionWithUser.session as OmitOTPFieldsUserSessionResponse;
 
       //check if the session is valid
-      if (new Date(req.userSession.expiresAt) < new Date()) {
+      if (new Date(request.userSession.expiresAt) < new Date()) {
         throw new Error("SESSION_EXPIRED");
       }
 
       //check if the session needs to OTP verification
-      if (req.userSession.otpNeeded) {
+      if (request.userSession.otpNeeded) {
         throw new Error("OTP_VERIFICATION_NEEDED");
       }
 
       //check if the user has the required role
 
-      if (!AuthService.checkIfUserHasRole(req.user, requiredRoles)) {
+      if (!AuthService.checkIfUserHasRole(request.user, requiredRoles)) {
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
 
       next();
 
     } catch (error: any) {
-      res.status(401).send({ error: error.message });
+      response.status(401).send({ error: error.message });
     }
   }
 }

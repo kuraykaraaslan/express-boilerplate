@@ -76,6 +76,7 @@ The following services are available:
 
 - [x] Add Prisma ORM
 - [x] Add User authentication
+- [x] Add Controllers
 - [x] Add API versioning
 - [ ] Add unit tests
 - [ ] Add logging
