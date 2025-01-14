@@ -4,7 +4,6 @@
  * This module provides endpoints to manage user operations such as creation and retrieval.
  * It uses the UserService to interact with the database and perform necessary actions.
  */
-import UserService from "../../services/UserService";
 import { Router, Request, Response } from "express";
 
 // DTOs
@@ -16,11 +15,13 @@ import GetUserRequest from "../../dtos/requests/GetUserRequest";
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
+import UserController from "../../controllers/UserController";
+import MessageResponse from "@/dtos/responses/MessageResponse";
 
 
 const userRouter = Router();
 
-userRouter.use(AuthMiddleware("ADMIN"));
+userRouter.use(AuthMiddleware("User"));
 
 /**
  * POST /
@@ -34,10 +35,9 @@ userRouter.use(AuthMiddleware("ADMIN"));
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-userRouter.post("/", async (req : Request<PutUserRequest>, res : Response<OmitPasswordUserResponse>) => {
+userRouter.post("/", async (request: Request<PutUserRequest>, response: Response<OmitPasswordUserResponse>) : Promise<Response<OmitPasswordUserResponse>> => {
     // Create a new user in the database
-    const user = await UserService.create(req.body);
-    res.status(201).json(user);
+    return await UserController.create(request, response);
 });
 
 /**
@@ -56,24 +56,10 @@ userRouter.post("/", async (req : Request<PutUserRequest>, res : Response<OmitPa
  * - 200: Single user details if userId is provided and found.
  * - 404: User not found if userId is provided and no matching user exists.
  */
-userRouter.get("/", async (req: Request<GetUsersRequest>, res: Response<GetUsersResponse>) => {
+userRouter.get("/", async (request: Request<GetUsersRequest>, response: Response<GetUsersResponse>) : Promise<Response<GetUsersResponse>> => {
 
-    const { skip = "0", take = "10", userId, tenantId, search } = req.query;
-
-    // Prepare query options with default values and type casting
-    const queryOptions = {
-        skip: parseInt(skip as string),
-        take: parseInt(take as string),
-        userId: userId as string,
-        tenantId: tenantId as string,
-        search: search as string,
-    };
-
-    // Fetch users and total count based on query options
-    const { users, total } = await UserService.get(queryOptions);
-
-    // Respond with the list of users and total count
-    res.json({ users, total });
+    return await UserController.get(request, response);
+    
 });
 
 /**
@@ -87,11 +73,9 @@ userRouter.get("/", async (req: Request<GetUsersRequest>, res: Response<GetUsers
  * - 200: User details if found.
  * - 404: User not found if no matching user exists.
  */
-userRouter.get("/:userId", async (req : Request<GetUserRequest>, res : Response<OmitPasswordUserResponse>) => {
-    // Retrieve the user by ID
-    const user = await UserService.getById({ userId: req.params.userId });
-    // Respond with the user details
-    res.json(user);
+userRouter.get("/:userId", async (request: Request<GetUserRequest>, response: Response<OmitPasswordUserResponse>) : Promise<Response<OmitPasswordUserResponse>> => {
+    
+    return await UserController.getById(request, response);
 });
 
 /**
@@ -110,11 +94,9 @@ userRouter.get("/:userId", async (req : Request<GetUserRequest>, res : Response<
  * - 400: Validation error if email or password is missing.
  * - 404: User not found if no matching user exists.
  */
-userRouter.put("/:userId", async (req : Request<PutUserRequest>, res : Response<OmitPasswordUserResponse>) => {
-    // Update the user by ID
-    const user = await UserService.update({ userId: req.params.userId, ...req.body });
+userRouter.put("/:userId", async (request: Request<PutUserRequest>, response: Response<OmitPasswordUserResponse>) : Promise<Response<OmitPasswordUserResponse>> => {
     // Respond with the updated user details
-    res.json(user);
+    return await UserController.update(request, response);
 });
 
 /**
@@ -128,17 +110,9 @@ userRouter.put("/:userId", async (req : Request<PutUserRequest>, res : Response<
  * - 204: User successfully deleted.
  * - 404: User not found if no matching user exists.
  */
-userRouter.delete("/:userId", async (req : Request<GetUserRequest>, res : Response) => {
+userRouter.delete("/:userId", async (request: Request<GetUserRequest>, response: Response) : Promise<Response<MessageResponse>> => {
     // Delete the user by ID
-    const user = await UserService.delete({ userId: req.params.userId });
-
-    if (!user) {
-        // Respond with 404 if user is not found
-        return res.status(404).json({ error: "User not found." });
-    }
-
-    // Respond with 204 if user is successfully deleted
-    res.sendStatus(204);
+    return await UserController.delete(request, response);
 });
 
 

@@ -1,4 +1,4 @@
-export default interface GetUsersDTO {
+export default interface GetUsersRequest {
     skip?: number;
     take?: number;
     userId?: string;

@@ -103,7 +103,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request<GetSessionRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/logout', async (request: Request<GetSessionRequest>, response: Response<MessageResponse>) : Promise<Response<MessageResponse>> => {
     return await AuthController.logout(request, response);
 });
 

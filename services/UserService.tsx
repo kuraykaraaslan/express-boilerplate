@@ -170,7 +170,7 @@ export default class UserService {
      * @param userId - The user ID to delete.
      * @returns The deleted user details.
      */
-    static async delete(data: GetUsersRequest): Promise<OmitPasswordUserResponse> {
+    static async delete(data: GetUsersRequest): Promise<void> {
 
         const { userId } = data;
 
@@ -188,10 +188,7 @@ export default class UserService {
             where: { userId },
         });
 
-        // Exclude sensitive fields from the response
-        const { password: _, ...userWithoutPassword } = user;
-
-        return userWithoutPassword;
+        return;
     }
 
 

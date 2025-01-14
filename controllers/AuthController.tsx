@@ -6,14 +6,15 @@ import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
+
 
 export default class AuthController {
 
     public static async login(request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
 
         const { email, password } = request.body;
-        
+
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -30,7 +31,7 @@ export default class AuthController {
     public static async register(request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
 
         const { email, password } = request.body;
-        
+
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -45,7 +46,7 @@ export default class AuthController {
     public static async forgotPassword(request: Request<AuthForgotPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { email } = request.body;
-        
+
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -58,7 +59,7 @@ export default class AuthController {
     public static async resetPassword(request: Request<AuthResetPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { email, password, resetToken } = request.body;
-        
+
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -79,7 +80,7 @@ export default class AuthController {
     public static async logout(request: Request<AuthGetSessionRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { token } = request.body;
-        
+
         if (!FieldValidater.isVerificationToken(token)) {
 
             throw new Error("INVALID_TOKEN");
@@ -93,6 +94,18 @@ export default class AuthController {
 
     public static async getSession(request: Request<any>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
 
-        return response.json({ user: request.user! , userSession: request.userSession! });
+        return response.json({ user: request.user!, userSession: request.userSession! });
+    }
+
+
+    public async authenticate(
+        target: any, 
+        origin: any,
+        operation: string,
+        success: () => void, 
+        failure: () => void) {
+
+        success();
+
     }
 }

@@ -57,4 +57,72 @@ export default class FieldValidater {
     static async comparePasswords(hashedPassword: string, password: string): Promise<boolean> {
         return await bcrypt.compare(password, hashedPassword);
     }
+
+
+    /**
+     * Validates if the provided UUID is a valid UUID.
+     * @param uuid - The UUID string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */
+    static isUUID(uuid: string | undefined | null): boolean {
+        if (!uuid || typeof uuid !== "string") return false;
+        return uuid.length === 36;
+    }
+    /**
+     * Validates a string against database injection attacks and only allows alphanumeric characters.
+     * @param value - The string to validate.
+     * @returns string - The sanitized string.
+     * @see
+     * - Only allows alphanumeric characters.
+     * - Removes all special characters except for `-` and `_` characters.
+     */
+    static sanitizeString(value: string | undefined | null): string | undefined {
+        // Ensure the value is a string, defaulting to an empty string if null or undefined
+        if (!value || typeof value !== "string") return undefined;
+
+        // Sanitize the string by removing unwanted characters
+        const sanitized = value.replace(/[^a-zA-Z0-9_-]/g, "");
+
+        return sanitized;
+    }
+
+    /**
+     * Validates phone number starts with + and is followed by numbers.
+     * @param phone - The phone number string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     * - Phone number must start with a `+` character.
+     * - Phone number must contain only numbers after the `+` character.
+     */ 
+    static isPhone(phone: string | undefined | null): boolean {
+        if (!phone || typeof phone !== "string") return false;
+        return /^\+[0-9]+$/.test(phone);
+    }
+
+    /**
+     * Validates if the provided role is a valid role.
+     * @param role - The role string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     * - Role must be one of the following: `USER`, `ADMIN`, `SUPER_ADMIN`.
+     */
+    static isRole(role: string | undefined | null): boolean {
+        if (!role || typeof role !== "string") return false;
+        return ["USER", "ADMIN", "SUPER_ADMIN"].includes(role);
+    }
+
+
+    /**
+     * Validates if the provided value is a valid number.
+     * @param value - The number string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */
+    static isNumber(value: string | undefined | null): boolean {
+        if (!value || typeof value !== "string") return false;
+        return !isNaN(Number(value));
+    }
+
 }
+

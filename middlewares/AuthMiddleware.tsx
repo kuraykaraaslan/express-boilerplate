@@ -13,13 +13,13 @@ import AuthService from '../services/AuthService';
 import OmitPasswordUserResponse from '@/dtos/responses/OmitPasswordUserResponse';
 import OmitOTPFieldsUserSessionResponse from '@/dtos/responses/OmitOTPFieldsUserSessionResponse';
 
-export default function (incomingReqRoles?: string | string[] | undefined) {
+export default function (scopes?: string | string[] | undefined) {
 
   return async function authMiddleware(request: Request, response: Response, next: NextFunction) {
 
     try {
 
-      var requiredRoles = incomingReqRoles ? typeof incomingReqRoles === 'string' ? [incomingReqRoles] : incomingReqRoles : ['USER'];
+      var requiredRoles = scopes ? typeof scopes === 'string' ? [scopes] : scopes : ['USER'];
 
       //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
 
@@ -46,15 +46,15 @@ export default function (incomingReqRoles?: string | string[] | undefined) {
         throw new Error("USER_NOT_AUTHENTICATED");
       }
 
-      const sessionWithUser = await AuthService.getSession({ token }) as { user: OmitPasswordUserResponse, session: OmitOTPFieldsUserSessionResponse };
+      const sessionWithUser = await AuthService.getSession({ token });
 
-      if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.session) {
+      if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
         throw new Error("USER_NOT_AUTHENTICATED");
       }
 
       // Add user to request
-      request.user = sessionWithUser.user as User;
-      request.userSession = sessionWithUser.session as OmitOTPFieldsUserSessionResponse;
+      request.user = sessionWithUser.user;
+      request.userSession = sessionWithUser.userSession;
 
       //check if the session is valid
       if (new Date(request.userSession.expiresAt) < new Date()) {
