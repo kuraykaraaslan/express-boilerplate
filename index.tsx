@@ -12,8 +12,8 @@ dotenv.config({ path: "../.env" });
 
 
 const app = express();
-const host = process.env.EXPRESS_HOST || "http://localhost";
-const port = process.env.EXPRESS_PORT || 3000;
+const host = process.env.APPLICATION_HOST || "http://localhost";
+const port = process.env.APPLICATION_PORT || 3000;
 
 app.use(logger('dev'));
 app.use(express.json());

@@ -17,6 +17,26 @@ import UserService from "./UserService";
 export default class AuthService {
 
     /**
+     * Error Messages
+     * These are the error messages that can be thrown by the service.
+     * TODO: Add more error messages as needed.
+     */
+    static INVALID_EMAIL_ADDRESS = "INVALID_EMAIL_ADDRESS";
+    static PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG = "PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG";
+    static PASSWORDS_DO_NOT_MATCH = "PASSWORDS_DO_NOT_MATCH";
+    static REGISTRATION_SUCCESSFUL = "REGISTRATION_SUCCESSFUL";
+    static LOGIN_SUCCESSFUL = "LOGIN_SUCCESSFUL";
+    static PASSWORD_RESET_EMAIL_SENT = "PASSWORD_RESET_EMAIL_SENT";
+    static PASSWORD_RESET_SUCCESSFUL = "PASSWORD_RESET_SUCCESSFUL";
+    static PASSWORD_RESET_FAILED = "PASSWORD_RESET_FAILED";
+    static UNKOWN_ERROR = "UNKOWN_ERROR";
+    static INVALID_TOKEN = "INVALID_TOKEN";
+    static SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
+    static USER_NOT_FOUND = "USER_NOT_FOUND";
+    static EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
+    static INVALID_EMAIL_OR_PASSWORD = "INVALID_EMAIL_OR_PASSWORD";
+
+    /**
      * Token Generation
      * @returns A random token 6 characters long with only numbers.
      */
@@ -62,7 +82,7 @@ export default class AuthService {
 
         // Compare the password with the hash
         if (!FieldValidater.comparePasswords(user.password, data.password)) {
-            throw new Error("INVALID_EMAIL_OR_PASSWORD");
+            throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
         }
 
         // Generate a session token
@@ -94,7 +114,7 @@ export default class AuthService {
         });
 
         if (sessions.length === 0) {
-            throw new Error("SESSION_NOT_FOUND");
+            throw new Error(this.SESSION_NOT_FOUND);
         }
 
         // Delete the session if found
@@ -115,7 +135,7 @@ export default class AuthService {
         })
 
         if (!session) {
-            throw new Error("SESSION_NOT_FOUND");
+            throw new Error(this.SESSION_NOT_FOUND);
         }
         
         const user = await prisma.user.findUniqueOrThrow({
@@ -156,7 +176,7 @@ export default class AuthService {
         const existingUser = await UserService.getByEmail(email);
 
         if (existingUser) {
-            throw new Error("EMAIL_ALREADY_EXISTS");
+            throw new Error(this.EMAIL_ALREADY_EXISTS);
         }
 
         // Create the user
@@ -194,7 +214,7 @@ export default class AuthService {
         });
 
         if (!user) {
-            throw new Error("USER_NOT_FOUND");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         
@@ -207,7 +227,7 @@ export default class AuthService {
             },
         });
 
-        // Send the password reset email
+        // TODO: Send the password reset email
         console.log(`Password reset token: ${user.resetToken}`);
     }
 
@@ -225,12 +245,12 @@ export default class AuthService {
         });
 
         if (!user) {
-            throw new Error("USER_NOT_FOUND");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         // Check if the token is valid
         if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
-            throw new Error("INVALID_RESET_TOKEN");
+            throw new Error(this.INVALID_TOKEN);
         }
 
         // Update the user's password

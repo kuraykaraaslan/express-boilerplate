@@ -13,6 +13,17 @@ import PutUserRequest from "@/dtos/requests/PutUserRequest";
 export default class UserService {
 
     /**
+     * Error Messages
+     * These are the error messages that can be thrown by the service.
+     * TODO: Add more error messages as needed.
+     */
+    static INVALID_EMAIL = "INVALID_EMAIL";
+    static INVALID_PASSWORD_FORMAT = "INVALID_PASSWORD_FORMAT";
+    static USER_NOT_FOUND = "USER_NOT_FOUND";
+    static EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
+
+    
+    /**
      * Omit sensitive fields from the user object.
      * @param user - The user object.
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
@@ -34,18 +45,18 @@ export default class UserService {
 
         // Validate email and password
         if (!email || !FieldValidater.isEmail(email)) {
-            throw new Error("INVALID_EMAIL");
+            throw new Error(this.INVALID_EMAIL);
         }
 
         if (!password || !FieldValidater.isPassword(password)) {
-            throw new Error("INVALID_PASSWORD_FORMAT");
+            throw new Error(this.INVALID_PASSWORD_FORMAT);
         }
 
         // Check if the email is already in use
         const existingUser = await prisma.user.findUnique({
             where: { email },
         }).then((user) => {
-            throw new Error("Email is already in use.");
+            throw new Error(this.EMAIL_ALREADY_EXISTS);
         });
 
         // Hash the password before saving
@@ -120,7 +131,7 @@ export default class UserService {
         });
 
         if (!user) {
-            throw new Error("USER_NOT_FOUND");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         // Exclude sensitive fields from the response
@@ -140,7 +151,7 @@ export default class UserService {
         const { userId } = data;
 
         if (!userId) {
-            throw new Error("USER_ID_REQUIRED");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         // Get the user by ID
@@ -149,7 +160,7 @@ export default class UserService {
         });
 
         if (!user) {
-            throw new Error("USER_NOT_FOUND");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         // Update the user in the database
@@ -180,7 +191,7 @@ export default class UserService {
         });
 
         if (!user) {
-            throw new Error("USER_NOT_FOUND");
+            throw new Error(this.USER_NOT_FOUND);
         }
 
         // Delete the user from the database
