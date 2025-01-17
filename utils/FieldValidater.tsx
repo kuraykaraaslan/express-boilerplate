@@ -4,6 +4,7 @@ export default class FieldValidater {
     static emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     static passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     static tokenRegex = /^[0-9]{6}$/;
+    static sqlInjectionRegex = /[\s\[\]{}()*+?.,\\^$|#]/;
 
     /**
      * Validates if the provided email matches the email regex pattern.
@@ -122,6 +123,18 @@ export default class FieldValidater {
     static isNumber(value: string | undefined | null): boolean {
         if (!value || typeof value !== "string") return false;
         return !isNaN(Number(value));
+    }
+
+    /**
+     * Validates if the provided value is cuid2.
+     * @param value - The cuid2 string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * d3o47zbqg28ftevdgehuewiw
+     */
+    static isSessionToken(value: string | undefined | null): boolean {
+        console.log(value);
+        if (!value || typeof value !== "string") return false;
+        return value.length === 24;
     }
 
 }

@@ -6,13 +6,16 @@ import bcrypt from "bcrypt";
 import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
 import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
 import UserSessionResponse from "../dtos/responses/UserSessionResponse";
-import GetSessionRequest from "../dtos/requests/GetSessionRequest";
+import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import OmitPasswordUserResponse from "../dtos/responses/OmitPasswordUserResponse";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import OmitOTPFieldsUserSessionResponse from "../dtos/responses/OmitOTPFieldsUserSessionResponse";
 import FieldValidater from "../utils/FieldValidater";
 import UserService from "./UserService";
+
+// Utils
+import { createId } from '@paralleldrive/cuid2';
 
 export default class AuthService {
 
@@ -43,6 +46,15 @@ export default class AuthService {
     static generateToken(): string {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
+
+    /*
+     * Generate Session CUID Token
+    * @returns A random cuid token.
+    */
+    static generateSessionToken(): string {
+        return createId();
+    }
+
 
     /**
      * Hashes the password.
@@ -89,7 +101,9 @@ export default class AuthService {
         const session = await prisma.userSession.create({
             data: {
                 userId: user.userId,
-                token: AuthService.generateToken(),
+                sessionToken: AuthService.generateSessionToken(),
+                sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
+                sessionAgent: "Web",
                 otpNeeded: user.otpEnabled,
             },
         });
@@ -106,11 +120,11 @@ export default class AuthService {
      * Logs out a user by deleting the session.
      * @param token - The session token.
      */
-    static async logout(data: GetSessionRequest): Promise<void> {
+    static async logout(data: AuthGetSessionRequest): Promise<void> {
 
         // Check if the session exists
         const sessions = await prisma.userSession.findMany({
-            where: { token: data.token }
+            where: { sessionToken: data.sessionToken }
         });
 
         if (sessions.length === 0) {
@@ -119,25 +133,27 @@ export default class AuthService {
 
         // Delete the session if found
         await prisma.userSession.deleteMany({
-            where: { token: data.token }
+            where: { sessionToken: data.sessionToken }
         });
     }
 
     /**
      * Gets a user session by token.
-     * @param token - The session token.
+     * @param sessionToken - The session token.
      * @returns The user session.
      */
-    static async getSession(data: GetSessionRequest): Promise<UserSessionResponse> {
+    static async getSession(data: AuthGetSessionRequest): Promise<UserSessionResponse> {
 
-        const session = await prisma.userSession.findFirst({
-            where: { token : data.token }
+        console.log(data);
+
+        const session = await prisma.userSession.findUnique({
+            where: { sessionToken: data.sessionToken }
         })
 
         if (!session) {
             throw new Error(this.SESSION_NOT_FOUND);
         }
-        
+
         const user = await prisma.user.findUniqueOrThrow({
             where: { userId: session.userId },
         })
@@ -154,12 +170,12 @@ export default class AuthService {
      * @param token - The session token.
      */
 
-    static async deleteSession(data: GetSessionRequest): Promise<void> {
+    static async deleteSession(data: AuthGetSessionRequest): Promise<void> {
 
         await prisma.userSession.deleteMany({
-            where: { token: data.token }
+            where: { sessionToken: data.sessionToken }
         });
-        
+
     }
 
     /**
@@ -217,7 +233,7 @@ export default class AuthService {
             throw new Error(this.USER_NOT_FOUND);
         }
 
-        
+
         // Save the token to the user
         user = await prisma.user.update({
             where: { userId: user.userId },

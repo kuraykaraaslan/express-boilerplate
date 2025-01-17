@@ -79,15 +79,15 @@ export default class AuthController {
 
     public static async logout(request: Request<AuthGetSessionRequest>, response: Response): Promise<Response<MessageResponse>> {
 
-        const { token } = request.body;
+        const { sessionToken } = request.userSession!;
 
-        if (!FieldValidater.isVerificationToken(token)) {
+        if (!FieldValidater.isSessionToken(sessionToken)) {
 
             throw new Error("INVALID_TOKEN");
         }
 
-        await AuthService.logout({ token });
-
+        await AuthService.logout({ sessionToken });
+        
         return response.json({ message: "LOGOUT_SUCCESS" });
     }
 
@@ -95,6 +95,18 @@ export default class AuthController {
     public static async getSession(request: Request<any>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
 
         return response.json({ user: request.user!, userSession: request.userSession! });
+    }
+
+    public static async sso(request: Request<any>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+
+        const { sessionToken } = request.body;
+
+        if (!FieldValidater.isSessionToken(sessionToken)) {
+
+            throw new Error("INVALID_TOKEN");
+        }
+        
+        return response.json(await AuthService.getSession({ sessionToken }));
     }
 
 

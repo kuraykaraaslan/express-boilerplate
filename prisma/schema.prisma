@@ -31,7 +31,10 @@ model UserSession {
   sessionId  String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [userId])
-  token      String
+
+  sessionToken String  @unique
+  sessionExpiry DateTime
+  sessionAgent String
 
   //OTP verification
   otpNeeded  Boolean @default(false)

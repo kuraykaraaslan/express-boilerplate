@@ -32,9 +32,9 @@ export default function (scopes?: string | string[] | undefined) {
         return next();
       }
 
-      const token = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
+      const sessionToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
-      console.log('token', token);
+      console.log("sessionToken", sessionToken);
       const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
 
       // Allow guest if token is not present
@@ -42,11 +42,11 @@ export default function (scopes?: string | string[] | undefined) {
         return next();
       }
 
-      if (!token) {
+      if (!sessionToken) {
         throw new Error("USER_NOT_AUTHENTICATED");
       }
 
-      const sessionWithUser = await AuthService.getSession({ token });
+      const sessionWithUser = await AuthService.getSession({ sessionToken });
 
       if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
         throw new Error("USER_NOT_AUTHENTICATED");

@@ -10,7 +10,7 @@ import { Router, Request, Response, response } from "express";
 import AuthLoginRequest from '../../dtos/requests/AuthRegisterRequest';
 import AuthRegisterRequest from '../../dtos/requests/AuthRegisterRequest';
 import UserSessionResponse from '../../dtos/responses/UserSessionResponse';
-import GetSessionRequest from '../../dtos/requests/GetSessionRequest';
+import AuthGetSessionRequest from '../../dtos/requests/AuthGetSessionRequest';
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
@@ -54,6 +54,23 @@ AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, respo
 AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
     return await AuthController.login(request, response);
 });
+
+/**
+ * POST /
+ * Authenticate a user using SSO.
+ * 
+ * Request Body:
+ * - sessionToken (string): The session token of the user (required).
+ * 
+ * Response:
+ * - 200: User successfully authenticated with session details.
+ * - 400: Validation error if sessionToken is missing.
+ * - 401: Unauthorized if sessionToken is invalid.
+ */
+AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+    return await AuthController.sso(request, response);
+});
+
 
 /**
  * POST /forgot-password
@@ -103,7 +120,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request<GetSessionRequest>, response: Response<MessageResponse>) : Promise<Response<MessageResponse>> => {
+AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>) : Promise<Response<MessageResponse>> => {
     return await AuthController.logout(request, response);
 });
 
@@ -118,7 +135,7 @@ AuthRouter.post('/logout', async (request: Request<GetSessionRequest>, response:
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (request: Request<GetSessionRequest>, response: Response<any>) => {
+AuthRouter.get('/session', async (request: Request<AuthGetSessionRequest>, response: Response<any>) => {
     return await AuthController.getSession(request, response);
 });
 
