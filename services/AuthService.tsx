@@ -406,4 +406,92 @@ export default class AuthService {
     }
 
 
+    /**
+     * Changes the OTP status of the user.
+     * @param user - The user object.
+     * @param otpEnabled - Whether OTP is enabled.
+     */
+    static async otpChangeStatus(user: OmitPasswordUserResponse, otpEnabled: boolean): Promise<MessageResponse> {
+
+        // If OTP is already enabled then throw an error
+        if (otpEnabled && user.otpEnabled === otpEnabled) {
+            throw new Error("OTP_ALREADY_ENABLED");
+        } else if (!otpEnabled && user.otpEnabled === otpEnabled) {
+            throw new Error("OTP_ALREADY_DISABLED");
+        }
+
+        // Update the user
+        const updatedUser = await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+                otpStatusChangeToken: AuthService.generateToken(),
+                otpStatusChangeTokenExpiry: new Date(Date.now() + 600000), // 10 minutes
+            },
+        }); 
+
+        // Send the OTP
+        TwilloService.sendSMS(user.phone, `Your OTP is ${updatedUser.otpStatusChangeToken}`);
+        MailService.sendMail(user.email, "OTP", `Your OTP is ${updatedUser.otpStatusChangeToken}`);
+
+        return { message: "OTP_STATUS_CHANGE_SENT" };
+    }
+
+    /**
+     * Verifies the OTP status change of the user.
+     * @param user - The user object.
+     * @param otpEnabled - Whether OTP is enabled.
+     * @param otpStatusChangeToken - The OTP status change token.
+     */
+    static async otpChangeVerify(user: OmitPasswordUserResponse, otpEnabled: boolean, otpStatusChangeToken: string): Promise<MessageResponse> {
+
+        // Check if the token is valid
+        const updatedUser = await prisma.user.findUnique({
+            where: { userId: user.userId },
+        }); 
+
+
+        if (!updatedUser?.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
+            throw new Error(this.INVALID_OTP);
+        }
+
+        if (!updatedUser || updatedUser.otpStatusChangeToken !== otpStatusChangeToken) {
+            throw new Error(this.INVALID_OTP);
+        }
+
+        // if OTP is already enabled then throw an error
+        if (otpEnabled && user.otpEnabled === otpEnabled) {
+            // clear the token for security
+            await prisma.user.update({
+                where: { userId: user.userId },
+                data: {
+                    otpStatusChangeToken: null,
+                    otpStatusChangeTokenExpiry: null,
+                },
+            });
+            throw new Error("OTP_ALREADY_ENABLED");
+        } else if (!otpEnabled && user.otpEnabled === otpEnabled) {
+            // clear the token for security
+            await prisma.user.update({
+                where: { userId: user.userId },
+                data: {
+                    otpStatusChangeToken: null,
+                    otpStatusChangeTokenExpiry: null,
+                },
+            });
+            throw new Error("OTP_ALREADY_DISABLED");
+        }
+
+        // Update the user
+        await prisma.user.update({
+            where: { userId: user.userId },
+            data: {
+                otpEnabled,
+                otpStatusChangeToken: null,
+                otpStatusChangeTokenExpiry: null,
+            },
+        });
+    
+        return { message: "OTP_STATUS_CHANGED" };
+    }
+
 }

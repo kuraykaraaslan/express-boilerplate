@@ -29,7 +29,7 @@ export default class UserService {
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
     static omitSensitiveFields(user: User): OmitPasswordUserResponse {
-        const { password, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;
+        const { password, resetToken, resetTokenExpiry, otpStatusChangeToken, otpStatusChangeTokenExpiry, ...userWithoutPassword} = user;
         return userWithoutPassword;
     }
 
@@ -72,9 +72,7 @@ export default class UserService {
         });
 
         // Exclude sensitive fields from the response
-        const { password: _, ...userWithoutPassword } = user;
-
-        return userWithoutPassword;
+        return this.omitSensitiveFields(user);
 
     }
 

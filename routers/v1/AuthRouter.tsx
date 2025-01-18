@@ -20,6 +20,8 @@ import AuthController from '../../controllers/AuthController';
 import MessageResponse from "../../dtos/responses/MessageResponse";
 import AuthSendOTPRequest from "@/dtos/requests/AuthSendOTPRequest";
 import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
+import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
+import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
 
 
 // Router
@@ -155,7 +157,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>) : Promise<Response<MessageResponse>> => {
+AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
     return await AuthController.logout(request, response);
 });
 
@@ -170,9 +172,41 @@ AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, respo
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (request: Request<AuthGetSessionRequest>, response: Response<any>) => {
+AuthRouter.get('/session', async (request: Request<AuthGetSessionRequest>, response: Response<UserSessionResponse>) => {
     return await AuthController.getSession(request, response);
 });
 
+/**
+ * GET /settings/otp
+ * Send the OTP Enable to user.
+ * 
+ * Request Body:
+ * - otpEnabled (boolean): The OTP Enable of the user (required).
+ * 
+ * Response:
+ * - 200: OTP Enable message sent successfully.
+ * - 500: OTP Already Enabled.
+ */
+AuthRouter.get('/settings/otp-enable', async (request: Request<AuthChangeOTPStatusRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.otpChangeStatus(request, response);
+});
+
+
+/**
+ * POST /settings/otp
+ * Change the OTP Enable of the user.
+ * 
+ * Request Body:
+ * - otpEnabled (boolean): The OTP Enable of the user (required).
+ * - otpStatusChangeToken(string): The OTP Enable of the user (required).
+ *
+ * Response:
+ * - 200: OTP Enable message sent successfully.
+ * - 500: OTP Already Enabled.
+ * - 401: Unauthorized if user is not logged in.
+ */
+AuthRouter.post('/settings/otp', async (request: Request<AuthChangeOTPVerifyRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.otpChangeVerify(request, response);
+});
 
 export default AuthRouter;

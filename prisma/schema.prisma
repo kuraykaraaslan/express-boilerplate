@@ -23,6 +23,9 @@ model User {
 
   //OTP verification
   otpEnabled Boolean @default(false)
+  otpEnabledAt DateTime?
+  otpStatusChangeToken String?
+  otpStatusChangeTokenExpiry DateTime?
 
   
   userSessions UserSession[]

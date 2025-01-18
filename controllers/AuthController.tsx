@@ -8,6 +8,8 @@ import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest"
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import { NextFunction, Request, Response } from "express";
 import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
+import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
+import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
 
 
 export default class AuthController {
@@ -143,7 +145,33 @@ export default class AuthController {
         return response.json(await AuthService.otpSend(sessionToken, method));
 
     }
-        
 
+    // Services Below has user as a parameter and userSession as a parameter so we can pass the user and userSession from the request object
+
+    public static async otpChangeStatus(request: Request<AuthChangeOTPStatusRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+        
+        const { otpEnabled } = request.body;
+
+        if (otpEnabled === undefined || typeof otpEnabled !== "boolean") {
+            throw new Error("INVALID_OTP_STATUS");
+        }
+
+        return response.json(await AuthService.otpChangeStatus(request.user!, otpEnabled));
+    }
+
+    public static async otpChangeVerify(request: Request<AuthChangeOTPVerifyRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+        
+        const { otpEnabled, otpStatusChangeToken } = request.body;
+
+        if (otpEnabled === undefined || typeof otpEnabled !== "boolean") {
+            throw new Error("INVALID_OTP_STATUS");
+        }
+
+        if (!FieldValidater.isVerificationToken(otpStatusChangeToken)) {
+            throw new Error("INVALID_CODE");
+        }
+
+        return response.json(await AuthService.otpChangeVerify(request.user!, otpEnabled, otpStatusChangeToken));
+    }
 
 }
