@@ -4,6 +4,8 @@ import winston from 'winston';
 const { combine, timestamp, json, printf } = winston.format;
 const timestampFormat = 'MMM-DD-YYYY HH:mm:ss';
 
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
 export default class Logger {
   private static infoLogger = winston.createLogger({
     level: 'info',
@@ -14,7 +16,8 @@ export default class Logger {
         return `[${timestamp}] [${level}]: ${message}`;
       })
     ),
-    transports: [
+    // Disable logging to file when running on Vercel platform
+    transports: (NODE_ENV === 'vercel') ? [] : [
       new winston.transports.File({
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'info',
