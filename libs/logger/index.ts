@@ -34,7 +34,7 @@ export default class Logger {
         return `[${timestamp}] [${level}]: ${message}`;
       })
     ),
-    transports: [
+    transports: (NODE_ENV === 'vercel') ? [] : [
       new winston.transports.File({
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'error',
