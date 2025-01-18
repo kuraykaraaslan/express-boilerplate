@@ -79,10 +79,12 @@ The following services are available:
 - [x] Add Controllers
 - [x] Add API versioning
 - [ ] Add unit tests
-- [ ] Add logging
+- [x] Add logging
 - [x] Add error handling
 - [ ] Better documentation
-- [ ] Add more services
+- [x] Add Twillo Service
+- [x] Add Mail Service
+- [x] Add rate limiting
 
 ## Development
 
