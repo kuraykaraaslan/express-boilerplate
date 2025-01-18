@@ -1,10 +1,18 @@
 import { rateLimit } from 'express-rate-limit'
+import { Request, Response } from 'express';
 
-const limiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
-	standardHeaders: 'draft-8', // draft-6: `RateLimit-*` headers; draft-7 & draft-8: combined `RateLimit` header
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
-})
+export default class Limiter {
+	static limiter = rateLimit({
+		windowMs: 15 * 60 * 1000, // 15 minutes
+		max: 2, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+		message: (request: Request, response: Response) => {
+			return { error: 'RATE_LIMIT_EXCEEDED' };
+		},
+		headers: true,
+	});
 
-export default limiter
+	static useLimiter(request: any, response: any, next: any) {
+		Limiter.limiter(request, response, next);
+	}
+}
+

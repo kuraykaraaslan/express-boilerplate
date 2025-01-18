@@ -19,23 +19,9 @@ import AuthResetPasswordRequest from '../../dtos/requests/AuthResetPasswordReque
 import AuthController from '../../controllers/AuthController';
 import MessageResponse from "../../dtos/responses/MessageResponse";
 
-// Rate limit
-import { rateLimit } from 'express-rate-limit';
-import { authenticatedLimiter } from "@/libs/limiter";
 
 // Router
 const AuthRouter = Router();
-
-// Rate limit
-const AuthRouterLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 15, // Limit each IP to 5 requests per `window` (here, per 15 minutes).
-    message: {
-        error: "TOO_MANY_AUTH_REQUESTS",
-    }
-});
-
-AuthRouter.use(AuthRouterLimiter);
 
 /**
  * POST /

@@ -1,10 +1,17 @@
 import { Router, Request, Response } from "express";
 import V1Router from "./v1";
 import limiter from "../libs/limiter";
+import Logger from "../libs/logger";
+import Limiter from "../libs/limiter";
 
 
 const IndexRouter = Router();
-IndexRouter.use(limiter);
+
+/*
+ * Middlewares
+ */
+IndexRouter.use(Logger.useLogger);
+IndexRouter.use(Limiter.useLimiter);
 
 IndexRouter.get("/", (req, res) => {
 
