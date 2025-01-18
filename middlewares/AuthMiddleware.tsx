@@ -34,9 +34,6 @@ export default function (scopes?: string | string[] | undefined) {
 
       const sessionToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
-      console.log("sessionToken", sessionToken);
-      const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
-
       // Allow guest if token is not present
       if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
         return next();

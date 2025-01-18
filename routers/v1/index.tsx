@@ -3,6 +3,7 @@ import AuthRouter from "./AuthRouter";
 import UserRouter from "./UserRouter";
 import { Router, Request, Response } from "express";
 
+// Router
 const V1Router = Router();
 
 V1Router.get("/", (req: Request, res: Response) => {

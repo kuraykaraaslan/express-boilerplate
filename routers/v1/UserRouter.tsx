@@ -23,6 +23,7 @@ const userRouter = Router();
 
 userRouter.use(AuthMiddleware("User"));
 
+
 /**
  * POST /
  * Create a new user.
