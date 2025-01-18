@@ -12,7 +12,11 @@ import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordReques
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import OmitOTPFieldsUserSessionResponse from "../dtos/responses/OmitOTPFieldsUserSessionResponse";
 import FieldValidater from "../utils/FieldValidater";
+
+// Other Services
 import UserService from "./UserService";
+import TwilloService from "./TwilloService";
+import MailService from "./MailService";
 
 // Utils
 import { createId } from '@paralleldrive/cuid2';
@@ -108,7 +112,19 @@ export default class AuthService {
             },
         });
 
-        // Remove the otpToken and otpTokenExpiry from the session object
+        // Send Notification to User
+        if (user.otpEnabled && user.phone) {
+            TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
+        } else {
+            TwilloService.sendSMS(user.phone, `You have logged in successfully.`);
+        }
+
+        // Send Mail to User
+        if (user.otpEnabled && user.email) {
+            MailService.sendMail(user.email, "OTP", `Your OTP is ${session.otpToken}`);
+        } else {
+            MailService.sendMail(user.email, "Login", `You have logged in successfully.`);
+        }
 
         return {
             user: UserService.omitSensitiveFields(user),
@@ -186,7 +202,7 @@ export default class AuthService {
      */
     static async register(data: AuthRegisterRequest): Promise<UserSessionResponse> {
 
-        const { email, password } = data;
+        const { email, name, password, phone } = data;
 
         // Check if the user already exists
         const existingUser = await UserService.getByEmail(email);
@@ -202,6 +218,10 @@ export default class AuthService {
                 password: await AuthService.hashPassword(password),
             },
         });
+
+        // Send a welcome email
+        MailService.sendMail(email, "Welcome!", "Welcome to our platform!");
+        TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
         return AuthService.register({ email, password });
@@ -243,8 +263,10 @@ export default class AuthService {
             },
         });
 
-        // TODO: Send the password reset email
-        console.log(`Password reset token: ${user.resetToken}`);
+        // Send the password reset email
+        MailService.sendMail(user.email, "Password Reset", `Your password reset token is ${user.resetToken}`);
+        TwilloService.sendSMS(user.phone, `Your password reset token is ${user.resetToken}`);
+
     }
 
 
@@ -278,6 +300,10 @@ export default class AuthService {
                 resetTokenExpiry: null,
             },
         });
+
+        // Notify the user
+        MailService.sendMail(user.email, "Password Reset", "Your password has been reset successfully.");
+        TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
 
     }
 
