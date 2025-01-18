@@ -1,4 +1,4 @@
-export default interface AuthChangeOTPVerifyRequest {
-    otpEnabled: boolean;
-    otpStatusChangeToken: string;
+export default class AuthChangeOTPVerifyRequest {
+    otpEnabled!: boolean;
+    otpStatusChangeToken!: string;
 }

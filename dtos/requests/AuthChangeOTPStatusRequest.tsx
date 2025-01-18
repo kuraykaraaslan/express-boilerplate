@@ -1,3 +1,3 @@
-export default interface AuthChangeOTPStatusRequest {
-    otpEnabled: boolean;
+export default class AuthChangeOTPStatusRequest {
+    otpEnabled!: boolean;
 }

@@ -1,3 +1,3 @@
-export default interface GetUserRequest {
-    userId: string;
+export default class GetUserRequest {
+    userId!: string;
 }

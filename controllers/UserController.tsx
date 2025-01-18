@@ -14,7 +14,7 @@ export default class UserController {
     public static async getById(request: Request<GetUserRequest>, response: Response<OmitPasswordUserResponse>): Promise<Response<OmitPasswordUserResponse>> {
         const { userId } = request.params;
 
-        if (!FieldValidater.isUUID(userId)) {
+        if (!FieldValidater.isCUID(userId)) {
             throw new Error("INVALID_USER_ID");
         }
 
@@ -64,11 +64,11 @@ export default class UserController {
             throw new Error("INVALID_TAKE");
         }
         
-        if (userId ? !FieldValidater.isUUID(userId) : false) {
+        if (userId ? !FieldValidater.isCUID(userId) : false) {
             throw new Error("INVALID_USER_ID");
         }
 
-        if (tenantId ? !FieldValidater.isUUID(tenantId) : false) {
+        if (tenantId ? !FieldValidater.isCUID(tenantId) : false) {
             throw new Error("INVALID_TENANT_ID");
         }
 
@@ -90,19 +90,19 @@ export default class UserController {
 
     public static async update(request: Request<PutUserRequest>, response: Response<OmitPasswordUserResponse>): Promise<Response<OmitPasswordUserResponse>> {
         
-        const { userId } = request.params;
-        const { email, password, name , role , phone , address , createdAt , updatedAt } = request.body;
+        const { userId, email, name , role , phone , address} = request.body;
 
-        if (!FieldValidater.isUUID(userId)) {
+        if (!FieldValidater.isCUID(userId)) {
+            throw new Error("INVALID_USER_ID");
+        }
+
+        // check if param userId is same as body userId
+        if (userId !== request.params.userId) {
             throw new Error("INVALID_USER_ID");
         }
 
         if (email ? !FieldValidater.isEmail(email) : false) {
             throw new Error("INVALID_EMAIL");
-        }
-
-        if (password ? !FieldValidater.isPassword(password) : false) {
-            throw new Error("INVALID_PASSWORD");
         }
 
         if (name ? !FieldValidater.sanitizeString(name) : false) {
@@ -121,13 +121,22 @@ export default class UserController {
             throw new Error("INVALID_ROLE");
         }
 
+        // forbidden fields check
+        const forbiddenFields = ["createdAt", "updatedAt", "password"];
+
+        for (const field of forbiddenFields) {
+            if (request.body[field]) {
+                throw new Error("FORBIDDEN_FIELD");
+            }
+        }
+
         return response.json(await UserService.update(request.body));
     }
 
     public static async delete(request: Request<GetUserRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
         const { userId } = request.params;
 
-        if (!FieldValidater.isUUID(userId)) {
+        if (!FieldValidater.isCUID(userId)) {
             throw new Error("INVALID_USER_ID");
         }
 

@@ -1,3 +1,3 @@
-export default interface AuthGetSessionRequest {
-   sessionToken: string;
+export default class AuthGetSessionRequest {
+   sessionToken!: string;
 }

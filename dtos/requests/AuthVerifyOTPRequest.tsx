@@ -1,4 +1,4 @@
-export default interface AuthVerifyOTPRequest {
-   sessionToken: string;
-   otpToken: string;
+export default class AuthVerifyOTPRequest {
+   sessionToken!: string;
+   otpToken!: string;
 }

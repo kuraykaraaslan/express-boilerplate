@@ -87,17 +87,19 @@ export default class UserService {
      */
     static async get(data: GetUsersRequest): Promise<GetUsersResponse> {
 
-        const { skip, take, userId, tenantId, search } = data;
+        const { skip, take, search , userId , tenantId } = data;
+
+        console.log(data);
 
         const queryOptions = {
             skip,
             take,
             where: {
-                userId : userId ? userId : search,
-                tenantId : tenantId ? tenantId : search,
+                userId: userId ? userId : undefined,
+                tenantId: tenantId ? tenantId : undefined,
                 OR: [
-                    { email: { contains: search } },
-                    { name: { contains: search } },
+                    { email: { contains: search ? search : '' } },
+                    { name: { contains: search ? search : '' } },
                 ],
             }
         };
@@ -109,7 +111,7 @@ export default class UserService {
         ]);
 
         // Exclude sensitive fields from the response
-        const usersWithoutPassword = users.map(({ password: _, ...user }) => user);
+        const usersWithoutPassword = users.map((user) => this.omitSensitiveFields(user));
 
         return { users: usersWithoutPassword, total };
     }
@@ -168,9 +170,7 @@ export default class UserService {
         });
 
         // Exclude sensitive fields from the response
-        const { password: _, ...userWithoutPassword } = updatedUser;
-
-        return userWithoutPassword;
+        return this.omitSensitiveFields(updatedUser);
 
     }
 

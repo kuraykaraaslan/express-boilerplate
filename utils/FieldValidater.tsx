@@ -1,5 +1,10 @@
 import bcrypt from "bcrypt";
 
+
+export type KeysOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
+export type RequiredKeys<T> = Exclude<KeysOfType<T, Exclude<T[keyof T], undefined>>, undefined>;
+export type OptionalKeys<T> = Exclude<keyof T, RequiredKeys<T>>;
+
 export default class FieldValidater {
     static emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     static passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
@@ -62,13 +67,13 @@ export default class FieldValidater {
 
     /**
      * Validates if the provided UUID is a valid UUID.
-     * @param uuid - The UUID string to validate.
+     * @param cuid - The UUID string to validate.
      * @returns `true` if valid, `false` otherwise.
      * @see
      */
-    static isUUID(uuid: string | undefined | null): boolean {
-        if (!uuid || typeof uuid !== "string") return false;
-        return uuid.length === 36;
+    static isCUID(cuid: string | undefined | null): boolean {
+        if (!cuid || typeof cuid !== "string") return false;
+        return cuid.length === 25;
     }
     /**
      * Validates a string against database injection attacks and only allows alphanumeric characters.
@@ -95,7 +100,7 @@ export default class FieldValidater {
      * @see
      * - Phone number must start with a `+` character.
      * - Phone number must contain only numbers after the `+` character.
-     */ 
+     */
     static isPhone(phone: string | undefined | null): boolean {
         if (!phone || typeof phone !== "string") return false;
         return /^\+[0-9]+$/.test(phone);
@@ -136,6 +141,54 @@ export default class FieldValidater {
         if (!value || typeof value !== "string") return false;
         return value.length === 24;
     }
+    /**
+     * Validates if the provided JSON matches the model.
+     * Ensures all fields in the model are present in the JSON
+     * and that there are no extra fields in the JSON.
+     * @param value - The JSON object to validate.
+     * @param model - The model class to validate against.
+     * @returns `true` if valid, `false` otherwise.
+     */
+    static validateBody(value: any = {}, Model: any): boolean {
+        
+        type OriginalType = typeof Model;
+        type RequiredType = RequiredKeys<typeof Model>;
+        type OptionalType = OptionalKeys<typeof Model>;
+       
+        const orginalInstance = new Model();
+ 
+        const requiredFields = Object.keys(orginalInstance).filter((key) => key in value);
+        const optionalFields = Object.keys(orginalInstance).filter((key) => !(key in value));
+        const extraFields = Object.keys(value).filter((key) => !(key in orginalInstance));
+
+        console.log(requiredFields);
+        console.log(optionalFields);
+        console.log(extraFields);
+
+        //value keys
+        const keys = Object.keys(value);
+
+        //check if all required fields are present
+        for (const field of requiredFields) {
+            if (!keys.includes(field)) {
+                return false;
+            }
+        }
+
+        //check if there are no extra fields
+        if (extraFields.length > 0) {
+            return false;
+        }      
+        
+        //if there no fields in the model but there are fields in the value
+        if (requiredFields.length === 0 && keys.length > 0) {
+            return false;
+        }
+
+        return true; // Valid if no issues
+    }
+
+
 
 }
 

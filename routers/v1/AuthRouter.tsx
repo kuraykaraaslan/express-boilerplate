@@ -18,11 +18,15 @@ import AuthForgotPasswordRequest from '../../dtos/requests/AuthForgotPasswordReq
 import AuthResetPasswordRequest from '../../dtos/requests/AuthResetPasswordRequest';
 import AuthController from '../../controllers/AuthController';
 import MessageResponse from "../../dtos/responses/MessageResponse";
-import AuthSendOTPRequest from "@/dtos/requests/AuthSendOTPRequest";
-import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
-import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
-import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
+import AuthSendOTPRequest from "../../dtos/requests/AuthSendOTPRequest";
+import AuthVerifyOTPRequest from "../../dtos/requests/AuthVerifyOTPRequest";
+import AuthChangeOTPStatusRequest from "../../dtos/requests/AuthChangeOTPStatusRequest";
+import AuthChangeOTPVerifyRequest from "../../dtos/requests/AuthChangeOTPVerifyRequest";
+import EmptyRequest from "../../dtos/requests/EmptyRequest";
 
+
+// Validators
+import FieldValidater from "../../utils/FieldValidater";
 
 // Router
 const AuthRouter = Router();
@@ -40,6 +44,11 @@ const AuthRouter = Router();
  * - 400: Validation error if email or password is missing.
  */
 AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, response: Response<UserSessionResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthRegisterRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+    
     return await AuthController.register(request, response);
 });
 
@@ -57,6 +66,11 @@ AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, respo
  * - 401: Unauthorized if email or password is incorrect.
  */
 AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.login(request, response);
 });
 
@@ -73,6 +87,11 @@ AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: R
  * - 401: Unauthorized if sessionToken is invalid.
  */
 AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.sso(request, response);
 });
 
@@ -87,6 +106,11 @@ AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Res
  * 
  */
 AuthRouter.post('/session/otp-verify', async (request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthVerifyOTPRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.otpVerify(request, response);
 });
 
@@ -105,6 +129,11 @@ AuthRouter.post('/session/otp-verify', async (request: Request<AuthVerifyOTPRequ
  * - 500: Internal server error if OTP sending fails.
  */
 AuthRouter.post('/session/otp-send', async (request: Request<AuthSendOTPRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthSendOTPRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.otpSend(request, response);
 });
 
@@ -122,6 +151,11 @@ AuthRouter.post('/session/otp-send', async (request: Request<AuthSendOTPRequest>
  * - 404: User not found if email does not exist in the database.
  */
 AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthForgotPasswordRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.forgotPassword(request, response);
 });
 
@@ -139,6 +173,11 @@ AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRe
  * - 404: User not found if token is invalid.
  */
 AuthRouter.post('/reset-password', async (request: Request<AuthResetPasswordRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthResetPasswordRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.resetPassword(request, response);
 });
 
@@ -157,7 +196,12 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
+AuthRouter.post('/logout', async (request: Request<EmptyRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
+
+    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.logout(request, response);
 });
 
@@ -172,12 +216,17 @@ AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, respo
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (request: Request<AuthGetSessionRequest>, response: Response<UserSessionResponse>) => {
+AuthRouter.get('/session', async (request: Request<EmptyRequest>, response: Response<UserSessionResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.getSession(request, response);
 });
 
 /**
- * GET /settings/otp
+ * POST /settings/otp
  * Send the OTP Enable to user.
  * 
  * Request Body:
@@ -187,7 +236,12 @@ AuthRouter.get('/session', async (request: Request<AuthGetSessionRequest>, respo
  * - 200: OTP Enable message sent successfully.
  * - 500: OTP Already Enabled.
  */
-AuthRouter.get('/settings/otp-enable', async (request: Request<AuthChangeOTPStatusRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/settings/otp-change', async (request: Request<AuthChangeOTPStatusRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthChangeOTPStatusRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.otpChangeStatus(request, response);
 });
 
@@ -205,7 +259,12 @@ AuthRouter.get('/settings/otp-enable', async (request: Request<AuthChangeOTPStat
  * - 500: OTP Already Enabled.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.post('/settings/otp', async (request: Request<AuthChangeOTPVerifyRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/settings/otp-verify', async (request: Request<AuthChangeOTPVerifyRequest>, response: Response<MessageResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, AuthChangeOTPVerifyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
     return await AuthController.otpChangeVerify(request, response);
 });
 

@@ -1,4 +1,4 @@
-export default interface GetUsersRequest {
+export default class GetUsersRequest {
     skip?: number;
     take?: number;
     userId?: string;

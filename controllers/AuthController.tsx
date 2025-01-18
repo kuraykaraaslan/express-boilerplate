@@ -1,3 +1,5 @@
+import { NextFunction, Request, Response } from "express";
+
 import UserSessionResponse from "@/dtos/responses/UserSessionResponse";
 import AuthService from "../services/AuthService";
 import FieldValidater from "../utils/FieldValidater";
@@ -6,10 +8,10 @@ import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import { NextFunction, Request, Response } from "express";
 import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
 import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
 import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
+import EmptyRequest from "@/dtos/requests/EmptyRequest";
 
 
 export default class AuthController {
@@ -18,6 +20,7 @@ export default class AuthController {
 
         const { email, password } = request.body;
 
+        //write keys
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -80,7 +83,7 @@ export default class AuthController {
         return response.json({ message: "PASSWORD_RESET_SUCCESS" });
     }
 
-    public static async logout(request: Request<AuthGetSessionRequest>, response: Response): Promise<Response<MessageResponse>> {
+    public static async logout(request: Request<EmptyRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { sessionToken } = request.userSession!;
 
@@ -95,7 +98,7 @@ export default class AuthController {
     }
 
 
-    public static async getSession(request: Request<any>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+    public static async getSession(request: Request<EmptyRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
 
         return response.json({ user: request.user!, userSession: request.userSession! });
     }

@@ -21,7 +21,7 @@ import MessageResponse from "@/dtos/responses/MessageResponse";
 
 const userRouter = Router();
 
-userRouter.use(AuthMiddleware("User"));
+userRouter.use(AuthMiddleware("ADMIN"));
 
 
 /**

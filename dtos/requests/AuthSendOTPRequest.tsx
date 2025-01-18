@@ -1,4 +1,4 @@
-export default interface AuthSendOTPRequest {
-   sessionToken: string;
-   method: string;
+export default class AuthSendOTPRequest {
+   sessionToken!: string;
+   method!: string;
 }

@@ -13,19 +13,18 @@ import AuthService from '../services/AuthService';
 import OmitPasswordUserResponse from '@/dtos/responses/OmitPasswordUserResponse';
 import OmitOTPFieldsUserSessionResponse from '@/dtos/responses/OmitOTPFieldsUserSessionResponse';
 
-export default function (scopes?: string | string[] | undefined) {
+export default function (requiredRole: string) {
 
   return async function authMiddleware(request: Request, response: Response, next: NextFunction) {
 
     try {
 
-      var requiredRoles = scopes ? typeof scopes === 'string' ? [scopes] : scopes : ['USER'];
-
       //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
 
       if (request.user) {
+        
         //check if the user has the required role
-        if (!AuthService.checkIfUserHasRole(request.user, requiredRoles)) {
+        if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
           throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
         }
 
@@ -35,7 +34,7 @@ export default function (scopes?: string | string[] | undefined) {
       const sessionToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
       // Allow guest if token is not present
-      if (requiredRoles.length === 0 || requiredRoles.includes('GUEST')) {
+      if (requiredRole === 'GUEST') {
         return next();
       }
 
@@ -65,7 +64,8 @@ export default function (scopes?: string | string[] | undefined) {
 
       //check if the user has the required role
 
-      if (!AuthService.checkIfUserHasRole(request.user, requiredRoles)) {
+      if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
+        console.log(request.user.role + "/ " + requiredRole);
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
 

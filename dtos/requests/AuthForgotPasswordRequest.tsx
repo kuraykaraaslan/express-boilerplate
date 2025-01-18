@@ -1,3 +1,3 @@
-export default interface AuthForgotPasswordRequest {
-    email: string;
+export default class AuthForgotPasswordRequest {
+    email!: string;
 }

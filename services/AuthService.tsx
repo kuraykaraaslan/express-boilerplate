@@ -143,13 +143,15 @@ export default class AuthService {
      */
     static async logout(data: AuthGetSessionRequest): Promise<void> {
 
+        console.log(data);
+
         // Check if the session exists
         const sessions = await prisma.userSession.findMany({
             where: { sessionToken: data.sessionToken }
         });
 
         if (sessions.length === 0) {
-            throw new Error(this.SESSION_NOT_FOUND);
+            throw new Error("this.SESSION_NOT_FOUND");
         }
 
         // Delete the session if found
@@ -238,8 +240,22 @@ export default class AuthService {
      * @param requiredRoles - The required roles.
      * @returns Whether the user has the required role.
      */
-    static checkIfUserHasRole(user: OmitPasswordUserResponse, requiredRoles: string[]): boolean {
-        return requiredRoles.includes(user.role);
+    static checkIfUserHasRole(user: OmitPasswordUserResponse, requiredRole: string): boolean {
+
+        const roles = [
+            'SUPER_ADMIN', 
+            'ADMIN', 
+            'USER', 
+            'GUEST'
+        ];
+
+        const userRoleIndex = roles.indexOf(user.role);
+        const requiredRoleIndex = roles.indexOf(requiredRole);
+
+        console.log(user.role, requiredRole);
+        console.log(userRoleIndex, requiredRoleIndex);
+
+        return userRoleIndex <= requiredRoleIndex;
     }
 
 
@@ -327,6 +343,11 @@ export default class AuthService {
 
         if (!session) {
             throw new Error(this.SESSION_NOT_FOUND);
+        }
+
+        //if the session already has no otp needed
+        if (!session.otpNeeded) {
+            throw new Error("OTP_NOT_NEEDED");
         }
 
         // Generate an OTP
