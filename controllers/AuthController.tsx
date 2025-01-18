@@ -7,6 +7,7 @@ import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordReques
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import { NextFunction, Request, Response } from "express";
+import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
 
 
 export default class AuthController {
@@ -110,14 +111,39 @@ export default class AuthController {
     }
 
 
-    public async authenticate(
-        target: any, 
-        origin: any,
-        operation: string,
-        success: () => void, 
-        failure: () => void) {
+    public static async otpVerify(request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
-        success();
+        const { sessionToken, otpToken } = request.body;
+
+        if (!FieldValidater.isSessionToken(sessionToken)) {
+            throw new Error("INVALID_TOKEN");
+        }
+
+        if (!FieldValidater.isVerificationToken(otpToken)) {
+            throw new Error("INVALID_CODE");
+        }
+
+        return response.json(await AuthService.otpVerify(sessionToken, otpToken));
+    }
+
+    public static async otpSend(request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+
+        const { sessionToken, method } = request.body;
+
+        if (!FieldValidater.isSessionToken(sessionToken)) {
+            throw new Error("INVALID_TOKEN");
+        }
+
+        const allowedMethods = ["sms", "email"];
+        if (!allowedMethods.includes(method)) {
+            throw new Error("INVALID_METHOD");
+        }
+
+
+        return response.json(await AuthService.otpSend(sessionToken, method));
 
     }
+        
+
+
 }

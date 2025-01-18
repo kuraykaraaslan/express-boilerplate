@@ -20,6 +20,7 @@ import MailService from "./MailService";
 
 // Utils
 import { createId } from '@paralleldrive/cuid2';
+import MessageResponse from "@/dtos/responses/MessageResponse";
 
 export default class AuthService {
 
@@ -42,6 +43,10 @@ export default class AuthService {
     static USER_NOT_FOUND = "USER_NOT_FOUND";
     static EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
     static INVALID_EMAIL_OR_PASSWORD = "INVALID_EMAIL_OR_PASSWORD";
+    static INVALID_OTP = "INVALID_OTP";
+    static OTP_EXPIRED = "OTP_EXPIRED";
+    static USER_HAS_NO_PHONE_NUMBER = "USER_HAS_NO_PHONE_NUMBER";
+    static USER_HAS_NO_EMAIL = "USER_HAS_NO_EMAIL";
 
     /**
      * Token Generation
@@ -305,6 +310,99 @@ export default class AuthService {
         MailService.sendMail(user.email, "Password Reset", "Your password has been reset successfully.");
         TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
 
+    }
+
+    /**
+     * Sends an OTP to the user.
+     * @param sessionToken - The session token.
+     * @param phone - The user's phone number.
+     * @param method - The method to send the OTP (sms or email).
+     */
+    static async otpSend(sessionToken: string, method: string): Promise<MessageResponse> {
+
+        // Get the session by token
+        const session = await prisma.userSession.findUnique({
+            where: { sessionToken },
+        });
+
+        if (!session) {
+            throw new Error(this.SESSION_NOT_FOUND);
+        }
+
+        // Generate an OTP
+        const otpToken = AuthService.generateToken();
+
+        // Save the OTP to the session
+        await prisma.userSession.update({
+            where: { sessionId: session.sessionId },
+            data: {
+                otpToken,
+                otpTokenExpiry: new Date(Date.now() + 600000), // 10 minutes
+            },
+            include: { user: true },
+        });
+
+        const user = await prisma.user.findUnique({
+            where: { userId: session.userId },
+        });
+
+        if (!user) {
+            throw new Error(this.USER_NOT_FOUND);
+        }
+
+        // Send the OTP
+        if (method === "sms") {
+            if (user.phone) {
+                TwilloService.sendSMS(user.phone, `Your OTP is ${otpToken}`);
+            } else {
+                throw new Error(this.USER_HAS_NO_PHONE_NUMBER);
+            }
+        } else if (method === "email") {
+            if (user.email) {
+                MailService.sendMail(user.email, "OTP", `Your OTP is ${otpToken}`);
+            } else {
+                throw new Error(this.USER_HAS_NO_EMAIL);
+            }
+        }
+
+        return { message: "OTP_SENT" };
+    }
+
+    /**
+     * Verifies the OTP of the user.
+     * @param sessionToken - The session token.
+     * @param otp - The OTP.
+     */
+    static async otpVerify(sessionToken: string, otp: string): Promise<MessageResponse> {
+
+        // Get the session by token
+        const session = await prisma.userSession.findUnique({
+            where: { sessionToken },
+        });
+
+        if (!session) {
+            throw new Error(this.SESSION_NOT_FOUND);
+        }
+
+        // Check if the OTP is expired
+        if (session.otpTokenExpiry && new Date() > session.otpTokenExpiry) {
+            throw new Error(this.OTP_EXPIRED);
+        }
+
+        // Check if the OTP is correct
+        if (session.otpToken !== otp) {
+            throw new Error(this.INVALID_OTP);
+        }
+
+        // Update the session
+        await prisma.userSession.update({
+            where: { sessionId: session.sessionId },
+            data: {
+                otpNeeded: false,
+            },
+        });
+
+        return { message: "OTP_VERIFIED" };
     }
 
 

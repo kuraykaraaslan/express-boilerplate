@@ -18,6 +18,8 @@ import AuthForgotPasswordRequest from '../../dtos/requests/AuthForgotPasswordReq
 import AuthResetPasswordRequest from '../../dtos/requests/AuthResetPasswordRequest';
 import AuthController from '../../controllers/AuthController';
 import MessageResponse from "../../dtos/responses/MessageResponse";
+import AuthSendOTPRequest from "@/dtos/requests/AuthSendOTPRequest";
+import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
 
 
 // Router
@@ -74,6 +76,38 @@ AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Res
 
 
 /**
+ * POST /session/otp-verify
+ * Verify the OTP of the user.
+ * 
+ * Request Body:
+ * - token (string): The session token of the user (required).
+ * - otp (string): The OTP of the user (required).
+ * 
+ */
+AuthRouter.post('/session/otp-verify', async (request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.otpVerify(request, response);
+});
+
+/**
+ * POST /session/otp-send
+ * Send the OTP to the user's phone number.
+ * 
+ * Request Body:
+ * - sessionToken (string): The session sessionToken of the user (required).
+ * - method (string): The method to send the OTP (sms or email) (required).
+ * 
+ * Response:
+ * - 200: OTP sent successfully.
+ * - 400: Validation error if sessionToken is missing.
+ * - 404: User not found if sessionToken is invalid.
+ * - 500: Internal server error if OTP sending fails.
+ */
+AuthRouter.post('/session/otp-send', async (request: Request<AuthSendOTPRequest>, response: Response<MessageResponse>) => {
+    return await AuthController.otpSend(request, response);
+});
+
+
+/**
  * POST /forgot-password
  * Send a password reset email to the user.
  * 
@@ -94,7 +128,7 @@ AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRe
  * Reset the password of the user.
  * 
  * Request Body:
- * - token (string): The password reset token sent to the user's email (required).
+ * - sessionToken (string): The password reset token sent to the user's email (required).
  * - password (string): The new password for the user (required).
  * 
  * Response:
@@ -130,7 +164,7 @@ AuthRouter.post('/logout', async (request: Request<AuthGetSessionRequest>, respo
  * Get the current user session.
  * 
  * Request Body:
- * - token (string): The session token of the user (required).
+ * - sessionToken (string): The session token of the user (required).
  * 
  * Response:
  * - 200: Session details of the user.
