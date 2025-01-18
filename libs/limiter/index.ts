@@ -1,10 +1,13 @@
 import { rateLimit } from 'express-rate-limit'
 import { Request, Response } from 'express';
 
+const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000;
+const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX || 2;
+
 export default class Limiter {
 	static limiter = rateLimit({
-		windowMs: 15 * 60 * 1000, // 15 minutes
-		max: 2, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+		windowMs: Number(RATE_LIMIT_WINDOW_MS),
+		max: Number(RATE_LIMIT_MAX),
 		message: (request: Request, response: Response) => {
 			return { error: 'RATE_LIMIT_EXCEEDED' };
 		},
