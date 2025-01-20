@@ -1,4 +1,4 @@
-import { UserSession } from "@prisma/client";
+import { UserSession, UserSocialAccount } from "@prisma/client";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
@@ -21,6 +21,7 @@ import MailService from "./MailService";
 // Utils
 import { createId } from '@paralleldrive/cuid2';
 import MessageResponse from "@/dtos/responses/MessageResponse";
+import axios from "axios";
 
 export default class AuthService {
 
@@ -47,6 +48,10 @@ export default class AuthService {
     static OTP_EXPIRED = "OTP_EXPIRED";
     static USER_HAS_NO_PHONE_NUMBER = "USER_HAS_NO_PHONE_NUMBER";
     static USER_HAS_NO_EMAIL = "USER_HAS_NO_EMAIL";
+    static OTP_ALREADY_ENABLED = "OTP_ALREADY_ENABLED";
+    static OTP_ALREADY_DISABLED = "OTP_ALREADY_DISABLED";
+    static OTP_CHANGED_SUCCESSFULLY = "OTP_CHANGED_SUCCESSFULLY";
+    static INVALID_PROVIDER = "INVALID_PROVIDER";
 
     /**
      * Token Generation
@@ -243,9 +248,9 @@ export default class AuthService {
     static checkIfUserHasRole(user: OmitPasswordUserResponse, requiredRole: string): boolean {
 
         const roles = [
-            'SUPER_ADMIN', 
-            'ADMIN', 
-            'USER', 
+            'SUPER_ADMIN',
+            'ADMIN',
+            'USER',
             'GUEST'
         ];
 
@@ -448,7 +453,7 @@ export default class AuthService {
                 otpStatusChangeToken: AuthService.generateToken(),
                 otpStatusChangeTokenExpiry: new Date(Date.now() + 600000), // 10 minutes
             },
-        }); 
+        });
 
         // Send the OTP
         TwilloService.sendSMS(user.phone, `Your OTP is ${updatedUser.otpStatusChangeToken}`);
@@ -468,7 +473,7 @@ export default class AuthService {
         // Check if the token is valid
         const updatedUser = await prisma.user.findUnique({
             where: { userId: user.userId },
-        }); 
+        });
 
 
         if (!updatedUser?.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
@@ -489,8 +494,11 @@ export default class AuthService {
                     otpStatusChangeTokenExpiry: null,
                 },
             });
-            throw new Error("OTP_ALREADY_ENABLED");
-        } else if (!otpEnabled && user.otpEnabled === otpEnabled) {
+            throw new Error(this.OTP_ALREADY_ENABLED);
+
+        } 
+        
+        if (!otpEnabled && user.otpEnabled === otpEnabled) {
             // clear the token for security
             await prisma.user.update({
                 where: { userId: user.userId },
@@ -499,7 +507,7 @@ export default class AuthService {
                     otpStatusChangeTokenExpiry: null,
                 },
             });
-            throw new Error("OTP_ALREADY_DISABLED");
+            throw new Error(this.OTP_ALREADY_DISABLED);
         }
 
         // Update the user
@@ -511,8 +519,178 @@ export default class AuthService {
                 otpStatusChangeTokenExpiry: null,
             },
         });
-    
-        return { message: "OTP_STATUS_CHANGED" };
+
+        return { message: this.OTP_CHANGED_SUCCESSFULLY };
     }
 
+    /*
+    * Auth Callback
+    * @param provider - The provider name.
+    * @param code - The code.
+    * @param state - The state.
+    * @param scope - The scope.
+    */
+
+    static async callback(
+        provider: string,
+        code: string,
+        state: string,
+        scope?: string,
+    ): Promise<any> {
+
+        if (provider === "google") {
+            return this.callbackGoogle(code, state);
+        }
+
+        return { error: this.INVALID_PROVIDER };
+    }
+
+    /*
+    * Google Auth Callback
+    * @param code - The code.
+    * @param state - The state.
+    * @returns The user object.
+    * @throws Error if the user is not found.
+    * @throws Error if the email is not found.
+    */
+    static async callbackGoogle(code: string, state: string): Promise<any> {
+
+        //TODO : VALIDATE STATE
+
+        const { expires_in, access_token, refresh_token } = await axios
+            .post(
+                "https://oauth2.googleapis.com/token",
+                {
+                    client_id: process.env.GOOGLE_CLIENT_ID,
+                    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                    code: code,
+                    redirect_uri:
+                        process.env.BACKEND_URL + "/api/v1/auth/callback/google",
+                    grant_type: "authorization_code",
+                },
+                {
+                    headers: {
+                        Accept: "application/json",
+                    },
+                },
+            )
+            .then((response) => {
+                return response.data;
+            })
+            .catch((e) => {
+                return null;
+            });
+
+        if (!access_token) {
+            throw new Error("GOOGLE_AUTH_FAILED");
+        }
+
+        // https://oauth2.googleapis.com/token
+
+        const token_response = await axios
+            .post(
+                "https://oauth2.googleapis.com/token?refresh_token=" +
+                access_token +
+                "&client_id=" +
+                process.env.GOOGLE_CLIENT_ID +
+                "&client_secret=" +
+                process.env.GOOGLE_CLIENT_SECRET +
+                "&grant_type=refresh_token",
+                {
+                    headers: {
+                        Accept: "application/json",
+                    },
+                },
+            )
+            .then((response) => {
+                return response.data;
+            })
+            .catch((e) => {
+                return null;
+            });
+
+        const access_token_long = token_response.access_token;
+
+
+        if (!access_token_long) {
+            throw new Error("GOOGLE_AUTH_FAILED");
+        }
+
+        const user = await axios
+            .get("https://www.googleapis.com/oauth2/v3/userinfo?alt=json", {
+                headers: {
+                    authorization: `Bearer ${access_token_long}`,
+                },
+            })
+            .then((response) => {
+                return response.data;
+            })
+            .catch((e) => {
+                return null;
+            });
+
+        if (!user) {
+            throw new Error("GOOGLE_USER_NOT_FOUND");
+        }
+
+        const temp_user = {
+            email: user.email,
+            name: user.name,
+            avatar: user.picture,
+        };
+
+        if (!user.email) {
+            throw new Error("GOOGLE_EMAIL_NOT_FOUND");
+        }
+
+        return temp_user;
+    }
+
+    /*
+    * Create SSO Link
+    * @param provider - The provider name.
+    * @returns The SSO link.
+    */
+    static getSSOProviderURL(provider: string): string {
+
+        if (provider === "google") {
+            return this.createSSOLinkGoogle();
+        } else if (provider === "apple") {
+            return this.createSSOLinkApple();
+        }
+
+        throw new Error(this.INVALID_PROVIDER);
+    }
+
+    /*
+    * Create Google SSO Link
+    * @returns The SSO link.
+    */
+    static createSSOLinkGoogle(): string {
+
+        const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+        const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+        const url = `https://accounts.google.com/o/oauth2/v2/auth?scope=email%20profile&access_type=offline&include_granted_scopes=true&response_type=code&state=google&redirect_uri=${APP_URL}/api/v1/auth/callback/google&client_id=${GOOGLE_CLIENT_ID}`;
+
+        return url;
+    }
+
+    /*
+    * Create Apple SSO Link
+    * @returns The SSO link.
+    */
+    static createSSOLinkApple(): string {
+
+        const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+        const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
+
+        const url = `https://appleid.apple.com/auth/authorize?response_type=code&response_mode=form_post&client_id=${APPLE_CLIENT_ID}&redirect_uri=${APP_URL}/api/v1/auth/callback/apple&scope=name%20email&state=apple&nonce=123456`;
+
+        return url;
+    }
+
+
 }
+
+

@@ -7,15 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
 model User {
   userId    String   @id @default(cuid())
   email     String   @unique
   phone     String?   @unique
   password  String
   name      String?
-  role      String     @default("USER")
+  role      Role     @default(USER)
+
+  //Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   //Password reset
   resetToken String?
@@ -27,14 +37,14 @@ model User {
   otpStatusChangeToken String?
   otpStatusChangeTokenExpiry DateTime?
 
-  
   userSessions UserSession[]
+  userSocialAccounts UserSocialAccount[]
 }
 
 model UserSession {
   sessionId  String   @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [userId])
+  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   sessionToken String  @unique
   sessionExpiry DateTime
@@ -47,4 +57,33 @@ model UserSession {
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model UserSocialAccount {
+  
+  userSocialAccountId String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  provider       SocialProvider
+  providerId     String   @unique
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiry    DateTime?
+  profilePicture String?
+  profileUrl     String?
+  scopes         String?  // Store granted scopes as a comma-separated list if needed
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([provider, providerId])
+}
+
+enum SocialProvider {
+  GOOGLE
+  FACEBOOK
+  GITHUB
+  LINKEDIN
+  APPLE
 }

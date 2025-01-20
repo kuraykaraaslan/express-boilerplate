@@ -27,14 +27,67 @@ import EmptyRequest from "../../dtos/requests/EmptyRequest";
 
 // Validators
 import FieldValidater from "../../utils/FieldValidater";
+import AuthGetSSOProviderRequest from "@/dtos/requests/AuthGetSSOProviderRequest";
 
 // Router
 const AuthRouter = Router();
 
 /**
+ * GET /login
+ * Login page.
+ * 
+ * Response:
+ * - view: auth/login
+ * 
+ */
+AuthRouter.get('/login', async (request: Request, response: Response) => {
+    return response.render('auth/login', { message: '' });
+});
+
+/**
+ * GET /register
+ * Register page.
+ * 
+ * Response:
+ * - view: auth/register
+ * 
+ */
+AuthRouter.get('/register', async (request: Request, response: Response) => {
+    return response.render('auth/register', { message: '' });
+});
+
+/**
+ * GET /sso
+ * SSO page.
+ * 
+ * Response:
+ * - view: auth/sso
+ * 
+ */
+AuthRouter.get('/sso', async (request: Request, response: Response) => {
+    return response.render('auth/sso', { message: '' });
+} );
+
+/**
+ * GET /sso/:provider
+ * SSO page.
+ * 
+ * Redirects to the SSO provider's login page.
+ * 
+ */
+AuthRouter.get('/sso/:provider', async (request: Request<AuthGetSSOProviderRequest>, response: Response) => {
+
+    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
+    return await AuthController.getSSOProviderURL(request, response);
+});
+
+/**
  * POST /
  * Create a new user.
- * 
+
  * Request Body:
  * - email (string): The email address of the new user (required).
  * - password (string): The password for the new user (required).
@@ -48,7 +101,7 @@ AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, respo
     if (!FieldValidater.validateBody(request.body, AuthRegisterRequest)) {
         throw new Error("BAD_REQUEST");
     }
-    
+
     return await AuthController.register(request, response);
 });
 
@@ -74,26 +127,6 @@ AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: R
     return await AuthController.login(request, response);
 });
 
-/**
- * POST /
- * Authenticate a user using SSO.
- * 
- * Request Body:
- * - sessionToken (string): The session token of the user (required).
- * 
- * Response:
- * - 200: User successfully authenticated with session details.
- * - 400: Validation error if sessionToken is missing.
- * - 401: Unauthorized if sessionToken is invalid.
- */
-AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Response<AuthResponse>) => {
-
-    if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    return await AuthController.sso(request, response);
-});
 
 
 /**

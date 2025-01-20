@@ -21,6 +21,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
 
+//Set ejs
+app.set('view engine', 'ejs');
+
 
 // Routes
 app.use("/" , IndexRouter);

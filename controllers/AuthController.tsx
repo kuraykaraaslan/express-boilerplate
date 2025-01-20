@@ -12,6 +12,7 @@ import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
 import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
 import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
 import EmptyRequest from "@/dtos/requests/EmptyRequest";
+import AuthGetSSOProviderRequest from "@/dtos/requests/AuthGetSSOProviderRequest";
 
 
 export default class AuthController {
@@ -103,19 +104,6 @@ export default class AuthController {
         return response.json({ user: request.user!, userSession: request.userSession! });
     }
 
-    public static async sso(request: Request<any>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
-
-        const { sessionToken } = request.body;
-
-        if (!FieldValidater.isSessionToken(sessionToken)) {
-
-            throw new Error("INVALID_TOKEN");
-        }
-        
-        return response.json(await AuthService.getSession({ sessionToken }));
-    }
-
-
     public static async otpVerify(request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { sessionToken, otpToken } = request.body;
@@ -175,6 +163,23 @@ export default class AuthController {
         }
 
         return response.json(await AuthService.otpChangeVerify(request.user!, otpEnabled, otpStatusChangeToken));
+    }
+
+    public static async getSSOProviderURL(request: Request<AuthGetSSOProviderRequest>, response: Response<String>): Promise<Response<String>> {
+
+        const provider = request.params.provider! as string;
+
+        const allowedProviders = ["google", "facebook", "github", "apple"];
+
+        console.log(provider);
+
+        if (!allowedProviders.includes(provider)) {
+            throw new Error("INVALID_PROVIDER");
+        }
+
+        const url = await AuthService.getSSOProviderURL(provider);
+
+        return response.json(url);
     }
 
 }
