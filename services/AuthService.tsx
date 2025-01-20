@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 // DTOs
 import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
 import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
-import UserSessionResponse from "../dtos/responses/UserSessionResponse";
+import AuthResponse from "../dtos/responses/AuthResponse";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import OmitPasswordUserResponse from "../dtos/responses/OmitPasswordUserResponse";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
@@ -91,7 +91,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The authenticated user.
      */
-    static async login(data: AuthLoginRequest): Promise<UserSessionResponse> {
+    static async login(data: AuthLoginRequest): Promise<AuthResponse> {
 
         // Get the user by email
         const user = await prisma.user.findUniqueOrThrow({
@@ -165,7 +165,7 @@ export default class AuthService {
      * @param sessionToken - The session token.
      * @returns The user session.
      */
-    static async getSession(data: AuthGetSessionRequest): Promise<UserSessionResponse> {
+    static async getSession(data: AuthGetSessionRequest): Promise<AuthResponse> {
 
         console.log(data);
 
@@ -207,7 +207,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The registered user.
      */
-    static async register(data: AuthRegisterRequest): Promise<UserSessionResponse> {
+    static async register(data: AuthRegisterRequest): Promise<MessageResponse> {
 
         const { email, name, password, phone } = data;
 
@@ -231,7 +231,7 @@ export default class AuthService {
         TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
-        return AuthService.register({ email, password });
+        return { message: this.REGISTRATION_SUCCESSFUL };
     }
 
     /**

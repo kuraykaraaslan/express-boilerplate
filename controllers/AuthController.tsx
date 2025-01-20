@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 
-import UserSessionResponse from "@/dtos/responses/UserSessionResponse";
+import AuthResponse from "@/dtos/responses/AuthResponse";
 import AuthService from "../services/AuthService";
 import FieldValidater from "../utils/FieldValidater";
 import MessageResponse from "../dtos/responses/MessageResponse";
@@ -16,7 +16,7 @@ import EmptyRequest from "@/dtos/requests/EmptyRequest";
 
 export default class AuthController {
 
-    public static async login(request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+    public static async login(request: Request<AuthLoginRequest>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
 
         const { email, password } = request.body;
 
@@ -34,7 +34,7 @@ export default class AuthController {
 
     }
 
-    public static async register(request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+    public static async register(request: Request<AuthLoginRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { email, password } = request.body;
 
@@ -98,12 +98,12 @@ export default class AuthController {
     }
 
 
-    public static async getSession(request: Request<EmptyRequest>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+    public static async getSession(request: Request<EmptyRequest>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
 
         return response.json({ user: request.user!, userSession: request.userSession! });
     }
 
-    public static async sso(request: Request<any>, response: Response<UserSessionResponse>): Promise<Response<UserSessionResponse>> {
+    public static async sso(request: Request<any>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
 
         const { sessionToken } = request.body;
 

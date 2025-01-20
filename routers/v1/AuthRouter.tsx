@@ -9,7 +9,7 @@ import { Router, Request, Response, response } from "express";
 // DTOs
 import AuthLoginRequest from '../../dtos/requests/AuthRegisterRequest';
 import AuthRegisterRequest from '../../dtos/requests/AuthRegisterRequest';
-import UserSessionResponse from '../../dtos/responses/UserSessionResponse';
+import AuthResponse from '../../dtos/responses/AuthResponse';
 import AuthGetSessionRequest from '../../dtos/requests/AuthGetSessionRequest';
 
 // Middlewares
@@ -43,7 +43,7 @@ const AuthRouter = Router();
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, response: Response<UserSessionResponse>) => {
+AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthRegisterRequest)) {
         throw new Error("BAD_REQUEST");
@@ -65,7 +65,7 @@ AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, respo
  * - 400: Validation error if email or password is missing.
  * - 401: Unauthorized if email or password is incorrect.
  */
-AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<AuthResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
         throw new Error("BAD_REQUEST");
@@ -86,7 +86,7 @@ AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: R
  * - 400: Validation error if sessionToken is missing.
  * - 401: Unauthorized if sessionToken is invalid.
  */
-AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Response<UserSessionResponse>) => {
+AuthRouter.post('/sso', async (request: Request<AuthLoginRequest>, response: Response<AuthResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
         throw new Error("BAD_REQUEST");
@@ -216,7 +216,7 @@ AuthRouter.post('/logout', async (request: Request<EmptyRequest>, response: Resp
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (request: Request<EmptyRequest>, response: Response<UserSessionResponse>) => {
+AuthRouter.get('/session', async (request: Request<EmptyRequest>, response: Response<AuthResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
         throw new Error("BAD_REQUEST");
