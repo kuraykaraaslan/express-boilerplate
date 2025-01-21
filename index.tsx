@@ -10,6 +10,10 @@ import V1Router from "./routers/v1";
 import IndexRouter from "./routers";
 dotenv.config({ path: "../.env" });
 
+import fs from "fs";
+import https from "https";
+import path from "path";
+
 
 const app = express();
 const host = process.env.APPLICATION_HOST || "http://localhost";
@@ -29,10 +33,22 @@ app.set('view engine', 'ejs');
 app.use("/" , IndexRouter);
 app.use(ErrorHandler);
 
-app.listen(port, () => {
-  console.clear();
-  console.log(`Server running at ${host}:${port}`);
-});
+// Certs
+
+const key = fs.readFileSync(path.join(__dirname, "./certs/key.pem"));
+const cert = fs.readFileSync(path.join(__dirname, "./certs/cert.pem"));
+
+const options = {
+  key: key,
+  cert: cert
+};
+
+console.log("options", options);
+
+// Routes
+https.createServer(options, app).listen(443, '0.0.0.0', () => {
+  console.log(`Server started at ${host}:${port}`);
+} );
 
 
 

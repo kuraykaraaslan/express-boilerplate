@@ -26,6 +26,7 @@ This project is a boilerplate for building a web application using Express.js. I
   - [Screenshots](#screenshots)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
+  - [Certification](#certification)
   - [Usage](#usage)
   - [Services](#services)
   - [Roadmap](#roadmap)
@@ -54,6 +55,18 @@ This project is a boilerplate for building a web application using Express.js. I
 
 3. Set up your environment variables:
    Create a `.env` file in the root directory and add your environment variables (e.g., database connection string).
+
+## Certification
+
+To generate a self-signed SSL certificate for local development:
+
+1. Update the `req.cnf` file with your information.
+2. Run the following command:
+
+   ```bash
+   npm run cert
+   ```
+3. The certificate and key files will be generated in the `certs` directory.
 
 ## Usage
 

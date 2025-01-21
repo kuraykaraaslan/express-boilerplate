@@ -75,3 +75,7 @@ Thumbs.db
 /prisma/.env
 /prisma/.env.development
 /prisma/migration
+
+
+# Certs
+/certs/
