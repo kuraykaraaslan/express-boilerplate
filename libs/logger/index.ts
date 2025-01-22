@@ -22,6 +22,7 @@ export default class Logger {
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'info',
       }),
+      new winston.transports.Console(), // Add a console transport to log information to console
     ],
   });
 
@@ -39,6 +40,7 @@ export default class Logger {
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'error',
       }),
+      new winston.transports.Console(), // Add a console transport to log information
     ],
   });
 
