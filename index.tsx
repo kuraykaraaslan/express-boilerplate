@@ -30,21 +30,21 @@ app.set('view engine', 'ejs');
 
 
 // Routes
-app.use("/" , IndexRouter);
+app.use("/", IndexRouter);
 app.use(ErrorHandler);
 
-// Certs
-
-const key = fs.readFileSync(path.join(__dirname, "./certs/key.pem"));
-const cert = fs.readFileSync(path.join(__dirname, "./certs/cert.pem"));
-
-const options = {
-  key: key,
-  cert: cert
-};
 
 // HTTPS or HTTP
 if (process.env.APPLICATION_HTTPS === "true") {
+
+  const key = fs.readFileSync(path.join(__dirname, "./certs/key.pem"));
+  const cert = fs.readFileSync(path.join(__dirname, "./certs/cert.pem"));
+
+  const options = {
+    key: key,
+    cert: cert
+  };
+  
   https.createServer(options, app).listen(port, () => {
     console.log(`Server started at ${host}:${port}`);
   });
