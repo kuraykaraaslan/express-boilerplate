@@ -7,6 +7,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
+    "rootDir": "./",
     "jsx": "preserve",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
@@ -18,6 +19,7 @@
     },
     "typeRoots": ["./node_modules/@types", "./types"],
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
+  "exclude": ["node_modules", "dist"],
+  "files": ["./types/express.d.ts"]
 }

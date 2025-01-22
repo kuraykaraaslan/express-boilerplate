@@ -5,7 +5,7 @@ import FieldValidater from "../utils/FieldValidater";
 
 // DTOs
 import CreateUserRequest from "../dtos/requests/CreateUserRequest";
-import OmitPasswordUserResponse from "../dtos/responses/OmitPasswordUserResponse";
+import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
 import GetUsersRequest from "@/dtos/requests/GetUsersRequest";
 import GetUsersResponse from "../dtos/responses/GetUsersResponse";
 import PutUserRequest from "@/dtos/requests/PutUserRequest";
@@ -29,9 +29,21 @@ export default class UserService {
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
     static omitSensitiveFields(user: User): OmitPasswordUserResponse {
-        const fields = ['password', 'resetToken', 'resetTokenExpiry', 'otpStatusChangeToken', 'otpStatusChangeTokenExpiry', 'createdAt', 'updatedAt', 'deletedAt', 'otpEnabledAt'];
-        const userWithoutSensitiveFields = Object.fromEntries(Object.entries(user).filter(([key, _]) => !fields.includes(key)));
-        return userWithoutSensitiveFields as OmitPasswordUserResponse;
+        const omitted : OmitPasswordUserResponse = {
+            userId: user.userId,
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            role: user.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            profilePicture: user.profilePicture,
+            otpEnabled: user.otpEnabled,
+            otpEnabledAt: user.otpEnabledAt,
+        };
+
+        return omitted;
+
     }
 
 

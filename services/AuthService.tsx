@@ -7,10 +7,9 @@ import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
 import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
 import AuthResponse from "../dtos/responses/AuthResponse";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import OmitPasswordUserResponse from "../dtos/responses/OmitPasswordUserResponse";
+import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
-import OmitOTPFieldsUserSessionResponse from "../dtos/responses/OmitOTPFieldsUserSessionResponse";
 import FieldValidater from "../utils/FieldValidater";
 
 // Other Services
@@ -24,6 +23,9 @@ import OauthService from "./SSOService";
 import { createId } from '@paralleldrive/cuid2';
 import MessageResponse from "@/dtos/responses/MessageResponse";
 import axios from "axios";
+import AuthUserResponse from "../dtos/responses/AuthUserResponse";
+import e from "express";
+import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
 
 export default class AuthService {
 
@@ -86,10 +88,19 @@ export default class AuthService {
      * @param session - The session object.
      * @returns The session object without the otpToken and otpTokenExpiry.
      */
-    static omitSensitiveFields(session: UserSession): OmitOTPFieldsUserSessionResponse {
+    static omitSensitiveFields(session: UserSession): AuthUserSessionResponse {
         const fields = ['otpToken', 'otpTokenExpiry', 'createdAt', 'updatedAt'];
-        const sessionWithoutOTP = Object.fromEntries(Object.entries(session).filter(([key, _]) => !fields.includes(key)));
-        return sessionWithoutOTP  as OmitOTPFieldsUserSessionResponse;
+       
+        const safeSession = {
+            sessionId: session.sessionId,
+            userId: session.userId,
+            sessionToken: session.sessionToken,
+            sessionExpiry: session.sessionExpiry,
+            sessionAgent: session.sessionAgent,
+            otpNeeded: session.otpNeeded,
+        };        
+        
+        return safeSession;
     }
 
 

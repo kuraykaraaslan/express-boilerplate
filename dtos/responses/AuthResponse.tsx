@@ -1,7 +1,7 @@
-import OmitPasswordUserResponse from "./OmitPasswordUserResponse";
-import OmitOTPFieldsUserSessionResponse from "./OmitOTPFieldsUserSessionResponse";
+import AuthUserResponse from "./AuthUserResponse";
+import AuthUserSessionResponse from "./AuthUserSessionResponse";
 
 export default interface AuthResponse {
-    user: OmitPasswordUserResponse;
-    userSession: OmitOTPFieldsUserSessionResponse;
+    user: AuthUserResponse;
+    userSession: AuthUserSessionResponse;
 }

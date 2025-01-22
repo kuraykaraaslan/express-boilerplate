@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import OmitPasswordUserResponse from "../dtos/responses/OmitPasswordUserResponse";
+import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
 import GetUserRequest from "../dtos/requests/GetUserRequest";
 import PutUserRequest from "../dtos/requests/PutUserRequest";
 import UserService from "../services/UserService";

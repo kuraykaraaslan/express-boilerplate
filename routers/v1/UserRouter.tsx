@@ -10,7 +10,7 @@ import { Router, Request, Response } from "express";
 import GetUsersRequest from "../../dtos/requests/GetUsersRequest";
 import GetUsersResponse from "../../dtos/responses/GetUsersResponse";
 import PutUserRequest from "../../dtos/requests/PutUserRequest";
-import OmitPasswordUserResponse from "../../dtos/responses/OmitPasswordUserResponse";
+import OmitPasswordUserResponse from "../../dtos/responses/AuthUserResponse";
 import GetUserRequest from "../../dtos/requests/GetUserRequest";
 
 // Middlewares

@@ -10,8 +10,6 @@ import express, { NextFunction, Request, Response } from 'express';
 import { User, UserSession } from '@prisma/client';
 
 import AuthService from '../services/AuthService';
-import OmitPasswordUserResponse from '@/dtos/responses/OmitPasswordUserResponse';
-import OmitOTPFieldsUserSessionResponse from '@/dtos/responses/OmitOTPFieldsUserSessionResponse';
 
 export default function (requiredRole: string) {
 
@@ -21,10 +19,10 @@ export default function (requiredRole: string) {
 
       //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
 
-      if (request.user) {
+      if (request.user! as User) {
         
         //check if the user has the required role
-        if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
+        if (!AuthService.checkIfUserHasRole(request.user!, requiredRole)) {
           throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
         }
 
@@ -52,8 +50,16 @@ export default function (requiredRole: string) {
       request.user = sessionWithUser.user;
       request.userSession = sessionWithUser.userSession;
 
+      if (!request.user) {
+        throw new Error("USER_NOT_FOUND");
+      }
+
+      if (!request.userSession) {
+        throw new Error("USER_SESSION_NOT_FOUND");
+      }
+
       //check if the session is valid
-      if (new Date(request.userSession.expiresAt) < new Date()) {
+      if (new Date(request.userSession.sessionExpiry) < new Date()) {
         throw new Error("SESSION_EXPIRED");
       }
 
