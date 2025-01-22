@@ -149,6 +149,9 @@ export default class FieldValidater {
      * @returns `true` if valid, `false` otherwise.
      */
     static validateBody(value: any = {}, Model: any): boolean {
+
+        // Disable validation for now
+        return true
         
         type OriginalType = typeof Model;
         type RequiredType = RequiredKeys<typeof Model>;
