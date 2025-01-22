@@ -26,6 +26,7 @@ import EmptyRequest from "../../dtos/requests/EmptyRequest";
 
 // Validators
 import FieldValidater from "../../utils/FieldValidater";
+import Limiter from "../../libs/limiter";
 
 // Router
 const AuthRouter = Router();
@@ -66,7 +67,7 @@ AuthRouter.get('/register', async (request: Request, response: Response) => {
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request<AuthRegisterRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthRegisterRequest)) {
         throw new Error("BAD_REQUEST");
@@ -88,7 +89,7 @@ AuthRouter.post('/register', async (request: Request<AuthRegisterRequest>, respo
  * - 400: Validation error if email or password is missing.
  * - 401: Unauthorized if email or password is incorrect.
  */
-AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: Response<AuthResponse>) => {
+AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<AuthLoginRequest>, response: Response<AuthResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthLoginRequest)) {
         throw new Error("BAD_REQUEST");
@@ -108,7 +109,7 @@ AuthRouter.post('/login', async (request: Request<AuthLoginRequest>, response: R
  * - otp (string): The OTP of the user (required).
  * 
  */
-AuthRouter.post('/session/otp-verify', async (request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthVerifyOTPRequest)) {
         throw new Error("BAD_REQUEST");
@@ -131,7 +132,7 @@ AuthRouter.post('/session/otp-verify', async (request: Request<AuthVerifyOTPRequ
  * - 404: User not found if sessionToken is invalid.
  * - 500: Internal server error if OTP sending fails.
  */
-AuthRouter.post('/session/otp-send', async (request: Request<AuthSendOTPRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<AuthSendOTPRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthSendOTPRequest)) {
         throw new Error("BAD_REQUEST");
@@ -153,7 +154,7 @@ AuthRouter.post('/session/otp-send', async (request: Request<AuthSendOTPRequest>
  * - 400: Validation error if email is missing.
  * - 404: User not found if email does not exist in the database.
  */
-AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Request<AuthForgotPasswordRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthForgotPasswordRequest)) {
         throw new Error("BAD_REQUEST");
@@ -175,7 +176,7 @@ AuthRouter.post('/forgot-password', async (request: Request<AuthForgotPasswordRe
  * - 400: Validation error if token or password is missing.
  * - 404: User not found if token is invalid.
  */
-AuthRouter.post('/reset-password', async (request: Request<AuthResetPasswordRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Request<AuthResetPasswordRequest>, response: Response<MessageResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, AuthResetPasswordRequest)) {
         throw new Error("BAD_REQUEST");
