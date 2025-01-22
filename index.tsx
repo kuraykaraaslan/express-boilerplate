@@ -18,6 +18,7 @@ const app = express();
 const host = process.env.APPLICATION_HOST || "http://localhost";
 const port = process.env.APPLICATION_PORT || 3000;
 
+app.enable('trust proxy');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
