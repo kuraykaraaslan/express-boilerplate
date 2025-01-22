@@ -1,4 +1,4 @@
-import { UserSession, UserSocialAccount } from "@prisma/client";
+import { Role, UserSession, UserSocialAccount } from "@prisma/client";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
@@ -17,6 +17,8 @@ import FieldValidater from "../utils/FieldValidater";
 import UserService from "./UserService";
 import TwilloService from "./TwilloService";
 import MailService from "./MailService";
+import OauthService from "./OauthService";
+
 
 // Utils
 import { createId } from '@paralleldrive/cuid2';
@@ -163,6 +165,112 @@ export default class AuthService {
         await prisma.userSession.deleteMany({
             where: { sessionToken: data.sessionToken }
         });
+    }
+
+    /**
+     * Create or Update User
+     * @param profile - The user profile.
+     * @param accessToken - The access token.
+     * @param refreshToken - The refresh token.
+     * @returns AuthResponse
+     */
+    static async ssoLoginOrCreateUser(profile: any, accessToken: string, refreshToken: string, provider: string): Promise<AuthResponse> {
+
+        console.log(profile);
+
+        // Get the user by email
+        let user = await prisma.user.findUnique({
+            where: { email: profile.email },
+        });
+
+        // Create a new user if not found
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    email: profile.email,
+                    name: profile.name,
+                    profilePicture: profile.picture,
+                    password: await AuthService.hashPassword(profile.id + new Date().toISOString()),
+                    userSocialAccounts: {
+                        create: {
+                            provider: provider,
+                            providerId: profile.sub,
+                            accessToken,
+                            refreshToken,
+                        },
+                    },
+                },
+            });
+        } else {
+            // Update the user
+            user = await prisma.user.update({
+                where: { userId: user.userId },
+                data: {
+                    name: profile.name,
+                    profilePicture: profile.picture,
+                    userSocialAccounts: {
+                        update: {
+                            where: {
+                                providerId: profile.sub,
+                                provider: provider,
+                            },
+                            data: {
+                                provider: provider,
+                                providerId: profile.sub,
+                                accessToken,
+                                refreshToken,
+                            },
+                        },
+                    },
+
+                },
+            });
+
+            const session = await prisma.userSession.create({
+                data: {
+                    userId: user.userId,
+                    sessionToken: AuthService.generateSessionToken(),
+                    sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
+                    sessionAgent: "Web",
+                    otpNeeded: user.otpEnabled,
+                },
+            });
+
+            return {
+                user: UserService.omitSensitiveFields(user),
+                userSession: AuthService.omitSensitiveFields(session),
+            };
+        }
+
+        // Generate a session token
+        const session = await prisma.userSession.create({
+            data: {
+                userId: user.userId,
+                sessionToken: AuthService.generateSessionToken(),
+                sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
+                sessionAgent: "Web",
+                otpNeeded: user.otpEnabled,
+            },
+        });
+
+        // Send Notification to User
+        if (user.otpEnabled && user.phone) {
+            TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
+        } else {
+            TwilloService.sendSMS(user.phone, `You have logged in successfully.`);
+        }
+
+        // Send Mail to User
+        if (user.otpEnabled && user.email) {
+            MailService.sendMail(user.email, "OTP", `Your OTP is ${session.otpToken}`);
+        } else {
+            MailService.sendMail(user.email, "Login", `You have logged in successfully.`);
+        }
+
+        return {
+            user: UserService.omitSensitiveFields(user),
+            userSession: AuthService.omitSensitiveFields(session),
+        };
     }
 
     /**
@@ -496,8 +604,8 @@ export default class AuthService {
             });
             throw new Error(this.OTP_ALREADY_ENABLED);
 
-        } 
-        
+        }
+
         if (!otpEnabled && user.otpEnabled === otpEnabled) {
             // clear the token for security
             await prisma.user.update({
@@ -523,6 +631,24 @@ export default class AuthService {
         return { message: this.OTP_CHANGED_SUCCESSFULLY };
     }
 
+    /**
+     * Auth Get SSO Provider URL
+     * @param provider - The provider name.
+     * @param redirectUri - The redirect uri.
+    */
+    static async authProvider(provider: string): Promise<string> {
+
+        if (provider === "google") {
+            return OauthService.google_generateAuthUrl();
+        } else if (provider === "apple") {
+            return OauthService.apple_generateAuthUrl();
+        } else {
+            throw new Error(this.INVALID_PROVIDER);
+        }
+
+    }
+
+
     /*
     * Auth Callback
     * @param provider - The provider name.
@@ -531,165 +657,62 @@ export default class AuthService {
     * @param scope - The scope.
     */
 
-    static async callback(
+    static async authCallback(
         provider: string,
         code: string,
         state: string,
         scope?: string,
-    ): Promise<any> {
+    ): Promise<AuthResponse | MessageResponse> {
 
         if (provider === "google") {
-            return this.callbackGoogle(code, state);
-        }
-
-        return { error: this.INVALID_PROVIDER };
-    }
-
-    /*
-    * Google Auth Callback
-    * @param code - The code.
-    * @param state - The state.
-    * @returns The user object.
-    * @throws Error if the user is not found.
-    * @throws Error if the email is not found.
-    */
-    static async callbackGoogle(code: string, state: string): Promise<any> {
-
-        //TODO : VALIDATE STATE
-
-        const { expires_in, access_token, refresh_token } = await axios
-            .post(
-                "https://oauth2.googleapis.com/token",
-                {
-                    client_id: process.env.GOOGLE_CLIENT_ID,
-                    client_secret: process.env.GOOGLE_CLIENT_SECRET,
-                    code: code,
-                    redirect_uri:
-                        process.env.BACKEND_URL + "/api/v1/auth/callback/google",
-                    grant_type: "authorization_code",
-                },
-                {
-                    headers: {
-                        Accept: "application/json",
-                    },
-                },
-            )
-            .then((response) => {
-                return response.data;
-            })
-            .catch((e) => {
-                return null;
-            });
-
-        if (!access_token) {
-            throw new Error("GOOGLE_AUTH_FAILED");
-        }
-
-        // https://oauth2.googleapis.com/token
-
-        const token_response = await axios
-            .post(
-                "https://oauth2.googleapis.com/token?refresh_token=" +
-                access_token +
-                "&client_id=" +
-                process.env.GOOGLE_CLIENT_ID +
-                "&client_secret=" +
-                process.env.GOOGLE_CLIENT_SECRET +
-                "&grant_type=refresh_token",
-                {
-                    headers: {
-                        Accept: "application/json",
-                    },
-                },
-            )
-            .then((response) => {
-                return response.data;
-            })
-            .catch((e) => {
-                return null;
-            });
-
-        const access_token_long = token_response.access_token;
-
-
-        if (!access_token_long) {
-            throw new Error("GOOGLE_AUTH_FAILED");
-        }
-
-        const user = await axios
-            .get("https://www.googleapis.com/oauth2/v3/userinfo?alt=json", {
-                headers: {
-                    authorization: `Bearer ${access_token_long}`,
-                },
-            })
-            .then((response) => {
-                return response.data;
-            })
-            .catch((e) => {
-                return null;
-            });
-
-        if (!user) {
-            throw new Error("GOOGLE_USER_NOT_FOUND");
-        }
-
-        const temp_user = {
-            email: user.email,
-            name: user.name,
-            avatar: user.picture,
-        };
-
-        if (!user.email) {
-            throw new Error("GOOGLE_EMAIL_NOT_FOUND");
-        }
-
-        return temp_user;
-    }
-
-    /*
-    * Create SSO Link
-    * @param provider - The provider name.
-    * @returns The SSO link.
-    */
-    static getSSOProviderURL(provider: string): string {
-
-        if (provider === "google") {
-            return this.createSSOLinkGoogle();
+            return this.handleGoogleCallback(code);
         } else if (provider === "apple") {
-            return this.createSSOLinkApple();
+            return this.handleAppleCallback(code);
         }
 
-        throw new Error(this.INVALID_PROVIDER);
+        return { message: this.INVALID_PROVIDER };
     }
 
     /*
-    * Create Google SSO Link
-    * @returns The SSO link.
+    * Handle Google Callback
+    * @param code - The code.
     */
-    static createSSOLinkGoogle(): string {
-
-        const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
-        const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-
-        const url = `https://accounts.google.com/o/oauth2/v2/auth?scope=email%20profile&access_type=offline&include_granted_scopes=true&response_type=code&state=google&redirect_uri=${APP_URL}/api/v1/auth/callback/google&client_id=${GOOGLE_CLIENT_ID}`;
-
-        return url;
+    static async handleGoogleCallback(code: string): Promise<AuthResponse> {
+        try {
+            // Exchange authorization code for tokens
+            const { access_token, refresh_token } = await OauthService.google_getTokens(code);
+            // Fetch user profile
+            const profile = await OauthService.google_getUserInfo(access_token);
+            // Create or update the user in the database
+            const user = await this.ssoLoginOrCreateUser(profile, access_token, refresh_token, "google");
+            return user;
+        } catch (error) {
+            console.error('Error during Google OAuth2 callback:', error);
+            throw new Error('Authentication failed.');
+        }
     }
 
     /*
-    * Create Apple SSO Link
-    * @returns The SSO link.
+    * Handle Apple Callback
+    * @param code - The code.
     */
-    static createSSOLinkApple(): string {
 
-        const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
-        const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
+    static async handleAppleCallback(code: string): Promise<AuthResponse> {
+        try {
+            // Exchange authorization code for tokens
+            const { access_token, refresh_token } = await OauthService.apple_getTokens(code);
 
-        const url = `https://appleid.apple.com/auth/authorize?response_type=code&response_mode=form_post&client_id=${APPLE_CLIENT_ID}&redirect_uri=${APP_URL}/api/v1/auth/callback/apple&scope=name%20email&state=apple&nonce=123456`;
+            // Fetch user profile
+            const profile = await OauthService.apple_getUserInfo(access_token);
 
-        return url;
+            // Create or update the user in the database
+            const user = await this.ssoLoginOrCreateUser(profile, access_token, refresh_token, "apple");
+            return user;
+        } catch (error) {
+            console.error('Error during Apple OAuth2 callback:', error);
+            throw new Error('Authentication failed.');
+        }
     }
-
 
 }
 

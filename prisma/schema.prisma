@@ -31,6 +31,9 @@ model User {
   resetToken String?
   resetTokenExpiry DateTime?
 
+  //Profile
+  profilePicture String?
+
   //OTP verification
   otpEnabled Boolean @default(false)
   otpEnabledAt DateTime?
@@ -65,7 +68,7 @@ model UserSocialAccount {
   userId         String
   user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
-  provider       SocialProvider
+  provider       String  // google, facebook, etc
   providerId     String   @unique
   accessToken    String?
   refreshToken   String?
@@ -78,12 +81,4 @@ model UserSocialAccount {
   updatedAt      DateTime @updatedAt
 
   @@index([provider, providerId])
-}
-
-enum SocialProvider {
-  GOOGLE
-  FACEBOOK
-  GITHUB
-  LINKEDIN
-  APPLE
 }

@@ -165,7 +165,7 @@ export default class AuthController {
         return response.json(await AuthService.otpChangeVerify(request.user!, otpEnabled, otpStatusChangeToken));
     }
 
-    public static async getSSOProviderURL(request: Request<AuthGetSSOProviderRequest>, response: Response<String>): Promise<Response<String>> {
+    public static async authProvider(request: Request<AuthGetSSOProviderRequest>, response: Response<String>): Promise<void> {
 
         const provider = request.params.provider! as string;
 
@@ -177,9 +177,26 @@ export default class AuthController {
             throw new Error("INVALID_PROVIDER");
         }
 
-        const url = await AuthService.getSSOProviderURL(provider);
+        const url = await AuthService.authProvider(provider);
 
-        return response.json(url);
+        return response.redirect(url);
+    }
+
+    public static async authCallback(request: Request<AuthGetSSOProviderRequest>, response: Response<any>): Promise<void> {
+
+        const provider = request.params.provider! as string;
+
+        const allowedProviders = ["google", "facebook", "github", "apple"];
+
+        if (!allowedProviders.includes(provider)) {
+            throw new Error("INVALID_PROVIDER");
+        }
+
+        const { code , state } = request.query;
+
+        const user = await AuthService.authCallback(provider, code as string, state as string);
+
+        response.json({ user });
     }
 
 }

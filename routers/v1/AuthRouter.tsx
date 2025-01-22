@@ -81,7 +81,20 @@ AuthRouter.get('/sso/:provider', async (request: Request<AuthGetSSOProviderReque
         throw new Error("BAD_REQUEST");
     }
 
-    return await AuthController.getSSOProviderURL(request, response);
+    return await AuthController.authProvider(request, response);
+});
+
+/**
+ * GET /callback/:provider
+ * Create a new user or authenticate an existing user using the SSO provider.
+ */
+AuthRouter.get('/callback/:provider', async (request: Request<any>, response: Response<AuthResponse>) => {
+
+    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
+
+    return await AuthController.authCallback(request, response);
 });
 
 /**
