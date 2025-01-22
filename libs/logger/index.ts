@@ -17,12 +17,13 @@ export default class Logger {
       })
     ),
     // Disable logging to file when running on Vercel platform
-    transports: (NODE_ENV === 'vercel') ? [] : [
+    transports: (NODE_ENV === 'vercel') ? [
+      new winston.transports.Console(), // Add a console transport to log information to console
+    ] : [
       new winston.transports.File({
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'info',
       }),
-      new winston.transports.Console(), // Add a console transport to log information to console
     ],
   });
 
@@ -35,12 +36,13 @@ export default class Logger {
         return `[${timestamp}] [${level}]: ${message}`;
       })
     ),
-    transports: (NODE_ENV === 'vercel') ? [] : [
+    transports: (NODE_ENV === 'vercel') ? [
+      new winston.transports.Console(), // Add a console transport to log information to console
+    ] : [
       new winston.transports.File({
         filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
         level: 'error',
       }),
-      new winston.transports.Console(), // Add a console transport to log information
     ],
   });
 
