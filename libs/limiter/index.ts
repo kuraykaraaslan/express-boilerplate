@@ -12,6 +12,11 @@ export default class Limiter {
 			return { error: 'RATE_LIMIT_EXCEEDED' };
 		},
 		headers: true,
+		keyGenerator: function (request: Request) {
+			const ip = request.headers["x-real-ip"] || request.headers["x-forwarded-for"] || request.connection.remoteAddress;
+			return Array.isArray(ip) ? ip[0] : (ip || 'default-ip');
+		}
+
 	});
 
 	static useLimiter(request: any, response: any, next: any) {
