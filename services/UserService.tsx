@@ -29,8 +29,9 @@ export default class UserService {
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
     static omitSensitiveFields(user: User): OmitPasswordUserResponse {
-        const { password, resetToken, resetTokenExpiry, otpStatusChangeToken, otpStatusChangeTokenExpiry, ...userWithoutPassword} = user;
-        return userWithoutPassword;
+        const fields = ['password', 'resetToken', 'resetTokenExpiry', 'otpStatusChangeToken', 'otpStatusChangeTokenExpiry', 'createdAt', 'updatedAt', 'deletedAt', 'otpEnabledAt'];
+        const userWithoutSensitiveFields = Object.fromEntries(Object.entries(user).filter(([key, _]) => !fields.includes(key)));
+        return userWithoutSensitiveFields as OmitPasswordUserResponse;
     }
 
 
@@ -88,8 +89,6 @@ export default class UserService {
     static async get(data: GetUsersRequest): Promise<GetUsersResponse> {
 
         const { skip, take, search , userId , tenantId } = data;
-
-        console.log(data);
 
         const queryOptions = {
             skip,

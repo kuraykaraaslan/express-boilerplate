@@ -12,7 +12,7 @@ import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
 import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
 import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
 import EmptyRequest from "@/dtos/requests/EmptyRequest";
-import AuthGetSSOProviderRequest from "@/dtos/requests/AuthGetSSOProviderRequest";
+import SSOProviderRequest from "@/dtos/requests/SSOProviderRequest";
 
 
 export default class AuthController {
@@ -165,38 +165,5 @@ export default class AuthController {
         return response.json(await AuthService.otpChangeVerify(request.user!, otpEnabled, otpStatusChangeToken));
     }
 
-    public static async authProvider(request: Request<AuthGetSSOProviderRequest>, response: Response<String>): Promise<void> {
-
-        const provider = request.params.provider! as string;
-
-        const allowedProviders = ["google", "facebook", "github", "apple"];
-
-        console.log(provider);
-
-        if (!allowedProviders.includes(provider)) {
-            throw new Error("INVALID_PROVIDER");
-        }
-
-        const url = await AuthService.authProvider(provider);
-
-        return response.redirect(url);
-    }
-
-    public static async authCallback(request: Request<AuthGetSSOProviderRequest>, response: Response<any>): Promise<void> {
-
-        const provider = request.params.provider! as string;
-
-        const allowedProviders = ["google", "facebook", "github", "apple"];
-
-        if (!allowedProviders.includes(provider)) {
-            throw new Error("INVALID_PROVIDER");
-        }
-
-        const { code , state } = request.query;
-
-        const user = await AuthService.authCallback(provider, code as string, state as string);
-
-        response.json({ user });
-    }
 
 }

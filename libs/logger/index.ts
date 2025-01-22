@@ -59,7 +59,7 @@ export default class Logger {
     response.on('finish', () => {
 
       const status = response.statusCode;
-      const message = `${method} ${url} ${status} ${ip} ${response.statusMessage}`;
+      const message = `${method} ${url.split('?')[0]} ${status} ${ip} ${response.statusMessage}`;
       
       //if response has error 
       if (status >= 400) {

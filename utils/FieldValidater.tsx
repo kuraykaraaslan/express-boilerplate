@@ -137,7 +137,6 @@ export default class FieldValidater {
      * d3o47zbqg28ftevdgehuewiw
      */
     static isSessionToken(value: string | undefined | null): boolean {
-        console.log(value);
         if (!value || typeof value !== "string") return false;
         return value.length === 24;
     }
@@ -160,10 +159,6 @@ export default class FieldValidater {
         const requiredFields = Object.keys(orginalInstance).filter((key) => key in value);
         const optionalFields = Object.keys(orginalInstance).filter((key) => !(key in value));
         const extraFields = Object.keys(value).filter((key) => !(key in orginalInstance));
-
-        console.log(requiredFields);
-        console.log(optionalFields);
-        console.log(extraFields);
 
         //value keys
         const keys = Object.keys(value);

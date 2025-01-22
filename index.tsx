@@ -43,8 +43,6 @@ const options = {
   cert: cert
 };
 
-console.log("options", options);
-
 // HTTPS or HTTP
 if (process.env.APPLICATION_HTTPS === "true") {
   https.createServer(options, app).listen(port, () => {

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import V1Router from "./v1";
-import limiter from "../libs/limiter";
+import ViewRouter from "./ViewRouter";
 import Logger from "../libs/logger";
 import Limiter from "../libs/limiter";
 
@@ -30,5 +30,6 @@ IndexRouter.get("/", (req, res) => {
 
 
 IndexRouter.use("/api/v1", V1Router);
+IndexRouter.use("/views", ViewRouter);
 
 export default IndexRouter;

@@ -17,7 +17,7 @@ import FieldValidater from "../utils/FieldValidater";
 import UserService from "./UserService";
 import TwilloService from "./TwilloService";
 import MailService from "./MailService";
-import OauthService from "./OauthService";
+import OauthService from "./SSOService";
 
 
 // Utils
@@ -87,8 +87,9 @@ export default class AuthService {
      * @returns The session object without the otpToken and otpTokenExpiry.
      */
     static omitSensitiveFields(session: UserSession): OmitOTPFieldsUserSessionResponse {
-        const { otpToken, otpTokenExpiry, ...sessionWithoutOTP } = session;
-        return sessionWithoutOTP;
+        const fields = ['otpToken', 'otpTokenExpiry', 'createdAt', 'updatedAt'];
+        const sessionWithoutOTP = Object.fromEntries(Object.entries(session).filter(([key, _]) => !fields.includes(key)));
+        return sessionWithoutOTP  as OmitOTPFieldsUserSessionResponse;
     }
 
 
@@ -150,8 +151,6 @@ export default class AuthService {
      */
     static async logout(data: AuthGetSessionRequest): Promise<void> {
 
-        console.log(data);
-
         // Check if the session exists
         const sessions = await prisma.userSession.findMany({
             where: { sessionToken: data.sessionToken }
@@ -167,111 +166,6 @@ export default class AuthService {
         });
     }
 
-    /**
-     * Create or Update User
-     * @param profile - The user profile.
-     * @param accessToken - The access token.
-     * @param refreshToken - The refresh token.
-     * @returns AuthResponse
-     */
-    static async ssoLoginOrCreateUser(profile: any, accessToken: string, refreshToken: string, provider: string): Promise<AuthResponse> {
-
-        console.log(profile);
-
-        // Get the user by email
-        let user = await prisma.user.findUnique({
-            where: { email: profile.email },
-        });
-
-        // Create a new user if not found
-        if (!user) {
-            user = await prisma.user.create({
-                data: {
-                    email: profile.email,
-                    name: profile.name,
-                    profilePicture: profile.picture,
-                    password: await AuthService.hashPassword(profile.id + new Date().toISOString()),
-                    userSocialAccounts: {
-                        create: {
-                            provider: provider,
-                            providerId: profile.sub,
-                            accessToken,
-                            refreshToken,
-                        },
-                    },
-                },
-            });
-        } else {
-            // Update the user
-            user = await prisma.user.update({
-                where: { userId: user.userId },
-                data: {
-                    name: profile.name,
-                    profilePicture: profile.picture,
-                    userSocialAccounts: {
-                        update: {
-                            where: {
-                                providerId: profile.sub,
-                                provider: provider,
-                            },
-                            data: {
-                                provider: provider,
-                                providerId: profile.sub,
-                                accessToken,
-                                refreshToken,
-                            },
-                        },
-                    },
-
-                },
-            });
-
-            const session = await prisma.userSession.create({
-                data: {
-                    userId: user.userId,
-                    sessionToken: AuthService.generateSessionToken(),
-                    sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
-                    sessionAgent: "Web",
-                    otpNeeded: user.otpEnabled,
-                },
-            });
-
-            return {
-                user: UserService.omitSensitiveFields(user),
-                userSession: AuthService.omitSensitiveFields(session),
-            };
-        }
-
-        // Generate a session token
-        const session = await prisma.userSession.create({
-            data: {
-                userId: user.userId,
-                sessionToken: AuthService.generateSessionToken(),
-                sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
-                sessionAgent: "Web",
-                otpNeeded: user.otpEnabled,
-            },
-        });
-
-        // Send Notification to User
-        if (user.otpEnabled && user.phone) {
-            TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
-        } else {
-            TwilloService.sendSMS(user.phone, `You have logged in successfully.`);
-        }
-
-        // Send Mail to User
-        if (user.otpEnabled && user.email) {
-            MailService.sendMail(user.email, "OTP", `Your OTP is ${session.otpToken}`);
-        } else {
-            MailService.sendMail(user.email, "Login", `You have logged in successfully.`);
-        }
-
-        return {
-            user: UserService.omitSensitiveFields(user),
-            userSession: AuthService.omitSensitiveFields(session),
-        };
-    }
 
     /**
      * Gets a user session by token.
@@ -285,7 +179,7 @@ export default class AuthService {
         const session = await prisma.userSession.findUnique({
             where: { sessionToken: data.sessionToken }
         })
-
+        
         if (!session) {
             throw new Error(this.SESSION_NOT_FOUND);
         }
@@ -364,9 +258,6 @@ export default class AuthService {
 
         const userRoleIndex = roles.indexOf(user.role);
         const requiredRoleIndex = roles.indexOf(requiredRole);
-
-        console.log(user.role, requiredRole);
-        console.log(userRoleIndex, requiredRoleIndex);
 
         return userRoleIndex <= requiredRoleIndex;
     }
@@ -629,89 +520,6 @@ export default class AuthService {
         });
 
         return { message: this.OTP_CHANGED_SUCCESSFULLY };
-    }
-
-    /**
-     * Auth Get SSO Provider URL
-     * @param provider - The provider name.
-     * @param redirectUri - The redirect uri.
-    */
-    static async authProvider(provider: string): Promise<string> {
-
-        if (provider === "google") {
-            return OauthService.google_generateAuthUrl();
-        } else if (provider === "apple") {
-            return OauthService.apple_generateAuthUrl();
-        } else {
-            throw new Error(this.INVALID_PROVIDER);
-        }
-
-    }
-
-
-    /*
-    * Auth Callback
-    * @param provider - The provider name.
-    * @param code - The code.
-    * @param state - The state.
-    * @param scope - The scope.
-    */
-
-    static async authCallback(
-        provider: string,
-        code: string,
-        state: string,
-        scope?: string,
-    ): Promise<AuthResponse | MessageResponse> {
-
-        if (provider === "google") {
-            return this.handleGoogleCallback(code);
-        } else if (provider === "apple") {
-            return this.handleAppleCallback(code);
-        }
-
-        return { message: this.INVALID_PROVIDER };
-    }
-
-    /*
-    * Handle Google Callback
-    * @param code - The code.
-    */
-    static async handleGoogleCallback(code: string): Promise<AuthResponse> {
-        try {
-            // Exchange authorization code for tokens
-            const { access_token, refresh_token } = await OauthService.google_getTokens(code);
-            // Fetch user profile
-            const profile = await OauthService.google_getUserInfo(access_token);
-            // Create or update the user in the database
-            const user = await this.ssoLoginOrCreateUser(profile, access_token, refresh_token, "google");
-            return user;
-        } catch (error) {
-            console.error('Error during Google OAuth2 callback:', error);
-            throw new Error('Authentication failed.');
-        }
-    }
-
-    /*
-    * Handle Apple Callback
-    * @param code - The code.
-    */
-
-    static async handleAppleCallback(code: string): Promise<AuthResponse> {
-        try {
-            // Exchange authorization code for tokens
-            const { access_token, refresh_token } = await OauthService.apple_getTokens(code);
-
-            // Fetch user profile
-            const profile = await OauthService.apple_getUserInfo(access_token);
-
-            // Create or update the user in the database
-            const user = await this.ssoLoginOrCreateUser(profile, access_token, refresh_token, "apple");
-            return user;
-        } catch (error) {
-            console.error('Error during Apple OAuth2 callback:', error);
-            throw new Error('Authentication failed.');
-        }
     }
 
 }

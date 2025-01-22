@@ -65,7 +65,6 @@ export default function (requiredRole: string) {
       //check if the user has the required role
 
       if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
-        console.log(request.user.role + "/ " + requiredRole);
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
 

@@ -1,6 +1,7 @@
 import V1 from "twilio/lib/rest/accounts/V1";
 import AuthRouter from "./AuthRouter";
 import UserRouter from "./UserRouter";
+import SSORouter from "./SSORouter";
 import { Router, Request, Response } from "express";
 
 // Router
@@ -12,5 +13,6 @@ V1Router.get("/", (req: Request, res: Response) => {
 
 V1Router.use("/users", UserRouter);
 V1Router.use("/auth", AuthRouter);
+V1Router.use("/sso", SSORouter);
 
 export default V1Router;

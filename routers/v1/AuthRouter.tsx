@@ -10,7 +10,6 @@ import { Router, Request, Response, response } from "express";
 import AuthLoginRequest from '../../dtos/requests/AuthRegisterRequest';
 import AuthRegisterRequest from '../../dtos/requests/AuthRegisterRequest';
 import AuthResponse from '../../dtos/responses/AuthResponse';
-import AuthGetSessionRequest from '../../dtos/requests/AuthGetSessionRequest';
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
@@ -27,7 +26,6 @@ import EmptyRequest from "../../dtos/requests/EmptyRequest";
 
 // Validators
 import FieldValidater from "../../utils/FieldValidater";
-import AuthGetSSOProviderRequest from "@/dtos/requests/AuthGetSSOProviderRequest";
 
 // Router
 const AuthRouter = Router();
@@ -54,47 +52,6 @@ AuthRouter.get('/login', async (request: Request, response: Response) => {
  */
 AuthRouter.get('/register', async (request: Request, response: Response) => {
     return response.render('auth/register', { message: '' });
-});
-
-/**
- * GET /sso
- * SSO page.
- * 
- * Response:
- * - view: auth/sso
- * 
- */
-AuthRouter.get('/sso', async (request: Request, response: Response) => {
-    return response.render('auth/sso', { message: '' });
-} );
-
-/**
- * GET /sso/:provider
- * SSO page.
- * 
- * Redirects to the SSO provider's login page.
- * 
- */
-AuthRouter.get('/sso/:provider', async (request: Request<AuthGetSSOProviderRequest>, response: Response) => {
-
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    return await AuthController.authProvider(request, response);
-});
-
-/**
- * GET /callback/:provider
- * Create a new user or authenticate an existing user using the SSO provider.
- */
-AuthRouter.get('/callback/:provider', async (request: Request<any>, response: Response<AuthResponse>) => {
-
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    return await AuthController.authCallback(request, response);
 });
 
 /**
