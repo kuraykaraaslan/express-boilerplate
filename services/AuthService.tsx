@@ -136,7 +136,7 @@ export default class AuthService {
         if (user.otpEnabled && user.email) {
             MailService.sendMail(user.email, "OTP", `Your OTP is ${session.otpToken}`);
         } else {
-            MailService.sendMail(user.email, "Login", `You have logged in successfully.`);
+            MailService.sendNewLoginEmail(user.email, user?.name ? user.name : undefined, undefined ,undefined,undefined);
         }
 
         return {
@@ -234,7 +234,7 @@ export default class AuthService {
         });
 
         // Send a welcome email
-        MailService.sendMail(email, "Welcome!", "Welcome to our platform!");
+        MailService.sendWelcomeEmail(email, name);
         TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
@@ -278,18 +278,19 @@ export default class AuthService {
             throw new Error(this.USER_NOT_FOUND);
         }
 
+        const resetToken = AuthService.generateToken();
 
         // Save the token to the user
         user = await prisma.user.update({
             where: { userId: user.userId },
             data: {
-                resetToken: AuthService.generateToken(),
+                resetToken: resetToken,
                 resetTokenExpiry: new Date(Date.now() + 3600000), // 1 hour
             },
         });
 
         // Send the password reset email
-        MailService.sendMail(user.email, "Password Reset", `Your password reset token is ${user.resetToken}`);
+        MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
         TwilloService.sendSMS(user.phone, `Your password reset token is ${user.resetToken}`);
 
     }
@@ -327,7 +328,7 @@ export default class AuthService {
         });
 
         // Notify the user
-        MailService.sendMail(user.email, "Password Reset", "Your password has been reset successfully.");
+        MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
         TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
 
     }

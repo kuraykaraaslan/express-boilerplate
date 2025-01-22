@@ -6,7 +6,6 @@ import logger from 'morgan';
 import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
-import V1Router from "./routers/v1";
 import IndexRouter from "./routers";
 dotenv.config({ path: "../.env" });
 
@@ -44,7 +43,7 @@ if (process.env.APPLICATION_HTTPS === "true") {
     key: key,
     cert: cert
   };
-  
+
   https.createServer(options, app).listen(port, () => {
     console.log(`Server started at ${host}:${port}`);
   });
