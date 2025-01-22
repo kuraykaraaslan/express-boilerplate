@@ -45,11 +45,15 @@ const options = {
 
 console.log("options", options);
 
-// Routes
-https.createServer(options, app).listen(443, '0.0.0.0', () => {
-  console.log(`Server started at ${host}:${port}`);
-} );
-
-
+// HTTPS or HTTP
+if (process.env.APPLICATION_HTTPS === "true") {
+  https.createServer(options, app).listen(port, () => {
+    console.log(`Server started at ${host}:${port}`);
+  });
+} else {
+  app.listen(port, () => {
+    console.log(`Server started at ${host}:${port}`);
+  });
+}
 
 module.exports = app;

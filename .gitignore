@@ -78,4 +78,6 @@ Thumbs.db
 
 
 # Certs
-/certs/
+/certs/key.pem
+/certs/cert.pem
+/certs/tempkey.pem
