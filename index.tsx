@@ -3,7 +3,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import logger from 'morgan';
-import ErrorHandler from "@/middlewares/ErrorHandler";
+import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
 import IndexRouter from "./routers";
