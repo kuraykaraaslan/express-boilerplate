@@ -9,7 +9,12 @@ import AuthResponse from "@/dtos/responses/AuthResponse";
  
 export default class SSOController {
 
-    // Errors
+    static APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+    static ALLOWED_PROVIDERS = ["apple", "facebook", "github", "google", "linkedin", "microsoft", "twitter", "tiktok"];
+
+    // Constants
+    static INVALID_PROVIDER = "INVALID_PROVIDER";
+    static AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED";
     static OAUTH_ERROR = "OAUTH_ERROR";
 
     // Frontend URL
@@ -20,10 +25,8 @@ export default class SSOController {
 
         const provider = request.params.provider! as string;
 
-        const allowedProviders = ["google", "facebook", "github", "apple"];
-        
-        if (!allowedProviders.includes(provider)) {
-            throw new Error("INVALID_PROVIDER");
+        if (!this.ALLOWED_PROVIDERS.includes(provider)) {
+            throw new Error(this.INVALID_PROVIDER);
         }
 
         const url = await SSOService.generateAuthUrl(provider);
@@ -35,9 +38,7 @@ export default class SSOController {
 
         const provider = request.params.provider! as string;
 
-        const allowedProviders = ["google", "facebook", "github", "apple"];
-
-        if (!allowedProviders.includes(provider)) {
+        if (!this.ALLOWED_PROVIDERS.includes(provider)) {
             throw new Error("INVALID_PROVIDER");
         }
 

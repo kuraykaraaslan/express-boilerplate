@@ -46,7 +46,7 @@ export default class MailService {
     };
 
 
-    static async sendWelcomeEmail(email: string, name?: string) {
+    static async sendWelcomeEmail(email: string, name?: string | null) {
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'welcome.ejs'), {
             user: { name: name || email },
@@ -60,7 +60,8 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(email: string, name?: string, device?: string, ipAddress?: string, location?: string, loginTime?: string) {
+    static async sendNewLoginEmail(email: string, name?: string | null,
+         device?: string, ipAddress?: string, location?: string, loginTime?: string) {
 
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'new-login.ejs'), {

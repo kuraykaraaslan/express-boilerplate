@@ -1,4 +1,4 @@
-import { Role, UserSession, UserSocialAccount } from "@prisma/client";
+import { Role, User, UserSession, UserSocialAccount } from "@prisma/client";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
@@ -126,21 +126,11 @@ export default class AuthService {
         }
 
         // Generate a session token
-        const session = await prisma.userSession.create({
-            data: {
-                userId: user.userId,
-                sessionToken: AuthService.generateSessionToken(),
-                sessionExpiry: new Date(Date.now() + 3600000), // 1 hour
-                sessionAgent: "Web",
-                otpNeeded: user.otpEnabled,
-            },
-        });
+        const session = await AuthService.createSession(user);
 
         // Send Notification to User
         if (user.otpEnabled && user.phone) {
             TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
-        } else {
-            TwilloService.sendSMS(user.phone, `You have logged in successfully.`);
         }
 
         // Send Mail to User
@@ -177,6 +167,22 @@ export default class AuthService {
         });
     }
 
+    /**
+     * Creates a new user session.
+     * @param userId - The user ID.
+     * @returns The created session.
+     */    
+    static async createSession(user: User, otpConsired: boolean = true): Promise<UserSession> {
+        return prisma.userSession.create({
+            data: {
+                userId: user.userId,
+                sessionToken: AuthService.generateSessionToken(),
+                sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+                sessionAgent: "Web",
+                otpNeeded: otpConsired ? user.otpEnabled : false,
+            },
+        });
+    }
 
     /**
      * Gets a user session by token.
