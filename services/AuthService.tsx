@@ -56,6 +56,9 @@ export default class AuthService {
     static OTP_ALREADY_DISABLED = "OTP_ALREADY_DISABLED";
     static OTP_CHANGED_SUCCESSFULLY = "OTP_CHANGED_SUCCESSFULLY";
     static INVALID_PROVIDER = "INVALID_PROVIDER";
+    static INVALID_PROVIDER_TOKEN = "INVALID_PROVIDER_TOKEN";
+    static OTP_SENT_SUCCESSFULLY = "OTP_SENT_SUCCESSFULLY";
+    static OTP_VERIFIED_SUCCESSFULLY = "OTP_VERIFIED_SUCCESSFULLY";
 
     /**
      * Token Generation
@@ -129,13 +132,13 @@ export default class AuthService {
         const session = await AuthService.createSession(user);
 
         // Send Notification to User
-        if (user.otpEnabled && user.phone) {
+        if (session.otpNeeded && user.phone) {
             TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
         }
 
         // Send Mail to User
-        if (user.otpEnabled && user.email) {
-            MailService.sendMail(user.email, "OTP", `Your OTP is ${session.otpToken}`);
+        if (session.otpNeeded && user.email) {
+            MailService.sendOTPEmail(user.email, user.name, session?.otpToken ? session.otpToken : undefined);
         } else {
             MailService.sendNewLoginEmail(user.email, user?.name ? user.name : undefined, undefined ,undefined,undefined);
         }
@@ -408,7 +411,7 @@ export default class AuthService {
             }
         }
 
-        return { message: "OTP_SENT" };
+        return { message: this.OTP_SENT_SUCCESSFULLY };
     }
 
     /**
@@ -445,7 +448,7 @@ export default class AuthService {
             },
         });
 
-        return { message: "OTP_VERIFIED" };
+        return { message: this.OTP_VERIFIED_SUCCESSFULLY };
     }
 
 
@@ -473,10 +476,12 @@ export default class AuthService {
         });
 
         // Send the OTP
-        TwilloService.sendSMS(user.phone, `Your OTP is ${updatedUser.otpStatusChangeToken}`);
-        MailService.sendMail(user.email, "OTP", `Your OTP is ${updatedUser.otpStatusChangeToken}`);
+        if (updatedUser.otpStatusChangeToken) {
+            TwilloService.sendSMS(user.phone, `Your OTP is ${updatedUser.otpStatusChangeToken}`);
+            MailService.sendOTPEmail(user.email, user.name, updatedUser.otpStatusChangeToken);
+        }
 
-        return { message: "OTP_STATUS_CHANGE_SENT" };
+        return { message: this.OTP_CHANGED_SUCCESSFULLY };
     }
 
     /**
@@ -536,6 +541,15 @@ export default class AuthService {
                 otpStatusChangeTokenExpiry: null,
             },
         });
+
+
+        if (otpEnabled) {
+            // Send the OTP
+            MailService.sendOTPEnabledEmail(user.email, user.name || undefined);
+        } else {
+            // Send the OTP
+            MailService.sendOTPDisabledEmail(user.email, user.name || undefined);
+        }
 
         return { message: this.OTP_CHANGED_SUCCESSFULLY };
     }

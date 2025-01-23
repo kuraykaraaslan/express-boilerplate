@@ -72,8 +72,13 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(email: string, name?: string | null,
-         device?: string, ipAddress?: string, location?: string, loginTime?: string) {
+    static async sendNewLoginEmail(
+        email: string, 
+        name?: string | null,
+        device?: string, 
+        ipAddress?: string, 
+        location?: string, 
+        loginTime?: string) {
 
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'new-login.ejs'), {
@@ -93,7 +98,10 @@ export default class MailService {
     }
 
 
-    static async sendForgotPasswordEmail(email: string, name?: string, resetToken?: string) {
+    static async sendForgotPasswordEmail(
+        email: string, 
+        name?: string | null,
+        resetToken?: string) {
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'forgot-password.ejs'), {
             user: { name: name || email },
@@ -110,7 +118,10 @@ export default class MailService {
         await MailService.sendMail(email, 'Reset Your Password', emailContent);
     }
 
-    static async sendPasswordResetSuccessEmail(email: string, name?: string) {
+    static async sendPasswordResetSuccessEmail(
+        email: string, 
+        name?: string | null
+    ) {
         
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'password-reset.ejs'), {
             user: { name: name || email },
@@ -125,9 +136,13 @@ export default class MailService {
 
     }
 
-    static async sendOTPEmail(email: string, name?: string, otp?: string) {
+    static async sendOTPEmail(
+        email: string, 
+        name?: string | null, 
+        otp?: string
+    ) {
 
-        const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp-enabled-email.ejs'), {
+        const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
             loginLink: MailService.FRONTEND_LOGIN_LINK,
@@ -135,6 +150,7 @@ export default class MailService {
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
             termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
             privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
+            otp: otp,
         });
 
         await MailService.sendMail(email, 'Your OTP Code', emailContent);
