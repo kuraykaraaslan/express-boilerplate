@@ -16,7 +16,7 @@ import GetUserRequest from "../../dtos/requests/GetUserRequest";
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
 import UserController from "../../controllers/UserController";
-import MessageResponse from "@/dtos/responses/MessageResponse";
+import MessageResponse from "../../dtos/responses/MessageResponse";
 
 
 const userRouter = Router();

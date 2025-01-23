@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 
-import AuthResponse from "@/dtos/responses/AuthResponse";
+import AuthResponse from "../dtos/responses/AuthResponse";
 import AuthService from "../services/AuthService";
 import FieldValidater from "../utils/FieldValidater";
 import MessageResponse from "../dtos/responses/MessageResponse";
@@ -8,12 +8,11 @@ import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
 import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import AuthVerifyOTPRequest from "@/dtos/requests/AuthVerifyOTPRequest";
-import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusRequest";
-import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
-import EmptyRequest from "@/dtos/requests/EmptyRequest";
-import SSOProviderRequest from "@/dtos/requests/SSOProviderRequest";
-import MailService from "@/services/MailService";
+import AuthVerifyOTPRequest from "../dtos/requests/AuthVerifyOTPRequest";
+import AuthChangeOTPStatusRequest from "../dtos/requests/AuthChangeOTPStatusRequest";
+import AuthChangeOTPVerifyRequest from "../dtos/requests/AuthChangeOTPVerifyRequest";
+import EmptyRequest from "../dtos/requests/EmptyRequest";
+import MailService from "../services/MailService";
 
 
 export default class AuthController {

@@ -6,9 +6,9 @@ import FieldValidater from "../utils/FieldValidater";
 // DTOs
 import CreateUserRequest from "../dtos/requests/CreateUserRequest";
 import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
-import GetUsersRequest from "@/dtos/requests/GetUsersRequest";
+import GetUsersRequest from "../dtos/requests/GetUsersRequest";
 import GetUsersResponse from "../dtos/responses/GetUsersResponse";
-import PutUserRequest from "@/dtos/requests/PutUserRequest";
+import PutUserRequest from "../dtos/requests/PutUserRequest";
 
 export default class UserService {
 

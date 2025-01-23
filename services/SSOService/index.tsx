@@ -1,8 +1,6 @@
 import prisma from '../../libs/prisma';
 import AuthService from '../AuthService';
 import UserService from '../UserService';
-import AuthResponse from '../../dtos/responses/AuthResponse';
-import MailService from '../MailService';
 import GoogleService from './GoogleService';
 import AppleService from './AppleService';
 import FacebookService from './FacebookService';
@@ -10,7 +8,7 @@ import GithubService from './GithubService';
 import LinkedInService from './LinkedInService';
 import MicrosoftService from './MicrosoftService';
 import TwitterService from './TwitterService';
-import AuthUserResponse from '@/dtos/responses/AuthUserResponse';
+import AuthUserResponse from '../../dtos/responses/AuthUserResponse';
 
 export default class SSOService {
 

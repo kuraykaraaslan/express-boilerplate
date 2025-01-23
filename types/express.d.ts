@@ -1,5 +1,5 @@
-import AuthUserResponse from "@/dtos/responses/AuthUserResponse";
-import AuthUserSessionResponse from "@/dtos/responses/AuthUserSessionResponse";
+import AuthUserResponse from "../dtos/responses/AuthUserResponse";
+import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
 import { UserSession } from "@prisma/client";
 import { Request } from "express";
 

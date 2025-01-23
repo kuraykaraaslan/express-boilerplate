@@ -11,7 +11,7 @@ import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
-import MessageResponse from "@/dtos/responses/MessageResponse";
+import MessageResponse from "../dtos/responses/MessageResponse";
 import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
 
 

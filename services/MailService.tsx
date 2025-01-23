@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
 import { User, UserSession } from '@prisma/client';
-import AuthUserResponse from '@/dtos/responses/AuthUserResponse';
+import AuthUserResponse from '../dtos/responses/AuthUserResponse';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
