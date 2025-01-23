@@ -2,6 +2,8 @@ import Logger from '../libs/logger';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
+import { User, UserSession } from '@prisma/client';
+import AuthUserResponse from '@/dtos/responses/AuthUserResponse';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
@@ -58,7 +60,10 @@ export default class MailService {
     };
 
 
-    static async sendWelcomeEmail(email: string, name?: string | null) {
+    static async sendWelcomeEmail(user: User | AuthUserResponse) {
+
+        const name = user.name || user.email;
+        const email = user.email;
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'welcome.ejs'), {
             user: { name: name || email },
@@ -72,22 +77,19 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(
-        email: string, 
-        name?: string | null,
-        device?: string, 
-        ipAddress?: string, 
-        location?: string, 
-        loginTime?: string) {
+    static async sendNewLoginEmail(user: User | AuthUserResponse, session?: UserSession) {
 
+        const name = user.name || user.email;
+        const email = user.email;
+        const location = session?.city + ", " + session?.state + ", " + session?.country;
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'new-login.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
-            device: device || 'Unknown Device',
-            ipAddress: ipAddress || 'Unknown IP Address',
-            location: location || 'Unknown Location',
-            loginTime: loginTime || new Date().toLocaleString(),
+            device: session?.device || "Unknown",
+            ip : session?.ip || "Unknown",
+            location: location,
+            loginTime: session?.createdAt || new Date(),
             forgotPasswordLink: MailService.FRONTEND_FORGOT_PASSWORD_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
             termsLink: MailService.FRONTEND_TERMS_LINK,
@@ -109,9 +111,9 @@ export default class MailService {
             resetToken: resetToken,
             resetLink: MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH + "?token=" + resetToken,
             expiryTime: 1, // Expiry time in hours
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
-            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
-            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
         });
 
 
@@ -139,18 +141,18 @@ export default class MailService {
     static async sendOTPEmail(
         email: string, 
         name?: string | null, 
-        otp?: string
+        otpToken?: string
     ) {
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
             loginLink: MailService.FRONTEND_LOGIN_LINK,
-            secureAccountLink: `${MailService.FRONTEND_URL}/security`,
+            resetPasswordLink: MailService.FRONTEND_RESET_PASSWORD_LINK,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
-            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
-            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
-            otp: otp,
+            otpToken: otpToken,
         });
 
         await MailService.sendMail(email, 'Your OTP Code', emailContent);

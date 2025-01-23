@@ -10,6 +10,7 @@ import GithubService from './GithubService';
 import LinkedInService from './LinkedInService';
 import MicrosoftService from './MicrosoftService';
 import TwitterService from './TwitterService';
+import AuthUserResponse from '@/dtos/responses/AuthUserResponse';
 
 export default class SSOService {
 
@@ -26,7 +27,7 @@ export default class SSOService {
      * @param refreshToken - The refresh token.
      * @returns AuthResponse
      */
-    static async loginOrCreateUser(profile: any, accessToken: string, refreshToken: string, provider: string): Promise<AuthResponse> {
+    static async loginOrCreateUser(profile: any, accessToken: string, refreshToken: string, provider: string): Promise<AuthUserResponse> {
         if (!profile.email) {
             throw new Error('Email is required');
         }
@@ -44,19 +45,19 @@ export default class SSOService {
                     name: profile.name,
                     profilePicture: profile.picture,
                     password: await AuthService.hashPassword(profile.id + new Date().toISOString()),
-                    userSocialAccounts: {
-                        create: {
-                            provider: provider,
-                            providerId: profile.sub || profile.id,
-                            accessToken,
-                            refreshToken,
-                        },
-                    },
                 },
             });
 
-            // Send welcome email
-            MailService.sendWelcomeEmail(user.email, user.name);
+            // Create a social account
+            await prisma.userSocialAccount.create({
+                data: {
+                    provider: provider,
+                    providerId: profile.sub || profile.id,
+                    accessToken,
+                    refreshToken,
+                    userId: user.userId,
+                },
+            });
 
         } else {
             // Update the user
@@ -65,34 +66,41 @@ export default class SSOService {
                 data: {
                     name: profile.name,
                     profilePicture: profile.picture,
-                    userSocialAccounts: {
-                        update: {
-                            where: {
-                                providerId: profile.sub || profile.id,
-                                provider: provider,
-                            },
-                            data: {
-                                provider: provider,
-                                providerId: profile.sub || profile.id,
-                                accessToken,
-                                refreshToken,
-                            },
-                        },
-                    },
                 },
             });
 
-            // Send new login email
-            MailService.sendNewLoginEmail(user.email, user.name);
+            // Update the social account
+            const socialAccount = await prisma.userSocialAccount.findFirst({
+                where: {
+                    provider: provider,
+                    userId: user.userId,
+                },
+            });
+
+            if (socialAccount) {
+                await prisma.userSocialAccount.update({
+                    where: { userSocialAccountId: socialAccount.userSocialAccountId },
+                    data: {
+                        providerId: profile.sub || profile.id,
+                        accessToken,
+                        refreshToken,
+                    },
+                });
+            } else {
+                await prisma.userSocialAccount.create({
+                    data: {
+                        provider: provider,
+                        providerId: profile.sub || profile.id,
+                        accessToken,
+                        refreshToken,
+                        userId: user.userId,
+                    },
+                });
+            }
+
         }
 
-        // Create a session
-        const session = await AuthService.createSession(user, false); // Create a new session without otp verification for SSO login
-
-        return {
-            user: UserService.omitSensitiveFields(user),
-            userSession: AuthService.omitSensitiveFields(session),
-        };
+        return UserService.omitSensitiveFields(user);
     }
 
     /*
@@ -131,11 +139,11 @@ export default class SSOService {
     static async authCallback(
         provider: string,
         code: string,
-        state: string,
+        state?: string,
         scope?: string,
-    ): Promise<AuthResponse> {
-        if (!provider || !code || !state) {
-            throw new Error('Missing required parameters');
+    ): Promise<AuthUserResponse> {
+        if (!provider || !code) {
+            throw new Error('Missing required parametkers');
         }
 
         switch (provider) {
@@ -160,7 +168,7 @@ export default class SSOService {
      * Handle Google Callback
      * @param code - The code.
      */
-    static async handleGoogleCallback(code: string): Promise<AuthResponse> {
+    static async handleGoogleCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token, refresh_token } = await GoogleService.getTokens(code);
             const profile = await GoogleService.getUserInfo(access_token);
@@ -175,7 +183,7 @@ export default class SSOService {
      * Handle Apple Callback
      * @param code - The code.
      */
-    static async handleAppleCallback(code: string): Promise<AuthResponse> {
+    static async handleAppleCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token, refresh_token } = await AppleService.getTokens(code);
             const profile = await AppleService.getUserInfo(access_token);
@@ -190,7 +198,7 @@ export default class SSOService {
      * Handle Facebook Callback
      * @param code - The code.
      */
-    static async handleFacebookCallback(code: string): Promise<AuthResponse> {
+    static async handleFacebookCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token } = await FacebookService.getTokens(code);
             const profile = await FacebookService.getUserInfo(access_token);
@@ -205,7 +213,7 @@ export default class SSOService {
      * Handle GitHub Callback
      * @param code - The code.
      */
-    static async handleGithubCallback(code: string): Promise<AuthResponse> {
+    static async handleGithubCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token } = await GithubService.getTokens(code);
             const profile = await GithubService.getUserInfo(access_token);
@@ -220,7 +228,7 @@ export default class SSOService {
      * Handle LinkedIn Callback
      * @param code - The code.
      */
-    static async handleLinkedInCallback(code: string): Promise<AuthResponse> {
+    static async handleLinkedInCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token } = await LinkedInService.getTokens(code);
             const profile = await LinkedInService.getUserInfo(access_token);
@@ -235,7 +243,7 @@ export default class SSOService {
      * Handle Microsoft Callback
      * @param code - The code.
      */
-    static async handleMicrosoftCallback(code: string): Promise<AuthResponse> {
+    static async handleMicrosoftCallback(code: string): Promise<AuthUserResponse> {
         try {
             const { access_token, refresh_token } = await MicrosoftService.getTokens(code);
             const profile = await MicrosoftService.getUserInfo(access_token);

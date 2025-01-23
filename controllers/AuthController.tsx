@@ -13,6 +13,7 @@ import AuthChangeOTPStatusRequest from "@/dtos/requests/AuthChangeOTPStatusReque
 import AuthChangeOTPVerifyRequest from "@/dtos/requests/AuthChangeOTPVerifyRequest";
 import EmptyRequest from "@/dtos/requests/EmptyRequest";
 import SSOProviderRequest from "@/dtos/requests/SSOProviderRequest";
+import MailService from "@/services/MailService";
 
 
 export default class AuthController {
@@ -30,8 +31,14 @@ export default class AuthController {
             throw new Error("INVALID_PASSWORD");
         }
 
+        const user = await AuthService.login({ email, password });
 
-        return response.json(await AuthService.login({ email, password }));
+        const userSession = await AuthService.createSession(user, request);
+
+        MailService.sendNewLoginEmail(user);
+
+        return response.json({ user, userSession });
+
 
     }
 

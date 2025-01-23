@@ -3,8 +3,9 @@ import { NextFunction, Request, Response } from "express";
 import AuthService from "../services/AuthService";
 import SSOProviderRequest from "../dtos/requests/SSOProviderRequest";
 import SSOService from "../services/SSOService";
-import AuthGetSessionRequest from "@/dtos/requests/AuthGetSessionRequest";
-import AuthResponse from "@/dtos/responses/AuthResponse";
+import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
+import AuthResponse from "../dtos/responses/AuthResponse";
+import MailService from "../services/MailService";
 
  
 export default class SSOController {
@@ -44,7 +45,16 @@ export default class SSOController {
 
         const { code , state } = request.query;
 
-        const { user, userSession } = await SSOService.authCallback(provider, code as string, state as string);
+        const user = await SSOService.authCallback(provider, code as string, state as string);
+
+        if (!user) {
+            //redirect to frontend
+            throw new Error(this.AUTHENTICATION_FAILED);
+        }
+
+        const userSession = await AuthService.createSession(user, request);
+
+        MailService.sendWelcomeEmail(user);
 
         if (!userSession) {
             //redirect to frontend

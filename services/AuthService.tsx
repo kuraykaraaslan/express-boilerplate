@@ -1,4 +1,5 @@
 import { Role, User, UserSession, UserSocialAccount } from "@prisma/client";
+import { Request } from "express";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
@@ -10,7 +11,9 @@ import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
 import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
 import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
 import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
-import FieldValidater from "../utils/FieldValidater";
+import MessageResponse from "@/dtos/responses/MessageResponse";
+import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
+
 
 // Other Services
 import UserService from "./UserService";
@@ -21,11 +24,8 @@ import OauthService from "./SSOService";
 
 // Utils
 import { createId } from '@paralleldrive/cuid2';
-import MessageResponse from "@/dtos/responses/MessageResponse";
-import axios from "axios";
-import AuthUserResponse from "../dtos/responses/AuthUserResponse";
-import e from "express";
-import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
+import FieldValidater from "../utils/FieldValidater";
+import UserAgentUtil from "../utils/UserAgentUtil";
 
 export default class AuthService {
 
@@ -113,40 +113,23 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The authenticated user.
      */
-    static async login(data: AuthLoginRequest): Promise<AuthResponse> {
+    static async login(data: AuthLoginRequest): Promise<OmitPasswordUserResponse> {
 
         // Get the user by email
-        const user = await prisma.user.findUniqueOrThrow({
+        const user = await prisma.user.findUnique({
             where: { email: data.email },
         })
 
-        // Omit sensitive fields from the user object
-        UserService.omitSensitiveFields(user);
+        if (!user) {
+            throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
+        }
 
         // Compare the password with the hash
         if (!FieldValidater.comparePasswords(user.password, data.password)) {
             throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
         }
 
-        // Generate a session token
-        const session = await AuthService.createSession(user);
-
-        // Send Notification to User
-        if (session.otpNeeded && user.phone) {
-            TwilloService.sendSMS(user.phone, `Your OTP is ${session.otpToken}`);
-        }
-
-        // Send Mail to User
-        if (session.otpNeeded && user.email) {
-            MailService.sendOTPEmail(user.email, user.name, session?.otpToken ? session.otpToken : undefined);
-        } else {
-            MailService.sendNewLoginEmail(user.email, user?.name ? user.name : undefined, undefined ,undefined,undefined);
-        }
-
-        return {
-            user: UserService.omitSensitiveFields(user),
-            userSession: AuthService.omitSensitiveFields(session),
-        };
+        return UserService.omitSensitiveFields(user);
     }
 
     /**
@@ -175,7 +158,10 @@ export default class AuthService {
      * @param userId - The user ID.
      * @returns The created session.
      */    
-    static async createSession(user: User, otpConsired: boolean = true): Promise<UserSession> {
+    static async createSession(user: OmitPasswordUserResponse, request: Request<any>, otpConsired: boolean = false): Promise<AuthUserSessionResponse> {
+
+        const userAgentData = await UserAgentUtil.parseRequest(request);
+
         return prisma.userSession.create({
             data: {
                 userId: user.userId,
@@ -183,6 +169,13 @@ export default class AuthService {
                 sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
                 sessionAgent: "Web",
                 otpNeeded: otpConsired ? user.otpEnabled : false,
+                ip: userAgentData.ip,
+                os: userAgentData.os,
+                device: userAgentData.device,
+                browser: userAgentData.browser,
+                city: userAgentData.city,
+                state: userAgentData.state,
+                country: userAgentData.country,
             },
         });
     }
@@ -254,7 +247,7 @@ export default class AuthService {
         });
 
         // Send a welcome email
-        MailService.sendWelcomeEmail(email, name);
+        MailService.sendWelcomeEmail(createdUser);
         TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
