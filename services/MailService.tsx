@@ -5,6 +5,7 @@ import path from 'path';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
+
 export default class MailService {
 
     static TEMPLATE_PATH = path.join(__dirname, '../views/email/');
@@ -13,12 +14,23 @@ export default class MailService {
     // These are the default values, you can change them in the .env file
     static FRONTEND_URL = process.env.FRONTEND_HOST + ":" + process.env.FRONTEND_PORT;
 
-    static FRONTEND_WELCOME_PATH = process.env.FRONTEND_WELCOME_PATH || "#";
-    static FRONTEND_SUPPORT_EMAIL = process.env.FRONTEND_SUPPORT_EMAIL || "#"
-    static FRONTEND_PRIVACY_PATH = process.env.FRONTEND_PRIVACY_PATH || "#";
-    static FRONTEND_TERMS_PATH = process.env.FRONTEND_TERMS_PATH || "#";
-    static FRONTEND_RESET_PASSWORD_PATH = process.env.FRONTEND_RESET_PASSWORD_PATH || "#";
-    static FRONTEND_FORGOT_PASSWORD_PATH = process.env.FRONTEND_FORGOT_PASSWORD_PATH || "#";
+    static FRONTEND_LOGIN_PATH = process.env.FRONTEND_LOGIN_PATH || "/auth/login";
+    static FRONTEND_REGISTER_PATH = process.env.FRONTEND_REGISTER_PATH || "/auth/register";
+    static FRONTEND_PRIVACY_PATH = process.env.FRONTEND_PRIVACY_PATH || "/privacy";
+    static FRONTEND_TERMS_PATH = process.env.FRONTEND_TERMS_PATH || "/terms-of-use";
+    static FRONTEND_RESET_PASSWORD_PATH = process.env.FRONTEND_RESET_PASSWORD_PATH || "/auth/reset-password";
+    static FRONTEND_FORGOT_PASSWORD_PATH = process.env.FRONTEND_FORGOT_PASSWORD_PATH || "/auth/forgot-password";
+    static FRONTEND_SUPPORT_EMAIL = process.env.FRONTEND_SUPPORT_EMAIL || "support@example.com";
+
+
+    //GENERATED LINK : NOT MODIFY
+    static FRONTEND_LOGIN_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_LOGIN_PATH;
+    static FRONTEND_REGISTER_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_REGISTER_PATH;
+    static FRONTEND_PRIVACY_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH;
+    static FRONTEND_TERMS_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH;
+    static FRONTEND_RESET_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_RESET_PASSWORD_PATH;
+    static FRONTEND_FORGOT_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH;
+
 
 
     static transporter = nodemailer.createTransport({
@@ -35,7 +47,7 @@ export default class MailService {
     static async sendMail(to: string, subject: string, html: string) {
         try {
             await MailService.transporter.sendMail({
-                from: MAIL_USER,
+                from: MailService.APPLICATION_NAME + " <" + MAIL_USER + ">",
                 to,
                 subject,
                 html,
@@ -51,9 +63,9 @@ export default class MailService {
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'welcome.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
-            welcomeLink: MailService.FRONTEND_URL + MailService.FRONTEND_WELCOME_PATH,
-            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
-            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
+            loginLink: MailService.FRONTEND_LOGIN_LINK,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
         });
 
@@ -71,10 +83,10 @@ export default class MailService {
             ipAddress: ipAddress || 'Unknown IP Address',
             location: location || 'Unknown Location',
             loginTime: loginTime || new Date().toLocaleString(),
-            resetPasswordLink: MailService.FRONTEND_URL + MailService.FRONTEND_RESET_PASSWORD_PATH,
+            forgotPasswordLink: MailService.FRONTEND_FORGOT_PASSWORD_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
-            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
-            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
         });
 
         await MailService.sendMail(email, 'New Login Detected', emailContent);
@@ -103,13 +115,63 @@ export default class MailService {
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'password-reset.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
-            loginLink: MailService.FRONTEND_URL + MailService.FRONTEND_WELCOME_PATH,
+            loginLink: MailService.FRONTEND_LOGIN_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
-            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
-            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
         });
   
         await MailService.sendMail(email, 'Password Reset Successful', emailContent);
 
     }
+
+    static async sendOTPEmail(email: string, name?: string, otp?: string) {
+
+        const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp-enabled-email.ejs'), {
+            user: { name: name || email },
+            appName: MailService.APPLICATION_NAME,
+            loginLink: MailService.FRONTEND_LOGIN_LINK,
+            secureAccountLink: `${MailService.FRONTEND_URL}/security`,
+            supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
+            termsLink: MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH,
+            privacyLink: MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH,
+        });
+
+        await MailService.sendMail(email, 'Your OTP Code', emailContent);
+
+    }
+
+    static async sendOTPEnabledEmail(email: string, name?: string) {
+        
+      
+        const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp-enabled.ejs'), {
+            user: { name: name || email },
+            appName: MailService.APPLICATION_NAME,
+            loginLink: MailService.FRONTEND_LOGIN_LINK,
+            resetPasswordLink: MailService.FRONTEND_RESET_PASSWORD_LINK,
+            supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
+        });
+
+        
+        await MailService.sendMail(email, 'OTP Enabled', emailContent);
+    }
+    
+
+    static async sendOTPDisabledEmail(email: string, name?: string) {
+
+        const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp-disabled.ejs'), {
+            user: { name: name || email },
+            appName: MailService.APPLICATION_NAME,
+            loginLink: MailService.FRONTEND_LOGIN_LINK,
+            resetPasswordLink: MailService.FRONTEND_RESET_PASSWORD_LINK,
+            supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
+            termsLink: MailService.FRONTEND_TERMS_LINK,
+            privacyLink: MailService.FRONTEND_PRIVACY_LINK,
+        });
+
+        await MailService.sendMail(email, 'OTP Disabled', emailContent);
+    }
+
 }

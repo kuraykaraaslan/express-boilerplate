@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to <%= appName %></title>
+    <title>Your OTP Code - <%= appName %></title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,11 +34,21 @@
             color: #888888;
             margin-top: 20px;
         }
+        .otp-box {
+            text-align: center;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            height: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
         .button {
             display: inline-block;
             padding: 10px 20px;
             background-color: #007BFF;
-            color: #ffffff;
+            color: #ffffff !important;
             text-decoration: none;
             border-radius: 5px;
         }
@@ -50,16 +60,20 @@
 <body>
 
     <div class="container">
-        <h1 class="header">Welcome to <%= appName %>, <%= user.name %>!</h1>
+        <h1 class="header">Your OTP Code</h1>
         <div class="content">
             <p>Hi <%= user.name %>,</p>
-            <p>We're thrilled to have you on board. Thank you for signing up for <%= appName %>.</p>
-            <p>You can now start exploring our features and make the most out of our platform.</p>
-            <p>Click the button below to get started:</p>
-            <p style="text-align: center;">
-                <a href="<%= loginLink %>" class="button" style="color: #ffffff;">Get Started</a>
+            <p>Use the following One-Time Password (OTP) to complete your verification for <%= appName %>:</p>
+            <p class="otp-box">
+                <%= otpCode %>
             </p>
-            <p>If you have any questions, feel free to reach out to our support team at <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+            <p>This OTP is valid for the next <strong><%= expiryTime %></strong> minutes.</p>
+            <p>If you did not request this code, please ignore this email or contact our support team.</p>
+            <p style="text-align: center;">
+                <a href="<%= supportLink %>" class="button">Contact Support</a>
+            </p>
+            <p>If you're having trouble, copy and paste the support link below into your web browser:</p>
+            <p style="text-align: center;"><a href="<%= supportLink %>"><%= supportLink %></a></p>
         </div>
 
         <div class="footer">

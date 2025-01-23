@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to <%= appName %></title>
+    <title>OTP Enabled - <%= appName %></title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -37,29 +37,29 @@
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #007BFF;
-            color: #ffffff;
+            background-color: #28a745;
+            color: #ffffff !important;
             text-decoration: none;
             border-radius: 5px;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #218838;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 class="header">Welcome to <%= appName %>, <%= user.name %>!</h1>
+        <h1 class="header">OTP Enabled Successfully</h1>
         <div class="content">
             <p>Hi <%= user.name %>,</p>
-            <p>We're thrilled to have you on board. Thank you for signing up for <%= appName %>.</p>
-            <p>You can now start exploring our features and make the most out of our platform.</p>
-            <p>Click the button below to get started:</p>
+            <p>You have successfully enabled One-Time Password (OTP) authentication for your <%= appName %> account.</p>
+            <p>From now on, you'll need to enter an OTP sent to your registered email or phone number each time you log in.</p>
+            <p>If you didn't enable OTP, please <a href="<%= secureAccountLink %>" class="button">Secure Your Account</a> immediately.</p>
             <p style="text-align: center;">
-                <a href="<%= loginLink %>" class="button" style="color: #ffffff;">Get Started</a>
+                <a href="<%= loginLink %>" class="button">Go to Login</a>
             </p>
-            <p>If you have any questions, feel free to reach out to our support team at <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
+            <p>If you have any concerns or need further assistance, please contact our support team at <a href="mailto:<%= supportEmail %>"><%= supportEmail %></a>.</p>
         </div>
 
         <div class="footer">

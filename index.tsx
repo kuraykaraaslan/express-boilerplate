@@ -46,10 +46,12 @@ if (process.env.APPLICATION_HTTPS === "true") {
   };
 
   https.createServer(options, app).listen(port, () => {
+    console.clear();
     console.log(`Server started at ${host}:${port}`);
   });
 } else {
   app.listen(port, () => {
+    console.clear();
     console.log(`Server started at ${host}:${port}`);
   });
 }
