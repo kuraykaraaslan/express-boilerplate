@@ -13,6 +13,7 @@ import AuthChangeOTPStatusRequest from "../dtos/requests/AuthChangeOTPStatusRequ
 import AuthChangeOTPVerifyRequest from "../dtos/requests/AuthChangeOTPVerifyRequest";
 import EmptyRequest from "../dtos/requests/EmptyRequest";
 import MailService from "../services/MailService";
+import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
 
 
 export default class AuthController {
@@ -41,7 +42,7 @@ export default class AuthController {
 
     }
 
-    public static async register(request: Request<AuthLoginRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async register(request: Request<AuthRegisterRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { email, password } = request.body;
 
