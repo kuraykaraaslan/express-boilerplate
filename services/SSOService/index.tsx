@@ -1,10 +1,6 @@
-import axiosInstance from '../../libs/axios';
-import jwt from 'jsonwebtoken';
-
 import prisma from '../../libs/prisma';
 import AuthService from '../AuthService';
 import UserService from '../UserService';
-import TwilloService from '../TwilloService';
 import AuthResponse from '../../dtos/responses/AuthResponse';
 import MailService from '../MailService';
 import GoogleService from './GoogleService';
@@ -13,7 +9,6 @@ import FacebookService from './FacebookService';
 import GithubService from './GithubService';
 import LinkedInService from './LinkedInService';
 import MicrosoftService from './MicrosoftService';
-import ErrorResponse from '../../dtos/responses/ErrorResponse';
 import TwitterService from './TwitterService';
 
 export default class SSOService {

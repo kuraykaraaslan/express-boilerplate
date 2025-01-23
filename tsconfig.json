@@ -13,13 +13,13 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "baseUrl": "./",
+    "baseUrl": "./", // Base directory for module resolution
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"] // Map @/ to the root directory
     },
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "typeRoots": ["./node_modules/@types", "./types"], // Custom type roots
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
-  "exclude": ["node_modules", "dist"],
-  "files": ["./types/express.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"], // Include all TypeScript files
+  "exclude": ["node_modules", "dist"], // Exclude node_modules and dist
+  "files": ["./types/express.d.ts"] // Include custom type definitions
 }

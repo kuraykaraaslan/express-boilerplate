@@ -4,9 +4,9 @@
   "description": "ExpressJS based API boilerplate",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node index.tsx",
-    "dev": "ts-node-dev --respawn --transpile-only index.tsx",
-    "dev:sudo": "sudo ts-node-dev --respawn --transpile-only index.tsx",
+    "start": "ts-node -r tsconfig-paths/register index.tsx",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.tsx",
+    "dev:sudo": "sudo ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.tsx",
     "build": "tsc -p .",
     "migrate": "prisma migrate dev --name init",
     "generate": "prisma generate",
@@ -48,6 +48,7 @@
     "prettier": "3.3.3",
     "prisma": "^5.16.2",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.4.0"
   },
