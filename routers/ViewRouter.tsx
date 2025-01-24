@@ -1,6 +1,12 @@
 import { Request, Response, Router } from 'express';
 import EmptyRequest from '../dtos/requests/EmptyRequest';
 import FieldValidater from '../utils/FieldValidater';
+import ejs from 'ejs';
+import path from 'path';
+
+
+const TEMPLATE_PATH = path.join(__dirname, '../views/');
+
 
 export const viewRouter = Router();
 
@@ -14,7 +20,7 @@ export const viewRouter = Router();
  */
 viewRouter.get('/sso', async (request: Request, response: Response) => {
 
-    return response.render('auth/sso', { message: '' });
+    return await ejs.renderFile(path.join(TEMPLATE_PATH, 'auth/sso.ejs'), { message: ''});
 });
 
 

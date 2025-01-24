@@ -26,6 +26,7 @@ app.use(cookieParser());
 app.use(cors());
 
 //Set ejs
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 
