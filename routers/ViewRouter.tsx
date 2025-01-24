@@ -5,9 +5,6 @@ import ejs from 'ejs';
 import path from 'path';
 
 
-const TEMPLATE_PATH = path.join(__dirname, '../views/');
-
-
 export const viewRouter = Router();
 
 /**
@@ -20,7 +17,7 @@ export const viewRouter = Router();
  */
 viewRouter.get('/sso', async (request: Request, response: Response) => {
 
-    return await ejs.renderFile(path.join(TEMPLATE_PATH, 'auth/sso.ejs'), { message: ''});
+    return response.render('auth/sso', { message: '' });
 });
 
 

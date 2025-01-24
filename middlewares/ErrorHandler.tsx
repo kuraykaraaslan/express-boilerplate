@@ -11,14 +11,12 @@ export default function ErrorHandler(error: any, request: Request, response: Res
         });
     }
 
-    /* 
+
     if (NODE_ENV !== 'development') {
         return response.status(500).json({
-            error: "BAD_REQUEST",
+            error: "ERROR_BAD_REQUEST",
         });
     }
-    */
-
 
     // Handle programming or unknown errors
     return response.status(500).json({
