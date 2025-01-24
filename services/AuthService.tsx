@@ -144,7 +144,7 @@ export default class AuthService {
         });
 
         if (sessions.length === 0) {
-            throw new Error("this.SESSION_NOT_FOUND");
+            throw new Error(this.SESSION_NOT_FOUND);
         }
 
         // Delete the session if found

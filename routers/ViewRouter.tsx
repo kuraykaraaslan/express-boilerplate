@@ -14,10 +14,6 @@ export const viewRouter = Router();
  */
 viewRouter.get('/sso', async (request: Request<EmptyRequest>, response: Response) => {
 
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
     return response.render('auth/sso', { message: '' });
 });
 
@@ -33,9 +29,6 @@ viewRouter.get('/sso', async (request: Request<EmptyRequest>, response: Response
 
 viewRouter.get('/login', async (request: Request<EmptyRequest>, response: Response) => {
 
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
 
     return response.render('auth/login', { message: '' });
 });
@@ -51,9 +44,6 @@ viewRouter.get('/login', async (request: Request<EmptyRequest>, response: Respon
 
 viewRouter.get('/register', async (request: Request<EmptyRequest>, response: Response) => {
 
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
 
     return response.render('auth/register', { message: '' });
 });
