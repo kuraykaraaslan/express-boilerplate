@@ -15,8 +15,8 @@ import path from "path";
 
 
 const app = express();
-const host = process.env.APPLICATION_HOST || "http://localhost";
-const port = process.env.APPLICATION_PORT || 3000;
+const host = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST.split(":")[1] : "http://localhost:3000";
+const port = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST.split(":")[2] : 3000;
 
 app.enable('trust proxy');
 app.use(logger('dev'));

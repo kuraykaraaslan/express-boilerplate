@@ -3,7 +3,7 @@ import axiosInstance from '../../libs/axios';
 export default class GoogleService {
 
     // App URL
-    static APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+    static APPLICATION_HOST = process.env.APPLICATION_HOST;
 
 
     // Google OAuth
@@ -23,7 +23,7 @@ export default class GoogleService {
 
         const params = {
             client_id: process.env.GOOGLE_CLIENT_ID!,
-            redirect_uri: `${this.APP_URL}${this.GOOGLE_CALLBACK_PATH}`,
+            redirect_uri: `${this.APPLICATION_HOST}${this.GOOGLE_CALLBACK_PATH}`,
             response_type: 'code',
             scope: 'profile email', // Request access to profile and email
             access_type: 'offline', // Request a refresh token
@@ -48,7 +48,7 @@ export default class GoogleService {
                 client_id: process.env.GOOGLE_CLIENT_ID!,
                 client_secret: process.env.GOOGLE_CLIENT_SECRET!,
                 code,
-                redirect_uri: `${this.APP_URL}${this.GOOGLE_CALLBACK_PATH}`,
+                redirect_uri: `${this.APPLICATION_HOST}${this.GOOGLE_CALLBACK_PATH}`,
                 grant_type: 'authorization_code',
             }),
             {

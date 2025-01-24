@@ -3,7 +3,7 @@ import axiosInstance from '../../libs/axios';
 export default class TikTokService {
 
     // App URL
-    static APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+    static APPLICATION_HOST = process.env.APPLICATION_HOST;
 
     // TikTok OAuth
     static TIKTOK_CALLBACK_PATH = "/api/v1/sso/callback/tiktok";
@@ -20,7 +20,7 @@ export default class TikTokService {
     static generateAuthUrl(): string {
         const params = {
             client_key: this.TIKTOK_CLIENT_KEY,
-            redirect_uri: `${this.APP_URL}${this.TIKTOK_CALLBACK_PATH}`,
+            redirect_uri: `${this.APPLICATION_HOST}${this.TIKTOK_CALLBACK_PATH}`,
             response_type: 'code',
             scope: 'user.info.basic', // Request basic user info
         };
@@ -41,7 +41,7 @@ export default class TikTokService {
                 client_key: this.TIKTOK_CLIENT_KEY,
                 client_secret: this.TIKTOK_CLIENT_SECRET,
                 code,
-                redirect_uri: `${this.APP_URL}${this.TIKTOK_CALLBACK_PATH}`,
+                redirect_uri: `${this.APPLICATION_HOST}${this.TIKTOK_CALLBACK_PATH}`,
                 grant_type: 'authorization_code',
             }),
             {

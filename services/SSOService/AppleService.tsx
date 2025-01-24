@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 export default class AppleService {
 
     // App URL
-    static APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+    static APPLICATION_HOST = process.env.APPLICATION_HOST;
 
     // Apple OAuth
     static APPLE_CALLBACK_PATH = "/api/v1/sso/callback/apple";
@@ -25,7 +25,7 @@ export default class AppleService {
 
         const params = {
             client_id: this.APPLE_CLIENT_ID,
-            redirect_uri: `${this.APP_URL}${this.APPLE_CALLBACK_PATH}`,
+            redirect_uri: `${this.APPLICATION_HOST}${this.APPLE_CALLBACK_PATH}`,
             response_type: 'code',
             scope: 'profile email', // Request access to profile and email
             access_type: 'offline', // Request a refresh token
@@ -76,7 +76,7 @@ export default class AppleService {
                 client_id: this.APPLE_CLIENT_ID,
                 client_secret: clientSecret,
                 code,
-                redirect_uri: `${this.APP_URL}${this.APPLE_CALLBACK_PATH}`,
+                redirect_uri: `${this.APPLICATION_HOST}${this.APPLE_CALLBACK_PATH}`,
                 grant_type: 'authorization_code',
             }),
             {
