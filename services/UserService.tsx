@@ -8,7 +8,6 @@ import CreateUserRequest from "../dtos/requests/user/CreateUserRequest";
 import AuthUserResponse from "../types/UserOmit";
 import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
 import UserGetUsersResponse from "../dtos/responses/user/UserGetUsersResponse";
-import UserPutUserRequest from "../dtos/requests/user/PutUserRequest";
 import UserOmit from "../types/UserOmit";
 import PutUserRequest from "../dtos/requests/user/PutUserRequest";
 

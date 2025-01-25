@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import {  Request, Response } from "express";
 
 import AuthService from "../services/AuthService";
 import SSOProviderRequest from "../dtos/requests/SSOProviderRequest";

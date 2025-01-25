@@ -1,4 +1,4 @@
-import { UserRole, User, UserSession, UserSocialAccount } from "@prisma/client";
+import {  UserSession } from "@prisma/client";
 import { Request } from "express";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
@@ -10,10 +10,6 @@ import LoginRequest from "../dtos/requests/auth/LoginRequest";
 import ForgotPasswordRequest from "../dtos/requests/auth/ForgotPasswordRequest";
 import ResetPasswordRequest from "../dtos/requests/auth/ResetPasswordRequest";
 import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
-import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
-import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
-import EmptyRequest from "../dtos/requests/EmptyRequest";
 import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
 
 
@@ -21,8 +17,6 @@ import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
 import UserService from "./UserService";
 import TwilloService from "./TwilloService";
 import MailService from "./MailService";
-import OauthService from "./SSOService";
-
 
 // Utils
 import { createId } from '@paralleldrive/cuid2';

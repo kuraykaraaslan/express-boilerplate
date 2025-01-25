@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import V1Router from "./v1";
 import ViewRouter from "./ViewRouter";
 import Logger from "../libs/logger";

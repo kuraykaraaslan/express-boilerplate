@@ -3,7 +3,6 @@ import prisma from "../libs/prisma";
 
 // Other Services
 import UserService from "./UserService";
-import AuthService from "./AuthService";
 
 export default class SocialAccountService {
 

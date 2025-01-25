@@ -4,7 +4,7 @@
  * This module provides endpoints to manage user authentication operations such as registration and login.
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
-import { Router, Request, Response, response } from "express";
+import { Router, Request, Response } from "express";
 
 // DTOs
 import LoginRequest from '../../dtos/requests/auth/LoginRequest';

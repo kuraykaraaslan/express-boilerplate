@@ -5,9 +5,9 @@
     If the user is authenticated and has the required role, it will call the next middleware
     Default required role is 'USER'
 */
-import express, { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
-import { User, UserSession } from '@prisma/client';
+import { User } from '@prisma/client';
 
 import AuthService from '../services/AuthService';
 

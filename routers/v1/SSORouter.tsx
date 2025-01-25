@@ -4,7 +4,7 @@
  * This module provides endpoints to manage user social account operations such as adding, updating, and deleting social accounts.
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
-import { Router, Request, Response, response } from "express";
+import { Router, Request, Response } from "express";
 import SSOController from "../../controllers/SSOController";
 import FieldValidater from "../../utils/FieldValidater";
 

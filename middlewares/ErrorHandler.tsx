@@ -1,5 +1,5 @@
 import ErrorResponse from "../dtos/responses/ErrorResponse";
-import { Request, Response, NextFunction, ErrorRequestHandler } from "express";
+import { Request, Response, NextFunction } from "express";
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 

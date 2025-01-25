@@ -1,9 +1,4 @@
 import { Request, Response, Router } from 'express';
-import EmptyRequest from '../dtos/requests/EmptyRequest';
-import FieldValidater from '../utils/FieldValidater';
-import ejs from 'ejs';
-import path from 'path';
-
 
 export const viewRouter = Router();
 
