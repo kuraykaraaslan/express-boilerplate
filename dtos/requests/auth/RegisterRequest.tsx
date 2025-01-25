@@ -1,4 +1,4 @@
-export default class AuthRegisterRequest {
+export default class RegisterRequest {
     email!: string;
     password!: string;
     phone?: string;

@@ -3,7 +3,10 @@ import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
 import { User, UserSession } from '@prisma/client';
-import AuthUserResponse from '../dtos/responses/AuthUserResponse';
+
+// Types
+import UserOmit from '../types/UserOmit';
+import UserSessionOmit from '@/types/UserSessionOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
@@ -60,7 +63,7 @@ export default class MailService {
     };
 
 
-    static async sendWelcomeEmail(user: User | AuthUserResponse) {
+    static async sendWelcomeEmail(user: User | UserOmit) {
 
         const name = user.name || user.email;
         const email = user.email;
@@ -77,7 +80,7 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(user: User | AuthUserResponse, session?: UserSession) {
+    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSession | UserSessionOmit) {
 
         const name = user.name || user.email;
         const email = user.email;
@@ -89,7 +92,7 @@ export default class MailService {
             device: session?.device || "Unknown",
             ip : session?.ip || "Unknown",
             location: location,
-            loginTime: session?.createdAt || new Date(),
+            loginTime: new Date().toLocaleString(),
             forgotPasswordLink: MailService.FRONTEND_FORGOT_PASSWORD_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,
             termsLink: MailService.FRONTEND_TERMS_LINK,

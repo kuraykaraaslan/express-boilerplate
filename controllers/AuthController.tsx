@@ -1,28 +1,27 @@
 import { NextFunction, Request, Response } from "express";
 
-import AuthResponse from "../dtos/responses/AuthResponse";
+import LoginResponse from "../dtos/responses/auth/LoginResponse";
 import AuthService from "../services/AuthService";
 import FieldValidater from "../utils/FieldValidater";
 import MessageResponse from "../dtos/responses/MessageResponse";
-import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
-import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
-import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
-import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import AuthVerifyOTPRequest from "../dtos/requests/AuthVerifyOTPRequest";
-import AuthChangeOTPStatusRequest from "../dtos/requests/AuthChangeOTPStatusRequest";
-import AuthChangeOTPVerifyRequest from "../dtos/requests/AuthChangeOTPVerifyRequest";
+import LoginRequest from "../dtos/requests/auth/LoginRequest";
+import ForgotPasswordRequest from "../dtos/requests/auth/ForgotPasswordRequest";
+import ResetPasswordRequest from "../dtos/requests/auth/ResetPasswordRequest";
+import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
+import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
+import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
 import EmptyRequest from "../dtos/requests/EmptyRequest";
-import MailService from "../services/MailService";
-import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
+import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
+import MailService from "@/services/MailService";
 
 
 export default class AuthController {
 
-    public static async login(request: Request<AuthLoginRequest>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
+    public static async login(request: Request<LoginRequest>, response: Response<LoginResponse>): Promise<Response<LoginResponse>> {
 
         const { email, password } = request.body;
 
-        //write keys
         if (!FieldValidater.isEmail(email)) {
             throw new Error("INVALID_EMAIL");
         }
@@ -33,16 +32,16 @@ export default class AuthController {
 
         const user = await AuthService.login({ email, password });
 
-        const userSession = await AuthService.createSession(user, request);
+        const userSession = await AuthService.createSession(user, request, true);
 
-        MailService.sendNewLoginEmail(user);
+        MailService.sendNewLoginEmail(user, userSession);
 
-        return response.json({ user, userSession });
+        return response.json({ user, userSession });   
 
 
     }
 
-    public static async register(request: Request<AuthRegisterRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async register(request: Request<RegisterRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { email, password } = request.body;
 
@@ -57,7 +56,7 @@ export default class AuthController {
         return response.json(await AuthService.register({ email, password }));
     }
 
-    public static async forgotPassword(request: Request<AuthForgotPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
+    public static async forgotPassword(request: Request<ForgotPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { email } = request.body;
 
@@ -70,7 +69,7 @@ export default class AuthController {
         return response.json({ message: "FORGOT_PASSWORD_SUCCESS" });
     }
 
-    public static async resetPassword(request: Request<AuthResetPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
+    public static async resetPassword(request: Request<ResetPasswordRequest>, response: Response): Promise<Response<MessageResponse>> {
 
         const { email, password, resetToken } = request.body;
 
@@ -106,12 +105,12 @@ export default class AuthController {
     }
 
 
-    public static async getSession(request: Request<EmptyRequest>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
+    public static async getSession(request: Request<EmptyRequest>, response: Response<LoginResponse>): Promise<Response<LoginResponse>> {
 
         return response.json({ user: request.user!, userSession: request.userSession! });
     }
 
-    public static async otpVerify(request: Request<AuthVerifyOTPRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async otpVerify(request: Request<VerifyOTPRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { sessionToken, otpToken } = request.body;
 
@@ -126,7 +125,7 @@ export default class AuthController {
         return response.json(await AuthService.otpVerify(sessionToken, otpToken));
     }
 
-    public static async otpSend(request: Request<AuthGetSessionRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async otpSend(request: Request<GetSessionRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
 
         const { sessionToken, method } = request.body;
 
@@ -146,7 +145,7 @@ export default class AuthController {
 
     // Services Below has user as a parameter and userSession as a parameter so we can pass the user and userSession from the request object
 
-    public static async otpChangeStatus(request: Request<AuthChangeOTPStatusRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async otpChangeStatus(request: Request<ChangeOTPStatusRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
         
         const { otpEnabled } = request.body;
 
@@ -157,7 +156,7 @@ export default class AuthController {
         return response.json(await AuthService.otpChangeStatus(request.user!, otpEnabled));
     }
 
-    public static async otpChangeVerify(request: Request<AuthChangeOTPVerifyRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
+    public static async otpChangeVerify(request: Request<ChangeOTPVerifyRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> {
         
         const { otpEnabled, otpStatusChangeToken } = request.body;
 

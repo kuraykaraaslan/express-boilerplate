@@ -3,8 +3,8 @@ import { NextFunction, Request, Response } from "express";
 import AuthService from "../services/AuthService";
 import SSOProviderRequest from "../dtos/requests/SSOProviderRequest";
 import SSOService from "../services/SSOService";
-import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import AuthResponse from "../dtos/responses/AuthResponse";
+import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
+import LoginResponse from "../dtos/responses/auth/LoginResponse";
 import MailService from "../services/MailService";
 
  
@@ -66,7 +66,7 @@ export default class SSOController {
 
     }
 
-    public static async getSession(request: Request<AuthGetSessionRequest>, response: Response<AuthResponse>): Promise<Response<AuthResponse>> {
+    public static async getSession(request: Request<GetSessionRequest>, response: Response<LoginResponse>): Promise<Response<LoginResponse>> {
         return response.json(await AuthService.getSession(request.body));
     }
     

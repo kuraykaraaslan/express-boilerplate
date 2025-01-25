@@ -1,0 +1,29 @@
+model User {
+  userId    String   @id @default(cuid())
+  email     String   @unique
+  phone     String?   @unique
+  password  String
+  name      String?
+  userRole      UserRole     @default(USER)
+
+  //Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  //Password reset
+  resetToken String?
+  resetTokenExpiry DateTime?
+
+  //Profile
+  profilePicture String?
+
+  //OTP verification
+  otpEnabled Boolean @default(false)
+  otpEnabledAt DateTime?
+  otpStatusChangeToken String?
+  otpStatusChangeTokenExpiry DateTime?
+
+  userSessions UserSession[]
+  userSocialAccounts UserSocialAccount[]
+}

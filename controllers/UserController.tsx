@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
-import GetUserRequest from "../dtos/requests/GetUserRequest";
-import PutUserRequest from "../dtos/requests/PutUserRequest";
+import OmitPasswordUserResponse from "../types/UserOmit";
+import GetUserRequest from "../dtos/requests/user/GetUserRequest";
+import PutUserRequest from "../dtos/requests/user/PutUserRequest";
 import UserService from "../services/UserService";
 import FieldValidater from "../utils/FieldValidater";
-import GetUsersResponse from "../dtos/responses/GetUsersResponse";
-import GetUsersRequest from "../dtos/requests/GetUsersRequest";
+import GetUsersResponse from "../dtos/responses/user/UserGetUsersResponse";
+import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
 import MessageResponse from "../dtos/responses/MessageResponse";
 
 

@@ -1,4 +1,4 @@
-export default class AuthSendOTPRequest {
+export default class SendOTPRequest {
    sessionToken!: string;
    method!: string;
 }

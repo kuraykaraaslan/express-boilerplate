@@ -1,4 +1,4 @@
-export default class AuthVerifyOTPRequest {
+export default class VerifyOTPRequest {
    sessionToken!: string;
    otpToken!: string;
 }

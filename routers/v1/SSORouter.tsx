@@ -10,9 +10,9 @@ import FieldValidater from "../../utils/FieldValidater";
 
 // DTOs
 import SSOProviderRequest from "../../dtos/requests/SSOProviderRequest";
-import AuthResponse from "../../dtos/responses/AuthResponse";
+import LoginResponse from "../../dtos/responses/auth/LoginResponse";
 import EmptyRequest from "../../dtos/requests/EmptyRequest";
-import AuthGetSessionRequest from "../../dtos/requests/AuthGetSessionRequest";
+import GetSessionRequest from "../../dtos/requests/auth/GetSessionRequest";
 
 
 
@@ -24,12 +24,12 @@ const ssoRouter = Router();
  * Get User and User Session
  * 
  */
-ssoRouter.post('/', async (request: Request<AuthGetSessionRequest>, response: Response<AuthResponse>) => {
+ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Response<LoginResponse>) => {
 
 
     console.log(request.body);
     
-    if (!FieldValidater.validateBody(request.body, AuthGetSessionRequest)) {
+    if (!FieldValidater.validateBody(request.body, GetSessionRequest)) {
         throw new Error("BAD_REQUEST");
     }
 
@@ -56,7 +56,7 @@ ssoRouter.get('/:provider', async (request: Request<SSOProviderRequest>, respons
  * GET /callback/:provider
  * Create a new user or authenticate an existing user using the SSO provider.
  */
-ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Response<AuthResponse>) => {
+ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Response<LoginResponse>) => {
 
     if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
         throw new Error("BAD_REQUEST");

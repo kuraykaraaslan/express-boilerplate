@@ -1,4 +1,4 @@
-export default class AuthResetPasswordRequest {
+export default class ResetPasswordRequest {
     email!: string;
     password!: string;
     resetToken!: string;

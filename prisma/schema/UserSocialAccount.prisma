@@ -1,0 +1,20 @@
+model UserSocialAccount {
+  
+  userSocialAccountId String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  provider       String  // google, facebook, etc
+  providerId     String   @unique
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiry    DateTime?
+  profilePicture String?
+  profileUrl     String?
+  scopes         String?  // Store granted scopes as a comma-separated list if needed
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([provider, providerId])
+}

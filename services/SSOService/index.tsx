@@ -8,7 +8,7 @@ import GithubService from './GithubService';
 import LinkedInService from './LinkedInService';
 import MicrosoftService from './MicrosoftService';
 import TwitterService from './TwitterService';
-import AuthUserResponse from '../../dtos/responses/AuthUserResponse';
+import AuthUserResponse from '../../types/UserOmit';
 
 export default class SSOService {
 

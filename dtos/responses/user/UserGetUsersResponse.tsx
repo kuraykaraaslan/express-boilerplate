@@ -1,4 +1,4 @@
-import OmitPasswordUserResponse from "./AuthUserResponse";
+import OmitPasswordUserResponse from "../../../types/UserOmit";
 
 export default interface GetUsersResponse {
     users: OmitPasswordUserResponse[];

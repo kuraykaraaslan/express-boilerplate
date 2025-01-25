@@ -1,18 +1,20 @@
-import { Role, User, UserSession, UserSocialAccount } from "@prisma/client";
+import { UserRole, User, UserSession, UserSocialAccount } from "@prisma/client";
 import { Request } from "express";
 import prisma from "../libs/prisma";
 import bcrypt from "bcrypt";
 
 // DTOs
-import AuthRegisterRequest from "../dtos/requests/AuthRegisterRequest";
-import AuthLoginRequest from "../dtos/requests/AuthLoginRequest";
-import AuthResponse from "../dtos/responses/AuthResponse";
-import AuthGetSessionRequest from "../dtos/requests/AuthGetSessionRequest";
-import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
-import AuthForgotPasswordRequest from "../dtos/requests/AuthForgotPasswordRequest";
-import AuthResetPasswordRequest from "../dtos/requests/AuthResetPasswordRequest";
+import LoginResponse from "../dtos/responses/auth/LoginResponse";
 import MessageResponse from "../dtos/responses/MessageResponse";
-import AuthUserSessionResponse from "../dtos/responses/AuthUserSessionResponse";
+import LoginRequest from "../dtos/requests/auth/LoginRequest";
+import ForgotPasswordRequest from "../dtos/requests/auth/ForgotPasswordRequest";
+import ResetPasswordRequest from "../dtos/requests/auth/ResetPasswordRequest";
+import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
+import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
+import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
+import EmptyRequest from "../dtos/requests/EmptyRequest";
+import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
 
 
 // Other Services
@@ -26,6 +28,8 @@ import OauthService from "./SSOService";
 import { createId } from '@paralleldrive/cuid2';
 import FieldValidater from "../utils/FieldValidater";
 import UserAgentUtil from "../utils/UserAgentUtil";
+import UserSessionOmit from "@/types/UserSessionOmit";
+import UserOmit from "@/types/UserOmit";
 
 export default class AuthService {
 
@@ -91,7 +95,7 @@ export default class AuthService {
      * @param session - The session object.
      * @returns The session object without the otpToken and otpTokenExpiry.
      */
-    static omitSensitiveFields(session: UserSession): AuthUserSessionResponse {
+    static omitSensitiveFields(session: UserSession): UserSessionOmit {
         const fields = ['otpToken', 'otpTokenExpiry', 'createdAt', 'updatedAt'];
        
         const safeSession = {
@@ -101,6 +105,11 @@ export default class AuthService {
             sessionExpiry: session.sessionExpiry,
             sessionAgent: session.sessionAgent,
             otpNeeded: session.otpNeeded,
+            city: session.city || 'Unknown',
+            state: session.state || 'Unknown',
+            country: session.country || 'Unknown',
+            ip: session.ip || 'Unknown',
+            device: session.device || 'Unknown',
         };        
         
         return safeSession;
@@ -113,7 +122,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The authenticated user.
      */
-    static async login(data: AuthLoginRequest): Promise<OmitPasswordUserResponse> {
+    static async login(data: LoginRequest): Promise<UserOmit> {
 
         // Get the user by email
         const user = await prisma.user.findUnique({
@@ -137,7 +146,7 @@ export default class AuthService {
      * Logs out a user by deleting the session.
      * @param token - The session token.
      */
-    static async logout(data: AuthGetSessionRequest): Promise<void> {
+    static async logout(data: GetSessionRequest): Promise<void> {
 
         // Check if the session exists
         const sessions = await prisma.userSession.findMany({
@@ -159,7 +168,7 @@ export default class AuthService {
      * @param userId - The user ID.
      * @returns The created session.
      */    
-    static async createSession(user: OmitPasswordUserResponse, request: Request<any>, otpConsired: boolean = false): Promise<AuthUserSessionResponse> {
+    static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<UserSessionOmit> {
 
         const userAgentData = await UserAgentUtil.parseRequest(request);
 
@@ -170,13 +179,13 @@ export default class AuthService {
                 sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
                 sessionAgent: "Web",
                 otpNeeded: otpConsired ? user.otpEnabled : false,
-                ip: userAgentData.ip,
-                os: userAgentData.os,
-                device: userAgentData.device,
-                browser: userAgentData.browser,
-                city: userAgentData.city,
-                state: userAgentData.state,
-                country: userAgentData.country,
+                ip: userAgentData.ip || "Unknown",
+                os: userAgentData.os || "Unknown",
+                device: userAgentData.device || "Unknown",
+                browser: userAgentData.browser || "Unknown",
+                city: userAgentData.city || "Unknown",
+                state: userAgentData.state || "Unknown",
+                country: userAgentData.country || "Unknown",
             },
         });
     }
@@ -186,7 +195,7 @@ export default class AuthService {
      * @param sessionToken - The session token.
      * @returns The user session.
      */
-    static async getSession(data: AuthGetSessionRequest): Promise<AuthResponse> {
+    static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
 
         console.log(data);
 
@@ -214,7 +223,7 @@ export default class AuthService {
      * @param token - The session token.
      */
 
-    static async deleteSession(data: AuthGetSessionRequest): Promise<void> {
+    static async deleteSession(data: UserSessionOmit): Promise<void> {
 
         await prisma.userSession.deleteMany({
             where: { sessionToken: data.sessionToken }
@@ -228,7 +237,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The registered user.
      */
-    static async register(data: AuthRegisterRequest): Promise<MessageResponse> {
+    static async register(data: RegisterRequest): Promise<MessageResponse> {
 
         const { email, name, password, phone } = data;
 
@@ -261,7 +270,7 @@ export default class AuthService {
      * @param requiredRoles - The required roles.
      * @returns Whether the user has the required role.
      */
-    static checkIfUserHasRole(user: OmitPasswordUserResponse, requiredRole: string): boolean {
+    static checkIfUserHasRole(user: UserOmit, requiredRole: string): boolean {
 
         const roles = [
             'SUPER_ADMIN',
@@ -270,7 +279,7 @@ export default class AuthService {
             'GUEST'
         ];
 
-        const userRoleIndex = roles.indexOf(user.role);
+        const userRoleIndex = roles.indexOf(user.userRole);
         const requiredRoleIndex = roles.indexOf(requiredRole);
 
         return userRoleIndex <= requiredRoleIndex;
@@ -281,7 +290,7 @@ export default class AuthService {
      * Sends a password reset email to the user.
      * @param email - The user's email.
      */
-    static async forgotPassword(data: AuthForgotPasswordRequest): Promise<void> {
+    static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
 
         // Get the user by email
         let user = await prisma.user.findUnique({
@@ -315,7 +324,7 @@ export default class AuthService {
      * @param token - The password reset token.
      * @param password - The new password.
      */
-    static async resetPassword(data: AuthResetPasswordRequest): Promise<void> {
+    static async resetPassword(data: ResetPasswordRequest): Promise<void> {
 
         // Get the user by token
         const user = await prisma.user.findFirst({
@@ -451,7 +460,7 @@ export default class AuthService {
      * @param user - The user object.
      * @param otpEnabled - Whether OTP is enabled.
      */
-    static async otpChangeStatus(user: OmitPasswordUserResponse, otpEnabled: boolean): Promise<MessageResponse> {
+    static async otpChangeStatus(user: UserOmit, otpEnabled: boolean): Promise<MessageResponse> {
 
         // If OTP is already enabled then throw an error
         if (otpEnabled && user.otpEnabled === otpEnabled) {
@@ -484,7 +493,7 @@ export default class AuthService {
      * @param otpEnabled - Whether OTP is enabled.
      * @param otpStatusChangeToken - The OTP status change token.
      */
-    static async otpChangeVerify(user: OmitPasswordUserResponse, otpEnabled: boolean, otpStatusChangeToken: string): Promise<MessageResponse> {
+    static async otpChangeVerify(user: UserOmit, otpEnabled: boolean, otpStatusChangeToken: string): Promise<MessageResponse> {
 
         // Check if the token is valid
         const updatedUser = await prisma.user.findUnique({

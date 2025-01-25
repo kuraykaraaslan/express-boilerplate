@@ -4,11 +4,13 @@ import bcrypt from "bcrypt";
 import FieldValidater from "../utils/FieldValidater";
 
 // DTOs
-import CreateUserRequest from "../dtos/requests/CreateUserRequest";
-import OmitPasswordUserResponse from "../dtos/responses/AuthUserResponse";
-import GetUsersRequest from "../dtos/requests/GetUsersRequest";
-import GetUsersResponse from "../dtos/responses/GetUsersResponse";
-import PutUserRequest from "../dtos/requests/PutUserRequest";
+import CreateUserRequest from "../dtos/requests/user/CreateUserRequest";
+import AuthUserResponse from "../types/UserOmit";
+import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
+import UserGetUsersResponse from "../dtos/responses/user/UserGetUsersResponse";
+import UserPutUserRequest from "../dtos/requests/user/PutUserRequest";
+import UserOmit from "../types/UserOmit";
+import PutUserRequest from "../dtos/requests/user/PutUserRequest";
 
 export default class UserService {
 
@@ -28,13 +30,13 @@ export default class UserService {
      * @param user - The user object.
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
-    static omitSensitiveFields(user: User): OmitPasswordUserResponse {
-        const omitted : OmitPasswordUserResponse = {
+    static omitSensitiveFields(user: User): AuthUserResponse {
+        const omitted : AuthUserResponse = {
             userId: user.userId,
             email: user.email,
             phone: user.phone,
             name: user.name,
-            role: user.role,
+            userRole: user.userRole,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
             profilePicture: user.profilePicture,
@@ -52,7 +54,7 @@ export default class UserService {
      * @param data - Partial user data to create the user.
      * @returns The created user without sensitive fields like password.
      */
-    static async create(data: CreateUserRequest): Promise<OmitPasswordUserResponse> {
+    static async create(data: CreateUserRequest): Promise<AuthUserResponse> {
 
         const { email, password, name } = data;
 
@@ -98,7 +100,7 @@ export default class UserService {
      * @param search - The search term to filter by.
      * @returns A list of users.
      */
-    static async get(data: GetUsersRequest): Promise<GetUsersResponse> {
+    static async get(data: GetUsersRequest): Promise<UserGetUsersResponse> {
 
         const { skip, take, search , userId , tenantId } = data;
 
@@ -132,7 +134,7 @@ export default class UserService {
      * @param userId - The user ID to retrieve.
      * @returns The user details.
      */
-    static async getById(data: GetUsersRequest): Promise<OmitPasswordUserResponse> {
+    static async getById(data: GetUsersRequest): Promise<UserOmit> {
 
         const { userId } = data;
         
@@ -157,7 +159,7 @@ export default class UserService {
      * @param data - Partial user data to update.
      * @returns The updated user details.
      */
-    static async update(data: PutUserRequest): Promise<OmitPasswordUserResponse> {
+    static async update(data: PutUserRequest): Promise<UserOmit> {
 
         const { userId } = data;
 
