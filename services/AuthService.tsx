@@ -125,7 +125,8 @@ export default class AuthService {
         }
 
         // Compare the password with the hash
-        if (!FieldValidater.comparePasswords(user.password, data.password)) {
+
+        if (!await FieldValidater.comparePasswords(user.password, data.password)) {
             throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
         }
 
