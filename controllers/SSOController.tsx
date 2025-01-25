@@ -1,7 +1,7 @@
 import {  Request, Response } from "express";
 
 import AuthService from "../services/AuthService";
-import SSOProviderRequest from "../dtos/requests/SSOProviderRequest";
+import GetSSOLinkRequest from "../dtos/requests/sso/GetSSOLinkRequest";
 import SSOService from "../services/SSOService";
 import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
 import LoginResponse from "../dtos/responses/auth/LoginResponse";
@@ -22,7 +22,7 @@ export default class SSOController {
     static FRONTEND_URL = process.env.FRONTEND_HOST + ":" + process.env.FRONTEND_PORT;
     static FRONTEND_CALLBACK_PATH = "/auth/sso";
  
-    public static async authProvider(request: Request<SSOProviderRequest>, response: Response<String>): Promise<void> {
+    public static async authProvider(request: Request<GetSSOLinkRequest>, response: Response<String>): Promise<void> {
 
         const provider = request.params.provider! as string;
 
@@ -35,7 +35,7 @@ export default class SSOController {
         return response.redirect(url);
     }
 
-    public static async authCallback(request: Request<SSOProviderRequest>, response: Response<any>): Promise<void> {
+    public static async authCallback(request: Request<GetSSOLinkRequest>, response: Response<any>): Promise<void> {
 
         const provider = request.params.provider! as string;
 

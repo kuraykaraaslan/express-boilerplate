@@ -9,7 +9,7 @@ import SSOController from "../../controllers/SSOController";
 import FieldValidater from "../../utils/FieldValidater";
 
 // DTOs
-import SSOProviderRequest from "../../dtos/requests/SSOProviderRequest";
+import GetSSOLinkRequest from "../../dtos/requests/sso/GetSSOLinkRequest";
 import LoginResponse from "../../dtos/responses/auth/LoginResponse";
 import EmptyRequest from "../../dtos/requests/EmptyRequest";
 import GetSessionRequest from "../../dtos/requests/auth/GetSessionRequest";
@@ -43,7 +43,7 @@ ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Respon
  * Redirects to the SSO provider's login page.
  * 
  */
-ssoRouter.get('/:provider', async (request: Request<SSOProviderRequest>, response: Response) => {
+ssoRouter.get('/:provider', async (request: Request<GetSSOLinkRequest>, response: Response) => {
 
     if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
         throw new Error("BAD_REQUEST");

@@ -14,7 +14,9 @@ model User {
   phone     String?   @unique
   password  String
   name      String?
+
   userRole      UserRole     @default(USER)
+  userStatus    UserStatus   @default(ACTIVE)
 
   //Timestamps
   createdAt DateTime @default(now())
@@ -91,4 +93,32 @@ enum UserRole {
   USER
   ADMIN
   SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// Tenancy
+
+model Tenant {
+  tenantId    String   @id @default(cuid())
+  name        String
+  description String?
+
+  status      TenantStatus @default(ACTIVE)
+
+  //Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
