@@ -86,3 +86,9 @@ model UserSocialAccount {
 
   @@index([provider, providerId])
 }
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
