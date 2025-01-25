@@ -28,8 +28,8 @@ import OauthService from "./SSOService";
 import { createId } from '@paralleldrive/cuid2';
 import FieldValidater from "../utils/FieldValidater";
 import UserAgentUtil from "../utils/UserAgentUtil";
-import UserSessionOmit from "@/types/UserSessionOmit";
-import UserOmit from "@/types/UserOmit";
+import UserSessionOmit from "../types/UserSessionOmit";
+import UserOmit from "../types/UserOmit";
 
 export default class AuthService {
 

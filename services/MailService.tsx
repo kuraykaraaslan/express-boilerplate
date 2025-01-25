@@ -6,7 +6,7 @@ import { User, UserSession } from '@prisma/client';
 
 // Types
 import UserOmit from '../types/UserOmit';
-import UserSessionOmit from '@/types/UserSessionOmit';
+import UserSessionOmit from '../types/UserSessionOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 

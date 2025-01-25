@@ -13,7 +13,7 @@ import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest
 import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
 import EmptyRequest from "../dtos/requests/EmptyRequest";
 import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
-import MailService from "@/services/MailService";
+import MailService from "../services/MailService";
 
 
 export default class AuthController {
