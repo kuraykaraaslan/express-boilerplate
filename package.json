@@ -8,11 +8,11 @@
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.tsx",
     "dev:sudo": "sudo ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.tsx",
     "build": "tsc -p .",
-    "migrate": "prisma migrate dev --name init",
+    "migrate": "prisma migrate dev --name init --preview-feature",
     "generate": "prisma generate",
     "lint": "eslint . --ext .ts,.tsx",
     "prettier": "prettier .",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --schema prisma/schema",
     "cert_create": "openssl req -x509 -newkey rsa:2048 -keyout certs/tempkey.pem -out certs/cert.pem -days 365 -nodes -config req.cnf",
     "cert_decryt": "openssl rsa -in certs/tempkey.pem -out certs/key.pem",
     "cert": "npm run cert_create && npm run cert_decryt"
