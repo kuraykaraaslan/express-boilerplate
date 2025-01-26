@@ -9,8 +9,6 @@ import dotenv from "dotenv";
 import IndexRouter from "./routers";
 dotenv.config({ path: "../.env" });
 
-import fs from "fs";
-import https from "https";
 import path from "path";
 
 
@@ -36,25 +34,9 @@ app.use(ErrorHandler);
 
 
 // HTTPS or HTTP
-if (process.env.APPLICATION_HTTPS === "true") {
-
-  const key = fs.readFileSync(path.join(__dirname, "./certs/key.pem"));
-  const cert = fs.readFileSync(path.join(__dirname, "./certs/cert.pem"));
-
-  const options = {
-    key: key,
-    cert: cert
-  };
-
-  https.createServer(options, app).listen(port, () => {
+app.listen(port, () => {
     console.clear();
     console.log(`Server started at ${host}:${port}`);
-  });
-} else {
-  app.listen(port, () => {
-    console.clear();
-    console.log(`Server started at ${host}:${port}`);
-  });
-}
+});
 
 module.exports = app;
