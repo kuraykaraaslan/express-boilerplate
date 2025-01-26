@@ -65,4 +65,13 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
     return await SSOController.authCallback(request, response);
 });
 
+// same but post 
+ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Response<LoginResponse>) => {
+
+    //console body
+    console.log(request.body);
+
+    return await SSOController.authCallback(request, response);
+});
+
 export default ssoRouter;

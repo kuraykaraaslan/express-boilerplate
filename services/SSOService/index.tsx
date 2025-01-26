@@ -183,8 +183,10 @@ export default class SSOService {
      */
     static async handleAppleCallback(code: string): Promise<AuthUserResponse> {
         try {
-            const { access_token, refresh_token } = await AppleService.getTokens(code);
-            const profile = await AppleService.getUserInfo(access_token);
+            const { access_token, refresh_token, id_token } = await AppleService.getTokens(code);
+            console.log(access_token, refresh_token, id_token);
+
+            const profile = await AppleService.getUserInfo(id_token);
             return this.loginOrCreateUser(profile, access_token, refresh_token, "apple");
         } catch (error) {
             console.error('Apple authentication failed:', error);

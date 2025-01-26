@@ -43,7 +43,18 @@ export default class SSOController {
             throw new Error("INVALID_PROVIDER");
         }
 
-        const { code , state } = request.query;
+        var { code, state } = request.query;
+
+        //if code and state are not present, then try to get it from the body
+        if (!code) {
+            code = request.body.code;
+            state = request.body.state;
+        }
+
+        if (!code) {
+            //redirect to frontend
+            throw new Error(this.AUTHENTICATION_FAILED);
+        }
 
         const user = await SSOService.authCallback(provider, code as string, state as string);
 

@@ -27,10 +27,13 @@ export default class AppleService {
             client_id: this.APPLE_CLIENT_ID,
             redirect_uri: `${this.APPLICATION_HOST}${this.APPLE_CALLBACK_PATH}`,
             response_type: 'code',
-            scope: 'profile email', // Request access to profile and email
+            scope: 'email name',
             access_type: 'offline', // Request a refresh token
             prompt: 'consent', // Force consent screen
+            response_mode: 'form_post',
         };
+
+        console.log(params);
 
         return `${this.APPLE_AUTH_URL}?${new URLSearchParams(params).toString()}`;
     }
@@ -65,7 +68,7 @@ export default class AppleService {
     * @returns The access token and refresh token.
     * @throws Error if the request fails
     */
-    static async getTokens(code: string): Promise<{ access_token: string; refresh_token: string }> {
+    static async getTokens(code: string): Promise<{ access_token: string; refresh_token: string; id_token: string }> {
         const clientSecret = this.generateClientSecret();
 
 
@@ -89,6 +92,7 @@ export default class AppleService {
         return {
             access_token: tokenResponse.data.access_token,
             refresh_token: tokenResponse.data.refresh_token,
+            id_token: tokenResponse.data.id_token,
         };
     }
 
@@ -99,9 +103,12 @@ export default class AppleService {
     * @returns The user info.
     * @throws Error if the request fails.
     */
-    static async getUserInfo(accessToken: string): Promise<{ email: string; sub: string }> {
+    static async getUserInfo(idToken: string): Promise<{ email: string; sub: string }> {
         // Decode the ID token to get user information
-        const decodedToken = jwt.decode(accessToken) as { email: string; sub: string };
+        const decodedToken = await jwt.decode(idToken) as { email: string; sub: string };
+
+        console.log(decodedToken);
+
         return {
             email: decodedToken.email,
             sub: decodedToken.sub, // Apple's unique ID for the user
