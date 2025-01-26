@@ -8,7 +8,7 @@ import { Router, Request, Response } from "express";
 
 // DTOs
 import GetUsersRequest from "../../dtos/requests/user/GetUsersRequest";
-import GetUsersResponse from "../../dtos/responses/user/UserGetUsersResponse";
+import GetUsersResponse from "../../dtos/responses/user/GetUsersResponse";
 import PutUserRequest from "../../dtos/requests/user/PutUserRequest";
 import OmitPasswordUserResponse from "../../types/UserOmit";
 import GetUserRequest from "../../dtos/requests/user/GetUserRequest";

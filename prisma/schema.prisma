@@ -92,7 +92,6 @@ model UserSocialAccount {
 enum UserRole {
   USER
   ADMIN
-  SUPER_ADMIN
 }
 
 enum UserStatus {
@@ -101,14 +100,18 @@ enum UserStatus {
   SUSPENDED
 }
 
-// Tenancy
-
 model Tenant {
   tenantId    String   @id @default(cuid())
-  name        String
+  name        String  
   description String?
 
   status      TenantStatus @default(ACTIVE)
+
+  //Relationships
+  tenantUsers TenantUser[]
+
+  //Domain
+  domain String
 
   //Timestamps
   createdAt DateTime @default(now())
@@ -121,4 +124,31 @@ enum TenantStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum TenantUserRole {
+  USER
+  ADMIN
+}
+
+enum TenantUserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model TenantUser {
+  tenantUserId  String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  userId        String
+
+  tenantUserRole TenantUserRole @default(USER)
+  tenantUserStatus TenantUserStatus @default(ACTIVE)
+
+  //Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 }

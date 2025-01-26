@@ -14,6 +14,8 @@ import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest
 import EmptyRequest from "../dtos/requests/EmptyRequest";
 import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
 import MailService from "../services/MailService";
+import UserOmit from "../types/UserOmit";
+import UserSessionOmit from "../types/UserSessionOmit";
 
 
 export default class AuthController {
@@ -30,9 +32,11 @@ export default class AuthController {
             throw new Error("INVALID_PASSWORD");
         }
 
-        const user = await AuthService.login({ email, password });
+        const user = await AuthService.login({ email, password }) as UserOmit;
 
-        const userSession = await AuthService.createSession(user, request, true);
+        
+        const userSession = await AuthService.createSession(user, request, true) as UserSessionOmit;
+
 
         MailService.sendNewLoginEmail(user, userSession);
 

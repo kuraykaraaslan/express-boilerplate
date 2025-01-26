@@ -7,7 +7,7 @@ import FieldValidater from "../utils/FieldValidater";
 import CreateUserRequest from "../dtos/requests/user/CreateUserRequest";
 import AuthUserResponse from "../types/UserOmit";
 import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
-import UserGetUsersResponse from "../dtos/responses/user/UserGetUsersResponse";
+import GetUsersResponse from "../dtos/responses/user/GetUsersResponse";
 import UserOmit from "../types/UserOmit";
 import PutUserRequest from "../dtos/requests/user/PutUserRequest";
 
@@ -99,16 +99,15 @@ export default class UserService {
      * @param search - The search term to filter by.
      * @returns A list of users.
      */
-    static async get(data: GetUsersRequest): Promise<UserGetUsersResponse> {
+    static async get(data: GetUsersRequest): Promise<GetUsersResponse> {
 
-        const { skip, take, search , userId , tenantId } = data;
+        const { skip, take, search , userId } = data;
 
         const queryOptions = {
             skip,
             take,
             where: {
                 userId: userId ? userId : undefined,
-                tenantId: tenantId ? tenantId : undefined,
                 OR: [
                     { email: { contains: search ? search : '' } },
                     { name: { contains: search ? search : '' } },

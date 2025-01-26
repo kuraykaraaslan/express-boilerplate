@@ -9,6 +9,7 @@ export default class FieldValidater {
     static passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     static tokenRegex = /^[0-9]{6}$/;
     static sqlInjectionRegex = /[\s\[\]{}()*+?.,\\^$|#]/;
+    static domainRegex = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/;
 
     /**
      * Validates if the provided email matches the email regex pattern.
@@ -182,6 +183,28 @@ export default class FieldValidater {
         return true; // Valid if no issues
     }
 
+    /**
+     * Validates if the provided string is a valid domain withouth protocol.
+     * @param domain - The domain string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     */
+    static isDomain(domain: string | undefined | null): boolean {
+        if (!domain || typeof domain !== "string") return false;
+        return this.domainRegex.test(domain);
+    }
+    
+
+    /**
+     * Validates if the provided string is a valid name.
+     * @param name - The name string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */
+
+    static isName(name: string | undefined | null): boolean {
+        if (!name || typeof name !== "string") return false;
+        return name.length > 5;
+    }
 
 
 }

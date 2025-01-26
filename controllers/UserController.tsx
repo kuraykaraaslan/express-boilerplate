@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
-import OmitPasswordUserResponse from "../types/UserOmit";
+import UserOmit from "../types/UserOmit";
 import GetUserRequest from "../dtos/requests/user/GetUserRequest";
 import PutUserRequest from "../dtos/requests/user/PutUserRequest";
 import UserService from "../services/UserService";
 import FieldValidater from "../utils/FieldValidater";
-import GetUsersResponse from "../dtos/responses/user/UserGetUsersResponse";
+import GetUsersResponse from "../dtos/responses/user/GetUsersResponse";
 import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
 import MessageResponse from "../dtos/responses/MessageResponse";
 
 
 export default class UserController {
 
-    public static async getById(request: Request<GetUserRequest>, response: Response<OmitPasswordUserResponse>): Promise<Response<OmitPasswordUserResponse>> {
+    public static async getById(request: Request<GetUserRequest>, response: Response<UserOmit>): Promise<Response<UserOmit>> {
         const { userId } = request.params;
 
         if (!FieldValidater.isCUID(userId)) {
@@ -21,7 +21,7 @@ export default class UserController {
         return response.json(await UserService.getById({ userId }));
     }
 
-    public static async create(request: Request<PutUserRequest>, response: Response<OmitPasswordUserResponse>): Promise<Response<OmitPasswordUserResponse>> {
+    public static async create(request: Request<PutUserRequest>, response: Response<UserOmit>): Promise<Response<UserOmit>> {
         
         const { email, password, name , role , phone , address } = request.body;
 
@@ -88,7 +88,7 @@ export default class UserController {
         return response.json(await UserService.get(data));
     }
 
-    public static async update(request: Request<PutUserRequest>, response: Response<OmitPasswordUserResponse>): Promise<Response<OmitPasswordUserResponse>> {
+    public static async update(request: Request<PutUserRequest>, response: Response<UserOmit>): Promise<Response<UserOmit>> {
         
         const { userId, email, name , role , phone , address} = request.body;
 

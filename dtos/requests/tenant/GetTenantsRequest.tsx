@@ -1,4 +1,4 @@
-export default class GetUsersRequest {
+export default class GetTenantsRequest {
     skip?: number;
     take?: number;
     userId?: string;
