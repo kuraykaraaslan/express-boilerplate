@@ -13,6 +13,8 @@ export default function ErrorHandler(error: any, request: Request, response: Res
 
 
     if (NODE_ENV !== 'development') {
+        console.error(error);
+        
         return response.status(500).json({
             error: "ERROR_BAD_REQUEST",
         });
