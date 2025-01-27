@@ -1,7 +1,7 @@
-import { User } from "@prisma/client";
+import { TenantStatus, User } from "@prisma/client";
 export default class PutTenantRequest {
     tenantId!: string;
     domain!: string;
     name!: string;
-    tenantStatus!: string;
+    tenantStatus!: TenantStatus;
 }

@@ -52,7 +52,7 @@ export default class UserController {
         return response.json(await UserService.create({ email, password }));
     }
 
-    public static async get(request: Request<GetUsersRequest>, response: Response<GetUsersResponse>): Promise<Response<GetUsersResponse>> {
+    public static async getAll(request: Request<GetUsersRequest>, response: Response<GetUsersResponse>): Promise<Response<GetUsersResponse>> {
         
         let { skip, take, userId, tenantId, search } = request.query as any;
 
@@ -85,7 +85,7 @@ export default class UserController {
             search 
         };
 
-        return response.json(await UserService.get(data));
+        return response.json(await UserService.getAll(data));
     }
 
     public static async update(request: Request<PutUserRequest>, response: Response<UserOmit>): Promise<Response<UserOmit>> {

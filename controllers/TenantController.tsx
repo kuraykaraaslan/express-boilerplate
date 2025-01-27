@@ -3,11 +3,12 @@ import { Request, Response } from "express";
 import TenantOmit from "../types/TenantOmit";
 import TenantService from "../services/TenantService";
 import FieldValidater from "../utils/FieldValidater";
-import GetTenantsRequest from "../dtos/requests/tenant/GetTenantRequest";
+import GetTenantsRequest from "@/dtos/requests/tenant/GetTenantsRequest";
 import GetTenantsResponse from "../dtos/responses/tenant/GetTenantsResponse";
 import GetTenantRequest from "../dtos/requests/tenant/GetTenantRequest";
 import GetTenantResponse from "../dtos/responses/tenant/GetTenantResponse";
 import CreateTenantRequest from "@/dtos/requests/tenant/CreateTenantRequest";
+import PutTenantRequest from "@/dtos/requests/tenant/PutTenantRequest";
 
 
 export default class TenantController {
@@ -33,8 +34,7 @@ export default class TenantController {
 
     }
 
-    public static async get(request: Request<GetTenantsRequest>, response: Response<GetTenantsResponse>): Promise<Response<GetTenantsResponse>> {
-        
+    public static async getAll(request: Request<GetTenantsRequest>, response: Response<GetTenantsResponse>): Promise<Response<GetTenantsResponse>> {        
         let { skip, take, tenantId, domain, search } = request.query as any;
 
         if (skip ? !FieldValidater.isNumber(skip) : false) {
@@ -53,7 +53,13 @@ export default class TenantController {
             throw new Error("INVALID_DOMAIN");
         }
 
-        return response.json(await TenantService.get({ skip, take, search }));
+        const data = { 
+            skip: skip ? parseInt(skip) : 0, 
+            take: take ? parseInt(take) : 10, 
+            search: search ? search : ''
+        };
+
+        return response.json(await TenantService.getAll(data));
     }
 
     public static async create(request: Request<CreateTenantRequest>, response: Response<GetTenantResponse>): Promise<Response<GetTenantResponse>> {
@@ -74,7 +80,7 @@ export default class TenantController {
     }
 
 
-    public static async update(request: Request<CreateTenantRequest>, response: Response<GetTenantResponse>): Promise<Response<GetTenantResponse>> {
+    public static async update(request: Request<PutTenantRequest>, response: Response<GetTenantResponse>): Promise<Response<GetTenantResponse>> {
 
         const { tenantId, name, domain, tenantStatus } = request.body;
 

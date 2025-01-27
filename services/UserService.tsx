@@ -99,7 +99,7 @@ export default class UserService {
      * @param search - The search term to filter by.
      * @returns A list of users.
      */
-    static async get(data: GetUsersRequest): Promise<GetUsersResponse> {
+    static async getAll(data: GetUsersRequest): Promise<GetUsersResponse> {
 
         const { skip, take, search , userId } = data;
 

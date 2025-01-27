@@ -59,7 +59,7 @@ userRouter.post("/", async (request: Request<PutUserRequest>, response: Response
  */
 userRouter.get("/", async (request: Request<GetUsersRequest>, response: Response<GetUsersResponse>) : Promise<Response<GetUsersResponse>> => {
 
-    return await UserController.get(request, response);
+    return await UserController.getAll(request, response);
     
 });
 

@@ -13,7 +13,7 @@ import AuthService from '../services/AuthService';
 
 export default function (requiredRole: string) {
 
-  return async function authMiddleware(request: Request, response: Response, next: NextFunction) {
+  return async function authMiddleware(request: Request<any>, response: Response<any>, next: NextFunction) {
 
     try {
 
@@ -74,10 +74,10 @@ export default function (requiredRole: string) {
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
 
-      next();
+      return next();
 
     } catch (error: any) {
-      response.status(401).send({ error: error.message });
+      throw new Error(error.message);
     }
   }
 }

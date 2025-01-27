@@ -180,6 +180,16 @@ export default class FieldValidater {
             return false;
         }
 
+        //if there are no fields in the value but there are fields in the model
+        if (keys.length === 0 && requiredFields.length > 0) {
+            return false;
+        }
+
+        const providedFields = requiredFields.concat(optionalFields);
+        const modelFields = Object.keys(orginalInstance);
+        console.log(providedFields, modelFields);
+        console.log(requiredFields, optionalFields, extraFields);
+
         return true; // Valid if no issues
     }
 

@@ -105,7 +105,7 @@ model Tenant {
   name        String  
   description String?
 
-  status      TenantStatus @default(ACTIVE)
+  tenantStatus      TenantStatus @default(ACTIVE)
 
   //Relationships
   tenantUsers TenantUser[]

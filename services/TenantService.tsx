@@ -28,7 +28,7 @@ export default class TenantService {
             tenantId: tenant.tenantId,
             domain: tenant.domain,
             name: tenant.name,
-            status: tenant.status,
+            tenantStatus: tenant.tenantStatus,
         };
 
         return omitted;
@@ -38,8 +38,10 @@ export default class TenantService {
      * Get all tenants.
      * @returns The tenants.
      */
-    public static async get(data: GetTenantsRequest): Promise<GetTenantsResponse> {
+    public static async getAll(data: GetTenantsRequest): Promise<GetTenantsResponse> {
         const { skip, take, search  } = data;
+
+        console.log(data);
 
         const queryOptions = {
             skip,
@@ -48,14 +50,12 @@ export default class TenantService {
                 OR: [
                     {
                         domain: {
-                            contains: search,
-                            case: 'insensitive'
+                            contains: search
                         }
                     },
                     {
                         name: {
-                            contains: search,
-                            case: 'insensitive'
+                            contains: search
                         }
                     }
                 ]
@@ -64,7 +64,7 @@ export default class TenantService {
 
         const [tenants, total] = await Promise.all([
             prisma.tenant.findMany(queryOptions),
-            prisma.tenant.count({ where: queryOptions.where })
+            prisma.tenant.count({ where: queryOptions.where }),
         ]);
 
         const tenantsOmit = tenants.map((tenant) => TenantService.omitSensitiveFields(tenant));
@@ -82,11 +82,8 @@ export default class TenantService {
 
         const { tenantId , domain } = data;
 
-        // check if tenantId or domain is provided
-        if (!tenantId && !domain) {
-            throw new Error(TenantService.INVALID_TENANT_REQUEST);
-        }
 
+        console.log('tenantId:', tenantId);
         let tenant = await prisma.tenant.findFirst({
             where: {
                 OR: [
@@ -155,8 +152,6 @@ export default class TenantService {
 
         return TenantService.omitSensitiveFields(tenant);   
     }
-
-
 
 }
 

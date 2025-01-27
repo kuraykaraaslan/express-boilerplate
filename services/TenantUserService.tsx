@@ -5,6 +5,7 @@ import GetTenantUserRequest from '../dtos/requests/tenantuser/GetTenantUserReque
 import GetTenantUserResponse from '../dtos/responses/tenantuser/GetTenantUserResponse';
 
 import TenantUserOmit from '../types/TenantUserOmit';
+import TenantOmit from '@/types/TenantOmit';
 
 export default class TenantUserService {
 
@@ -32,7 +33,7 @@ export default class TenantUserService {
         return omitted;
     }
 
-    public static async get(data: GetTenantUserRequest): Promise<TenantUserOmit> {
+    public static async get(data: GetTenantUserRequest): Promise<TenantUserOmit | null> {
 
 
         const { tenantId , userId } = data;
@@ -50,7 +51,7 @@ export default class TenantUserService {
         });
 
         if (!tenantUser) {
-            throw new Error(TenantUserService.TENANT_USER_NOT_FOUND);
+            return null;
         }
 
         return TenantUserService.omitSensitiveFields(tenantUser);
@@ -58,8 +59,20 @@ export default class TenantUserService {
     }
 
     /**
-     * Create a new tenant user.
+     * checkIfUserHasRole
      */
+    public static checkIfUserHasRole(tenantUser: TenantUserOmit, requiredRole: string): boolean {
+        const roles = [
+            'ADMIN',
+            'USER',
+        ];
+
+        const roleIndex = roles.indexOf(requiredRole);
+        const userRoleIndex = roles.indexOf(tenantUser.tenantUserRole);
+
+        return roleIndex <= userRoleIndex;
+
+    }
 
 }
 

@@ -264,7 +264,7 @@ export default class AuthService {
      * @param requiredRoles - The required roles.
      * @returns Whether the user has the required role.
      */
-    static checkIfUserHasRole(user: UserOmit, requiredRole: string): boolean {
+    public static checkIfUserHasRole(user: UserOmit, requiredRole: string): boolean {
 
         const roles = [
             'SUPER_ADMIN',
