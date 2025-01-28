@@ -1,7 +1,7 @@
 import { TenantUserRole, TenantUserStatus } from "@prisma/client";
-export default class CreateTenantUserRequest {
-    tenantId!: string;
-    userId!: string;
+
+export default class PutTenantUserRequest {
+    tenantUserId!: string;
     tenantUserRole!: TenantUserRole;
     tenantUserStatus!: TenantUserStatus;
 }

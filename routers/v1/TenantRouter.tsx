@@ -20,6 +20,9 @@ import GetTenantsResponse from "../../dtos/responses/tenant/GetTenantsResponse";
 import TenantMiddleware from "../../middlewares/TenantMiddleware";
 import PutTenantRequest from "../../dtos/requests/tenant/PutTenantRequest";
 
+// Tenant User Router
+import TenantUserRouter from "./TenantUserRouter";
+
 const tenantRouter = Router();
 
 tenantRouter.use(AuthMiddleware("USER"));
@@ -62,10 +65,8 @@ tenantRouter.get('/',
  * @param tenantId The ID of the tenant.
  */
 tenantRouter.get('/:tenantId',
-    TenantMiddleware("ADMIN"),
+    TenantMiddleware("USER"),
     async (request: Request<any>, response: Response<GetTenantResponse>) => {
-
-        console.log('tenantId:', request.params.tenantId);
 
         return await TenantController.getById(request, response);
     });
@@ -85,6 +86,30 @@ tenantRouter.put('/:tenantId',
 
         return await TenantController.update(request, response);
     });
+
+/**
+ * DELETE /tenants/:tenantId
+ * Delete a tenant by ID.
+ *
+ * @param tenantId The ID of the tenant.
+ * @returns The deleted tenant.
+ */
+tenantRouter.delete('/:tenantId',
+    TenantMiddleware("ADMIN"),
+    async (request: Request<any>, response: Response<GetTenantResponse>) => {
+
+        return await TenantController.delete(request, response);
+    });
+
+
+/** 
+ * Tenant User Router
+ * 
+ * This module provides endpoints to manage tenant user operations such as creating, updating, and deleting tenant users.
+ * It uses the AuthService to interact with the database and perform necessary actions.
+ */
+
+tenantRouter.use('/users', TenantUserRouter);
 
 
 export default tenantRouter;

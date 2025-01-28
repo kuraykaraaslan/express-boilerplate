@@ -11,7 +11,7 @@ export default function (
 ) {
     console.log('Executing Tenant Middleware');
 
-    return async function tenantMiddleware(request: Request, response: Response, next: NextFunction) {
+    return async function tenantMiddleware(request: Request<any>, response: Response, next: NextFunction) {
         console.log('params:', request.params);
         console.log('body:', request.body);
         try {
@@ -50,7 +50,7 @@ export default function (
             // Attach tenant to request
             request.tenant = tenant;
 
-            let tenantUser = await TenantUserService.get({ tenantId: tenant.tenantId, userId: user.userId });
+            let tenantUser = await TenantUserService.getById({ tenantId: tenant.tenantId, userId: user.userId });
 
             // If the user is an admin but not a tenant user, create a temporary tenant user
             if (!tenantUser && user.userRole === 'ADMIN') {

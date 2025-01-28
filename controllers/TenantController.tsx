@@ -109,4 +109,17 @@ export default class TenantController {
         return response.json({ tenant });
     }
 
+    public static async delete(request: Request<any>, response: Response<any>): Promise<Response<any>> {
+        const { tenantId } = request.params;
+
+        if (!FieldValidater.isCUID(tenantId)) {
+            throw new Error("INVALID_TENANT_ID");
+        }
+
+        await TenantService.delete({ tenantId });
+
+        return response.json({ message: "Tenant deleted successfully" });
+    }
+    
+
 }

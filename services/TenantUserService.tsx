@@ -6,6 +6,11 @@ import GetTenantUserResponse from '../dtos/responses/tenantuser/GetTenantUserRes
 
 import TenantUserOmit from '../types/TenantUserOmit';
 import TenantOmit from '@/types/TenantOmit';
+import GetTenantUsersRequest from '../dtos/requests/tenantuser/GetTenantUsersRequest';
+import GetTenantUsersResponse from '@/dtos/responses/tenantuser/GetTenantUsersResponse';
+import PutTenantRequest from '@/dtos/requests/tenant/PutTenantRequest';
+import PutTenantUserRequest from '@/dtos/requests/tenantuser/PutTenantUserRequest';
+import CreateTenantUserRequest from '@/dtos/requests/tenantuser/CreateTenantUserRequest';
 
 export default class TenantUserService {
 
@@ -33,10 +38,10 @@ export default class TenantUserService {
         return omitted;
     }
 
-    public static async get(data: GetTenantUserRequest): Promise<TenantUserOmit | null> {
+    public static async getById(data: GetTenantUserRequest): Promise<TenantUserOmit | null> {
 
 
-        const { tenantId , userId } = data;
+        const { tenantId , userId, tenantUserId } = data;
 
         // check if tenantId or userId is provided
         if (!tenantId && !userId) {
@@ -46,7 +51,8 @@ export default class TenantUserService {
         let tenantUser = await prisma.tenantUser.findFirst({
             where: {
                 tenantId,
-                userId
+                userId,
+                tenantUserId,
             }
         });
 
@@ -56,6 +62,118 @@ export default class TenantUserService {
 
         return TenantUserService.omitSensitiveFields(tenantUser);
 
+    }
+
+    public static async getAll(data: GetTenantUsersRequest): Promise<GetTenantUsersResponse> {
+
+        const { skip, take, search, tenantId } = data;
+
+        const queryOptions = {
+            skip,
+            take,
+            where: {
+                OR: [
+                    {
+                        tenantId: {
+                            contains: search
+                        }
+                    },
+                    {
+                        userId: {
+                            contains: search
+                        }
+                    },
+                    {
+                        tenantUserId: {
+                            contains: search
+                        }
+                    }
+                ]
+            }
+        }; 
+
+        const [tenantUsers, total] = await Promise.all([
+            prisma.tenantUser.findMany(queryOptions),
+            prisma.tenantUser.count({ where: queryOptions.where }),
+        ]);
+
+        const tenantUsersOmit = tenantUsers.map((tenantUser) => TenantUserService.omitSensitiveFields(tenantUser));
+
+        return { tenantUsers: tenantUsersOmit, total };
+       
+    }
+
+    /**
+     * Delete a tenant user.
+     * @param data - The tenant user data.
+     * @returns The tenant user.
+     * @throws TENANT_USER_NOT_FOUND
+     * @throws INVALID_TENANT_USER_REQUEST
+     */
+    public static async delete(data: GetTenantUserRequest): Promise<TenantUserOmit> {
+        const { tenantId, userId, tenantUserId } = data;
+
+        // check if tenantId or userId is provided
+        if (!tenantId && !userId) {
+            throw new Error(TenantUserService.INVALID_TENANT_USER_REQUEST);
+        }
+
+        const tenantUser = await prisma.tenantUser.delete({
+            where: {
+                tenantId,
+                userId,
+                tenantUserId,
+            }
+        });
+
+        return TenantUserService.omitSensitiveFields(tenantUser);
+    }
+
+    /**
+     * Update a tenant user.
+     * @param data - The tenant user data.
+     * @returns The tenant user.
+     * @throws TENANT_USER_NOT_FOUND
+     * @throws INVALID_TENANT_USER_REQUEST
+     */
+    public static async update(data: PutTenantUserRequest): Promise<TenantUserOmit> {
+        const { tenantUserId, tenantUserRole, tenantUserStatus } = data;
+
+        if (!tenantUserId) {
+            throw new Error(TenantUserService.INVALID_TENANT_USER_REQUEST);
+        }
+
+        const tenantUser = await prisma.tenantUser.update({
+            where: {
+                tenantUserId,
+            },
+            data: {
+                tenantUserRole,
+                tenantUserStatus,
+            }
+        });
+
+        return TenantUserService.omitSensitiveFields(tenantUser);
+    }
+
+    /**
+     * Create a new tenant user.
+     * @param data - The tenant user data.
+     * @returns The created tenant user.
+     * @throws INVALID_TENANT_USER_REQUEST
+     */
+    public static async create(data: CreateTenantUserRequest): Promise<TenantUserOmit> {
+        const { tenantId, userId, tenantUserRole, tenantUserStatus } = data;
+
+        if (!tenantId || !userId || !tenantUserRole || !tenantUserStatus) {
+            throw new Error(TenantUserService.INVALID_TENANT_USER_REQUEST);
+        }
+
+        const tenantUser = await prisma.tenantUser.create({
+            data
+        });
+
+        return TenantUserService.omitSensitiveFields(tenantUser);
     }
 
     /**
@@ -73,6 +191,7 @@ export default class TenantUserService {
         return roleIndex <= userRoleIndex;
 
     }
+    
 
 }
 

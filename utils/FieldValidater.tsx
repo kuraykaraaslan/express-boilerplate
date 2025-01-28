@@ -118,6 +118,29 @@ export default class FieldValidater {
         return ["USER", "ADMIN", "SUPER_ADMIN"].includes(role);
     }
 
+    /**
+     * Validates if the provided value is tenant user role.
+     * @param tenantUserRole - The tenant user role string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */ 
+
+    static isTenantUserRole(tenantUserRole: string | undefined | null): boolean {
+        if (!tenantUserRole || typeof tenantUserRole !== "string") return false;
+        return ["USER", "ADMIN", "SUPER_ADMIN"].includes(tenantUserRole);
+    }
+
+    /**
+     * Validates if the provided value is tenant user status.
+     * @param tenantUserStatus - The tenant user status string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */
+    static isTenantUserStatus(tenantUserStatus: string | undefined | null): boolean {
+        if (!tenantUserStatus || typeof tenantUserStatus !== "string") return false;
+        return ["ACTIVE", "INACTIVE"].includes(tenantUserStatus);
+    }
+
 
     /**
      * Validates if the provided value is a valid number.

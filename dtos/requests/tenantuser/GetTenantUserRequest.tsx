@@ -1,4 +1,5 @@
 export default class GetTenantUserRequest {
-    tenantId?: string;
+    tenantUserId?: string;
     userId?: string;
+    tenantId?: string;
 }
