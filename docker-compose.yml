@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://express-boilerplate:express-boilerplate@db:5432/express-boilerplate"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: express-boilerplate
+      POSTGRES_PASSWORD: express-boilerplate
+      POSTGRES_DB: express-boilerplate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
