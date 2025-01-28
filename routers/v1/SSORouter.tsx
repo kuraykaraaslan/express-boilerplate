@@ -5,7 +5,8 @@
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
 import { Router, Request, Response } from "express";
-import SSOController from "../../controllers/SSOController";
+
+// Utils
 import FieldValidater from "../../utils/FieldValidater";
 
 // DTOs
@@ -13,8 +14,20 @@ import GetSSOLinkRequest from "../../dtos/requests/sso/GetSSOLinkRequest";
 import LoginResponse from "../../dtos/responses/auth/LoginResponse";
 import EmptyRequest from "../../dtos/requests/EmptyRequest";
 import GetSessionRequest from "../../dtos/requests/auth/GetSessionRequest";
+import SSOService from "@/services/SSOService";
+import AuthService from "@/services/AuthService";
+import MailService from "@/services/MailService";
 
 
+const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
+const FRONTEND_URL = process.env.FRONTEND_HOST + ":" + process.env.FRONTEND_PORT;
+const FRONTEND_CALLBACK_PATH = "/auth/sso";
+const ALLOWED_PROVIDERS = process.env.ALLOWED_PROVIDERS ? process.env.ALLOWED_PROVIDERS.split(",") : [];
+
+// Constants
+const INVALID_PROVIDER = "INVALID_PROVIDER";
+const AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED";
+const OAUTH_ERROR = "OAUTH_ERROR";
 
 
 const ssoRouter = Router();
@@ -28,12 +41,12 @@ ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Respon
 
 
     console.log(request.body);
-    
+
     if (!FieldValidater.validateBody(request.body, GetSessionRequest)) {
         throw new Error("BAD_REQUEST");
     }
 
-    return await SSOController.getSession(request, response);
+    return await AuthService.getSession(request.body);
 });
 
 /**
@@ -49,7 +62,16 @@ ssoRouter.get('/:provider', async (request: Request<GetSSOLinkRequest>, response
         throw new Error("BAD_REQUEST");
     }
 
-    return await SSOController.authProvider(request, response);
+    const provider = request.params.provider! as string;
+
+    if (!ALLOWED_PROVIDERS.includes(provider)) {
+        throw new Error(INVALID_PROVIDER);
+    }
+
+    const url = await SSOService.generateAuthUrl(provider);
+
+    return response.redirect(url);
+
 });
 
 /**
@@ -62,16 +84,91 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
         throw new Error("BAD_REQUEST");
     }
 
-    return await SSOController.authCallback(request, response);
+    const provider = request.params.provider! as string;
+
+    if (ALLOWED_PROVIDERS.includes(provider)) {
+        throw new Error("INVALID_PROVIDER");
+    }
+
+    var { code, state } = request.query;
+
+    //if code and state are not present, then try to get it from the body
+    if (!code) {
+        code = request.body.code;
+        state = request.body.state;
+    }
+
+    if (!code) {
+        //redirect to frontend
+        throw new Error(AUTHENTICATION_FAILED);
+    }
+
+    const user = await SSOService.authCallback(provider, code as string, state as string);
+
+    if (!user) {
+        //redirect to frontend
+        throw new Error(AUTHENTICATION_FAILED);
+    }
+
+    const userSession = await AuthService.createSession(user, request);
+
+    MailService.sendWelcomeEmail(user);
+
+    if (!userSession) {
+        //redirect to frontend
+        throw new Error(OAUTH_ERROR);
+    }
+
+    //redirect to frontend
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.sessionToken}`);
+
 });
 
 // same but post 
 ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Response<LoginResponse>) => {
 
-    //console body
-    console.log(request.body);
+    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
+        throw new Error("BAD_REQUEST");
+    }
 
-    return await SSOController.authCallback(request, response);
+    const provider = request.params.provider! as string;
+
+    if (ALLOWED_PROVIDERS.includes(provider)) {
+        throw new Error("INVALID_PROVIDER");
+    }
+
+    var { code, state } = request.query;
+
+    //if code and state are not present, then try to get it from the body
+    if (!code) {
+        code = request.body.code;
+        state = request.body.state;
+    }
+
+    if (!code) {
+        //redirect to frontend
+        throw new Error(AUTHENTICATION_FAILED);
+    }
+
+    const user = await SSOService.authCallback(provider, code as string, state as string);
+
+    if (!user) {
+        //redirect to frontend
+        throw new Error(AUTHENTICATION_FAILED);
+    }
+
+    const userSession = await AuthService.createSession(user, request);
+
+    MailService.sendWelcomeEmail(user);
+
+    if (!userSession) {
+        //redirect to frontend
+        throw new Error(OAUTH_ERROR);
+    }
+
+    //redirect to frontend
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.sessionToken}`);
+
 });
 
 export default ssoRouter;

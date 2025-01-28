@@ -1,15 +1,22 @@
 import prisma from "../libs/prisma";
 import { User } from "@prisma/client";
+
+// Libraries
 import bcrypt from "bcrypt";
+
+// Utils
 import FieldValidater from "../utils/FieldValidater";
+
+// Omit
+import UserOmit from "../types/UserOmit";
 
 // DTOs
 import CreateUserRequest from "../dtos/requests/user/CreateUserRequest";
 import AuthUserResponse from "../types/UserOmit";
 import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
 import GetUsersResponse from "../dtos/responses/user/GetUsersResponse";
-import UserOmit from "../types/UserOmit";
 import PutUserRequest from "../dtos/requests/user/PutUserRequest";
+import GetUserRequest from "@/dtos/requests/user/GetUserRequest";
 
 export default class UserService {
 
@@ -132,7 +139,7 @@ export default class UserService {
      * @param userId - The user ID to retrieve.
      * @returns The user details.
      */
-    static async getById(data: GetUsersRequest): Promise<UserOmit> {
+    static async getById(data: GetUserRequest): Promise<UserOmit> {
 
         const { userId } = data;
         

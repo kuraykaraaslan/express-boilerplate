@@ -231,7 +231,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The registered user.
      */
-    static async register(data: RegisterRequest): Promise<MessageResponse> {
+    static async register(data: RegisterRequest): Promise<UserOmit> {
 
         const { email, name, password, phone } = data;
 
@@ -255,7 +255,7 @@ export default class AuthService {
         TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
-        return { message: this.REGISTRATION_SUCCESSFUL };
+        return UserService.omitSensitiveFields(createdUser);    
     }
 
     /**

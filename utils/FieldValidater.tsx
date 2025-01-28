@@ -171,47 +171,32 @@ export default class FieldValidater {
      * @param model - The model class to validate against.
      * @returns `true` if valid, `false` otherwise.
      */
-    static validateBody(value: any = {}, Model: any): boolean {
-        
-        type OriginalType = typeof Model;
-        type RequiredType = RequiredKeys<typeof Model>;
-        type OptionalType = OptionalKeys<typeof Model>;
-       
+    static validateBody(body: any = {}, Model: any): boolean {       
+
+        // Create an instance of the model to get the required and optional fields
         const orginalInstance = new Model();
- 
-        const requiredFields = Object.keys(orginalInstance).filter((key) => key in value);
-        const optionalFields = Object.keys(orginalInstance).filter((key) => !(key in value));
-        const extraFields = Object.keys(value).filter((key) => !(key in orginalInstance));
+        const allFields = Object.keys(orginalInstance);
+        const requiredFields = Object.keys(orginalInstance).filter((key) => key in orginalInstance);
+        const optionalFields = Object.keys(orginalInstance).filter((key) => !(key in orginalInstance));
 
-        //value keys
-        const keys = Object.keys(value);
+        const bodyFields = Object.keys(body);
 
-        //check if all required fields are present
-        for (const field of requiredFields) {
-            if (!keys.includes(field)) {
-                return false;
-            }
-        }
-
-        //check if there are no extra fields
-        if (extraFields.length > 0) {
-            return false;
-        }      
-        
-        //if there no fields in the model but there are fields in the value
-        if (requiredFields.length === 0 && keys.length > 0) {
+        // Check if all required fields are present
+        if (requiredFields.some((key) => !bodyFields.includes(key))) {
             return false;
         }
 
-        //if there are no fields in the value but there are fields in the model
-        if (keys.length === 0 && requiredFields.length > 0) {
+        // Check if there are any extra fields
+        if (bodyFields.some((key) => !allFields.includes(key))) {
             return false;
         }
 
-        const providedFields = requiredFields.concat(optionalFields);
-        const modelFields = Object.keys(orginalInstance);
-        console.log(providedFields, modelFields);
-        console.log(requiredFields, optionalFields, extraFields);
+        // Check if optional fields are valid
+        if (optionalFields.some((key) => !bodyFields.includes(key))) {
+            return false;
+        }
+           
+
 
         return true; // Valid if no issues
     }
@@ -240,5 +225,16 @@ export default class FieldValidater {
     }
 
 
+    /**
+     * Validates if the provided string is a valid tenant status.
+     * @param tenantStatus - The tenant status string to validate.
+     * @returns `true` if valid, `false` otherwise.
+     * @see
+     */ 
+
+    static isTenantStatus(tenantStatus: string | undefined | null): boolean {
+        if (!tenantStatus || typeof tenantStatus !== "string") return false;
+        return ["ACTIVE", "INACTIVE"].includes(tenantStatus);
+    }
 }
 

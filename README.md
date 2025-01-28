@@ -93,6 +93,7 @@ The following services are available:
 - [x] Add API versioning
 - [x] Add Request validation
 - [x] Add Tenancy support
+- [x] Add Docker support
 - [ ] Add unit tests
 - [x] Add logging
 - [x] Add error handling

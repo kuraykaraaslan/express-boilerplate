@@ -1,6 +1,9 @@
-import ErrorResponse from "../dtos/responses/ErrorResponse";
 import { Request, Response, NextFunction } from "express";
 
+// DTOs
+import ErrorResponse from "../dtos/responses/ErrorResponse";
+
+// Constants
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 export default function ErrorHandler(error: any, request: Request, response: Response, next: NextFunction) : Response<ErrorResponse> {
@@ -12,9 +15,7 @@ export default function ErrorHandler(error: any, request: Request, response: Res
     }
 
 
-    if (NODE_ENV !== 'development') {
-        console.error(error);
-        
+    if (NODE_ENV !== 'development') {        
         return response.status(500).json({
             error: "ERROR_BAD_REQUEST",
         });

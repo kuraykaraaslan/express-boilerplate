@@ -5,7 +5,8 @@
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
 import { Router, Request, Response } from "express";
-import TenantUserController from "../../controllers/TenantUserController";
+
+// Utils
 import FieldValidater from "../../utils/FieldValidater";
 
 // DTOs
@@ -15,12 +16,12 @@ import EmptyRequest from "../../dtos/requests/EmptyRequest";
 import PutTenantUserRequest from "../../dtos/requests/tenantuser/PutTenantUserRequest";
 import GetTenantUsersRequest from "../../dtos/requests/tenantuser/GetTenantUsersRequest";
 import GetTenantUsersResponse from "../../dtos/responses/tenantuser/GetTenantUsersResponse";
+import GetTenantUserRequest from "@/dtos/requests/tenantuser/GetTenantUserRequest";
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
 import TenantMiddleware from "../../middlewares/TenantMiddleware";
-import GetTenantUserRequest from "@/dtos/requests/tenantuser/GetTenantUserRequest";
-
+import TenantUserService from "@/services/TenantUserService";
 
 const tenantUserRouter = Router();
 
@@ -39,10 +40,29 @@ tenantUserRouter.post('/',
             throw new Error("BAD_REQUEST");
         }
 
-        return await TenantUserController.create(request, response);
+        const { tenantId, userId, tenantUserRole, tenantUserStatus } = request.body;
+
+        if (!FieldValidater.isCUID(tenantId)) {
+            throw new Error("INVALID_TENANT_ID");
+        }
+
+        if (!FieldValidater.isCUID(userId)) {
+            throw new Error("INVALID_USER_ID");
+        }
+
+        if (!FieldValidater.isTenantUserRole(tenantUserRole)) {
+            throw new Error("INVALID_TENANT_USER_ROLE");
+        }
+
+        if (!FieldValidater.isTenantUserStatus(tenantUserStatus)) {
+            throw new Error("INVALID_TENANT_USER_STATUS");
+        }
+
+        request.body.tenantId = tenantId;
+
+        const tenantUser = await TenantUserService.create(request.body);
+        return response.json({ tenantUser });
     });
-
-
 
 /**
  * GET /tenantusers
@@ -53,10 +73,24 @@ tenantUserRouter.get('/',
     TenantMiddleware("USER"),
     async (request: Request<GetTenantUsersRequest>, response: Response<GetTenantUsersResponse>) => {
 
-        if (!FieldValidater.validateBody(request.query, GetTenantUsersRequest)) {
-            throw new Error("BAD_REQUEST");
+        let { skip, take, search } = request.query as any;
+
+        if (skip ? !FieldValidater.isNumber(skip) : false) {
+            throw new Error("INVALID_SKIP");
         }
-        return await TenantUserController.getAll(request, response);
+
+        if (take ? !FieldValidater.isNumber(take) : false) {
+            throw new Error("INVALID_TAKE");
+        }
+
+        const data = {
+            skip: skip ? parseInt(skip) : 0,
+            take: take ? parseInt(take) : 10,
+            search: search ? search : ''
+        };
+
+        const { tenantUsers, total } = await TenantUserService.getAll(data);
+        return response.json({ tenantUsers, total });
     });
 
 /**
@@ -66,7 +100,7 @@ tenantUserRouter.get('/',
  */
 tenantUserRouter.get('/:tenantUserId',
     TenantMiddleware("USER"),
-    async (request: Request<GetTenantUserRequest>, response: Response<GetTenantUserResponse>) => {
+    async (request: Request, response: Response<GetTenantUserResponse>) => {
 
 
         const { tenantUserId } = request.params;
@@ -75,10 +109,13 @@ tenantUserRouter.get('/:tenantUserId',
             throw new Error("INVALID_TENANT_USER_ID");
         }
 
-        // Attach tenantUserId to request body
-        request.body.tenantUserId = tenantUserId;
+        const tenantUser = await TenantUserService.getById({ tenantUserId });
 
-        return await TenantUserController.getById(request, response);
+        if (!tenantUser) {
+            throw new Error("TENANT_USER_NOT_FOUND");
+        }
+
+        return await TenantUserService.getById({ tenantUserId });
     });
 
 /**
@@ -103,7 +140,24 @@ tenantUserRouter.put('/:tenantUserId',
             throw new Error("BAD_REQUEST");
         }
 
-        return await TenantUserController.update(request, response);
+        const { tenantUserRole, tenantUserStatus } = request.body;
+
+        if (!FieldValidater.isCUID(tenantUserId)) {
+            throw new Error("INVALID_TENANT_USER_ID");
+        }
+
+        if (!FieldValidater.isTenantUserRole(tenantUserRole)) {
+            throw new Error("INVALID_TENANT_USER_ROLE");
+        }
+
+        if (!FieldValidater.isTenantUserStatus(tenantUserStatus)) {
+            throw new Error("INVALID_TENANT_USER_STATUS");
+        }
+
+        const tenantUser = await TenantUserService.update(request.body);
+
+        return response.json({ tenantUser });
+
     });
 
 /**
@@ -128,7 +182,14 @@ tenantUserRouter.delete('/:tenantUserId',
             throw new Error("BAD_REQUEST");
         }
 
-        return await TenantUserController.delete(request, response);
+
+        if (!FieldValidater.isCUID(tenantUserId)) {
+            throw new Error("INVALID_TENANT_USER_ID");
+        }
+
+        const tenantUser = await TenantUserService.delete(request.body);
+
+        return response.json({ tenantUser });
     });
 
 

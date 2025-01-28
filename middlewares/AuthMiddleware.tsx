@@ -1,15 +1,10 @@
-/*
-    This middleware is used to check if the user is authenticated and has the required role
-    If the user is not authenticated, it will return 401
-    If the user is authenticated but does not have the required role, it will return 401
-    If the user is authenticated and has the required role, it will call the next middleware
-    Default required role is 'USER'
-*/
 import { NextFunction, Request, Response } from 'express';
 
-import { User } from '@prisma/client';
-
+// Services
 import AuthService from '../services/AuthService';
+
+// Models
+import { User } from '@prisma/client';
 
 export default function (requiredRole: string) {
 

@@ -1,19 +1,17 @@
 import { NextFunction, Request, Response } from 'express';
-import { User } from '@prisma/client';
-import AuthService from '../services/AuthService';
+
+// Services
 import TenantService from '../services/TenantService';
-import UserOmit from '../types/UserOmit';
 import TenantUserService from '../services/TenantUserService';
+
+// Omits
+import UserOmit from '../types/UserOmit';
 
 export default function (
     requiredRole: string = 'USER', 
     method: string = 'PATH' // PATH | DOMAIN
 ) {
-    console.log('Executing Tenant Middleware');
-
     return async function tenantMiddleware(request: Request<any>, response: Response, next: NextFunction) {
-        console.log('params:', request.params);
-        console.log('body:', request.body);
         try {
             // Check if tenant user and tenant object already exist in the request
             if (request.tenantUser && request.tenant) {
@@ -54,7 +52,6 @@ export default function (
 
             // If the user is an admin but not a tenant user, create a temporary tenant user
             if (!tenantUser && user.userRole === 'ADMIN') {
-                console.log('Creating temporary Tenant User');
                 tenantUser = {
                     tenantUserId: `TEMP_${tenant.tenantId}_${user.userId}`,
                     tenantId: tenant.tenantId,
@@ -80,7 +77,6 @@ export default function (
 
             return next();
         } catch (error: any) {
-            console.error('Tenant Middleware Error:', error.message);
             response.status(401).json({ error: error.message });
         }
     };
