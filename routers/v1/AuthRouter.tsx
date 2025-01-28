@@ -71,24 +71,10 @@ AuthRouter.get('/register', async (request: Request, response: Response) => {
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request<RegisterRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, RegisterRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { email, password } = request.body;
-
-    if (!FieldValidater.isEmail(email)) {
-        throw new Error("INVALID_EMAIL");
-    }
-
-    if (!FieldValidater.isPassword(password)) {
-        throw new Error("INVALID_PASSWORD");
-    }
-
-    const user = await AuthService.register({ email, password });
-
+    const data = new RegisterRequest(request.body);
+    const user = await AuthService.register(data);
     return response.json({ message: "REGISTER_SUCCESS" });
 
 });
@@ -106,28 +92,12 @@ AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request<Reg
  * - 400: Validation error if email or password is missing.
  * - 401: Unauthorized if email or password is incorrect.
  */
-AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginRequest>, response: Response<LoginResponse>) => {
+AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, LoginRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-    const { email, password } = request.body;
-
-    if (!FieldValidater.isEmail(email)) {
-        throw new Error("INVALID_EMAIL");
-    }
-
-    if (!FieldValidater.isPassword(password)) {
-        throw new Error("INVALID_PASSWORD");
-    }
-
-    const user = await AuthService.login({ email, password });
-
-
+    const data = new LoginRequest(request.body);
+    const user = await AuthService.login(data);
     const userSession = await AuthService.createSession(user, request, true);
-
     MailService.sendNewLoginEmail(user, userSession);
-
     return response.json({ user, userSession });
 });
 
@@ -143,22 +113,8 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
  * 
  */
 AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: Request<VerifyOTPRequest>, response: Response<MessageResponse>) => {
-
-    if (!FieldValidater.validateBody(request.body, VerifyOTPRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { sessionToken, otpToken } = request.body;
-
-    if (!FieldValidater.isSessionToken(sessionToken)) {
-        throw new Error("INVALID_TOKEN");
-    }
-
-    if (!FieldValidater.isVerificationToken(otpToken)) {
-        throw new Error("INVALID_CODE");
-    }
-
-    return await AuthService.otpVerify(sessionToken, otpToken);
+    const data = new VerifyOTPRequest(request.body);
+    return await AuthService.otpVerify(data);
 });
 
 /**
@@ -177,22 +133,8 @@ AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: R
  */
 AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<SendOTPRequest>, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, SendOTPRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { sessionToken, method } = request.body;
-
-    if (!FieldValidater.isSessionToken(sessionToken)) {
-        throw new Error("INVALID_TOKEN");
-    }
-
-    const allowedMethods = ["sms", "email"];
-    if (!allowedMethods.includes(method)) {
-        throw new Error("INVALID_METHOD");
-    }
-
-    return await AuthService.otpSend(sessionToken, method);
+    const data = new SendOTPRequest(request.body);
+    return await AuthService.otpSend(data);
 
 });
 
@@ -211,17 +153,8 @@ AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Req
  */
 AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Request<ForgotPasswordRequest>, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, ForgotPasswordRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { email } = request.body;
-
-    if (!FieldValidater.isEmail(email)) {
-        throw new Error("INVALID_EMAIL");
-    }
-
-    await AuthService.forgotPassword({ email });
+    const data = new ForgotPasswordRequest(request.body);
+    await AuthService.forgotPassword(data);
 
     return response.json({ message: "FORGOT_PASSWORD_SUCCESS" });
 
@@ -242,25 +175,8 @@ AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Requ
  */
 AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Request<ResetPasswordRequest>, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, ResetPasswordRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { email, password, resetToken } = request.body;
-
-    if (!FieldValidater.isEmail(email)) {
-        throw new Error("INVALID_EMAIL");
-    }
-
-    if (!FieldValidater.isPassword(password)) {
-        throw new Error("INVALID_PASSWORD");
-    }
-
-    if (!FieldValidater.isVerificationToken(resetToken)) {
-        throw new Error("INVALID_CODE");
-    }
-
-    await AuthService.resetPassword({ email, password, resetToken });
+    const data = new ResetPasswordRequest(request.body);
+    await AuthService.resetPassword(data);
 
 });
 
@@ -279,21 +195,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request<EmptyRequest>, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
-
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { sessionToken } = request.userSession!;
-
-    if (!FieldValidater.isSessionToken(sessionToken)) {
-
-        throw new Error("INVALID_TOKEN");
-    }
-
-    await AuthService.logout({ sessionToken });
-
+AuthRouter.post('/logout', async (request: Request, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
     return response.json({ message: "LOGOUT_SUCCESS" });
 });
 
@@ -308,14 +210,8 @@ AuthRouter.post('/logout', async (request: Request<EmptyRequest>, response: Resp
  * - 200: Session details of the user.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.get('/session', async (request: Request<EmptyRequest>, response: Response<LoginResponse>) => {
-
-    if (!FieldValidater.validateBody(request.body, EmptyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
+AuthRouter.get('/session', async (request: Request, response: Response<LoginResponse>) => {
     return response.json({ user: request.user!, userSession: request.userSession! });
-
 });
 
 /**
@@ -329,19 +225,10 @@ AuthRouter.get('/session', async (request: Request<EmptyRequest>, response: Resp
  * - 200: OTP Enable message sent successfully.
  * - 500: OTP Already Enabled.
  */
-AuthRouter.post('/settings/otp-change', async (request: Request<ChangeOTPStatusRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/settings/otp-change', async (request: Request, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, ChangeOTPStatusRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { otpEnabled } = request.body;
-
-    if (otpEnabled === undefined || typeof otpEnabled !== "boolean") {
-        throw new Error("INVALID_OTP_STATUS");
-    }
-
-    await AuthService.otpChangeStatus(request.user!, otpEnabled);
+    const data = new ChangeOTPStatusRequest(request.body);
+    await AuthService.otpChangeStatus(request.user!, data);
 
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
@@ -360,24 +247,10 @@ AuthRouter.post('/settings/otp-change', async (request: Request<ChangeOTPStatusR
  * - 500: OTP Already Enabled.
  * - 401: Unauthorized if user is not logged in.
  */
-AuthRouter.post('/settings/otp-verify', async (request: Request<ChangeOTPVerifyRequest>, response: Response<MessageResponse>) => {
+AuthRouter.post('/settings/otp-verify', async (request: Request, response: Response<MessageResponse>) => {
 
-    if (!FieldValidater.validateBody(request.body, ChangeOTPVerifyRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    const { otpEnabled, otpStatusChangeToken } = request.body;
-
-    if (otpEnabled === undefined || typeof otpEnabled !== "boolean") {
-        throw new Error("INVALID_OTP_STATUS");
-    }
-
-    if (!FieldValidater.isVerificationToken(otpStatusChangeToken)) {
-        throw new Error("INVALID_CODE");
-    }
-
-    await AuthService.otpChangeVerify(request.user!, otpEnabled, otpStatusChangeToken);
-
+    const data = new ChangeOTPVerifyRequest(request.body);
+    await AuthService.otpChangeVerify(request.user!, data);
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
 

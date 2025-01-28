@@ -23,6 +23,7 @@ import AuthMiddleware from "../../middlewares/AuthMiddleware";
 // Tenant User Router
 import TenantUserRouter from "./TenantUserRouter";
 import TenantService from "@/services/TenantService";
+import GetTenantRequest from "@/dtos/requests/tenant/GetTenantRequest";
 
 const tenantRouter = Router();
 
@@ -34,25 +35,10 @@ tenantRouter.use(AuthMiddleware("USER"));
  */
 tenantRouter.post('/',
     AuthMiddleware("ADMIN"),
-    async (request: Request<CreateTenantRequest>, response: Response<GetTenantResponse>) => {
+    async (request: Request, response: Response<GetTenantResponse>) => {
 
-        if (!FieldValidater.validateBody(request.body, CreateTenantRequest)) {
-            throw new Error("BAD_REQUEST");
-        }
-
-
-        const { name, domain, tenantStatus } = request.body;
-
-        if (!FieldValidater.isName(name)) {
-            throw new Error("INVALID_NAME");
-        }
-
-        if (!FieldValidater.isDomain(domain)) {
-            throw new Error("INVALID_DOMAIN");
-        }
-
-        const tenant = await TenantService.create({ name, domain, tenantStatus });
-
+        const data = new CreateTenantRequest(request.body);
+        const tenant = await TenantService.create(data);
         return response.json({ tenant });
     });
 
@@ -63,37 +49,10 @@ tenantRouter.post('/',
  */
 tenantRouter.get('/',
     AuthMiddleware("ADMIN"),
-    async (request: Request<GetTenantsRequest>, response: Response<GetTenantsResponse>) => {
+    async (request: Request, response: Response<GetTenantsResponse>) => {
 
-        if (!FieldValidater.validateBody(request.query, GetTenantsRequest)) {
-            throw new Error("BAD_REQUEST");
-        }
-        let { skip, take, tenantId, domain, search } = request.query as any;
-
-        if (skip ? !FieldValidater.isNumber(skip) : false) {
-            throw new Error("INVALID_SKIP");
-        }
-
-        if (take ? !FieldValidater.isNumber(take) : false) {
-            throw new Error("INVALID_TAKE");
-        }
-
-        if (tenantId ? !FieldValidater.isCUID(tenantId) : false) {
-            throw new Error("INVALID_TENANT_ID");
-        }
-
-        if (domain ? !FieldValidater.isDomain(domain) : false) {
-            throw new Error("INVALID_DOMAIN");
-        }
-
-        const data = {
-            skip: skip ? parseInt(skip) : 0,
-            take: take ? parseInt(take) : 10,
-            search: search ? search : ''
-        };
-
+        const data = new GetTenantsRequest(request.query);
         const { tenants, total } = await TenantService.getAll(data);
-
         return response.json({ tenants, total });
     });
 
@@ -106,19 +65,10 @@ tenantRouter.get('/',
  */
 tenantRouter.get('/:tenantId',
     TenantMiddleware("USER"),
-    async (request: Request<any>, response: Response<GetTenantResponse>) => {
-
-        const { tenantId, domain } = request.params;
-
-        if (tenantId ? !FieldValidater.isCUID(tenantId) : false) {
-            throw new Error("INVALID_TENANT_ID");
-        }
-
-        if (domain ? !FieldValidater.isDomain(domain) : false) {
-            throw new Error("INVALID_DOMAIN");
-        }
-
-        const tenant = await TenantService.getById({ tenantId, domain });
+    async (request: Request, response: Response<GetTenantResponse>) => {
+        
+        const data = new GetTenantRequest(request.params);
+        const tenant = await TenantService.getById(data);
 
         if (!tenant) {
             throw new Error("TENANT_NOT_FOUND");
@@ -137,36 +87,14 @@ tenantRouter.get('/:tenantId',
     */
 tenantRouter.put('/:tenantId',
     TenantMiddleware("ADMIN"),
-    async (request: Request<PutTenantRequest>, response: Response<GetTenantResponse>) => {
+    async (request: Request, response: Response<GetTenantResponse>) => {
+        const data = new PutTenantRequest(request.body);
 
-        if (!FieldValidater.validateBody(request.body, PutTenantRequest)) {
-            throw new Error("BAD_REQUEST");
+        if (request.params.tenantId !== data.tenantId) {
+            throw new Error("TENANT_ID_MISMATCH");
         }
-
-        const { tenantId, name, domain, tenantStatus } = request.body;
-
-        if (!FieldValidater.isName(name)) {
-            throw new Error("INVALID_NAME");
-        }
-
-        if (!FieldValidater.isDomain(domain)) {
-            throw new Error("INVALID_DOMAIN");
-        }
-
-
-        if (!FieldValidater.isCUID(tenantId)) {
-            throw new Error("INVALID_TENANT_ID");
-        }
-
-        if (!FieldValidater.isTenantStatus(tenantStatus)) {
-            throw new Error("INVALID_TENANT_STATUS");
-        }
-
-        if (tenantId !== request.query.tenantId) {
-            throw new Error("INVALID_TENANT_ID");
-        }
-
-        const tenant = await TenantService.update({ tenantId, name, domain, tenantStatus });
+        
+        const tenant = await TenantService.update(data);
 
         return response.json({ tenant });
     });
@@ -180,16 +108,10 @@ tenantRouter.put('/:tenantId',
  */
 tenantRouter.delete('/:tenantId',
     TenantMiddleware("ADMIN"),
-    async (request: Request<any>, response: Response<GetTenantResponse>) => {
+    async (request: Request, response: Response<GetTenantResponse>) => {
 
-        const { tenantId } = request.params;
-
-        if (!FieldValidater.isCUID(tenantId)) {
-            throw new Error("INVALID_TENANT_ID");
-        }
-
-        const tenant = await TenantService.delete({ tenantId });
-
+        const data = new GetTenantRequest(request.params);
+        const tenant = await TenantService.delete(data);
         return response.json({ tenant });
     });
 

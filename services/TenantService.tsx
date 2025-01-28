@@ -53,24 +53,26 @@ export default class TenantService {
                 OR: [
                     {
                         domain: {
-                            contains: search
+                            contains: search || ''
                         }
                     },
                     {
                         name: {
-                            contains: search
+                            contains: search || ''
                         }
                     }
                 ]
-            }
+            }   
         }; 
 
         const [tenants, total] = await Promise.all([
             prisma.tenant.findMany(queryOptions),
-            prisma.tenant.count({ where: queryOptions.where }),
+            prisma.tenant.count({ where: queryOptions.where })
         ]);
 
         const tenantsOmit = tenants.map((tenant) => TenantService.omitSensitiveFields(tenant));
+
+        console.log('tenants:', tenantsOmit);
 
         return { tenants: tenantsOmit, total };
     }

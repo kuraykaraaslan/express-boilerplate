@@ -236,5 +236,16 @@ export default class FieldValidater {
         if (!tenantStatus || typeof tenantStatus !== "string") return false;
         return ["ACTIVE", "INACTIVE"].includes(tenantStatus);
     }
+
+    /**
+     * Validates if the provided string is a valid boolean.
+     * @param value - The boolean string to validate.
+     * 
+     * @returns `true` if valid, `false` otherwise
+     */
+    static isBoolean(value: boolean | undefined | null): boolean {
+        if (value === undefined || value === null) return false;
+        return typeof value === "boolean";
+    }
 }
 
