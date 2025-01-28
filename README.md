@@ -91,6 +91,8 @@ The following services are available:
 - [x] Add User authentication
 - [x] Add Controllers
 - [x] Add API versioning
+- [x] Add Request validation
+- [x] Add Tenancy support
 - [ ] Add unit tests
 - [x] Add logging
 - [x] Add error handling
