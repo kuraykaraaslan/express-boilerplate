@@ -31,8 +31,7 @@ IndexRouter.use("/views", ViewRouter);
 
 IndexRouter.use((req, res) => {
     res.status(404).send({
-        error: "NOT_FOUND",
-        status: 404
+        error: "NOT_FOUND"
     });
 });
 
