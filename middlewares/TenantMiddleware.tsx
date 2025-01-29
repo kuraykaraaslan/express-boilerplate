@@ -6,6 +6,7 @@ import TenantUserService from '../services/TenantUserService';
 
 // Omits
 import UserOmit from '../types/UserOmit';
+import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
 
 export default function (
     requiredRole: string = 'USER', 
@@ -32,7 +33,8 @@ export default function (
 
             switch (method) {
                 case 'PATH':
-                    tenant = await TenantService.getById({ tenantId: request.params.tenantId });
+                    const data = new GetTenantRequest(request.params);
+                    tenant = await TenantService.getById(data);
                     break;
                 case 'DOMAIN':
                     tenant = await TenantService.getById(request.body.tenantId);

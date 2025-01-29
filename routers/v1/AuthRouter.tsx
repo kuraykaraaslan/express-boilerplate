@@ -229,7 +229,6 @@ AuthRouter.post('/settings/otp-change', async (request: Request, response: Respo
 
     const data = new ChangeOTPStatusRequest(request.body);
     await AuthService.otpChangeStatus(request.user!, data);
-
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
 
