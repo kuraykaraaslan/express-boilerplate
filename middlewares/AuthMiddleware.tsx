@@ -6,6 +6,9 @@ import AuthService from '../services/AuthService';
 // Models
 import { User } from '@prisma/client';
 
+// DTOs
+import GetSessionRequest from '../dtos/requests/auth/GetSessionRequest';
+
 export default function (requiredRole: string) {
 
   return async function authMiddleware(request: Request<any>, response: Response<any>, next: NextFunction) {
@@ -35,7 +38,9 @@ export default function (requiredRole: string) {
         throw new Error("USER_NOT_AUTHENTICATED");
       }
 
-      const sessionWithUser = await AuthService.getSession({ sessionToken });
+      const sessionData = new GetSessionRequest({ sessionToken });
+
+      const sessionWithUser = await AuthService.getSession(sessionData);
 
       if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
         throw new Error("USER_NOT_AUTHENTICATED");

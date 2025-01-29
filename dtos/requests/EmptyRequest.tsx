@@ -1,1 +1,3 @@
-import FieldValidater from "../../../utils/FieldValidater";export default class EmptyRequest {}
+import FieldValidater from "../../utils/FieldValidater";
+
+export default class EmptyRequest {}
