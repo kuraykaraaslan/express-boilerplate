@@ -6,7 +6,7 @@ import TenantUserService from '../services/TenantUserService';
 
 // Omits
 import UserOmit from '../types/UserOmit';
-import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
+import GetTenantRequest from '../dtos/requests/tenant/GetTenantRequest';
 
 export default function (
     requiredRole: string = 'USER', 

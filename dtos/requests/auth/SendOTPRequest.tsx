@@ -1,6 +1,4 @@
-import FieldValidater from "@/utils/FieldValidater";
-
-export default class SendOTPRequest {
+import FieldValidater from "../../../utils/FieldValidater";export default class SendOTPRequest {
    sessionToken!: string;
    method!: string;
    allowedMethods = ["sms", "email"];

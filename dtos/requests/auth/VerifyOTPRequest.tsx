@@ -1,6 +1,4 @@
-import FieldValidater from "@/utils/FieldValidater";
-
-export default class VerifyOTPRequest {
+import FieldValidater from "../../../utils/FieldValidater";export default class VerifyOTPRequest {
    sessionToken!: string;
    otpToken!: string;
 

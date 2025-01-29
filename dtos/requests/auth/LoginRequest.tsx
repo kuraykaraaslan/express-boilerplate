@@ -1,6 +1,4 @@
-import FieldValidater from "@/utils/FieldValidater";
-
-export default class LoginRequest {
+import FieldValidater from "../../../utils/FieldValidater";export default class LoginRequest {
     email!: string;
     password!: string;
 

@@ -22,8 +22,8 @@ import AuthMiddleware from "../../middlewares/AuthMiddleware";
 
 // Tenant User Router
 import TenantUserRouter from "./TenantUserRouter";
-import TenantService from "@/services/TenantService";
-import GetTenantRequest from "@/dtos/requests/tenant/GetTenantRequest";
+import TenantService from "../../services/TenantService";
+import GetTenantRequest from "../../dtos/requests/tenant/GetTenantRequest";
 
 const tenantRouter = Router();
 

@@ -21,8 +21,8 @@ import MessageResponse from "../../dtos/responses/MessageResponse";
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
 
 // Utils
-import FieldValidater from "@/utils/FieldValidater";
-import CreateUserRequest from "@/dtos/requests/user/CreateUserRequest";
+import FieldValidater from "../../utils/FieldValidater";
+import CreateUserRequest from "../../dtos/requests/user/CreateUserRequest";
 
 
 const userRouter = Router();

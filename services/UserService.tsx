@@ -16,7 +16,7 @@ import AuthUserResponse from "../types/UserOmit";
 import GetUsersRequest from "../dtos/requests/user/GetUsersRequest";
 import GetUsersResponse from "../dtos/responses/user/GetUsersResponse";
 import PutUserRequest from "../dtos/requests/user/PutUserRequest";
-import GetUserRequest from "@/dtos/requests/user/GetUserRequest";
+import GetUserRequest from "../dtos/requests/user/GetUserRequest";
 
 export default class UserService {
 

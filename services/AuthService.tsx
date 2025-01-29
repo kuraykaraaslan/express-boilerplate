@@ -24,10 +24,10 @@ import FieldValidater from "../utils/FieldValidater";
 import UserAgentUtil from "../utils/UserAgentUtil";
 import UserSessionOmit from "../types/UserSessionOmit";
 import UserOmit from "../types/UserOmit";
-import VerifyOTPRequest from "@/dtos/requests/auth/VerifyOTPRequest";
-import SendOTPRequest from "@/dtos/requests/auth/SendOTPRequest";
-import ChangeOTPStatusRequest from "@/dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "@/dtos/requests/auth/ChangeOTPVerifyRequest";
+import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
+import SendOTPRequest from "../dtos/requests/auth/SendOTPRequest";
+import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
 
 export default class AuthService {
 

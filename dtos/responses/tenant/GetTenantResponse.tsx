@@ -1,4 +1,4 @@
-import TenantOmit from "@/types/TenantOmit";
+import TenantOmit from "../../../types/TenantOmit";
 import { TenantStatus } from "@prisma/client";
 
 export default interface GetTenantResponse {

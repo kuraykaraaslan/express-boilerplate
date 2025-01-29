@@ -1,6 +1,4 @@
-import FieldValidater from "@/utils/FieldValidater";
-
-export default class ChangeOTPStatusRequest {
+import FieldValidater from "../../../utils/FieldValidater";export default class ChangeOTPStatusRequest {
     otpEnabled!: boolean;
 
     constructor(otpEnabled: boolean) {

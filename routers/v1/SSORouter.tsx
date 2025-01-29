@@ -14,9 +14,9 @@ import GetSSOLinkRequest from "../../dtos/requests/sso/GetSSOLinkRequest";
 import LoginResponse from "../../dtos/responses/auth/LoginResponse";
 import EmptyRequest from "../../dtos/requests/EmptyRequest";
 import GetSessionRequest from "../../dtos/requests/auth/GetSessionRequest";
-import SSOService from "@/services/SSOService";
-import AuthService from "@/services/AuthService";
-import MailService from "@/services/MailService";
+import SSOService from "../../services/SSOService";
+import AuthService from "../../services/AuthService";
+import MailService from "../../services/MailService";
 
 
 const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;

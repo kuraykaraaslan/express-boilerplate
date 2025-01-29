@@ -1,6 +1,4 @@
-import FieldValidater from "@/utils/FieldValidater";
-
-export default class ForgotPasswordRequest {
+import FieldValidater from "../../../utils/FieldValidater";export default class ForgotPasswordRequest {
     email!: string;
 
     constructor(data: any) {

@@ -16,12 +16,12 @@ import EmptyRequest from "../../dtos/requests/EmptyRequest";
 import PutTenantUserRequest from "../../dtos/requests/tenantuser/PutTenantUserRequest";
 import GetTenantUsersRequest from "../../dtos/requests/tenantuser/GetTenantUsersRequest";
 import GetTenantUsersResponse from "../../dtos/responses/tenantuser/GetTenantUsersResponse";
-import GetTenantUserRequest from "@/dtos/requests/tenantuser/GetTenantUserRequest";
+import GetTenantUserRequest from "../../dtos/requests/tenantuser/GetTenantUserRequest";
 
 // Middlewares
 import AuthMiddleware from "../../middlewares/AuthMiddleware";
 import TenantMiddleware from "../../middlewares/TenantMiddleware";
-import TenantUserService from "@/services/TenantUserService";
+import TenantUserService from "../../services/TenantUserService";
 
 const tenantUserRouter = Router();
 
