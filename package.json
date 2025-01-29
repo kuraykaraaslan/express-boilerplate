@@ -75,5 +75,8 @@
     "winston": "^3.17.0",
     "zod": "^3.24.1"
   },
-  "keywords": []
+  "keywords": [],
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
 }

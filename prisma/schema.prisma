@@ -38,6 +38,10 @@ model User {
 
   userSessions UserSession[]
   userSocialAccounts UserSocialAccount[]
+
+  //index
+  @@index([email])
+  @@index([phone])
 }
 
 
@@ -66,6 +70,8 @@ model UserSession {
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model UserSocialAccount {
@@ -151,4 +157,21 @@ model TenantUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+}
+
+model SystemSettings {
+  systemSettingId String  @id @default(cuid())
+  key       String  @unique
+  value     String  // JSON string to store complex settings
+}
+
+model TenantSettings {
+  tenantSettingId String  @id @default(cuid())
+  tenantId        String  @unique
+
+  key       String
+  value     String  // JSON string to store complex settings
+
+  @@unique([tenantId, key])
+  @@index([tenantId, key])
 }
