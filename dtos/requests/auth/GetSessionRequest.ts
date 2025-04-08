@@ -1,21 +1,22 @@
 import FieldValidater from "../../../utils/FieldValidater";
 
 export default class GetSessionRequest {
-   sessionToken!: string;
+   accessToken!: string;
 
    constructor(data: any) {
-      this.sessionToken = data.sessionToken;
+      this.accessToken = data.accessToken;
 
       this.validate();
    }
 
    validate() {
-      if (!FieldValidater.isSessionToken(this.sessionToken)) {
+      if (!FieldValidater.isAccessToken(this.accessToken)) {
          throw new Error("INVALID_SESSION_TOKEN");
       }
    }
 
    static fromJson(json: any): GetSessionRequest {
-      return new GetSessionRequest(json.sessionToken);
+      return new GetSessionRequest(json.accessToken);
    }
 }
+ 

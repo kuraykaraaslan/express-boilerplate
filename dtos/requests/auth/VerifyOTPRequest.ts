@@ -1,17 +1,17 @@
 import FieldValidater from "../../../utils/FieldValidater";export default class VerifyOTPRequest {
-   sessionToken!: string;
+   accessToken!: string;
    otpToken!: string;
 
    constructor(data: any) {
-      this.sessionToken = data.sessionToken;
+      this.accessToken = data.accessToken;
       this.otpToken = data.otpToken;
 
       this.validate();
    }
 
    validate() {
-      if (!FieldValidater.isSessionToken(this.sessionToken)) {
-         throw new Error("Invalid sessionToken.");
+      if (!FieldValidater.isAccessToken(this.accessToken)) {
+         throw new Error("Invalid accessToken.");
       }
 
       if (!FieldValidater.isVerificationToken(this.otpToken)) {

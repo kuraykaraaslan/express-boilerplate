@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export type KeysOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
 export type RequiredKeys<T> = Exclude<KeysOfType<T, Exclude<T[keyof T], undefined>>, undefined>;
@@ -159,9 +160,12 @@ export default class FieldValidater {
      * @returns `true` if valid, `false` otherwise.
      * d3o47zbqg28ftevdgehuewiw
      */
-    static isSessionToken(value: string | undefined | null): boolean {
-        if (!value || typeof value !== "string") return false;
-        return value.length === 24;
+    static isAccessToken(value: string | undefined | null): boolean {
+        //jtw
+        if (jwt.verify(value!, process.env.ACCESS_TOKEN_SECRET!)) {
+            return true;
+        }
+        return false;
     }
     /**
      * Validates if the provided JSON matches the model.

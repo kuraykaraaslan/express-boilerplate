@@ -120,7 +120,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.sessionToken}`);
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.accessToken}`);
 
 });
 
@@ -167,7 +167,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.sessionToken}`);
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.accessToken}`);
 
 });
 

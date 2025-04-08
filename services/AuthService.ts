@@ -19,7 +19,6 @@ import TwilloService from "./TwilloService";
 import MailService from "./MailService";
 
 // Utils
-import { createId } from '@paralleldrive/cuid2';
 import FieldValidater from "../utils/FieldValidater";
 import UserAgentUtil from "../utils/UserAgentUtil";
 import UserSessionOmit from "../types/UserSessionOmit";
@@ -28,6 +27,15 @@ import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
 import SendOTPRequest from "../dtos/requests/auth/SendOTPRequest";
 import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
 import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
+
+import jwt from 'jsonwebtoken';
+
+
+const ACCESS_TOKEN_SECRET: jwt.Secret = process.env.ACCESS_TOKEN_SECRET!;
+const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '1h'; // veya '1h' gibi
+
+const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET!;
+const REFRESH_TOKEN_EXPIRES_IN: string | number = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // veya '7d' gibi
 
 export default class AuthService {
 
@@ -74,8 +82,22 @@ export default class AuthService {
      * Generate Session CUID Token
     * @returns A random cuid token.
     */
-    static generateSessionToken(): string {
-        return createId();
+    private static generateAccessToken(userId: string): string {
+        // @ts-ignore
+        return jwt.sign({ userId }, ACCESS_TOKEN_SECRET, {
+            expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+        });
+    }   
+
+    /**
+     * Generate Refresh Token
+     * @returns A random refresh token.
+     */
+    private static generateRefreshToken(userId: string): string {
+        // @ts-ignore
+        return jwt.sign({ userId }, REFRESH_TOKEN_SECRET, { 
+            expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+        });
     }
 
 
@@ -94,20 +116,11 @@ export default class AuthService {
      * @returns The session object without the otpToken and otpTokenExpiry.
      */
     static omitSensitiveFields(session: UserSession): UserSessionOmit {
-        const fields = ['otpToken', 'otpTokenExpiry', 'createdAt', 'updatedAt'];
-       
+
         const safeSession = {
-            sessionId: session.sessionId,
-            userId: session.userId,
-            sessionToken: session.sessionToken,
-            sessionExpiry: session.sessionExpiry,
-            sessionAgent: session.sessionAgent,
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
             otpNeeded: session.otpNeeded,
-            city: session.city || 'Unknown',
-            state: session.state || 'Unknown',
-            country: session.country || 'Unknown',
-            ip: session.ip || 'Unknown',
-            device: session.device || 'Unknown',
         };        
         
         return safeSession;
@@ -148,7 +161,7 @@ export default class AuthService {
 
         // Check if the session exists
         const sessions = await prisma.userSession.findMany({
-            where: { sessionToken: data.sessionToken }
+            where: { accessToken: data.accessToken }
         });
 
         if (sessions.length === 0) {
@@ -157,7 +170,7 @@ export default class AuthService {
 
         // Delete the session if found
         await prisma.userSession.deleteMany({
-            where: { sessionToken: data.sessionToken }
+            where: { accessToken: data.accessToken }
         });
     }
 
@@ -166,14 +179,15 @@ export default class AuthService {
      * @param userId - The user ID.
      * @returns The created session.
      */    
-    static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<UserSessionOmit> {
+    static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<UserSession> {
 
         const userAgentData = await UserAgentUtil.parseRequest(request);
 
         return prisma.userSession.create({
             data: {
                 userId: user.userId,
-                sessionToken: AuthService.generateSessionToken(),
+                accessToken: AuthService.generateAccessToken(user.userId),
+                refreshToken: AuthService.generateRefreshToken(user.userId),
                 sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
                 sessionAgent: "Web",
                 otpNeeded: otpConsired ? user.otpEnabled : false,
@@ -190,7 +204,7 @@ export default class AuthService {
 
     /**
      * Gets a user session by token.
-     * @param sessionToken - The session token.
+     * @param accessToken - The session token.
      * @returns The user session.
      */
     static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
@@ -198,7 +212,7 @@ export default class AuthService {
         console.log(data);
 
         const session = await prisma.userSession.findUnique({
-            where: { sessionToken: data.sessionToken }
+            where: { accessToken: data.accessToken }
         })
         
         if (!session) {
@@ -224,7 +238,7 @@ export default class AuthService {
     static async deleteSession(data: UserSessionOmit): Promise<void> {
 
         await prisma.userSession.deleteMany({
-            where: { sessionToken: data.sessionToken }
+            where: { accessToken: data.accessToken }
         });
 
     }
@@ -356,7 +370,7 @@ export default class AuthService {
 
     /**
      * Sends an OTP to the user.
-     * @param sessionToken - The session token.
+     * @param accessToken - The session token.
      * @param phone - The user's phone number.
      * @param method - The method to send the OTP (sms or email).
      */
@@ -364,7 +378,7 @@ export default class AuthService {
 
         // Get the session by token
         const session = await prisma.userSession.findUnique({
-            where: { sessionToken: data.sessionToken},
+            where: { accessToken: data.accessToken},
         });
 
         if (!session) {
@@ -421,14 +435,14 @@ export default class AuthService {
 
     /**
      * Verifies the OTP of the user.
-     * @param sessionToken - The session token.
+     * @param accessToken - The session token.
      * @param otp - The OTP.
      */
     static async otpVerify(data: VerifyOTPRequest): Promise<MessageResponse> {
 
         // Get the session by token
         const session = await prisma.userSession.findUnique({
-            where: { sessionToken: data.sessionToken },
+            where: { accessToken: data.accessToken },
         });
 
         if (!session) {

@@ -122,13 +122,13 @@ AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: R
  * Send the OTP to the user's phone number.
  * 
  * Request Body:
- * - sessionToken (string): The session sessionToken of the user (required).
+ * - accessToken (string): The session accessToken of the user (required).
  * - method (string): The method to send the OTP (sms or email) (required).
  * 
  * Response:
  * - 200: OTP sent successfully.
- * - 400: Validation error if sessionToken is missing.
- * - 404: User not found if sessionToken is invalid.
+ * - 400: Validation error if accessToken is missing.
+ * - 404: User not found if accessToken is invalid.
  * - 500: Internal server error if OTP sending fails.
  */
 AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<SendOTPRequest>, response: Response<MessageResponse>) => {
@@ -165,7 +165,7 @@ AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Requ
  * Reset the password of the user.
  * 
  * Request Body:
- * - sessionToken (string): The password reset token sent to the user's email (required).
+ * - accessToken (string): The password reset token sent to the user's email (required).
  * - password (string): The new password for the user (required).
  * 
  * Response:
@@ -204,7 +204,7 @@ AuthRouter.post('/logout', async (request: Request, response: Response<MessageRe
  * Get the current user session.
  * 
  * Request Body:
- * - sessionToken (string): The session token of the user (required).
+ * - accessToken (string): The session token of the user (required).
  * 
  * Response:
  * - 200: Session details of the user.

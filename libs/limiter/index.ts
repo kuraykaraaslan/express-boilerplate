@@ -1,35 +1,50 @@
 import { rateLimit } from 'express-rate-limit'
 import { Request, Response } from 'express';
 
-const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX || 100;
+const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ?? 100;
 
-export default class Limiter {
-	static limiter = rateLimit({
+class Limiter {
+	public static readonly limiter = rateLimit({
 		windowMs: Number(RATE_LIMIT_WINDOW_MS),
-		max: Number(RATE_LIMIT_MAX),
+		handler: (request, response, next, options) => {
+		
+		response.status(options.statusCode).send(options.message)
+		},		
 		message: (request: Request, response: Response) => {
 			return { error: 'RATE_LIMIT_EXCEEDED' };
 		},
 		headers: true,
-		keyGenerator: function (request: Request) {
-			const ip = request.headers["x-real-ip"] || request.headers["x-forwarded-for"] || request.connection.remoteAddress;
-			return Array.isArray(ip) ? ip[0] : (ip || 'default-ip');
+		keyGenerator: function (request: Request): string {
+			const ip =
+				request.headers["x-real-ip"]?.toString() ??
+				request.headers["x-forwarded-for"]?.toString() ??
+				request.socket.remoteAddress?.toString() ??
+				"default-ip";
+			return ip;
 		}
 
 	});
 
-	static authLimiter = rateLimit({
-		windowMs: Number(RATE_LIMIT_WINDOW_MS),
-		max: 10,
+	public static readonly authLimiter = rateLimit({
+		windowMs: Number(0),
+		handler: (request, response, next, options) => {
+		
+			response.status(options.statusCode).send(options.message)
+			},			
 		message: (request: Request, response: Response) => {
 			return { error: 'RATE_LIMIT_EXCEEDED_AUTH' };
 		},
 		headers: true,
-		keyGenerator: function (request: Request) {
-			const ip = request.headers["x-real-ip"] || request.headers["x-forwarded-for"] || request.connection.remoteAddress;
-			return Array.isArray(ip) ? ip[0] : (ip || 'default-ip');
+		keyGenerator: function (request: Request): string {
+			const ip =
+				request.headers["x-real-ip"]?.toString() ??
+				request.headers["x-forwarded-for"]?.toString() ??
+				request.socket.remoteAddress?.toString() ??
+				"default-ip";
+			return ip;
 		}
+	
 
 	});
 
@@ -43,3 +58,5 @@ export default class Limiter {
 	}
 }
 
+
+export default Limiter;

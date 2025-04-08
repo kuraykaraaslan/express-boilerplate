@@ -80,7 +80,7 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSession | UserSessionOmit) {
+    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSession) {
 
         const name = user.name || user.email;
         const email = user.email;

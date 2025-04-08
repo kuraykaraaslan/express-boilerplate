@@ -1,18 +1,20 @@
-import FieldValidater from "../../../utils/FieldValidater";export default class SendOTPRequest {
-   sessionToken!: string;
+import FieldValidater from "../../../utils/FieldValidater";
+
+export default class SendOTPRequest {
+   accessToken!: string;
    method!: string;
    allowedMethods = ["sms", "email"];
 
    constructor(data: any) {
-      this.sessionToken = data.sessionToken;
+      this.accessToken = data.accessToken;
       this.method = data.method;
 
       this.validate();
    }
 
    validate() {
-      if (!FieldValidater.isSessionToken(this.sessionToken)) {
-         throw new Error("Invalid sessionToken.");
+      if (!FieldValidater.isAccessToken(this.accessToken)) {
+         throw new Error("Invalid accessToken.");
       }
 
       if (!this.allowedMethods.includes(this.method)) {

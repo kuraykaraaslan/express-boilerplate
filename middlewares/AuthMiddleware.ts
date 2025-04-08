@@ -27,18 +27,18 @@ export default function (requiredRole: string) {
         return next();
       }
 
-      const sessionToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
+      const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
       // Allow guest if token is not present
       if (requiredRole === 'GUEST') {
         return next();
       }
 
-      if (!sessionToken) {
+      if (!accessToken) {
         throw new Error("USER_NOT_AUTHENTICATED");
       }
 
-      const sessionData = new GetSessionRequest({ sessionToken });
+      const sessionData = new GetSessionRequest({ accessToken });
 
       const sessionWithUser = await AuthService.getSession(sessionData);
 
@@ -56,11 +56,6 @@ export default function (requiredRole: string) {
 
       if (!request.userSession) {
         throw new Error("USER_SESSION_NOT_FOUND");
-      }
-
-      //check if the session is valid
-      if (new Date(request.userSession.sessionExpiry) < new Date()) {
-        throw new Error("SESSION_EXPIRED");
       }
 
       //check if the session needs to OTP verification

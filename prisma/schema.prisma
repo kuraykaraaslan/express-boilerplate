@@ -50,7 +50,9 @@ model UserSession {
   userId     String
   user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
-  sessionToken String  @unique
+  accessToken String   @unique
+  refreshToken String   @unique
+
   sessionExpiry DateTime
   sessionAgent String
 

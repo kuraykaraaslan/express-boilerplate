@@ -2,7 +2,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import logger from 'morgan';
 import ErrorHandler from "./middlewares/ErrorHandler";
 
 import dotenv from "dotenv";
@@ -10,14 +9,17 @@ import IndexRouter from "./routers";
 dotenv.config({ path: "../.env" });
 
 import path from "path";
+import Logger from "./libs/logger";
+import Limiter from "./libs/limiter";
 
 
 const app = express();
-const host = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST.split(":")[1] : "http://localhost:3000";
-const port = process.env.APPLICATION_PORT || 3000;
+const host = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST.split(":")[1] : "http://localhost";
+const port = process.env.APPLICATION_PORT || 3001;
 
 app.enable('trust proxy');
-app.use(logger('dev'));
+app.use(Logger.useLogger);
+app.use(Limiter.useLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
