@@ -1,5 +1,4 @@
-import TenantOmit from "../../../types/TenantOmit";
-import UserOmit from "../../../types/UserOmit";
+import TenantOmit from "@/types/TenantOmit";
 
 export default interface GetTenantsResponse {
     tenants: TenantOmit[];

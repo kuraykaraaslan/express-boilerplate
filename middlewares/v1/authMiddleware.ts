@@ -1,15 +1,16 @@
 import { NextFunction, Request, Response } from 'express';
 
 // Services
-import AuthService from '../services/AuthService';
+import AuthService from '@/services/v1/AuthService';
 
 // Models
 import { User } from '@prisma/client';
 
 // DTOs
-import GetSessionRequest from '../dtos/requests/auth/GetSessionRequest';
+import GetSessionRequest from '@/dtos/requests/auth/GetSessionRequest';
 
 export default function (requiredRole: string) {
+
 
   return async function authMiddleware(request: Request<any>, response: Response<any>, next: NextFunction) {
 
@@ -68,6 +69,23 @@ export default function (requiredRole: string) {
       if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
         throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
       }
+
+
+      const originalJson = response.json;
+
+      // @ts-ignore
+      response.json = function (body) {
+        if (body && typeof body === 'object') {
+          return AuthService.refreshAccessToken(accessToken).then(refreshedSession => {
+            body.userSession = refreshedSession;
+            return originalJson.call(this, body);
+          }).catch(() => {
+            return originalJson.call(this, body);
+          });
+        } else {
+          return originalJson.call(this, body);
+        }
+      };
 
       return next();
 

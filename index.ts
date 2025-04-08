@@ -2,7 +2,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import ErrorHandler from "./middlewares/ErrorHandler";
+import errorHandler from "./middlewares/v1/errorHandler";
 
 import dotenv from "dotenv";
 import IndexRouter from "./routers";
@@ -11,6 +11,7 @@ dotenv.config({ path: "../.env" });
 import path from "path";
 import Logger from "./libs/logger";
 import Limiter from "./libs/limiter";
+import bodyParser from "body-parser";
 
 
 const app = express();
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Set ejs
 app.set('views', path.join(__dirname, 'views'));
@@ -32,7 +34,7 @@ app.set('view engine', 'ejs');
 
 // Routes
 app.use("/", IndexRouter);
-app.use(ErrorHandler);
+app.use(errorHandler);
 
 
 // HTTPS or HTTP

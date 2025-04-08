@@ -12,4 +12,5 @@ declare module "express-serve-static-core" {
         tenant?: Tenant;
         tenantUser?: TenantUserOmit;
     }
+    
 }

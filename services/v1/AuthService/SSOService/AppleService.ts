@@ -1,4 +1,4 @@
-import axiosInstance from '../../libs/axios';
+import axiosInstance from '../../../../libs/axios';
 import jwt from 'jsonwebtoken';
 
 export default class AppleService {
@@ -32,8 +32,6 @@ export default class AppleService {
             prompt: 'consent', // Force consent screen
             response_mode: 'form_post',
         };
-
-        console.log(params);
 
         return `${this.APPLE_AUTH_URL}?${new URLSearchParams(params).toString()}`;
     }
@@ -106,8 +104,6 @@ export default class AppleService {
     static async getUserInfo(idToken: string): Promise<{ email: string; sub: string }> {
         // Decode the ID token to get user information
         const decodedToken = await jwt.decode(idToken) as { email: string; sub: string };
-
-        console.log(decodedToken);
 
         return {
             email: decodedToken.email,

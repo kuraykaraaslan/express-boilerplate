@@ -1,15 +1,15 @@
-import prisma from '../libs/prisma';
+import prisma from '@/libs/prisma';
 import { Tenant } from '@prisma/client';
 
 // DTOs
-import GetTenantRequest from '../dtos/requests/tenant/GetTenantRequest';
-import CreateTenantRequest from '../dtos/requests/tenant/CreateTenantRequest';
-import PutTenantRequest from '../dtos/requests/tenant/PutTenantRequest';
-import GetTenantsRequest from '../dtos/requests/tenant/GetTenantsRequest';
-import GetTenantsResponse from '../dtos/responses/tenant/GetTenantsResponse';
+import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
+import CreateTenantRequest from '@/dtos/requests/tenant/CreateTenantRequest';
+import PutTenantRequest from '@/dtos/requests/tenant/PutTenantRequest';
+import GetTenantsRequest from '@/dtos/requests/tenant/GetTenantsRequest';
+import GetTenantsResponse from '@/dtos/responses/tenant/GetTenantsResponse';
 
 // Omit
-import TenantOmit from '../types/TenantOmit';
+import TenantOmit from '@/types/TenantOmit';
 
 export default class TenantService {
 
@@ -17,8 +17,8 @@ export default class TenantService {
      * Error Messages
      * These are the error messages that can be thrown by the service.
      */
-    static TENANT_NOT_FOUND = "TENANT_NOT_FOUND";
-    static INVALID_TENANT_REQUEST = "INVALID_TENANT_REQUEST";
+    static readonly TENANT_NOT_FOUND = "TENANT_NOT_FOUND";
+    static readonly INVALID_TENANT_REQUEST = "INVALID_TENANT_REQUEST";
 
     /**
      * Omit sensitive fields from the tenant object.
@@ -43,8 +43,6 @@ export default class TenantService {
      */
     public static async getAll(data: GetTenantsRequest): Promise<GetTenantsResponse> {
         const { skip, take, search  } = data;
-
-        console.log(data);
 
         const queryOptions = {
             skip,
@@ -72,8 +70,6 @@ export default class TenantService {
 
         const tenantsOmit = tenants.map((tenant) => TenantService.omitSensitiveFields(tenant));
 
-        console.log('tenants:', tenantsOmit);
-
         return { tenants: tenantsOmit, total };
     }
 
@@ -87,8 +83,6 @@ export default class TenantService {
 
         const { tenantId , domain } = data;
 
-
-        console.log('tenantId:', tenantId);
         let tenant = await prisma.tenant.findFirst({
             where: {
                 OR: [

@@ -1,4 +1,5 @@
-import FieldValidater from "../../../utils/FieldValidater";export default class ResetPasswordRequest {
+import FieldValidater from "@/utils/FieldValidater";
+export default class ResetPasswordRequest {
     email!: string;
     password!: string;
     resetToken!: string;

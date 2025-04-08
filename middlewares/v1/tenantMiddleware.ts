@@ -1,12 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
 
 // Services
-import TenantService from '../services/TenantService';
-import TenantUserService from '../services/TenantUserService';
+import TenantService from '@/services/v1/TenantService';
+import TenantUserService from '@/services/v1/TenantService/TenantUserService';
 
 // Omits
-import UserOmit from '../types/UserOmit';
-import GetTenantRequest from '../dtos/requests/tenant/GetTenantRequest';
+import UserOmit from '@/types/UserOmit';
+import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
 
 export default function (
     requiredRole: string = 'USER', 

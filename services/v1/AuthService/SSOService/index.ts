@@ -1,14 +1,14 @@
-import prisma from '../../libs/prisma';
-import AuthService from '../AuthService';
-import UserService from '../UserService';
-import GoogleService from './GoogleService';
-import AppleService from './AppleService';
-import FacebookService from './FacebookService';
-import GithubService from './GithubService';
-import LinkedInService from './LinkedInService';
-import MicrosoftService from './MicrosoftService';
-import TwitterService from './TwitterService';
-import AuthUserResponse from '../../types/UserOmit';
+import prisma from '@/libs/prisma';
+import AuthService from '@/services/v1/AuthService';
+import UserService from '@/services/v1/UserService';
+import GoogleService from '@/services/v1/AuthService/SSOService/GoogleService';
+import AppleService from '@/services/v1/AuthService/SSOService/AppleService';
+import FacebookService from '@/services/v1/AuthService/SSOService/FacebookService';
+import GithubService from '@/services/v1/AuthService/SSOService/GithubService';
+import LinkedInService from '@/services/v1/AuthService/SSOService/LinkedInService';
+import MicrosoftService from '@/services/v1/AuthService/SSOService/MicrosoftService';
+import TwitterService from '@/services/v1/AuthService/SSOService/TwitterService';
+import AuthUserResponse from '@/types/UserOmit';
 
 export default class SSOService {
 

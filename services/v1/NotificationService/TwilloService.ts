@@ -3,12 +3,12 @@
 import twilio from 'twilio';
 
 // Utils
-import Logger from '../libs/logger';
+import Logger from '@/libs/logger';
 
 export default class TwilloService {
-    private static accountSid = process.env.TWILIO_ACCOUNT_SID;
-    private static authToken = process.env.TWILIO_AUTH_TOKEN;
-    private static client = twilio(TwilloService.accountSid, TwilloService.authToken);
+    private static readonly accountSid = process.env.TWILIO_ACCOUNT_SID;
+    private static readonly authToken = process.env.TWILIO_AUTH_TOKEN;
+    private static readonly client = twilio(TwilloService.accountSid, TwilloService.authToken);
 
     static async sendSMS(to: string | string[] | undefined | null, message: string) {
 

@@ -1,32 +1,32 @@
 import {  UserSession } from "@prisma/client";
 import { Request } from "express";
-import prisma from "../libs/prisma";
+import prisma from "@/libs/prisma";
 import bcrypt from "bcrypt";
 
 // DTOs
-import LoginResponse from "../dtos/responses/auth/LoginResponse";
-import MessageResponse from "../dtos/responses/MessageResponse";
-import LoginRequest from "../dtos/requests/auth/LoginRequest";
-import ForgotPasswordRequest from "../dtos/requests/auth/ForgotPasswordRequest";
-import ResetPasswordRequest from "../dtos/requests/auth/ResetPasswordRequest";
-import GetSessionRequest from "../dtos/requests/auth/GetSessionRequest";
-import RegisterRequest from "../dtos/requests/auth/RegisterRequest";
+import LoginResponse from "@/dtos/responses/auth/LoginResponse";
+import MessageResponse from "@/dtos/responses/MessageResponse";
+import LoginRequest from "@/dtos/requests/auth/LoginRequest";
+import ForgotPasswordRequest from "@/dtos/requests/auth/ForgotPasswordRequest";
+import ResetPasswordRequest from "@/dtos/requests/auth/ResetPasswordRequest";
+import GetSessionRequest from "@/dtos/requests/auth/GetSessionRequest";
+import RegisterRequest from "@/dtos/requests/auth/RegisterRequest";
 
 
 // Other Services
-import UserService from "./UserService";
-import TwilloService from "./TwilloService";
-import MailService from "./MailService";
+import UserService from "@/services/v1/UserService";
+import TwilloService from "@/services/v1/NotificationService/TwilloService";
+import MailService from "@/services/v1/NotificationService/MailService";
 
 // Utils
-import FieldValidater from "../utils/FieldValidater";
-import UserAgentUtil from "../utils/UserAgentUtil";
-import UserSessionOmit from "../types/UserSessionOmit";
-import UserOmit from "../types/UserOmit";
-import VerifyOTPRequest from "../dtos/requests/auth/VerifyOTPRequest";
-import SendOTPRequest from "../dtos/requests/auth/SendOTPRequest";
-import ChangeOTPStatusRequest from "../dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "../dtos/requests/auth/ChangeOTPVerifyRequest";
+import FieldValidater from "@/utils/FieldValidater";
+import UserAgentUtil from "@/utils/UserAgentUtil";
+import UserSessionOmit from "@/types/UserSessionOmit";
+import UserOmit from "@/types/UserOmit";
+import VerifyOTPRequest from "@/dtos/requests/auth/VerifyOTPRequest";
+import SendOTPRequest from "@/dtos/requests/auth/SendOTPRequest";
+import ChangeOTPStatusRequest from "@/dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "@/dtos/requests/auth/ChangeOTPVerifyRequest";
 
 import jwt from 'jsonwebtoken';
 
@@ -44,31 +44,38 @@ export default class AuthService {
      * These are the error messages that can be thrown by the service.
      * TODO: Add more error messages as needed.
      */
-    static INVALID_EMAIL_ADDRESS = "INVALID_EMAIL_ADDRESS";
-    static PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG = "PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG";
-    static PASSWORDS_DO_NOT_MATCH = "PASSWORDS_DO_NOT_MATCH";
-    static REGISTRATION_SUCCESSFUL = "REGISTRATION_SUCCESSFUL";
-    static LOGIN_SUCCESSFUL = "LOGIN_SUCCESSFUL";
-    static PASSWORD_RESET_EMAIL_SENT = "PASSWORD_RESET_EMAIL_SENT";
-    static PASSWORD_RESET_SUCCESSFUL = "PASSWORD_RESET_SUCCESSFUL";
-    static PASSWORD_RESET_FAILED = "PASSWORD_RESET_FAILED";
-    static UNKOWN_ERROR = "UNKOWN_ERROR";
-    static INVALID_TOKEN = "INVALID_TOKEN";
-    static SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
-    static USER_NOT_FOUND = "USER_NOT_FOUND";
-    static EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
-    static INVALID_EMAIL_OR_PASSWORD = "INVALID_EMAIL_OR_PASSWORD";
-    static INVALID_OTP = "INVALID_OTP";
-    static OTP_EXPIRED = "OTP_EXPIRED";
-    static USER_HAS_NO_PHONE_NUMBER = "USER_HAS_NO_PHONE_NUMBER";
-    static USER_HAS_NO_EMAIL = "USER_HAS_NO_EMAIL";
-    static OTP_ALREADY_ENABLED = "OTP_ALREADY_ENABLED";
-    static OTP_ALREADY_DISABLED = "OTP_ALREADY_DISABLED";
-    static OTP_CHANGED_SUCCESSFULLY = "OTP_CHANGED_SUCCESSFULLY";
-    static INVALID_PROVIDER = "INVALID_PROVIDER";
-    static INVALID_PROVIDER_TOKEN = "INVALID_PROVIDER_TOKEN";
-    static OTP_SENT_SUCCESSFULLY = "OTP_SENT_SUCCESSFULLY";
-    static OTP_VERIFIED_SUCCESSFULLY = "OTP_VERIFIED_SUCCESSFULLY";
+    static readonly EITHER_EMAIL_OR_PHONE_MUST_BE_PROVIDED = "EITHER_EMAIL_OR_PHONE_MUST_BE_PROVIDED";
+    static readonly INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
+    static readonly INVALID_PASSWORD = "INVALID_PASSWORD";
+    static readonly INVALID_PHONE_NUMBER = "INVALID_PHONE_NUMBER";
+    static readonly INVALID_EMAIL_ADDRESS = "INVALID_EMAIL_ADDRESS";
+    static readonly PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG = "PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG";
+    static readonly PASSWORDS_DO_NOT_MATCH = "PASSWORDS_DO_NOT_MATCH";
+    static readonly REGISTRATION_SUCCESSFUL = "REGISTRATION_SUCCESSFUL";
+    static readonly LOGIN_SUCCESSFUL = "LOGIN_SUCCESSFUL";
+    static readonly PASSWORD_RESET_EMAIL_SENT = "PASSWORD_RESET_EMAIL_SENT";
+    static readonly PASSWORD_RESET_SUCCESSFUL = "PASSWORD_RESET_SUCCESSFUL";
+    static readonly PASSWORD_RESET_FAILED = "PASSWORD_RESET_FAILED";
+    static readonly UNKNOWN_ERROR = "UNKNOWN_ERROR";
+    static readonly INVALID_TOKEN = "INVALID_TOKEN";
+    static readonly SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
+    static readonly USER_NOT_FOUND = "USER_NOT_FOUND";
+    static readonly EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
+    static readonly INVALID_EMAIL_OR_PASSWORD = "INVALID_EMAIL_OR_PASSWORD";
+    static readonly INVALID_OTP = "INVALID_OTP";
+    static readonly OTP_EXPIRED = "OTP_EXPIRED";
+    static readonly USER_HAS_NO_PHONE_NUMBER = "USER_HAS_NO_PHONE_NUMBER";
+    static readonly USER_HAS_NO_EMAIL = "USER_HAS_NO_EMAIL";
+    static readonly OTP_ALREADY_ENABLED = "OTP_ALREADY_ENABLED";
+    static readonly OTP_ALREADY_DISABLED = "OTP_ALREADY_DISABLED";
+    static readonly OTP_CHANGED_SUCCESSFULLY = "OTP_CHANGED_SUCCESSFULLY";
+    static readonly INVALID_PROVIDER = "INVALID_PROVIDER";
+    static readonly INVALID_PROVIDER_TOKEN = "INVALID_PROVIDER_TOKEN";
+    static readonly OTP_SENT_SUCCESSFULLY = "OTP_SENT_SUCCESSFULLY";
+    static readonly OTP_VERIFIED_SUCCESSFULLY = "OTP_VERIFIED_SUCCESSFULLY";
+    static readonly PHONE_ALREADY_EXISTS = "PHONE_ALREADY_EXISTS";
+    static readonly LOGGED_OUT_SUCCESSFULLY = "LOGGED_OUT_SUCCESSFULLY";
+
 
     /**
      * Token Generation
@@ -208,8 +215,6 @@ export default class AuthService {
      * @returns The user session.
      */
     static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
-
-        console.log(data);
 
         const session = await prisma.userSession.findUnique({
             where: { accessToken: data.accessToken }
@@ -571,6 +576,43 @@ export default class AuthService {
 
         return { message: this.OTP_CHANGED_SUCCESSFULLY };
     }
+
+
+    public static async refreshAccessToken(accessToken: string): Promise<UserSessionOmit | null> {
+        const session = await prisma.userSession.findFirst({
+            where: {
+                accessToken,
+                sessionExpiry: {
+                    gt: new Date(),
+                },
+            },
+        });
+    
+        if (!session) {
+            throw new Error(AuthService.SESSION_NOT_FOUND);
+        }
+    
+        const newRefreshToken = AuthService.generateRefreshToken(session.userId);
+        const newAccessToken = AuthService.generateAccessToken(session.userId);
+        
+        /*
+        const updatedSession = await prisma.userSession.update({
+          where: { sessionId: session.sessionId },
+          data: {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+            sessionExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+          },
+        });
+        */
+        
+        return {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+            otpNeeded: session.otpNeeded,
+        }
+    }
+
 
 }
 

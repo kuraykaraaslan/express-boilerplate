@@ -7,16 +7,16 @@
 import { Router, Request, Response } from "express";
 
 // Utils
-import FieldValidater from "../../utils/FieldValidater";
+import FieldValidater from "@/utils/FieldValidater";
 
 // DTOs
-import GetSSOLinkRequest from "../../dtos/requests/sso/GetSSOLinkRequest";
-import LoginResponse from "../../dtos/responses/auth/LoginResponse";
-import EmptyRequest from "../../dtos/requests/EmptyRequest";
-import GetSessionRequest from "../../dtos/requests/auth/GetSessionRequest";
-import SSOService from "../../services/SSOService";
-import AuthService from "../../services/AuthService";
-import MailService from "../../services/MailService";
+import GetSSOLinkRequest from "@/dtos/requests/sso/GetSSOLinkRequest";
+import LoginResponse from "@/dtos/responses/auth/LoginResponse";
+import EmptyRequest from "@/dtos/requests/EmptyRequest";
+import GetSessionRequest from "@/dtos/requests/auth/GetSessionRequest";
+import SSOService from "@/services/v1/AuthService/SSOService";
+import AuthService from "@/services/v1/AuthService";
+import MailService from "@/services/v1/NotificationService/MailService";
 
 
 const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
@@ -38,9 +38,6 @@ const ssoRouter = Router();
  * 
  */
 ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Response<LoginResponse>) => {
-
-
-    console.log(request.body);
 
     if (!FieldValidater.validateBody(request.body, GetSessionRequest)) {
         throw new Error("BAD_REQUEST");

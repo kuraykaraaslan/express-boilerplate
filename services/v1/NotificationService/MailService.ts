@@ -1,44 +1,44 @@
-import Logger from '../libs/logger';
+import Logger from '@/libs/logger';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
 import { User, UserSession } from '@prisma/client';
 
 // Types
-import UserOmit from '../types/UserOmit';
-import UserSessionOmit from '../types/UserSessionOmit';
+import UserOmit from '@/types/UserOmit';
+import UserSessionOmit from '@/types/UserSessionOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
 
 export default class MailService {
 
-    static TEMPLATE_PATH = path.join(__dirname, '../views/email/');
-    static APPLICATION_NAME = process.env.APPLICATION_NAME || "Express Boilerplate";
+    static readonly TEMPLATE_PATH = path.join(__dirname, '@/views/email/');
+    static readonly APPLICATION_NAME = process.env.APPLICATION_NAME || "Express Boilerplate";
 
     // These are the default values, you can change them in the .env file
-    static FRONTEND_URL = process.env.FRONTEND_HOST + ":" + process.env.FRONTEND_PORT;
+    static readonly FRONTEND_URL = process.env.FRONTEND_HOST + ":" + process.env.FRONTEND_PORT;
 
-    static FRONTEND_LOGIN_PATH = process.env.FRONTEND_LOGIN_PATH || "/auth/login";
-    static FRONTEND_REGISTER_PATH = process.env.FRONTEND_REGISTER_PATH || "/auth/register";
-    static FRONTEND_PRIVACY_PATH = process.env.FRONTEND_PRIVACY_PATH || "/privacy";
-    static FRONTEND_TERMS_PATH = process.env.FRONTEND_TERMS_PATH || "/terms-of-use";
-    static FRONTEND_RESET_PASSWORD_PATH = process.env.FRONTEND_RESET_PASSWORD_PATH || "/auth/reset-password";
-    static FRONTEND_FORGOT_PASSWORD_PATH = process.env.FRONTEND_FORGOT_PASSWORD_PATH || "/auth/forgot-password";
-    static FRONTEND_SUPPORT_EMAIL = process.env.FRONTEND_SUPPORT_EMAIL || "support@example.com";
+    static readonly FRONTEND_LOGIN_PATH = process.env.FRONTEND_LOGIN_PATH || "/auth/login";
+    static readonly FRONTEND_REGISTER_PATH = process.env.FRONTEND_REGISTER_PATH || "/auth/register";
+    static readonly FRONTEND_PRIVACY_PATH = process.env.FRONTEND_PRIVACY_PATH || "/privacy";
+    static readonly FRONTEND_TERMS_PATH = process.env.FRONTEND_TERMS_PATH || "/terms-of-use";
+    static readonly FRONTEND_RESET_PASSWORD_PATH = process.env.FRONTEND_RESET_PASSWORD_PATH || "/auth/reset-password";
+    static readonly FRONTEND_FORGOT_PASSWORD_PATH = process.env.FRONTEND_FORGOT_PASSWORD_PATH || "/auth/forgot-password";
+    static readonly FRONTEND_SUPPORT_EMAIL = process.env.FRONTEND_SUPPORT_EMAIL || "support@example.com";
 
 
     //GENERATED LINK : NOT MODIFY
-    static FRONTEND_LOGIN_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_LOGIN_PATH;
-    static FRONTEND_REGISTER_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_REGISTER_PATH;
-    static FRONTEND_PRIVACY_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH;
-    static FRONTEND_TERMS_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH;
-    static FRONTEND_RESET_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_RESET_PASSWORD_PATH;
-    static FRONTEND_FORGOT_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH;
+    static readonly FRONTEND_LOGIN_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_LOGIN_PATH;
+    static readonly FRONTEND_REGISTER_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_REGISTER_PATH;
+    static readonly FRONTEND_PRIVACY_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_PRIVACY_PATH;
+    static readonly FRONTEND_TERMS_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_TERMS_PATH;
+    static readonly FRONTEND_RESET_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_RESET_PASSWORD_PATH;
+    static readonly FRONTEND_FORGOT_PASSWORD_LINK = MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH;
 
 
 
-    static transporter = nodemailer.createTransport({
+    static readonly transporter = nodemailer.createTransport({
         host: MAIL_HOST,
         port: Number(MAIL_PORT),
 
