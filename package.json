@@ -60,9 +60,11 @@
     "ejs": "^3.1.10",
     "express-rate-limit": "^7.5.0",
     "geoip-lite": "^1.4.10",
+    "iyzipay": "^2.0.64",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "nodemailer": "^6.9.14",
+    "stripe": "^18.0.0",
     "twilio": "^5.2.3",
     "winston": "^3.17.0"
   },
