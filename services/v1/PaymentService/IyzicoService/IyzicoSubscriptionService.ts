@@ -1,14 +1,14 @@
 import IyzicoService from "@/services/v1/PaymentService/IyzicoService";
 import { SubscriptionExtended } from "@/types/SubscriptionExtended";
-import { UserAgentData } from "@/types/UserAgentData";
-import { Subscription, SubscriptionPrice, User } from "@prisma/client";
-import SubscriptionService from "../../SubscriptionService";
+import { Subscription, SubscriptionPrice, SubscriptionStatus, User } from "@prisma/client";
+import SubscriptionService from "@/services/v1/SubscriptionService";
 export default class IyzicoSubscriptionService {
 
     static readonly TOKEN_NOT_FOUND = "TOKEN_NOT_FOUND";
     static readonly SUBSCRIPTION_NOT_FOUND = "SUBSCRIPTION_NOT_FOUND";
     static readonly SUBSCRIPTION_CANCELLED = "SUBSCRIPTION_CANCELLED";
     static readonly SUBSCRIPTION_CANCEL_FAILED = "SUBSCRIPTION_CANCEL_FAILED";
+    static readonly SUBSCRIPTION_PAYMENT_FAILED = "SUBSCRIPTION_PAYMENT_FAILED";
 
     private static axiosInstance = IyzicoService.getAxiosInstance();
 
@@ -72,7 +72,7 @@ export default class IyzicoSubscriptionService {
     }
 
 
-    static async cancelSubscription({ subscription, userAgentData }: { subscription: SubscriptionExtended, userAgentData: UserAgentData }): Promise<any> {
+    static async cancelSubscription({ subscription }: { subscription: SubscriptionExtended }): Promise<any> {
         ///v2/subscription/subscriptions/e5dd9172-5b59-4be1-a03a-c2ef94269e0f/cancel?locale=tr NO BODY
 
         const path = `/v2/subscription/subscriptions/${subscription.iyzicoToken}/cancel`;
@@ -91,8 +91,72 @@ export default class IyzicoSubscriptionService {
             }
         });
 
+        return response.data;
+
     }
 
+    static async upgradeSubscription({ subscription, subscriptionPrice }: { subscription: SubscriptionExtended, subscriptionPrice: SubscriptionPrice }): Promise<any> {
+        const path = `/v2/subscription/subscriptions/${subscription.iyzicoToken}/upgrade`;
+
+        /*7{
+            "newPricingPlanReferenceCode": "8d0c2072-4182-4ed9-86f4-ee00d6ac6150",
+            "upgradePeriod": "NEXT_PERIOD",
+            "useTrial": false,
+            "resetRecurrenceCount": true
+        }
+        */
+
+        const requestBody = {
+            "newPricingPlanReferenceCode": subscriptionPrice.iyzicoPricingPlanRefId,
+            "upgradePeriod": "NEXT_PERIOD",
+            "useTrial": false,
+            "resetRecurrenceCount": true
+        }
+
+        const response = await this.axiosInstance.post(path, requestBody);
+        if (response.data.status !== "success") {
+            throw new Error(IyzicoSubscriptionService.SUBSCRIPTION_CANCEL_FAILED);
+        }
+
+        //update subscription status
+        await SubscriptionService.updateSubscription({
+            subscriptionId: subscription.subscriptionId,
+            data: {
+                subscriptionStatus: SubscriptionStatus.COMPLETED,
+                subscriptionPlanId: subscriptionPrice.subscriptionPlanId,
+            }
+        });
+
+        return;
+    }
+
+    static async retrySubscription({ subscription }: { subscription: SubscriptionExtended }): Promise<any> {
+        const path = `/v2/subscription/operation/retry`;
+
+        /*
+        {
+            "referenceCode": "a2077643-bab7-4b73-85a5-7676c78d7c66"
+        }
+        */
+
+        const requestBody = {
+            "referenceCode": subscription.iyzicoToken
+        }
+        const response = await this.axiosInstance.post(path, requestBody);
+        if (response.data.status !== "success") {
+            throw new Error(IyzicoSubscriptionService.SUBSCRIPTION_PAYMENT_FAILED);
+        }
+
+        //update subscription status
+        await SubscriptionService.updateSubscription({
+            subscriptionId: subscription.subscriptionId,
+            data: {
+                subscriptionStatus: SubscriptionStatus.COMPLETED,
+            }
+        });
+        
+        return response.data;
+    }
 
 }
 

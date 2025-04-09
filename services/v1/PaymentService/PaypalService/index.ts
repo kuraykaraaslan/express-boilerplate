@@ -62,4 +62,12 @@ export default class PaypalService {
     }
 
     
+    static async getPaymentStatus(paypalCaptureId: string): Promise<any> {
+        try {
+            const response = await this.axiosInstance.get(`/v2/checkout/orders/${paypalCaptureId}`);
+            return response.data;
+        } catch (error) {
+            throw new Error('Failed to get payment status');
+        }
+    }
 }
