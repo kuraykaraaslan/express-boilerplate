@@ -15,7 +15,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "prettier": "prettier .",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build && prisma db seed"
+    "vercel-build": "prisma generate && prisma migrate deploy && tsc -p . && prisma db seed"
   },
   "repository": {
     "type": "git",

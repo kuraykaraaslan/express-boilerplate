@@ -1,11 +1,6 @@
 import { Subscription, User } from '@prisma/client';
 import prisma from '@/libs/prisma';
 
-// Third-party Services
-import StripeService from '@/services/v1/PaymentService/StripeService';
-import PaypalService from '@/services/v1/PaymentService/PaypalService';
-import IyzicoService from '@/services/v1/PaymentService/IyzicoService';
-
 /**
  * Service class responsible for managing orders and handling payment-specific logic.
  */
