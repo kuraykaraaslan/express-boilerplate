@@ -1,6 +1,6 @@
 import geoip from "geoip-lite";
 import { Request } from "express";
-
+import { UserAgentData } from "@/types/UserAgentData";
 type OSName =
     | 'Windows'
     | 'macOS'
@@ -37,16 +37,6 @@ type OSPattern = {
     name: OSName;
 };
 
-
-type UserAgentData = {
-    os: string | null;
-    device: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-    ip?: string | null;
-    browser?: string | null;
-}
 
 
 export default class UserAgentUtil {

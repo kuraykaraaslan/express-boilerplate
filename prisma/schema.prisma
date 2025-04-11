@@ -13,8 +13,10 @@ model User {
   email    String  @unique
   phone    String? @unique
   password String
-  name     String?
 
+  name     String?
+  lastName String?
+    
   userRole   UserRole   @default(USER)
   userStatus UserStatus @default(ACTIVE)
 
@@ -38,6 +40,11 @@ model User {
 
   userSessions       UserSession[]
   userSocialAccounts UserSocialAccount[]
+  tenantUsers        TenantUser[]
+
+  //User Nationalty
+  userNationalityId String?
+  userNationalityCountry String?
 
   //index
   @@index([email])
@@ -119,6 +126,10 @@ model Tenant {
   //Domain
   domain String
 
+  region String @default("TR")
+
+  subscriptions Subscription[]
+
   //Timestamps
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -148,6 +159,7 @@ model TenantUser {
   tenant       Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   userId String
+  user   User @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   tenantUserRole   TenantUserRole   @default(USER)
   tenantUserStatus TenantUserStatus @default(ACTIVE)
@@ -158,15 +170,9 @@ model TenantUser {
   deletedAt DateTime?
 }
 
-model SystemSettings {
-  systemSettingId String @id @default(cuid())
-  key             String @unique
-  value           String // JSON string to store complex settings
-}
-
-model TenantSettings {
+model Settings {
   tenantSettingId String @id @default(cuid())
-  tenantId        String @unique
+  tenantId        String // "SYSTEM" for system settings
 
   key   String
   value String // JSON string to store complex settings
@@ -175,12 +181,13 @@ model TenantSettings {
   @@index([tenantId, key])
 }
 
-enum OrderStatus {
+enum SubscriptionStatus {
   PENDING
   COMPLETED
   CANCELLED
   REFUNDED
 }
+
 
 enum PaymentMethod {
   STRIPE
@@ -195,11 +202,56 @@ enum Currency {
   GBP
 }
 
+enum SubscriptionBillingCycle {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  YEARLY
+}
 
-model Order {
-  orderId String @id @default(cuid())
+model SubscriptionPrice {
+  subscriptionPriceId String @id @default(cuid())
 
-  userId  String
+  default Boolean @default(false)
+
+  region   String[] @default(["TR", "EU", "US"])
+  currency Currency @default(USD)
+  price    Float
+
+  methods PaymentMethod[] @default([STRIPE, PAYPAL, IYZICO])
+
+  subscriptionPlanId String
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
+
+
+  iyzicoPricingPlanRefId String? // Reference ID for Iyzico pricing plan
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cancelledAt DateTime?
+
+  @@unique([region, currency])
+
+  Subscription Subscription[]
+}
+
+model SubscriptionPlan {
+  subscriptionPlanId String @id @default(cuid())
+  name   String
+  description String?
+  
+  price SubscriptionPrice[]
+  billingCycle SubscriptionBillingCycle @default(MONTHLY)
+
+  //Relationships
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  subscriptionId String @id @default(cuid())
 
   // Stripe Fields (Optional)
   stripePaymentIntentId           String?
@@ -216,8 +268,12 @@ model Order {
   iyzicoToken String?
 
 
-  calculatedAmount Float // Calculated amount before any discounts or taxes
+  subscriptionPlanId String
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
 
+  subscriptionPriceId String
+  subscriptionPrice SubscriptionPrice @relation(fields: [subscriptionPriceId], references: [subscriptionPriceId], onDelete: Cascade)
+  
   // Discounts
   discountCode   String? // Code used for discount
   discountAmount Float? // Amount of discount applied
@@ -225,15 +281,69 @@ model Order {
   taxRate   Float? // Tax rate applied to the order
   taxAmount Float? // Amount of tax applied to the order
 
-  totalAmount Float // Total amount after discounts and taxes
+  paidPrice Float // Total amount after discounts and taxes
   currency    Currency @default(USD)
 
-  orderStatus   OrderStatus   @default(PENDING)
+  subscriptionStatus   SubscriptionStatus   @default(PENDING)
   paymentMethod PaymentMethod
 
   createdAt     DateTime @default(now())
   paidAt        DateTime?
   cancelledAt   DateTime?
   refundedAt    DateTime?
+
+  //Address Snapshots
+  billingAddressId String? 
+  billingAddress   Address? @relation("BillingAddress", fields: [billingAddressId], references: [addressId])
+
+  tenantId         String
+  tenant           Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+}
+
+
+enum AddressIntent {
+  BILLING
+  SHIPPING
+}
+
+enum AddressType {
+  PERSONAL
+  BUSINESS
+}
+
+model Address {
+  
+  addressId   String @id @default(cuid())
+  tenantId    String
+
+  // Opposite relation fields
+  billingOrders  Subscription[] @relation("BillingAddress")
+
+  addressIntents AddressIntent[]
+  addressType   AddressType
+
+  name        String
+
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  state       String?
+  country     String
+  zipCode  String?
+
+  //Personal Information
+  phoneNumber String?
+  email       String?
+  
+  firstName   String? //Business Name for business addresses
+  lastName    String? // Empty for business addresses
+
+  taxOffice   String?
+  taxId      String?
+
+  // Relationships
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
 }

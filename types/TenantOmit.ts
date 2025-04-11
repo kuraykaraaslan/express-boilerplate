@@ -1,8 +1,5 @@
-import { TenantStatus } from "@prisma/client";
+import { Tenant } from "@prisma/client";
 
-export default class TenantOmit {
-    tenantId!: string;
-    name!: string;
-    tenantStatus!: TenantStatus;
-    domain!: string;
-}
+export default interface TenantOmit extends Omit<Tenant, 'createdAt' | 'updatedAt'> {}
+
+export type { TenantOmit };

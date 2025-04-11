@@ -1,5 +1,5 @@
 import { Order, OrderStatus } from '@prisma/client';
-import OrderService from '@/services/v1/OrderService';
+import OrderService from '@/services/v1/SubscriptionService';
 import Stripe from 'stripe';
 import { Or } from '@prisma/client/runtime/library';
 
@@ -100,12 +100,7 @@ export default class StripeService {
       },
     });
 
-    return await OrderService.updateOrder(order, {
-      paymentMethod: 'STRIPE',
-      stripePaymentIntentId: paymentIntent.id,
-      stripePaymentIntentClientSecret: paymentIntent.client_secret!,
-      orderStatus: OrderStatus.PENDING,
-    });
+   
 
   }
 }
