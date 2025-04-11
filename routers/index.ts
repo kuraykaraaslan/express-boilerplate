@@ -41,10 +41,5 @@ IndexRouter.get("/", (req, res) => {
     });
 });  
 
-IndexRouter.use((req, res) => {
-    res.status(404).send({
-        error: "NOT_FOUND"
-    });
-});
 
 export default IndexRouter;
