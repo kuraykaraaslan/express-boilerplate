@@ -29,6 +29,18 @@ IndexRouter.get("/", (req, res) => {
 IndexRouter.use("/api/v1", V1Router);
 IndexRouter.use("/views", ViewRouter);
 
+IndexRouter.get("/", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    return res.send({
+        message: "Welcome to the Express Boilerplate",
+        version: "1.0.6",
+        developer: "Kuray Karaaslan",
+        repo: "github.com/kuraykaraaslan/express-boilerplate",
+        github: "github.com/kuraykaraaslan",
+        linkedin: "linkedin.com/in/kuraykaraaslan",
+    });
+});  
+
 IndexRouter.use((req, res) => {
     res.status(404).send({
         error: "NOT_FOUND"
