@@ -14,7 +14,8 @@
     "db:seed": "ts-node prisma/seed.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "prettier": "prettier .",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build && prisma db seed"
   },
   "repository": {
     "type": "git",
