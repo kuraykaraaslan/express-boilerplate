@@ -21,6 +21,17 @@ export default class TenantUserService {
     static readonly INVALID_TENANT_USER_REQUEST = "INVALID_TENANT_USER_REQUEST";
 
     /**
+     * Select fields to be omitted from the tenant user object.
+     */
+    static readonly TenantUserOmitSelect = {
+        tenantUserId: true,
+        tenantId: true,
+        userId: true,
+        tenantUserRole: true,   
+        tenantUserStatus: true
+    };
+
+    /**
      * Omit sensitive fields from the tenant object.
      * @param tenant - The user object.
      * @returns The tenant object without the deletedAt.
@@ -65,29 +76,15 @@ export default class TenantUserService {
 
     public static async getAll(data: GetTenantUsersRequest): Promise<GetTenantUsersResponse> {
 
-        const { skip, take, search, tenantId } = data;
+        const { skip, take, search, tenantId , userId , tenantUserId } = data;
 
         const queryOptions = {
             skip,
             take,
             where: {
-                OR: [
-                    {
-                        tenantId: {
-                            contains: search
-                        }
-                    },
-                    {
-                        userId: {
-                            contains: search
-                        }
-                    },
-                    {
-                        tenantUserId: {
-                            contains: search
-                        }
-                    }
-                ]
+                name: search,
+                tenantId,
+                userId,
             }
         }; 
 

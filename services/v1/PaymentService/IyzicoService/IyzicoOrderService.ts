@@ -1,5 +1,5 @@
 import IyzicoService from "@/services/v1/PaymentService/IyzicoService";
-import
+import axios from "axios";
 export default class IyzicoOrderService {
 
         private static axiosInstance = IyzicoService.getAxiosInstance();

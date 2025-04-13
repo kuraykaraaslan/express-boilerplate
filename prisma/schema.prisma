@@ -16,7 +16,7 @@ model User {
 
   name     String?
   lastName String?
-    
+
   userRole   UserRole   @default(USER)
   userStatus UserStatus @default(ACTIVE)
 
@@ -43,7 +43,7 @@ model User {
   tenantUsers        TenantUser[]
 
   //User Nationalty
-  userNationalityId String?
+  userNationalityId      String?
   userNationalityCountry String?
 
   //index
@@ -61,6 +61,12 @@ model UserSession {
 
   sessionExpiry DateTime
   sessionAgent  String
+
+  //Tenant Data
+  tenantId     String?
+  tenantUserId String?     @unique
+  tenant       Tenant?     @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [tenantUserId], onDelete: Cascade)
 
   //OTP verification
   otpNeeded      Boolean   @default(false)
@@ -131,9 +137,10 @@ model Tenant {
   subscriptions Subscription[]
 
   //Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+  UserSession UserSession[]
 }
 
 enum TenantStatus {
@@ -159,15 +166,19 @@ model TenantUser {
   tenant       Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   userId String
-  user   User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   tenantUserRole   TenantUserRole   @default(USER)
   tenantUserStatus TenantUserStatus @default(ACTIVE)
 
+  //Session
+  userSessionId String? @unique
+
   //Timestamps
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+  UserSession UserSession?
 }
 
 model Settings {
@@ -187,7 +198,6 @@ enum SubscriptionStatus {
   CANCELLED
   REFUNDED
 }
-
 
 enum PaymentMethod {
   STRIPE
@@ -223,24 +233,23 @@ model SubscriptionPrice {
   subscriptionPlanId String
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
 
-
   iyzicoPricingPlanRefId String? // Reference ID for Iyzico pricing plan
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   cancelledAt DateTime?
 
-  @@unique([region, currency])
-
   Subscription Subscription[]
+
+  @@unique([region, currency])
 }
 
 model SubscriptionPlan {
-  subscriptionPlanId String @id @default(cuid())
-  name   String
-  description String?
-  
-  price SubscriptionPrice[]
+  subscriptionPlanId String  @id @default(cuid())
+  name               String
+  description        String?
+
+  price        SubscriptionPrice[]
   billingCycle SubscriptionBillingCycle @default(MONTHLY)
 
   //Relationships
@@ -259,21 +268,20 @@ model Subscription {
   stripePaymentIntentClientSecret String?
 
   // PayPal Fields (Optional)
-  paypalOrderId String?
+  paypalOrderId     String?
   paypalApprovalUrl String?
-  paypalCaptureId String?
+  paypalCaptureId   String?
 
   // Iyzico Fields (Optional)
   iyzicoPaymentId String?
-  iyzicoToken String?
-
+  iyzicoToken     String?
 
   subscriptionPlanId String
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
 
   subscriptionPriceId String
-  subscriptionPrice SubscriptionPrice @relation(fields: [subscriptionPriceId], references: [subscriptionPriceId], onDelete: Cascade)
-  
+  subscriptionPrice   SubscriptionPrice @relation(fields: [subscriptionPriceId], references: [subscriptionPriceId], onDelete: Cascade)
+
   // Discounts
   discountCode   String? // Code used for discount
   discountAmount Float? // Amount of discount applied
@@ -282,24 +290,23 @@ model Subscription {
   taxAmount Float? // Amount of tax applied to the order
 
   paidPrice Float // Total amount after discounts and taxes
-  currency    Currency @default(USD)
+  currency  Currency @default(USD)
 
-  subscriptionStatus   SubscriptionStatus   @default(PENDING)
-  paymentMethod PaymentMethod
+  subscriptionStatus SubscriptionStatus @default(PENDING)
+  paymentMethod      PaymentMethod
 
-  createdAt     DateTime @default(now())
-  paidAt        DateTime?
-  cancelledAt   DateTime?
-  refundedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  cancelledAt DateTime?
+  refundedAt  DateTime?
 
   //Address Snapshots
-  billingAddressId String? 
+  billingAddressId String?
   billingAddress   Address? @relation("BillingAddress", fields: [billingAddressId], references: [addressId])
 
-  tenantId         String
-  tenant           Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 }
-
 
 enum AddressIntent {
   BILLING
@@ -312,38 +319,36 @@ enum AddressType {
 }
 
 model Address {
-  
-  addressId   String @id @default(cuid())
-  tenantId    String
+  addressId String @id @default(cuid())
+  tenantId  String
 
   // Opposite relation fields
-  billingOrders  Subscription[] @relation("BillingAddress")
+  billingOrders Subscription[] @relation("BillingAddress")
 
   addressIntents AddressIntent[]
-  addressType   AddressType
+  addressType    AddressType
 
-  name        String
+  name String
 
   addressLine1 String
   addressLine2 String?
-  city        String
-  state       String?
-  country     String
-  zipCode  String?
+  city         String
+  state        String?
+  country      String
+  zipCode      String?
 
   //Personal Information
   phoneNumber String?
   email       String?
-  
-  firstName   String? //Business Name for business addresses
-  lastName    String? // Empty for business addresses
 
-  taxOffice   String?
-  taxId      String?
+  firstName String? //Business Name for business addresses
+  lastName  String? // Empty for business addresses
+
+  taxOffice String?
+  taxId     String?
 
   // Relationships
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
 }

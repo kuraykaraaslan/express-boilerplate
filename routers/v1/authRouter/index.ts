@@ -29,6 +29,8 @@ import AuthService from "@/services/v1/AuthService";
 import MailService from "@/services/v1/NotificationService/MailService";
 
 
+// Mid Router
+import tenantAuthRouter from "./tenantAuthRouter";
 
 // Router
 const AuthRouter = Router();
@@ -96,7 +98,10 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
     const user = await AuthService.login(data);
     const userSession = await AuthService.createSession(user, request, true);
     MailService.sendNewLoginEmail(user, userSession);
-    return response.json({ user, userSession });
+    return response.json({ 
+        user, 
+        userSession: AuthService.omitSensitiveFields(userSession)
+    }); 
 });
 
 
@@ -212,6 +217,34 @@ AuthRouter.get('/session', async (request: Request, response: Response<LoginResp
     return response.json({ user: request.user!, userSession: request.userSession! });
 });
 
+
+/**
+ * POST /session/tenant
+ * Tenant Auth Router
+ *
+ * This module provides endpoints to manage user authentication operations such as registration and login.
+ * It uses the AuthService to interact with the database and perform necessary actions.
+ */
+AuthRouter.use('/session/tenant', tenantAuthRouter);
+
+
+
+
+/**
+ * POST /settings/destroy-other-sessions
+ * Destroy all other sessions of the user.
+ *
+ * Response:
+ * - 200: All other sessions destroyed successfully.
+ * - 500: Internal server error if session destruction fails.
+ * - 401: Unauthorized if user is not logged in.
+ */
+AuthRouter.post('/session/destroy-other-sessions', async (request: Request, response: Response<MessageResponse>) => {
+    await AuthService.destroyOtherSessions({ user: request.user!, userSession: request.userSession! });
+    return response.json({ message: "DESTROY_OTHER_SESSIONS_SUCCESS" });
+});
+
+
 /**
  * POST /settings/otp
  * Send the OTP Enable to user.
@@ -250,5 +283,8 @@ AuthRouter.post('/settings/otp-verify', async (request: Request, response: Respo
     await AuthService.otpChangeVerify(request.user!, data);
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
+
+
+
 
 export default AuthRouter;

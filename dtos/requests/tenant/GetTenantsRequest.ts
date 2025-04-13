@@ -3,8 +3,11 @@ export default class GetTenantsRequest {
     take?: number;
     search?: string;
 
+    tenantId?: string;
+
     constructor(data: any) {
-        const { skip, take, userId, search } = data;
+        const { skip, take, search, tenantId } = data;
+        this.tenantId = tenantId;
 
         this.skip = skip || 0;
         this.take = take || 10;

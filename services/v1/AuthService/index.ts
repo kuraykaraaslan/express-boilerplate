@@ -29,6 +29,8 @@ import ChangeOTPStatusRequest from "@/dtos/requests/auth/ChangeOTPStatusRequest"
 import ChangeOTPVerifyRequest from "@/dtos/requests/auth/ChangeOTPVerifyRequest";
 
 import jwt from 'jsonwebtoken';
+import TenantService from "../TenantService";
+import TenantUserService from "../TenantService/TenantUserService";
 
 
 const ACCESS_TOKEN_SECRET: jwt.Secret = process.env.ACCESS_TOKEN_SECRET!;
@@ -75,6 +77,32 @@ export default class AuthService {
     static readonly OTP_VERIFIED_SUCCESSFULLY = "OTP_VERIFIED_SUCCESSFULLY";
     static readonly PHONE_ALREADY_EXISTS = "PHONE_ALREADY_EXISTS";
     static readonly LOGGED_OUT_SUCCESSFULLY = "LOGGED_OUT_SUCCESSFULLY";
+
+    static readonly UserOmitSelect = {
+        userId: true,
+        email: true,
+        name: true,
+        phone: true,
+        userRole: true,
+        otpEnabled: true,
+        createdAt: true,
+        updatedAt: true,
+    };
+
+    static readonly UserSessionOmitSelect = {
+        userId: true,
+        sessionId: true,
+        accessToken: true,
+        refreshToken: true,
+        tenantId: true,
+        tenantUserId: true,
+        tenant: {
+            select: TenantService.TenantOmitSelect, 
+        },
+        tenantUser: {
+            select: TenantUserService.TenantUserOmitSelect,
+        },
+    }
 
 
     /**
@@ -125,9 +153,12 @@ export default class AuthService {
     static omitSensitiveFields(session: UserSession): UserSessionOmit {
 
         const safeSession = {
+            userId: session.userId,
             accessToken: session.accessToken,
             refreshToken: session.refreshToken,
             otpNeeded: session.otpNeeded,
+            tenantUserId: session.tenantUserId,
+            tenantId: session.tenantId,
         };        
         
         return safeSession;
@@ -217,7 +248,8 @@ export default class AuthService {
     static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
 
         const session = await prisma.userSession.findUnique({
-            where: { accessToken: data.accessToken }
+            where: { accessToken: data.accessToken },
+            select: AuthService.UserSessionOmitSelect,
         })
         
         if (!session) {
@@ -230,6 +262,7 @@ export default class AuthService {
 
         return {
             user: UserService.omitSensitiveFields(user),
+            //@ts-ignore
             userSession: AuthService.omitSensitiveFields(session),
         };
 
@@ -248,6 +281,29 @@ export default class AuthService {
 
     }
 
+    /**
+     * Destroy all other sessions of the user.
+     * 
+     * @param userSession - The current user session.
+     * @returns A promise that resolves when the sessions are destroyed.
+     */
+        static async destroyOtherSessions({ user, userSession }: LoginResponse): Promise<void> {
+        // Get all sessions of the user
+        const sessions = await prisma.userSession.findMany({
+            where: { userId: user.userId },
+        });
+        // Delete all sessions except the current one
+        await prisma.userSession.deleteMany({
+            where: {
+                userId: user.userId,
+                accessToken: {
+                    not: userSession.accessToken,
+                },  
+            },
+        });
+    }  
+
+        
     /**
      * Registers a new user.
      * @param email - The user's email.
@@ -610,6 +666,9 @@ export default class AuthService {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
             otpNeeded: session.otpNeeded,
+            tenantId: session.tenantId,
+            tenantUserId: session.tenantUserId,
+            userId: session.userId,
         }
     }
 

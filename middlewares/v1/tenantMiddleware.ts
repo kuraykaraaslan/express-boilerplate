@@ -50,32 +50,10 @@ export default function (
             // Attach tenant to request
             request.tenant = tenant;
 
-            let tenantUser = await TenantUserService.getById({ tenantId: tenant.tenantId, userId: user.userId });
+            console.log("Tenant found: ", tenant);
+            // Check if tenant user exists
 
-            // If the user is an admin but not a tenant user, create a temporary tenant user
-            if (!tenantUser && user.userRole === 'ADMIN') {
-                tenantUser = {
-                    tenantUserId: `TEMP_${tenant.tenantId}_${user.userId}`,
-                    tenantId: tenant.tenantId,
-                    userId: user.userId,
-                    tenantUserRole: 'ADMIN',
-                    tenantUserStatus: 'ACTIVE'
-                };
-
-                return next();
-            }
-
-            if (!tenantUser) {
-                throw new Error("UNAUTHORIZED");
-            }
-
-            // Attach tenant user to request
-            request.tenantUser = tenantUser;
-
-            // Check if the tenant user has the required role
-            if (!TenantUserService.checkIfUserHasRole(tenantUser, requiredRole)) {
-                throw new Error("TENANT_USER_HAS_NOT_REQUIRED_ROLE");
-            }
+            const getTenantUserRequest = new GetTenantRequest(request.params);
 
             return next();
         } catch (error: any) {

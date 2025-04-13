@@ -20,6 +20,18 @@ export default class TenantService {
     static readonly TENANT_NOT_FOUND = "TENANT_NOT_FOUND";
     static readonly INVALID_TENANT_REQUEST = "INVALID_TENANT_REQUEST";
 
+    static readonly TenantOmitSelect = {
+        tenantId: true,
+        domain: true,
+        name: true,
+        tenantStatus: true,
+        description: true,
+        region: true,
+        createdAt: false,
+        updatedAt: false,
+        deletedAt: false,
+    };
+
     /**
      * Omit sensitive fields from the tenant object.
      * @param tenant - The user object.
@@ -34,7 +46,6 @@ export default class TenantService {
             tenantStatus: tenant.tenantStatus,
             description: tenant.description,
             region: tenant.region,
-            deletedAt: tenant.deletedAt,
         };
 
         return omitted;
@@ -45,7 +56,7 @@ export default class TenantService {
      * @returns The tenants.
      */
     public static async getAll(data: GetTenantsRequest): Promise<GetTenantsResponse> {
-        const { skip, take, search  } = data;
+        const { skip, take, search, tenantId  } = data;
 
         const queryOptions = {
             skip,
@@ -62,7 +73,8 @@ export default class TenantService {
                             contains: search || ''
                         }
                     }
-                ]
+                ],
+                tenantId
             }   
         }; 
 

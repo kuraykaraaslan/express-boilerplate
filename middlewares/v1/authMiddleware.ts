@@ -74,6 +74,8 @@ export default function (requiredRole: string) {
       const originalJson = response.json;
 
       // @ts-ignore
+
+      /*
       response.json = function (body) {
         if (body && typeof body === 'object') {
           return AuthService.refreshAccessToken(accessToken).then(refreshedSession => {
@@ -86,6 +88,7 @@ export default function (requiredRole: string) {
           return originalJson.call(this, body);
         }
       };
+      */
 
       return next();
 

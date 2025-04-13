@@ -6,14 +6,14 @@ import { User, UserSession } from '@prisma/client';
 
 // Types
 import UserOmit from '@/types/UserOmit';
-import UserSessionOmit from '@/types/UserSessionOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
+const pwd = process.env.PWD || process.cwd();
 
 export default class MailService {
 
-    static readonly TEMPLATE_PATH = path.join(__dirname, '@/views/email/');
+    static readonly TEMPLATE_PATH = path.join(pwd, 'views', 'email');
     static readonly APPLICATION_NAME = process.env.APPLICATION_NAME || "Express Boilerplate";
 
     // These are the default values, you can change them in the .env file
