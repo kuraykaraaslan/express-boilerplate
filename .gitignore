@@ -76,8 +76,5 @@ Thumbs.db
 /prisma/.env.development
 
 
-# Certs
-/certs/key.pem
-/certs/cert.pem
-/certs/tempkey.pem
-/certs/apple.pem
+# build
+/build

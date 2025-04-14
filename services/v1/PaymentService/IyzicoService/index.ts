@@ -15,7 +15,7 @@ export default class IyzicoService {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             }
-        });
+        }); 
 
         instance.interceptors.request.use(config => {
             const uri_path = config.url!;

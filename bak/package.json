@@ -4,14 +4,18 @@
   "description": "Express based API boilerplate",
   "main": "index.js",
   "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.ts",
+    "dev:sudo": "sudo ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.ts",
+    "build": "tsc -p .",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
-    "start": "nodemon index.ts",
-    "dev": "nodemon --exec ts-node-dev --transpile-only index.ts",
-    "build": "rimraf dist && tsc",
-    "vercel-build": "prisma generate && prisma migrate deploy && npm run build"
+    "lint": "eslint . --ext .ts,.tsx",
+    "prettier": "prettier .",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && tsc -p . "
   },
   "repository": {
     "type": "git",
@@ -65,9 +69,6 @@
     "module-alias": "^2.2.3",
     "morgan": "^1.10.0",
     "nodemailer": "^6.9.14",
-    "nodemon": "^3.1.9",
-    "pre-commit": "^1.2.2",
-    "rimraf": "^6.0.1",
     "stripe": "^18.0.0",
     "tsup": "^8.4.0",
     "twilio": "^5.2.3",
@@ -79,8 +80,5 @@
   },
   "_moduleAliases": {
     "@": "."
-  },
-  "pre-commit": [
-    "build"
-  ]
+  }
 }
