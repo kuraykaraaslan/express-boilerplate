@@ -8,9 +8,11 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
-    "build": "tsup index.ts --format cjs --clean --dts --sourcemap --external @prisma/client --tsconfig ./tsconfig.json",
-    "start": "node -r tsconfig-paths/register dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.ts",
+    "start": "node build/index.js",
+    "dev": "ts-node-dev --respawn ./index.ts",
+    "build": "npm run clean && tsc && npm run copy-assets",
+    "copy-assets": "ts-node tools/copyAssets",
+    "clean": "rimraf build",
     "vercel-build": "prisma generate && prisma migrate deploy && npm run build"
   },
   "repository": {

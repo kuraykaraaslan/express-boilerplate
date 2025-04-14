@@ -1,5 +1,5 @@
 // Express server
-//import 'tsconfig-paths/register';
+import 'tsconfig-paths/register';
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
