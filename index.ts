@@ -7,17 +7,15 @@ import errorHandler from "./middlewares/v1/errorHandler";
 
 import dotenv from "dotenv";
 import IndexRouter from "./routers";
-dotenv.config({ path: "../.env" });
+dotenv.config();
 
 import path from "path";
 import Logger from "./libs/logger";
 import Limiter from "./libs/limiter";
 import bodyParser from "body-parser";
 
-
 const app = express();
-const host = process.env.APPLICATION_HOST ? process.env.APPLICATION_HOST.split(":")[1] : "http://localhost";
-const port = process.env.APPLICATION_PORT || 3001;
+const port = process.env.PORT || process.env.APPLICATION_PORT || 3001;
 
 app.enable('trust proxy');
 app.use(Logger.useLogger);
@@ -32,7 +30,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-
 // Routes
 app.use("/", IndexRouter);
 
@@ -43,11 +40,12 @@ app.get("/", (req, res) => {
 
 app.use(errorHandler);
 
-
-// HTTPS or HTTP
-app.listen(port, () => {
-    console.clear();
-    console.log(`Server started at ${host}:${port}`);
-});
+// Only start the server if not running on Vercel
+if (process.env.VERCEL !== '1') {
+    app.listen(port, () => {
+        console.clear();
+        console.log(`Server started at port ${port}`);
+    });
+}
 
 module.exports = app;
