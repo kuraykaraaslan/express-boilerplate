@@ -26,14 +26,14 @@ app.use(cookieParser());
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-/*
+
 //Set ejs
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // Routes
 app.use("/", IndexRouter);
-*/
+
 //givewelcome on request
 
 app.get("/", (req, res) => {
