@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "baseUrl": "./", // Base directory for module resolution
     "paths": {
-      "@/*": ["./*"] // Map @/ to the root directory
+      "@/*": ["./*"], // Map @/ to the root directory,
+      "@/dtos/*": ["./dtos/*"], // Map @/dtos/ to the types directory      
     },
     "typeRoots": ["./node_modules/@types", "./types"], // Custom type roots
   },
