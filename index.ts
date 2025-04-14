@@ -1,5 +1,5 @@
 // Express server
-import 'tsconfig-paths/register';
+//import 'tsconfig-paths/register';
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -35,6 +35,12 @@ app.set('view engine', 'ejs');
 
 // Routes
 app.use("/", IndexRouter);
+
+//givewelcome on request
+app.get("/", (req, res) => {
+    res.send("Welcome to the Express server!");
+});
+
 app.use(errorHandler);
 
 
