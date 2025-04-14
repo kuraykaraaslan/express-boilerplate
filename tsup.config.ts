@@ -3,15 +3,13 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['index.ts'],
   format: ['cjs'],
-  target: 'node18',
+  dts: true,
+  splitting: false,
   sourcemap: true,
   clean: true,
-  dts: true,
-  tsconfig: './tsconfig.json',
-  outDir: 'dist',
+  external: ['@prisma/client'],
+  noExternal: ['tsconfig-paths'],
   esbuildOptions(options) {
-    options.alias = {
-      '@': './',
-    };
+    options.resolveExtensions = ['.ts', '.tsx', '.js', '.jsx'];
   },
 });

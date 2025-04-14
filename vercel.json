@@ -4,7 +4,10 @@
         {
             "src": "dist/index.js",
             "use": "@vercel/node",
-            "config": { "includeFiles": ["dist/**"] }
+            "config": { 
+                "includeFiles": ["dist/**"],
+                "maxLambdaSize": "50mb"
+            }
         }
     ],
     "routes": [
@@ -12,5 +15,8 @@
             "src": "/(.*)",
             "dest": "dist/index.js"
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production"
+    }
 }
