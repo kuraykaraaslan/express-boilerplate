@@ -9,7 +9,11 @@ export default defineConfig({
   clean: true,
   external: ['@prisma/client'],
   noExternal: ['tsconfig-paths'],
+  tsconfig: './tsconfig.json',
   esbuildOptions(options) {
     options.resolveExtensions = ['.ts', '.tsx', '.js', '.jsx'];
+    options.alias = {
+      '@': './',
+    };
   },
 });
