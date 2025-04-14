@@ -8,9 +8,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
-    "start": "nodemon index.ts",
-    "dev": "nodemon --exec ts-node-dev --transpile-only index.ts",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "start": "node -r tsconfig-paths/register dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.ts",
     "vercel-build": "prisma generate && prisma migrate deploy && npm run build"
   },
   "repository": {
