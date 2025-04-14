@@ -75,6 +75,3 @@ Thumbs.db
 /prisma/.env
 /prisma/.env.development
 
-
-# build
-/build
