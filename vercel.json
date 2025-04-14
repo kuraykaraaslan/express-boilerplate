@@ -1,14 +1,14 @@
 {
     "builds": [
       {
-        "src": "/index.tsx",
+        "src": "/index.ts",
         "use": "@vercel/node"
       }
     ],
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "/index.tsx"
+        "dest": "/index.ts"
       }
     ],
     "crons": [
