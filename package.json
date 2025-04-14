@@ -4,12 +4,12 @@
   "description": "Express based API boilerplate",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node -r tsconfig-paths/register index.ts",
+    "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register index.ts",
-    "db:build": "tsc -p .",
+    "build": "node --max-old-space-size=14096 ./node_modules/.bin/tsup",
     "db:migrate": "prisma migrate dev --name init",
     "db:generate": "prisma generate",
-    "vercel-build": "tsup index.ts --format cjs --dts --sourcemap --external prisma --out-dir build"
+    "vercel-build": "tsup index.ts --format cjs --dts --sourcemap --external prisma --out-dir dist"
   },
   "repository": {
     "type": "git",
@@ -64,7 +64,6 @@
     "morgan": "^1.10.0",
     "nodemailer": "^6.9.14",
     "nodemon": "^3.1.9",
-    "pre-commit": "^1.2.2",
     "rimraf": "^6.0.1",
     "stripe": "^18.0.0",
     "tsup": "^8.4.0",
@@ -74,5 +73,8 @@
   "keywords": [],
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "_moduleAliases": {
+    "@": "./dist"
   }
 }

@@ -69,7 +69,7 @@ Thumbs.db
 .vercel
 
 #Geo
-/src/libs/geoip/GeoLite2-City.mmdb
+/libs/geoip/GeoLite2-City.mmdb
 
 # prismajs
 /prisma/.env
