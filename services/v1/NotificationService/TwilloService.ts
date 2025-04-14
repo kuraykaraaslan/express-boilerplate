@@ -3,7 +3,7 @@
 import twilio from 'twilio';
 
 // Utils
-import Logger from '@/libs/logger';
+import Logger from './../../../libs/logger';
 
 export default class TwilloService {
     private static readonly accountSid = process.env.TWILIO_ACCOUNT_SID;

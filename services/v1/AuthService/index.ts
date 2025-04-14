@@ -1,32 +1,32 @@
 import {  UserSession } from "@prisma/client";
 import { Request } from "express";
-import prisma from "@/libs/prisma";
+import prisma from "../../../libs/prisma";
 import bcrypt from "bcrypt";
 
 // DTOs
-import LoginResponse from "@/dtos/responses/auth/LoginResponse";
-import MessageResponse from "@/dtos/responses/MessageResponse";
-import LoginRequest from "@/dtos/requests/auth/LoginRequest";
-import ForgotPasswordRequest from "@/dtos/requests/auth/ForgotPasswordRequest";
-import ResetPasswordRequest from "@/dtos/requests/auth/ResetPasswordRequest";
-import GetSessionRequest from "@/dtos/requests/auth/GetSessionRequest";
-import RegisterRequest from "@/dtos/requests/auth/RegisterRequest";
+import LoginResponse from "../../../dtos/responses/auth/LoginResponse";
+import MessageResponse from "../../../dtos/responses/MessageResponse";
+import LoginRequest from "../../../dtos/requests/auth/LoginRequest";
+import ForgotPasswordRequest from "../../../dtos/requests/auth/ForgotPasswordRequest";
+import ResetPasswordRequest from "../../../dtos/requests/auth/ResetPasswordRequest";
+import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
+import RegisterRequest from "../../../dtos/requests/auth/RegisterRequest";
 
 
 // Other Services
-import UserService from "@/services/v1/UserService";
-import TwilloService from "@/services/v1/NotificationService/TwilloService";
-import MailService from "@/services/v1/NotificationService/MailService";
+import UserService from "../UserService";
+import TwilloService from "../NotificationService/TwilloService";
+import MailService from "../NotificationService/MailService";
 
 // Utils
-import FieldValidater from "@/utils/FieldValidater";
-import UserAgentUtil from "@/utils/UserAgentUtil";
-import UserSessionOmit from "@/types/UserSessionOmit";
-import UserOmit from "@/types/UserOmit";
-import VerifyOTPRequest from "@/dtos/requests/auth/VerifyOTPRequest";
-import SendOTPRequest from "@/dtos/requests/auth/SendOTPRequest";
-import ChangeOTPStatusRequest from "@/dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "@/dtos/requests/auth/ChangeOTPVerifyRequest";
+import FieldValidater from "../../../utils/FieldValidater";
+import UserAgentUtil from "../../../utils/UserAgentUtil";
+import UserSessionOmit from "../../../types/UserSessionOmit";
+import UserOmit from "../../../types/UserOmit";
+import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
+import SendOTPRequest from "../../../dtos/requests/auth/SendOTPRequest";
+import ChangeOTPStatusRequest from "../../../dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "../../../dtos/requests/auth/ChangeOTPVerifyRequest";
 
 import jwt from 'jsonwebtoken';
 import TenantService from "../TenantService";

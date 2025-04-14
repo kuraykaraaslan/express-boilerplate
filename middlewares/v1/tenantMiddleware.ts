@@ -1,14 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 
 // Services
-import TenantService from '@/services/v1/TenantService';
-import TenantUserService from '@/services/v1/TenantService/TenantUserService';
+import TenantService from '../../services/v1/TenantService';
+import TenantUserService from '../../services/v1/TenantService/TenantUserService';
 
 // Omits
-import UserOmit from '@/types/UserOmit';
-import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
-import GetTenantUserRequest from '@/dtos/requests/tenantuser/GetTenantUserRequest';
-import TenantUserOmit from '@/types/TenantUserOmit';
+import UserOmit from '../../types/UserOmit';
+import GetTenantRequest from '../../dtos/requests/tenant/GetTenantRequest';
+import GetTenantUserRequest from '../../dtos/requests/tenantuser/GetTenantUserRequest';
+import TenantUserOmit from '../../types/TenantUserOmit';
 
 export default function (
     requiredRole: string = 'USER', 

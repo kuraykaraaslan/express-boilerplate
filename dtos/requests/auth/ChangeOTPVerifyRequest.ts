@@ -1,4 +1,5 @@
-import FieldValidater from "@/utils/FieldValidater";
+import FieldValidater from "../../../utils/FieldValidater";
+
 export default class ChangeOTPVerifyRequest {
     otpEnabled!: boolean;
     otpStatusChangeToken!: string;

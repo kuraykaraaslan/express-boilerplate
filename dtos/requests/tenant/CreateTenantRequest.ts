@@ -1,4 +1,5 @@
-import FieldValidater from "@/utils/FieldValidater";
+import FieldValidater from "../../../utils/FieldValidater";
+
 
 import { TenantStatus } from "@prisma/client";
 export default class CreateTenantRequest {

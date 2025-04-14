@@ -1,11 +1,11 @@
-import Logger from '@/libs/logger';
+import Logger from './../../../libs/logger';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
 import { User, UserSession } from '@prisma/client';
 
 // Types
-import UserOmit from '@/types/UserOmit';
+import UserOmit from './../../../types/UserOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 

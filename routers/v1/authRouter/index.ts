@@ -7,27 +7,26 @@
 import { Router, Request, Response } from "express";
 
 // DTOs
-import LoginRequest from '@/dtos/requests/auth/LoginRequest';
-import RegisterRequest from '@/dtos/requests/auth/RegisterRequest';
-import LoginResponse from '@/dtos/responses/auth/LoginResponse';
+import LoginRequest from '../../../dtos/requests/auth/LoginRequest';
+import RegisterRequest from '../../../dtos/requests/auth/RegisterRequest';
+import LoginResponse from '../../../dtos/responses/auth/LoginResponse';
 
 // Middlewares
-import AuthMiddleware from "@/middlewares/v1/authMiddleware";
+import AuthMiddleware from "../../../middlewares/v1/authMiddleware";
 
 // Utils
-import Limiter from "@/libs/limiter";
+import Limiter from "../../../libs/limiter";
 
 // DTOs
-import ForgotPasswordRequest from '@/dtos/requests/auth/ForgotPasswordRequest';
-import ResetPasswordRequest from '@/dtos/requests/auth/ResetPasswordRequest';
-import MessageResponse from "@/dtos/responses/MessageResponse";
-import SendOTPRequest from "@/dtos/requests/auth/SendOTPRequest";
-import VerifyOTPRequest from "@/dtos/requests/auth/VerifyOTPRequest";
-import ChangeOTPStatusRequest from "@/dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "@/dtos/requests/auth/ChangeOTPVerifyRequest";
-import AuthService from "@/services/v1/AuthService";
-import MailService from "@/services/v1/NotificationService/MailService";
-
+import ForgotPasswordRequest from '../../../dtos/requests/auth/ForgotPasswordRequest';
+import ResetPasswordRequest from '../../../dtos/requests/auth/ResetPasswordRequest';
+import MessageResponse from "../../../dtos/responses/MessageResponse";
+import SendOTPRequest from "../../../dtos/requests/auth/SendOTPRequest";
+import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
+import ChangeOTPStatusRequest from "../../../dtos/requests/auth/ChangeOTPStatusRequest";
+import ChangeOTPVerifyRequest from "../../../dtos/requests/auth/ChangeOTPVerifyRequest";
+import AuthService from "../../../services/v1/AuthService";
+import MailService from "../../../services/v1/NotificationService/MailService";
 
 // Mid Router
 import tenantAuthRouter from "./tenantAuthRouter";

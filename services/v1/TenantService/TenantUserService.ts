@@ -1,15 +1,15 @@
-import prisma from '@/libs/prisma';
+import prisma from './../../../libs/prisma';
 import { TenantUser } from '@prisma/client';
 
 // DTOs
-import GetTenantUserRequest from '@/dtos/requests/tenantuser/GetTenantUserRequest';
-import GetTenantUsersRequest from '@/dtos/requests/tenantuser/GetTenantUsersRequest';
-import GetTenantUsersResponse from '@/dtos/responses/tenantuser/GetTenantUsersResponse';
-import PutTenantUserRequest from '@/dtos/requests/tenantuser/PutTenantUserRequest';
-import CreateTenantUserRequest from '@/dtos/requests/tenantuser/CreateTenantUserRequest';
+import GetTenantUserRequest from './../../../dtos/requests/tenantuser/GetTenantUserRequest';
+import GetTenantUsersRequest from './../../../dtos/requests/tenantuser/GetTenantUsersRequest';
+import GetTenantUsersResponse from './../../../dtos/responses/tenantuser/GetTenantUsersResponse';
+import PutTenantUserRequest from './../../../dtos/requests/tenantuser/PutTenantUserRequest';
+import CreateTenantUserRequest from './../../../dtos/requests/tenantuser/CreateTenantUserRequest';
 
 // Omit
-import TenantUserOmit from '@/types/TenantUserOmit';
+import TenantUserOmit from './../../../types/TenantUserOmit';
 
 export default class TenantUserService {
 

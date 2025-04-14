@@ -7,21 +7,21 @@
 import { Router, Request, Response } from "express";
 
 // Services
-import UserService from "@/services/v1/UserService";
+import UserService from "../../../services/v1/UserService";
 
 // DTOs
-import GetUsersRequest from "@/dtos/requests/user/GetUsersRequest";
-import GetUsersResponse from "@/dtos/responses/user/GetUsersResponse";
-import PutUserRequest from "@/dtos/requests/user/PutUserRequest";
-import UserOmit from "@/types/UserOmit";
-import GetUserRequest from "@/dtos/requests/user/GetUserRequest";
+import GetUsersRequest from "../../../dtos/requests/user/GetUsersRequest";
+import GetUsersResponse from "../../../dtos/responses/user/GetUsersResponse";
+import PutUserRequest from "../../../dtos/requests/user/PutUserRequest";
+import UserOmit from "../../../types/UserOmit";
+import GetUserRequest from "../../../dtos/requests/user/GetUserRequest";
 
 // Middlewares
-import AuthMiddleware from "@/middlewares/v1/authMiddleware";
+import AuthMiddleware from "../../../middlewares/v1/authMiddleware";
 
 // Utils
-import FieldValidater from "@/utils/FieldValidater";
-import CreateUserRequest from "@/dtos/requests/user/CreateUserRequest";
+import FieldValidater from "../../../utils/FieldValidater";
+import CreateUserRequest from "../../../dtos/requests/user/CreateUserRequest";
 
 
 const userRouter = Router();

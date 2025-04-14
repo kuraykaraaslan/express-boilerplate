@@ -1,7 +1,7 @@
-import IyzicoService from "@/services/v1/PaymentService/IyzicoService";
+import IyzicoService from "../IyzicoService"
 import { SubscriptionExtended } from "@/types/SubscriptionExtended";
 import { Subscription, SubscriptionPrice, SubscriptionStatus, User } from "@prisma/client";
-import SubscriptionService from "@/services/v1/SubscriptionService";
+import SubscriptionService from "../../SubscriptionService";
 export default class IyzicoSubscriptionService {
 
     static readonly TOKEN_NOT_FOUND = "TOKEN_NOT_FOUND";

@@ -3,15 +3,15 @@ import 'module-alias/register'; // ✅ BUNU YAZ
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import errorHandler from "@/middlewares/v1/errorHandler";
+import errorHandler from "./middlewares/v1/errorHandler";
 
 import dotenv from "dotenv";
-import IndexRouter from "@/routers";
+import IndexRouter from "./routers";
 dotenv.config();
 
 import path from "path";
-import Logger from "@/libs/logger";
-import Limiter from "@/libs/limiter";
+import Logger from "./libs/logger";
+import Limiter from "./libs/limiter";
 import bodyParser from "body-parser";
 
 const app = express();

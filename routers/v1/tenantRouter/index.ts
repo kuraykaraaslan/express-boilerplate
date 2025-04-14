@@ -9,20 +9,20 @@ import { Router, Request, Response } from "express";
 // Utils
 
 // DTOs
-import CreateTenantRequest from "@/dtos/requests/tenant/CreateTenantRequest";
-import GetTenantResponse from "@/dtos/responses/tenant/GetTenantResponse";
-import GetTenantsRequest from "@/dtos/requests/tenant/GetTenantsRequest";
-import GetTenantsResponse from "@/dtos/responses/tenant/GetTenantsResponse";
-import TenantMiddleware from "@/middlewares/v1/tenantMiddleware";
-import PutTenantRequest from "@/dtos/requests/tenant/PutTenantRequest";
+import CreateTenantRequest from "../../../dtos/requests/tenant/CreateTenantRequest";
+import GetTenantResponse from "../../../dtos/responses/tenant/GetTenantResponse";
+import GetTenantsRequest from "../../../dtos/requests/tenant/GetTenantsRequest";
+import GetTenantsResponse from "../../../dtos/responses/tenant/GetTenantsResponse";
+import TenantMiddleware from "../../../middlewares/v1/tenantMiddleware";
+import PutTenantRequest from "../../../dtos/requests/tenant/PutTenantRequest";
 
 // Middlewares
-import AuthMiddleware from "@/middlewares/v1/authMiddleware";
+import AuthMiddleware from "../../../middlewares/v1/authMiddleware";
 
 // Tenant User Router
-import TenantUserRouter from "@/routers/v1/tenantRouter/tenantUserRouter";
-import TenantService from "@/services/v1/TenantService";
-import GetTenantRequest from "@/dtos/requests/tenant/GetTenantRequest";
+import TenantUserRouter from "./tenantUserRouter";
+import TenantService from "../../../services/v1/TenantService";
+import GetTenantRequest from "../../../dtos/requests/tenant/GetTenantRequest";
 
 const tenantRouter = Router();
 

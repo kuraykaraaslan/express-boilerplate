@@ -1,4 +1,4 @@
-import axiosInstance from '@/libs/axios';
+import axiosInstance from '../../../../libs/axios';
 
 export default class GithubService {
 

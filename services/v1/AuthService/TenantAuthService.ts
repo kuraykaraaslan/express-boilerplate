@@ -1,13 +1,11 @@
-import prisma from "@/libs/prisma";
+import prisma from "../../../libs/prisma";
 import { TenantUser, UserSession } from "@prisma/client";
-import GetTenantUsersRequest from "@/dtos/requests/tenantuser/GetTenantUsersRequest";
-import GetTenantUsersResponse from "@/dtos/responses/tenantuser/GetTenantUsersResponse";
+import GetTenantUsersRequest from "../../../dtos/requests/tenantuser/GetTenantUsersRequest";
+import GetTenantUsersResponse from "../../../dtos/responses/tenantuser/GetTenantUsersResponse";
 
 import AuthService from ".";
 import TenantService from "../TenantService";
-import GetTenantUserRequest from "@/dtos/requests/tenantuser/GetTenantUserRequest";
-import UserSessionOmit from "@/types/UserSessionOmit";
-import TenantUserOmit from "@/types/TenantUserOmit";
+import TenantUserOmit from "../../../types/TenantUserOmit";
 
 export default class TenantAuthService {
 

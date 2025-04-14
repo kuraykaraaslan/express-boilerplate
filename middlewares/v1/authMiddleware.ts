@@ -1,13 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 
 // Services
-import AuthService from '@/services/v1/AuthService';
+import AuthService from '../../services/v1/AuthService';
 
 // Models
 import { User } from '@prisma/client';
 
 // DTOs
-import GetSessionRequest from '@/dtos/requests/auth/GetSessionRequest';
+import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
 
 export default function (requiredRole: string) {
 

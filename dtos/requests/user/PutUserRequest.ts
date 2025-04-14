@@ -1,4 +1,5 @@
-import FieldValidater from "@/utils/FieldValidater";
+import FieldValidater from "../../../utils/FieldValidater";
+
 import { User } from "@prisma/client";
 
 export default class PutUserRequest {
