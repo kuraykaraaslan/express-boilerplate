@@ -83,11 +83,11 @@ tenantUserRouter.get('/',
             throw new Error("INVALID_TAKE");
         }
 
-        const data = {
+        const data = new GetTenantUsersRequest({
             skip: skip ? parseInt(skip) : 0,
             take: take ? parseInt(take) : 10,
-            search: search ? search : ''
-        };
+            search: search ? search : "",
+        });
 
         const { tenantUsers, total } = await TenantUserService.getAll(data);
         return response.json({ tenantUsers, total });
@@ -109,13 +109,12 @@ tenantUserRouter.get('/:tenantUserId',
             throw new Error("INVALID_TENANT_USER_ID");
         }
 
-        const tenantUser = await TenantUserService.getById({ tenantUserId });
+        const data = new GetTenantUserRequest({
+            tenantUserId: tenantUserId,
+        });
 
-        if (!tenantUser) {
-            throw new Error("TENANT_USER_NOT_FOUND");
-        }
+        return await TenantUserService.getById(data);
 
-        return await TenantUserService.getById({ tenantUserId });
     });
 
 /**

@@ -7,6 +7,8 @@ import TenantUserService from '@/services/v1/TenantService/TenantUserService';
 // Omits
 import UserOmit from '@/types/UserOmit';
 import GetTenantRequest from '@/dtos/requests/tenant/GetTenantRequest';
+import GetTenantUserRequest from '@/dtos/requests/tenantuser/GetTenantUserRequest';
+import TenantUserOmit from '@/types/TenantUserOmit';
 
 export default function (
     requiredRole: string = 'USER', 
@@ -29,19 +31,12 @@ export default function (
             }
 
             const user = request.user as UserOmit;
+            
             let tenant;
 
-            switch (method) {
-                case 'PATH':
-                    const data = new GetTenantRequest(request.params);
-                    tenant = await TenantService.getById(data);
-                    break;
-                case 'DOMAIN':
-                    tenant = await TenantService.getById(request.body.tenantId);
-                    break;
-                default:
-                    throw new Error("INVALID_METHOD");
-            }
+    
+            const dataPath = new GetTenantRequest({ tenantId: request.params.tenantId });
+            tenant = await TenantService.getById(dataPath);
 
             if (!tenant) {
                 throw new Error("TENANT_NOT_FOUND");
@@ -50,10 +45,38 @@ export default function (
             // Attach tenant to request
             request.tenant = tenant;
 
-            console.log("Tenant found: ", tenant);
-            // Check if tenant user exists
+            
+            const data = new GetTenantUserRequest({
+                tenantId: tenant.tenantId,
+                userId: user.userId,
+            })
 
-            const getTenantUserRequest = new GetTenantRequest(request.params);
+            const tenantUser = await TenantUserService.getById(data);
+
+            if (!tenantUser) {
+                //if tenant user not found but user is admin, then create a temporary tenant user
+                if (user.userRole === 'ADMIN') {
+                    const temporaryTenantUser : TenantUserOmit = {
+                        tenantUserId: 'TEMP_TENANT_USER_ID_' + user.userId,
+                        tenantId: tenant.tenantId,
+                        userId: user.userId,
+                        tenantUserRole: 'ADMIN',
+                        tenantUserStatus: 'ACTIVE',
+                    };
+
+                    request.tenantUser = temporaryTenantUser;
+
+                    console.log('Temporary tenant user created:', temporaryTenantUser);
+
+
+                } else {
+                    throw new Error("TENANT_USER_NOT_FOUND");
+                }
+
+            } else {
+                // Attach tenant user to request
+                request.tenantUser = tenantUser;
+            }
 
             return next();
         } catch (error: any) {

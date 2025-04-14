@@ -69,13 +69,7 @@ async function main() {
         tenantId: tenant.tenantId,
         tenantUserRole: TenantUserRole.USER,
         tenantUserStatus: TenantUserStatus.ACTIVE,
-      },
-      {
-        userId: bob.userId,
-        tenantId: tenant.tenantId,
-        tenantUserRole: TenantUserRole.ADMIN,
-        tenantUserStatus: TenantUserStatus.ACTIVE,
-      },
+      }
     ]
   });
 
