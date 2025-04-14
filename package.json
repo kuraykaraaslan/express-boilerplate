@@ -9,7 +9,7 @@
     "build": "node --max-old-space-size=14096 ./node_modules/.bin/tsup",
     "db:migrate": "prisma migrate dev --name init",
     "db:generate": "prisma generate",
-    "vercel-build": "tsup index.ts --format cjs --dts --sourcemap --external prisma --out-dir dist"
+    "vercel-build": "prisma generate && prisma migrate deploy && npm run build"
   },
   "repository": {
     "type": "git",
