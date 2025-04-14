@@ -8,11 +8,11 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "ts-node prisma/seed.ts",
-    "start": "node build/index.js",
+    "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn ./index.ts",
     "build": "npm run clean && tsc && npm run copy-assets",
     "copy-assets": "ts-node tools/copyAssets",
-    "clean": "rimraf build",
+    "clean": "rimraf dist",
     "vercel-build": "prisma generate && prisma migrate deploy && npm run build"
   },
   "repository": {
@@ -81,8 +81,5 @@
   },
   "_moduleAliases": {
     "@": "."
-  },
-  "pre-commit": [
-    "build"
-  ]
+  }
 }
