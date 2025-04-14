@@ -8,7 +8,7 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   outDir: 'dist',
-  // important!
+  tsconfig: './tsconfig.json',
   esbuildOptions(options) {
     options.alias = {
       '@': './',
