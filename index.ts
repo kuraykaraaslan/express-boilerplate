@@ -41,11 +41,10 @@ app.get("/", (req, res) => {
 app.use(errorHandler);
 
 // Only start the server if not running on Vercel
-if (process.env.VERCEL !== '1') {
-    app.listen(port, () => {
-        console.clear();
-        console.log(`Server started at port ${port}`);
-    });
-}
+app.listen(port, () => {
+    console.clear();
+    console.log(`Server started at port ${port}`);
+});
+
 
 module.exports = app;
