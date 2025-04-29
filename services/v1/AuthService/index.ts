@@ -31,52 +31,10 @@ import ChangeOTPVerifyRequest from "../../../dtos/requests/auth/ChangeOTPVerifyR
 import jwt from 'jsonwebtoken';
 import TenantService from "../TenantService";
 import TenantUserService from "../TenantService/TenantUserService";
+import AuthErrors from "../../../errors/AuthErrors";
 
-
-const ACCESS_TOKEN_SECRET: jwt.Secret = process.env.ACCESS_TOKEN_SECRET!;
-const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '1h'; // veya '1h' gibi
-
-const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET!;
-const REFRESH_TOKEN_EXPIRES_IN: string | number = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // veya '7d' gibi
 
 export default class AuthService {
-
-    /**
-     * Error Messages
-     * These are the error messages that can be thrown by the service.
-     * TODO: Add more error messages as needed.
-     */
-    static readonly EITHER_EMAIL_OR_PHONE_MUST_BE_PROVIDED = "EITHER_EMAIL_OR_PHONE_MUST_BE_PROVIDED";
-    static readonly INVALID_CREDENTIALS = "INVALID_CREDENTIALS";
-    static readonly INVALID_PASSWORD = "INVALID_PASSWORD";
-    static readonly INVALID_PHONE_NUMBER = "INVALID_PHONE_NUMBER";
-    static readonly INVALID_EMAIL_ADDRESS = "INVALID_EMAIL_ADDRESS";
-    static readonly PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG = "PASSWORD_MUST_BE_AT_LEAST_8_CHARACTERS_LONG";
-    static readonly PASSWORDS_DO_NOT_MATCH = "PASSWORDS_DO_NOT_MATCH";
-    static readonly REGISTRATION_SUCCESSFUL = "REGISTRATION_SUCCESSFUL";
-    static readonly LOGIN_SUCCESSFUL = "LOGIN_SUCCESSFUL";
-    static readonly PASSWORD_RESET_EMAIL_SENT = "PASSWORD_RESET_EMAIL_SENT";
-    static readonly PASSWORD_RESET_SUCCESSFUL = "PASSWORD_RESET_SUCCESSFUL";
-    static readonly PASSWORD_RESET_FAILED = "PASSWORD_RESET_FAILED";
-    static readonly UNKNOWN_ERROR = "UNKNOWN_ERROR";
-    static readonly INVALID_TOKEN = "INVALID_TOKEN";
-    static readonly SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
-    static readonly USER_NOT_FOUND = "USER_NOT_FOUND";
-    static readonly EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS";
-    static readonly INVALID_EMAIL_OR_PASSWORD = "INVALID_EMAIL_OR_PASSWORD";
-    static readonly INVALID_OTP = "INVALID_OTP";
-    static readonly OTP_EXPIRED = "OTP_EXPIRED";
-    static readonly USER_HAS_NO_PHONE_NUMBER = "USER_HAS_NO_PHONE_NUMBER";
-    static readonly USER_HAS_NO_EMAIL = "USER_HAS_NO_EMAIL";
-    static readonly OTP_ALREADY_ENABLED = "OTP_ALREADY_ENABLED";
-    static readonly OTP_ALREADY_DISABLED = "OTP_ALREADY_DISABLED";
-    static readonly OTP_CHANGED_SUCCESSFULLY = "OTP_CHANGED_SUCCESSFULLY";
-    static readonly INVALID_PROVIDER = "INVALID_PROVIDER";
-    static readonly INVALID_PROVIDER_TOKEN = "INVALID_PROVIDER_TOKEN";
-    static readonly OTP_SENT_SUCCESSFULLY = "OTP_SENT_SUCCESSFULLY";
-    static readonly OTP_VERIFIED_SUCCESSFULLY = "OTP_VERIFIED_SUCCESSFULLY";
-    static readonly PHONE_ALREADY_EXISTS = "PHONE_ALREADY_EXISTS";
-    static readonly LOGGED_OUT_SUCCESSFULLY = "LOGGED_OUT_SUCCESSFULLY";
 
     static readonly UserOmitSelect = {
         userId: true,
@@ -89,20 +47,6 @@ export default class AuthService {
         updatedAt: true,
     };
 
-    static readonly UserSessionOmitSelect = {
-        userId: true,
-        sessionId: true,
-        accessToken: true,
-        refreshToken: true,
-        tenantId: true,
-        tenantUserId: true,
-        tenant: {
-            select: TenantService.TenantOmitSelect, 
-        },
-        tenantUser: {
-            select: TenantUserService.TenantUserOmitSelect,
-        },
-    }
 
 
     /**
@@ -111,28 +55,6 @@ export default class AuthService {
      */
     static generateToken(): string {
         return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    /*
-     * Generate Session CUID Token
-    * @returns A random cuid token.
-    */
-    private static generateAccessToken(userId: string): string {
-        // @ts-ignore
-        return jwt.sign({ userId }, ACCESS_TOKEN_SECRET, {
-            expiresIn: ACCESS_TOKEN_EXPIRES_IN,
-        });
-    }   
-
-    /**
-     * Generate Refresh Token
-     * @returns A random refresh token.
-     */
-    private static generateRefreshToken(userId: string): string {
-        // @ts-ignore
-        return jwt.sign({ userId }, REFRESH_TOKEN_SECRET, { 
-            expiresIn: REFRESH_TOKEN_EXPIRES_IN,
-        });
     }
 
 
@@ -159,6 +81,7 @@ export default class AuthService {
             otpNeeded: session.otpNeeded,
             tenantUserId: session.tenantUserId,
             tenantId: session.tenantId,
+            sessionExpiry: session.sessionExpiry,
         };        
         
         return safeSession;
@@ -179,13 +102,13 @@ export default class AuthService {
         })
 
         if (!user) {
-            throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
+            throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
         }
 
         // Compare the password with the hash
 
         if (!await FieldValidater.comparePasswords(user.password, data.password)) {
-            throw new Error(this.INVALID_EMAIL_OR_PASSWORD);
+            throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
         }
 
         return UserService.omitSensitiveFields(user);
@@ -203,7 +126,7 @@ export default class AuthService {
         });
 
         if (sessions.length === 0) {
-            throw new Error(this.SESSION_NOT_FOUND);
+            throw new Error(AuthErrors.SESSION_NOT_FOUND);
         }
 
         // Delete the session if found
@@ -212,61 +135,6 @@ export default class AuthService {
         });
     }
 
-    /**
-     * Creates a new user session.
-     * @param userId - The user ID.
-     * @returns The created session.
-     */    
-    static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<UserSession> {
-
-        const userAgentData = await UserAgentUtil.parseRequest(request);
-
-        return prisma.userSession.create({
-            data: {
-                userId: user.userId,
-                accessToken: AuthService.generateAccessToken(user.userId),
-                refreshToken: AuthService.generateRefreshToken(user.userId),
-                sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-                sessionAgent: "Web",
-                otpNeeded: otpConsired ? user.otpEnabled : false,
-                ip: userAgentData.ip || "Unknown",
-                os: userAgentData.os || "Unknown",
-                device: userAgentData.device || "Unknown",
-                browser: userAgentData.browser || "Unknown",
-                city: userAgentData.city || "Unknown",
-                state: userAgentData.state || "Unknown",
-                country: userAgentData.country || "Unknown",
-            },
-        });
-    }
-
-    /**
-     * Gets a user session by token.
-     * @param accessToken - The session token.
-     * @returns The user session.
-     */
-    static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
-
-        const session = await prisma.userSession.findUnique({
-            where: { accessToken: data.accessToken },
-            select: AuthService.UserSessionOmitSelect,
-        })
-        
-        if (!session) {
-            throw new Error(this.SESSION_NOT_FOUND);
-        }
-
-        const user = await prisma.user.findUniqueOrThrow({
-            where: { userId: session.userId },
-        })
-
-        return {
-            user: UserService.omitSensitiveFields(user),
-            //@ts-ignore
-            userSession: AuthService.omitSensitiveFields(session),
-        };
-
-    }
 
     /**
      * Deletes a user session by token.
@@ -318,7 +186,7 @@ export default class AuthService {
         const existingUser = await UserService.getByEmail(email);
 
         if (existingUser) {
-            throw new Error(this.EMAIL_ALREADY_EXISTS);
+            throw new Error(AuthErrors.EMAIL_ALREADY_EXISTS);
         }
 
         // Create the user
@@ -371,7 +239,7 @@ export default class AuthService {
         });
 
         if (!user) {
-            throw new Error(this.USER_NOT_FOUND);
+            throw new Error(AuthErrors.USER_NOT_FOUND);
         }
 
         const resetToken = AuthService.generateToken();
@@ -405,12 +273,12 @@ export default class AuthService {
         });
 
         if (!user) {
-            throw new Error(this.USER_NOT_FOUND);
+            throw new Error(AuthErrors.USER_NOT_FOUND);
         }
 
         // Check if the token is valid
         if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
-            throw new Error(this.INVALID_TOKEN);
+            throw new Error(AuthErrors.INVALID_TOKEN);
         }
 
         // Update the user's password
@@ -443,7 +311,7 @@ export default class AuthService {
         });
 
         if (!session) {
-            throw new Error(this.SESSION_NOT_FOUND);
+            throw new Error(AuthErrors.SESSION_NOT_FOUND);
         }
 
         //if the session already has no otp needed
@@ -469,7 +337,7 @@ export default class AuthService {
         });
 
         if (!user) {
-            throw new Error(this.USER_NOT_FOUND);
+            throw new Error(AuthErrors.USER_NOT_FOUND);
         }
 
         switch (data.method) {
@@ -477,21 +345,21 @@ export default class AuthService {
                 if (user.phone) {
                     TwilloService.sendSMS(user.phone, `Your OTP is ${otpToken}`);
                 } else {
-                    throw new Error(this.USER_HAS_NO_PHONE_NUMBER);
+                    throw new Error(AuthErrors.USER_HAS_NO_PHONE_NUMBER);
                 }
                 break;
             case "email":
                 if (user.email) {
                     MailService.sendMail(user.email, "OTP", `Your OTP is ${otpToken}`);
                 } else {
-                    throw new Error(this.USER_HAS_NO_EMAIL);
+                    throw new Error(AuthErrors.USER_HAS_NO_EMAIL);
                 }
                 break;
             default:
                 throw new Error("INVALID_METHOD");
         }
 
-        return { message: this.OTP_SENT_SUCCESSFULLY };
+        return { message: AuthErrors.OTP_SENT_SUCCESSFULLY };
     }
 
     /**
@@ -507,17 +375,17 @@ export default class AuthService {
         });
 
         if (!session) {
-            throw new Error(this.SESSION_NOT_FOUND);
+            throw new Error(AuthErrors.SESSION_NOT_FOUND);
         }
 
         // Check if the OTP is expired
         if (session.otpTokenExpiry && new Date() > session.otpTokenExpiry) {
-            throw new Error(this.OTP_EXPIRED);
+            throw new Error(AuthErrors.OTP_EXPIRED);
         }
 
         // Check if the OTP is correct
         if (session.otpToken !== data.otpToken) {
-            throw new Error(this.INVALID_OTP);
+            throw new Error(AuthErrors.INVALID_OTP);
         }
 
         // Update the session
@@ -528,7 +396,7 @@ export default class AuthService {
             },
         });
 
-        return { message: this.OTP_VERIFIED_SUCCESSFULLY };
+        return { message: AuthErrors.OTP_VERIFIED_SUCCESSFULLY };
     }
 
 
@@ -560,7 +428,7 @@ export default class AuthService {
             MailService.sendOTPEmail(user.email, user.name, updatedUser.otpStatusChangeToken);
         }
 
-        return { message: this.OTP_CHANGED_SUCCESSFULLY };
+        return { message: AuthErrors.OTP_CHANGED_SUCCESSFULLY };
     }
 
     /**
@@ -578,11 +446,11 @@ export default class AuthService {
 
 
         if (!updatedUser?.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
-            throw new Error(this.INVALID_OTP);
+            throw new Error(AuthErrors.INVALID_OTP);
         }
 
         if (!updatedUser || updatedUser.otpStatusChangeToken !== data.otpStatusChangeToken) {
-            throw new Error(this.INVALID_OTP);
+            throw new Error(AuthErrors.INVALID_OTP);
         }
 
         // if OTP is already enabled then throw an error
@@ -595,7 +463,7 @@ export default class AuthService {
                     otpStatusChangeTokenExpiry: null,
                 },
             });
-            throw new Error(this.OTP_ALREADY_ENABLED);
+            throw new Error(AuthErrors.OTP_ALREADY_ENABLED);
 
         }
 
@@ -608,7 +476,7 @@ export default class AuthService {
                     otpStatusChangeTokenExpiry: null,
                 },
             });
-            throw new Error(this.OTP_ALREADY_DISABLED);
+            throw new Error(AuthErrors.OTP_ALREADY_DISABLED);
         }
 
         // Update the user
@@ -630,47 +498,10 @@ export default class AuthService {
             MailService.sendOTPDisabledEmail(user.email, user.name || undefined);
         }
 
-        return { message: this.OTP_CHANGED_SUCCESSFULLY };
+        return { message: AuthErrors.OTP_CHANGED_SUCCESSFULLY };
     }
 
 
-    public static async refreshAccessToken(accessToken: string): Promise<UserSessionOmit | null> {
-        const session = await prisma.userSession.findFirst({
-            where: {
-                accessToken,
-                sessionExpiry: {
-                    gt: new Date(),
-                },
-            },
-        });
-    
-        if (!session) {
-            throw new Error(AuthService.SESSION_NOT_FOUND);
-        }
-    
-        const newRefreshToken = AuthService.generateRefreshToken(session.userId);
-        const newAccessToken = AuthService.generateAccessToken(session.userId);
-        
-        /*
-        const updatedSession = await prisma.userSession.update({
-          where: { sessionId: session.sessionId },
-          data: {
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-            sessionExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
-          },
-        });
-        */
-        
-        return {
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-            otpNeeded: session.otpNeeded,
-            tenantId: session.tenantId,
-            tenantUserId: session.tenantUserId,
-            userId: session.userId,
-        }
-    }
 
 
 }

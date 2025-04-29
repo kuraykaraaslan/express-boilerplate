@@ -30,6 +30,7 @@ import MailService from "../../../services/v1/NotificationService/MailService";
 
 // Mid Router
 import tenantAuthRouter from "./tenantAuthRouter";
+import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
 
 // Router
 const AuthRouter = Router();
@@ -95,7 +96,7 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
 
     const data = new LoginRequest(request.body);
     const user = await AuthService.login(data);
-    const userSession = await AuthService.createSession(user, request, true);
+    const userSession = await UserSessionService.createSession(user, request, true);
     MailService.sendNewLoginEmail(user, userSession);
     return response.json({ 
         user, 

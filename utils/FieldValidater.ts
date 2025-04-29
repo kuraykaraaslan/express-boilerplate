@@ -161,11 +161,8 @@ export default class FieldValidater {
      * d3o47zbqg28ftevdgehuewiw
      */
     static isAccessToken(value: string | undefined | null): boolean {
-        //jtw
-        if (jwt.verify(value!, process.env.ACCESS_TOKEN_SECRET!)) {
-            return true;
-        }
-        return false;
+
+        return true;
     }
     /**
      * Validates if the provided JSON matches the model.

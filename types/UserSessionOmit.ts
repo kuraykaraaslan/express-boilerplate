@@ -5,6 +5,7 @@ export interface UserSessionOmit {
     otpNeeded: boolean;
     tenantId?: string | null;
     tenantUserId?: string | null;
+    sessionExpiry: Date;
 }
 
 export default UserSessionOmit;

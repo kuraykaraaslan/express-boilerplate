@@ -8,92 +8,80 @@ import { User } from '@prisma/client';
 
 // DTOs
 import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
+import AuthErrors from '../../errors/AuthErrors';
+
 
 export default function (requiredRole: string) {
-
-
   return async function authMiddleware(request: Request<any>, response: Response<any>, next: NextFunction) {
-
     try {
-
-      //if we have user already in the request, it means we have already checked the user, so it will be elavation of privilages
-
-      if (request.user! as User) {
-        
-        //check if the user has the required role
-        if (!AuthService.checkIfUserHasRole(request.user!, requiredRole)) {
-          throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
-        }
-
-        return next();
-      }
-
-      const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
-
-      // Allow guest if token is not present
+      // Allow guest if role is GUEST immediately
       if (requiredRole === 'GUEST') {
         return next();
       }
 
+      // Extract access token
+      const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
+
+      console.log('Access token:', accessToken);
+
       if (!accessToken) {
-        throw new Error("USER_NOT_AUTHENTICATED");
+        throw new Error(AuthErrors.USER_NOT_AUTHENTICATED);
       }
 
+      // If user already set by a previous middleware
+      if (request.user) {
+        if (!AuthService.checkIfUserHasRole(request.user as User, requiredRole)) {
+          return response.status(403).json({ error: AuthErrors.USER_DOES_NOT_HAVE_REQUIRED_ROLE });
+        }
+        return next();
+      }
+
+      // Otherwise validate session
       const sessionData = new GetSessionRequest({ accessToken });
 
-      const sessionWithUser = await AuthService.getSession(sessionData);
+      console.log('Session data:', sessionData);
+    
+      const deviceFingerprint = AuthService.generateDeviceFingerprint(request);
+
+      console.log('Device fingerprint:', deviceFingerprint);
+      const sessionWithUser = await AuthService.getSession(sessionData, deviceFingerprint);
 
       if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
-        throw new Error("USER_NOT_AUTHENTICATED");
+        throw new Error(AuthErrors.SESSION_NOT_FOUND);
       }
 
-      // Add user to request
+      console.log('Session with user:', sessionWithUser);
+
+      // Attach user and session
       request.user = sessionWithUser.user;
       request.userSession = sessionWithUser.userSession;
 
-      if (!request.user) {
-        throw new Error("USER_NOT_FOUND");
-      }
+      console.log('User session:', request.userSession);
+      console.log('User:', request.user);
 
-      if (!request.userSession) {
-        throw new Error("USER_SESSION_NOT_FOUND");
-      }
-
-      //check if the session needs to OTP verification
       if (request.userSession.otpNeeded) {
-        throw new Error("OTP_VERIFICATION_NEEDED");
+        return response.status(403).json({ error: AuthErrors.OTP_NEEDED });
       }
-
-      //check if the user has the required role
 
       if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
-        throw new Error("USER_DOES_NOT_HAVE_REQUIRED_ROLE");
+        return response.status(403).json({ error: AuthErrors.USER_DOES_NOT_HAVE_REQUIRED_ROLE });
       }
 
+      const timeLeft = request.userSession.sessionExpiry.getTime() - new Date().getTime();
 
-      const originalJson = response.json;
+      if (timeLeft < 300000) { // 300 saniye = 5 dakika
 
-      // @ts-ignore
+        const refreshedSession = await AuthService.refreshAccessToken(request.userSession.refreshToken);
 
-      /*
-      response.json = function (body) {
-        if (body && typeof body === 'object') {
-          return AuthService.refreshAccessToken(accessToken).then(refreshedSession => {
-            body.userSession = refreshedSession;
-            return originalJson.call(this, body);
-          }).catch(() => {
-            return originalJson.call(this, body);
-          });
-        } else {
-          return originalJson.call(this, body);
+        if (refreshedSession) {
+          response.setHeader('x-new-access-token', refreshedSession.accessToken);
         }
-      };
-      */
+      }
 
       return next();
 
     } catch (error: any) {
-      throw new Error(error.message);
+      return response.status(500).json({ error: AuthErrors.UNKNOWN_ERROR });
     }
-  }
+  };
 }

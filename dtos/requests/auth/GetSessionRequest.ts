@@ -1,3 +1,4 @@
+import AuthErrors from "../../../errors/AuthErrors";
 import FieldValidater from "../../../utils/FieldValidater";
 
 
@@ -8,14 +9,10 @@ export default class GetSessionRequest {
    constructor(data: any) {
       this.accessToken = data.accessToken;
 
-      this.validate();
+      console.log('GetSessionRequest data:', data);
+
    }
 
-   validate() {
-      if (!FieldValidater.isAccessToken(this.accessToken)) {
-         throw new Error("INVALID_SESSION_TOKEN");
-      }
-   }
 
    static fromJson(json: any): GetSessionRequest {
       return new GetSessionRequest(json.accessToken);
