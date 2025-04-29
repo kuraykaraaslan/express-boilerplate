@@ -1,14 +1,8 @@
-import {  UserSession } from "@prisma/client";
-import { Request } from "express";
 import prisma from "../../../libs/prisma";
 import bcrypt from "bcrypt";
 
 // DTOs
-import LoginResponse from "../../../dtos/responses/auth/LoginResponse";
-import MessageResponse from "../../../dtos/responses/MessageResponse";
 import LoginRequest from "../../../dtos/requests/auth/LoginRequest";
-import ForgotPasswordRequest from "../../../dtos/requests/auth/ForgotPasswordRequest";
-import ResetPasswordRequest from "../../../dtos/requests/auth/ResetPasswordRequest";
 import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
 import RegisterRequest from "../../../dtos/requests/auth/RegisterRequest";
 
@@ -20,17 +14,7 @@ import MailService from "../NotificationService/MailService";
 
 // Utils
 import FieldValidater from "../../../utils/FieldValidater";
-import UserAgentUtil from "../../../utils/UserAgentUtil";
-import UserSessionOmit from "../../../types/UserSessionOmit";
 import UserOmit from "../../../types/UserOmit";
-import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
-import SendOTPRequest from "../../../dtos/requests/auth/SendOTPRequest";
-import ChangeOTPStatusRequest from "../../../dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "../../../dtos/requests/auth/ChangeOTPVerifyRequest";
-
-import jwt from 'jsonwebtoken';
-import TenantService from "../TenantService";
-import TenantUserService from "../TenantService/TenantUserService";
 import AuthErrors from "../../../errors/AuthErrors";
 
 
@@ -76,10 +60,14 @@ export default class AuthService {
      */
     static async login(data: LoginRequest): Promise<UserOmit> {
 
+        console.log(data);
+
         // Get the user by email
         const user = await prisma.user.findUnique({
             where: { email: data.email },
         })
+
+        console.log(user);
 
         if (!user) {
             throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
@@ -117,42 +105,6 @@ export default class AuthService {
 
 
     /**
-     * Deletes a user session by token.
-     * @param token - The session token.
-     */
-
-    static async deleteSession(data: UserSessionOmit): Promise<void> {
-
-        await prisma.userSession.deleteMany({
-            where: { accessToken: data.accessToken }
-        });
-
-    }
-
-    /**
-     * Destroy all other sessions of the user.
-     * 
-     * @param userSession - The current user session.
-     * @returns A promise that resolves when the sessions are destroyed.
-     */
-        static async destroyOtherSessions({ user, userSession }: LoginResponse): Promise<void> {
-        // Get all sessions of the user
-        const sessions = await prisma.userSession.findMany({
-            where: { userId: user.userId },
-        });
-        // Delete all sessions except the current one
-        await prisma.userSession.deleteMany({
-            where: {
-                userId: user.userId,
-                accessToken: {
-                    not: userSession.accessToken,
-                },  
-            },
-        });
-    }  
-
-        
-    /**
      * Registers a new user.
      * @param email - The user's email.
      * @param password - The user's password.
@@ -182,7 +134,7 @@ export default class AuthService {
         TwilloService.sendSMS(phone, "Welcome to our platform!");
 
         // Create a session for the user
-        return UserService.omitSensitiveFields(createdUser);    
+        return UserService.omitSensitiveFields(createdUser);
     }
 
     /**
@@ -207,75 +159,6 @@ export default class AuthService {
     }
 
 
-    /**
-     * Sends a password reset email to the user.
-     * @param email - The user's email.
-     */
-    static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
-
-        // Get the user by email
-        let user = await prisma.user.findUnique({
-            where: { email: data.email },
-        });
-
-        if (!user) {
-            throw new Error(AuthErrors.USER_NOT_FOUND);
-        }
-
-        const resetToken = AuthService.generateToken();
-
-        // Save the token to the user
-        user = await prisma.user.update({
-            where: { userId: user.userId },
-            data: {
-                resetToken: resetToken,
-                resetTokenExpiry: new Date(Date.now() + 3600000), // 1 hour
-            },
-        });
-
-        // Send the password reset email
-        MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
-        TwilloService.sendSMS(user.phone, `Your password reset token is ${user.resetToken}`);
-
-    }
-
-
-    /**
-     * Resets the password of the user.
-     * @param token - The password reset token.
-     * @param password - The new password.
-     */
-    static async resetPassword(data: ResetPasswordRequest): Promise<void> {
-
-        // Get the user by token
-        const user = await prisma.user.findFirst({
-            where: { email: data.email },
-        });
-
-        if (!user) {
-            throw new Error(AuthErrors.USER_NOT_FOUND);
-        }
-
-        // Check if the token is valid
-        if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
-            throw new Error(AuthErrors.INVALID_TOKEN);
-        }
-
-        // Update the user's password
-        await prisma.user.update({
-            where: { userId: user.userId },
-            data: {
-                password: await bcrypt.hash(data.password, 10),
-                resetToken: null,
-                resetTokenExpiry: null,
-            },
-        });
-
-        // Notify the user
-        MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
-        TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
-
-    }
 
 }
 

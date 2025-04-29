@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // DTOs
-import ErrorResponse from "@/dtos/responses/ErrorResponse";
+import ErrorResponse from "../../dtos/responses/ErrorResponse";
 
 // Constants
 const NODE_ENV = process.env.NODE_ENV || 'development';

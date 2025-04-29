@@ -1,5 +1,5 @@
 import { Subscription, User } from '@prisma/client';
-import prisma from '@/libs/prisma';
+import prisma from '../../../libs/prisma';
 
 /**
  * Service class responsible for managing orders and handling payment-specific logic.

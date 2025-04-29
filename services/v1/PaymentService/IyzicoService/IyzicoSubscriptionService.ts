@@ -1,5 +1,5 @@
 import IyzicoService from "../IyzicoService"
-import { SubscriptionExtended } from "@/types/SubscriptionExtended";
+import { SubscriptionExtended } from "../../../../types/SubscriptionExtended";
 import { Subscription, SubscriptionPrice, SubscriptionStatus, User } from "@prisma/client";
 import SubscriptionService from "../../SubscriptionService";
 export default class IyzicoSubscriptionService {

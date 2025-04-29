@@ -9,9 +9,7 @@ import TenantUserOmit from "../../../types/TenantUserOmit";
 
 export default class TenantAuthService {
 
-    static readonly UserOmitSelect = AuthService.UserOmitSelect;
     static readonly TenantOmitSelect = TenantService.TenantOmitSelect;
-
     static readonly TENANT_USER_NOT_FOUND = "TENANT_USER_NOT_FOUND";
     static readonly INVALID_TENANT_USER_REQUEST = "INVALID_TENANT_USER_REQUEST";
     static readonly INVALID_TENANT_USER_SESSION_REQUEST = "INVALID_TENANT_USER_SESSION_REQUEST";

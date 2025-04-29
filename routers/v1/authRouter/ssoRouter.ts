@@ -17,6 +17,7 @@ import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
 import SSOService from "../../../services/v1/AuthService/SSOService";
 import AuthService from "../../../services/v1/AuthService";
 import MailService from "../../../services/v1/NotificationService/MailService";
+import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
 
 
 const APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
@@ -43,7 +44,7 @@ ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Respon
         throw new Error("BAD_REQUEST");
     }
 
-    return await AuthService.getSession(request.body);
+    return await UserSessionService.getSession(request.body);
 });
 
 /**
@@ -107,7 +108,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
         throw new Error(AUTHENTICATION_FAILED);
     }
 
-    const userSession = await AuthService.createSession(user, request);
+    const userSession = await UserSessionService.createSession(user, request);
 
     MailService.sendWelcomeEmail(user);
 
@@ -154,7 +155,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
         throw new Error(AUTHENTICATION_FAILED);
     }
 
-    const userSession = await AuthService.createSession(user, request);
+    const userSession = await UserSessionService.createSession(user, request);
 
     MailService.sendWelcomeEmail(user);
 

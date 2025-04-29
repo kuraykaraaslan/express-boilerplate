@@ -9,7 +9,7 @@ import FieldValidater from "../../../utils/FieldValidater";
 
 
 // Omit
-import UserOmit from "@/types/UserOmit";
+import UserOmit from "../../../types/UserOmit";
 
 // DTOs
 import CreateUserRequest from "./../../../dtos/requests/user/CreateUserRequest";

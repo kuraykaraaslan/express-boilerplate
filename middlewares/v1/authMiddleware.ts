@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 
 // Services
 import AuthService from '../../services/v1/AuthService';
+import UserSessionService from '../../services/v1/AuthService/UserSessionService';
 
 // Models
 import { User } from '@prisma/client';
@@ -41,10 +42,10 @@ export default function (requiredRole: string) {
 
       console.log('Session data:', sessionData);
     
-      const deviceFingerprint = AuthService.generateDeviceFingerprint(request);
+      const deviceFingerprint = await UserSessionService.generateDeviceFingerprint(request);
 
       console.log('Device fingerprint:', deviceFingerprint);
-      const sessionWithUser = await AuthService.getSession(sessionData, deviceFingerprint);
+      const sessionWithUser = await UserSessionService.getSession(sessionData, deviceFingerprint);
 
       if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
         throw new Error(AuthErrors.SESSION_NOT_FOUND);
@@ -71,7 +72,7 @@ export default function (requiredRole: string) {
 
       if (timeLeft < 300000) { // 300 saniye = 5 dakika
 
-        const refreshedSession = await AuthService.refreshAccessToken(request.userSession.refreshToken);
+        const refreshedSession = await UserSessionService.refreshAccessToken(request.userSession.refreshToken);
 
         if (refreshedSession) {
           response.setHeader('x-new-access-token', refreshedSession.accessToken);

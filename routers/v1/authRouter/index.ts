@@ -32,6 +32,7 @@ import MailService from "../../../services/v1/NotificationService/MailService";
 import tenantAuthRouter from "./tenantAuthRouter";
 import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
 import OTPService from "../../../services/v1/AuthService/OTPService";
+import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 // Router
 const AuthRouter = Router();
@@ -158,7 +159,7 @@ AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Req
 AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Request<ForgotPasswordRequest>, response: Response<MessageResponse>) => {
 
     const data = new ForgotPasswordRequest(request.body);
-    await AuthService.forgotPassword(data);
+    await PasswordService.forgotPassword(data);
 
     return response.json({ message: "FORGOT_PASSWORD_SUCCESS" });
 
@@ -180,7 +181,7 @@ AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Requ
 AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Request<ResetPasswordRequest>, response: Response<MessageResponse>) => {
 
     const data = new ResetPasswordRequest(request.body);
-    await AuthService.resetPassword(data);
+    await PasswordService.resetPassword(data);
 
 });
 
@@ -241,7 +242,7 @@ AuthRouter.use('/session/tenant', tenantAuthRouter);
  * - 401: Unauthorized if user is not logged in.
  */
 AuthRouter.post('/session/destroy-other-sessions', async (request: Request, response: Response<MessageResponse>) => {
-    await AuthService.destroyOtherSessions({ user: request.user!, userSession: request.userSession! });
+    await UserSessionService.destroyOtherSessions({ user: request.user!, userSession: request.userSession! });
     return response.json({ message: "DESTROY_OTHER_SESSIONS_SUCCESS" });
 });
 

@@ -110,7 +110,7 @@ export default class UserSessionService {
    * @param accessToken - The session token.
    * @returns The user session.
    */
-  static async getSession(data: GetSessionRequest): Promise<LoginResponse> {
+  static async getSession(data: GetSessionRequest, deviceFingerprint?: string): Promise<LoginResponse> {
 
     const session = await prisma.userSession.findUnique({
       where: { accessToken: data.accessToken },
@@ -162,7 +162,7 @@ export default class UserSessionService {
     const newRefreshToken = UserSessionService.generateRefreshToken(session.userId);
     const newAccessToken = UserSessionService.generateAccessToken(session.userId);
 
-    
+
     const updatedSession = await prisma.userSession.update({
       where: { sessionId: session.sessionId },
       data: {
@@ -171,10 +171,47 @@ export default class UserSessionService {
         sessionExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
       },
     });
-    
+
 
     return UserSessionService.omitSensitiveFields(session);
   }
 
 
+
+  /**
+   * Destroy all other sessions of the user.
+   * 
+   * @param userSession - The current user session.
+   * @returns A promise that resolves when the sessions are destroyed.
+   */
+  static async destroyOtherSessions({ user, userSession }: LoginResponse): Promise<void> {
+    // Get all sessions of the user
+    const sessions = await prisma.userSession.findMany({
+      where: { userId: user.userId },
+    });
+    // Delete all sessions except the current one
+    await prisma.userSession.deleteMany({
+      where: {
+        userId: user.userId,
+        accessToken: {
+          not: userSession.accessToken,
+        },
+      },
+    });
+  }
+
+
+
+  /**
+   * Deletes a user session by token.
+   * @param token - The session token.
+   */
+
+  static async deleteSession(data: UserSessionOmit): Promise<void> {
+
+    await prisma.userSession.deleteMany({
+      where: { accessToken: data.accessToken }
+    });
+
+  }
 }

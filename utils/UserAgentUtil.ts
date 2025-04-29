@@ -1,6 +1,6 @@
 import geoip from "geoip-lite";
 import { Request } from "express";
-import { UserAgentData } from "@/types/UserAgentData";
+import { UserAgentData } from "../types/UserAgentData";
 type OSName =
     | 'Windows'
     | 'macOS'
