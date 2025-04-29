@@ -9,6 +9,8 @@
     "build": "tsc",
     "db:migrate": "prisma migrate dev --name init",
     "db:generate": "prisma generate",
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
     "vercel-build": "prisma generate && prisma migrate deploy && npm run build",
     "test": "jest --detectOpenHandles --forceExit"
   },

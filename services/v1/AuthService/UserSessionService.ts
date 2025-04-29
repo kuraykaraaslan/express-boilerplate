@@ -20,10 +20,10 @@ import crypto from "crypto";
 import AuthErrors from "../../../errors/AuthErrors";
 
 
-const ACCESS_TOKEN_SECRET: jwt.Secret = process.env.ACCESS_TOKEN_SECRET!;
+const ACCESS_TOKEN_SECRET: jwt.Secret = process.env.ACCESS_TOKEN_SECRET  || 'your-default-secret'; // Burada bir varsayılan değer belirleyebilirsiniz
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '1h'; // veya '1h' gibi
 
-const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET!;
+const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET! || 'your-default-secret'; // Burada bir varsayılan değer belirleyebilirsiniz
 const REFRESH_TOKEN_EXPIRES_IN: string | number = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // veya '7d' gibi
 
 export default class UserSessionService {
@@ -85,6 +85,8 @@ export default class UserSessionService {
   static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<UserSession> {
 
     const userAgentData = await UserAgentUtil.parseRequest(request);
+
+    console.log("User Agent Data: ", userAgentData);
 
     return prisma.userSession.create({
       data: {

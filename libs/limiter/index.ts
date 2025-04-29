@@ -7,10 +7,9 @@ const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ?? 100;
 class Limiter {
 	public static readonly limiter = rateLimit({
 		windowMs: Number(RATE_LIMIT_WINDOW_MS),
-		handler: (request, response, next, options) => {
-		
-		response.status(options.statusCode).send(options.message)
-		},		
+		handler: (req: Request, res: Response, next, options) => {
+			res.status(options.statusCode).json({ error: 'RATE_LIMIT_EXCEEDED' });
+		},	
 		message: (request: Request, response: Response) => {
 			return { error: 'RATE_LIMIT_EXCEEDED' };
 		},
@@ -28,10 +27,9 @@ class Limiter {
 
 	public static readonly authLimiter = rateLimit({
 		windowMs: Number(0),
-		handler: (request, response, next, options) => {
-		
-			response.status(options.statusCode).send(options.message)
-			},			
+		handler: (req: Request, res: Response, next, options) => {
+			res.status(options.statusCode).json({ error: 'RATE_LIMIT_EXCEEDED' });
+		},		
 		message: (request: Request, response: Response) => {
 			return { error: 'RATE_LIMIT_EXCEEDED_AUTH' };
 		},

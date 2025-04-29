@@ -6,8 +6,6 @@ export default class LoginRequest {
     constructor(data: any) {
         this.email = data.email;
         this.password = data.password;
-
-        this.validate();
     }
 
     validate() {

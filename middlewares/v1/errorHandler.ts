@@ -6,7 +6,12 @@ import ErrorResponse from "../../dtos/responses/ErrorResponse";
 // Constants
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-export default function errorHandler(error: any, request: Request, response: Response, next: NextFunction) : Response<ErrorResponse> {
+function errorMessageAndCodeSpit(error: string): [string, number] {
+    const [errorMessage, errorCodeStr] = error.split(':');
+    return [errorMessage, parseInt(errorCodeStr)];
+  }
+
+export default function errorHandler(error: any, request: Request, response: Response, next: NextFunction): Response<ErrorResponse> {
     // Handle known application errors
     if (error.isOperational) {
         return response.status(error.statusCode || 400).json({
@@ -20,7 +25,8 @@ export default function errorHandler(error: any, request: Request, response: Res
             error: "ERROR_BAD_REQUEST",
         });
     }
-    
+
+
     // Handle programming or unknown errors
     return response.status(500).json({
         error: error.message,
