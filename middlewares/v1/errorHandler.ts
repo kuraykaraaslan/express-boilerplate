@@ -15,14 +15,12 @@ export default function errorHandler(error: any, request: Request, response: Res
     }
 
 
-    if (NODE_ENV !== 'development') {        
+    if (NODE_ENV === 'production') {
         return response.status(500).json({
             error: "ERROR_BAD_REQUEST",
         });
     }
-
-    console.error("Error stack:", error.stack);
-    console.error("Error message:", error.message);
+    
     // Handle programming or unknown errors
     return response.status(500).json({
         error: error.message,
