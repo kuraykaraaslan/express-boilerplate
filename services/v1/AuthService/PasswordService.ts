@@ -17,47 +17,74 @@ export default class PasswordService {
     return crypto.createHash("sha256").update(token).digest("hex");
   }
 
+  /**
+   * Sends a password reset email to the user.
+   * @param email - The user's email.
+   */
   static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
-    if (!user) throw new Error(AuthErrors.USER_NOT_FOUND);
 
-    const resetToken = this.generateResetToken();
-    const hashedToken = await this.hashToken(resetToken);
+    // Get the user by email
+    let user = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
-    await prisma.user.update({
+    if (!user) {
+      throw new Error(AuthErrors.USER_NOT_FOUND);
+    }
+
+    const resetToken = PasswordService.generateResetToken();
+
+    // Save the token to the user
+    user = await prisma.user.update({
       where: { userId: user.userId },
       data: {
-        resetToken: hashedToken,
-        resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        resetToken: resetToken,
+        resetTokenExpiry: new Date(Date.now() + 3600000), // 1 hour
       },
     });
 
+    // Send the password reset email
     MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
-    TwilloService.sendSMS(user.phone, `Your password reset token is ${resetToken}`);
+    TwilloService.sendSMS(user.phone, `Your password reset token is ${user.resetToken}`);
+
   }
 
+
+  /**
+   * Resets the password of the user.
+   * @param token - The password reset token.
+   * @param password - The new password.
+   */
   static async resetPassword(data: ResetPasswordRequest): Promise<void> {
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
-    if (!user) throw new Error(AuthErrors.USER_NOT_FOUND);
 
-    const hashedTokenInput = await this.hashToken(data.resetToken);
+    // Get the user by token
+    const user = await prisma.user.findFirst({
+      where: { email: data.email },
+    });
 
-    if (!user.resetToken || user.resetToken !== hashedTokenInput || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
+    if (!user) {
+      throw new Error(AuthErrors.USER_NOT_FOUND);
+    }
+
+    // Check if the token is valid
+    if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
       throw new Error(AuthErrors.INVALID_TOKEN);
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
+    // Update the user's password
     await prisma.user.update({
       where: { userId: user.userId },
       data: {
-        password: hashedPassword,
+        password: await bcrypt.hash(data.password, 10),
         resetToken: null,
         resetTokenExpiry: null,
       },
     });
 
+    // Notify the user
     MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
     TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
+
   }
+
 }
