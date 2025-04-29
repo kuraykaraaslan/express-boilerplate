@@ -31,6 +31,7 @@ import MailService from "../../../services/v1/NotificationService/MailService";
 // Mid Router
 import tenantAuthRouter from "./tenantAuthRouter";
 import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
+import OTPService from "../../../services/v1/AuthService/OTPService";
 
 // Router
 const AuthRouter = Router();
@@ -100,7 +101,7 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
     MailService.sendNewLoginEmail(user, userSession);
     return response.json({ 
         user, 
-        userSession: AuthService.omitSensitiveFields(userSession)
+        userSession: UserSessionService.omitSensitiveFields(userSession)
     }); 
 });
 
@@ -117,7 +118,7 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
  */
 AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: Request<VerifyOTPRequest>, response: Response<MessageResponse>) => {
     const data = new VerifyOTPRequest(request.body);
-    return await AuthService.otpVerify(data);
+    return await OTPService.otpVerify(data);
 });
 
 /**
@@ -137,7 +138,7 @@ AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: R
 AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<SendOTPRequest>, response: Response<MessageResponse>) => {
 
     const data = new SendOTPRequest(request.body);
-    return await AuthService.otpSend(data);
+    return await OTPService.otpSend(data);
 
 });
 
@@ -259,7 +260,7 @@ AuthRouter.post('/session/destroy-other-sessions', async (request: Request, resp
 AuthRouter.post('/settings/otp-change', async (request: Request, response: Response<MessageResponse>) => {
 
     const data = new ChangeOTPStatusRequest(request.body);
-    await AuthService.otpChangeStatus(request.user!, data);
+    await OTPService.otpChangeStatus(request.user!, data);
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
 
@@ -280,7 +281,7 @@ AuthRouter.post('/settings/otp-change', async (request: Request, response: Respo
 AuthRouter.post('/settings/otp-verify', async (request: Request, response: Response<MessageResponse>) => {
 
     const data = new ChangeOTPVerifyRequest(request.body);
-    await AuthService.otpChangeVerify(request.user!, data);
+    await OTPService.otpChangeVerify(request.user!, data);
     return response.json({ message: "OTP_CHANGE_SUCCESS" });
 });
 
