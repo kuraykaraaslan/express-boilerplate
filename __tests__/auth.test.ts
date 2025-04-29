@@ -1,6 +1,5 @@
 import request from 'supertest';
 import app from '../index'; // Express uygulamasını export etmiş olman gerekiyor
-import { describe } from 'node:test';
 import AuthErrors from '../errors/AuthErrors';
 
 describe('Auth API', () => {

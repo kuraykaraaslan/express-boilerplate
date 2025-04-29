@@ -15,7 +15,7 @@ import Limiter from "./libs/limiter";
 import bodyParser from "body-parser";
 
 const app = express();
-const port = process.env.PORT || process.env.APPLICATION_PORT || 3001;
+const port = process.env.PORT || process.env.APPLICATION_PORT || 3002;
 
 app.enable('trust proxy');
 app.use(Logger.useLogger);
@@ -42,10 +42,6 @@ app.get("/", (req, res) => {
 
 app.use(errorHandler);
 
-// Only start the server if not running on Vercel
-app.listen(port, () => {
-    console.log(`Server started at port ${port}`);
-});
-
 
 module.exports = app;
+export default app;
