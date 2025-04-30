@@ -20,8 +20,13 @@ export default function (requiredRole: string) {
         return next();
       }
 
+      if (!/^Bearer /.test(request.headers.authorization || '')) {
+        return response.status(401).json({ error: AuthErrors.USER_NOT_AUTHENTICATED });
+      }
       // Extract access token
       const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
+
+      console.log('Access token INCOMING: ', accessToken);
 
       if (!accessToken) {
         throw new Error(AuthErrors.USER_NOT_AUTHENTICATED);

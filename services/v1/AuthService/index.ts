@@ -60,14 +60,10 @@ export default class AuthService {
      */
     static async login(data: LoginRequest): Promise<UserOmit> {
 
-        console.log(data);
-
         // Get the user by email
         const user = await prisma.user.findUnique({
             where: { email: data.email },
         })
-
-        console.log(user);
 
         if (!user) {
             throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);

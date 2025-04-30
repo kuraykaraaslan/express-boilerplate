@@ -66,8 +66,6 @@ export default function (
 
                     request.tenantUser = temporaryTenantUser;
 
-                    console.log('Temporary tenant user created:', temporaryTenantUser);
-
 
                 } else {
                     throw new Error("TENANT_USER_NOT_FOUND");

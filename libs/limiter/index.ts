@@ -2,11 +2,18 @@ import { rateLimit } from 'express-rate-limit'
 import { Request, Response } from 'express';
 
 const RATE_LIMIT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX = process.env.RATE_LIMIT_MAX ?? 100;
+
+const RATE_LIMIT_AUTH_WINDOW_MS = process.env.RATE_LIMIT_AUTH_WINDOW_MS ?? 5 * 60 * 1000; // 5 minutes
+
+
+const RATE_LIMIT_MAX = Math.max(1, Number(process.env.RATE_LIMIT_MAX) || 100);
+const RATE_LIMIT_AUTH_MAX = Math.max(1, Number(process.env.RATE_LIMIT_AUTH_MAX) || 10);
+
 
 class Limiter {
 	public static readonly limiter = rateLimit({
 		windowMs: Number(RATE_LIMIT_WINDOW_MS),
+		max: Number(RATE_LIMIT_MAX),
 		handler: (req: Request, res: Response, next, options) => {
 			res.status(options.statusCode).json({ error: 'RATE_LIMIT_EXCEEDED' });
 		},	
@@ -26,7 +33,7 @@ class Limiter {
 	});
 
 	public static readonly authLimiter = rateLimit({
-		windowMs: Number(0),
+		windowMs: Number(RATE_LIMIT_AUTH_WINDOW_MS),
 		handler: (req: Request, res: Response, next, options) => {
 			res.status(options.statusCode).json({ error: 'RATE_LIMIT_EXCEEDED' });
 		},		
