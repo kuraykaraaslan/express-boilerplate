@@ -223,7 +223,7 @@ export default class UserSessionService {
     });
 
 
-    return UserSessionService.omitSensitiveFields(session);
+    return UserSessionService.omitSensitiveFields(updatedSession);
   }
 
 
