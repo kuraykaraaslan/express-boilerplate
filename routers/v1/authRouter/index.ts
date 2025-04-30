@@ -250,6 +250,28 @@ AuthRouter.post('/session/destroy-other-sessions', async (request: Request, resp
     return response.json({ message: "DESTROY_OTHER_SESSIONS_SUCCESS" });
 });
 
+/*
+ * POST /session/refresh
+ * Refresh the user session.
+ *
+ * Request Body:
+ * - refreshToken (string): The refresh token of the user (required).
+ *
+ * Response:
+ * - 200: User session refreshed successfully with new access and refresh tokens.   
+ * - 401: Unauthorized if refresh token is invalid.
+ * - 500: Internal server error if session refresh fails.
+ */
+AuthRouter.post('/session/refresh', async (request: Request, response: Response<LoginResponse>) => {
+    const { refreshToken } = request.body;
+    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.refreshAccessToken(refreshToken);
+
+    return response.json({
+        accessToken: rawAccessToken,
+        refreshToken: rawRefreshToken,
+    });
+});
+
 
 /**
  * POST /settings/otp

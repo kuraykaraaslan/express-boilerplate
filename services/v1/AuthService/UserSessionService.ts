@@ -26,6 +26,8 @@ const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '1h'; // 
 const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET! || 'your-default-secret'; // Burada bir varsayılan değer belirleyebilirsiniz
 const REFRESH_TOKEN_EXPIRES_IN: string | number = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // veya '7d' gibi
 
+const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
+
 export default class UserSessionService {
 
   static readonly UserSessionOmitSelect = {
@@ -111,7 +113,7 @@ export default class UserSessionService {
         userId: user.userId,
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
-        sessionExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        sessionExpiry: new Date(Date.now() + SEVEN_DAYS_MS),
         sessionAgent: "Web",
         otpNeeded: otpConsired ? user.otpEnabled : false,
         ip: userAgentData.ip || "Unknown",
@@ -192,38 +194,39 @@ export default class UserSessionService {
   }
 
 
-  public static async refreshAccessToken(accessToken: string): Promise<UserSessionOmit | null> {
-    const session = await prisma.userSession.findFirst({
-      where: {
-        accessToken,
-        sessionExpiry: {
-          gt: new Date(),
-        },
-      },
-    });
+  public static async refreshAccessToken({ currentSession, currentRefreshToken }: { currentSession: UserSession, currentRefreshToken: string }): Promise<{ userSession: UserSessionOmit, rawAccessToken: string, rawRefreshToken: string }> {
+    // Check if the refresh token is valid
+    const hashedCurrentRefreshToken = UserSessionService.hashToken(currentRefreshToken);
+    if (currentSession.refreshToken !== hashedCurrentRefreshToken) {
+      throw new Error(AuthErrors.INVALID_REFRESH_TOKEN);
+    }
 
-    if (!session) {
+    // Check if the session is expired
+    const now = new Date();
+    if (currentSession.sessionExpiry < now) {
       throw new Error(AuthErrors.SESSION_NOT_FOUND);
     }
 
-    const newRefreshToken = UserSessionService.generateRefreshToken(session.userId);
-    const hashedRefreshToken = UserSessionService.hashToken(newRefreshToken);
-
-    const newAccessToken = UserSessionService.generateAccessToken(session.userId);
-    const hashedAccessToken = UserSessionService.hashToken(newAccessToken);
-
-
+    // Generate new access and refresh tokens
+    const rawAccessToken = UserSessionService.generateAccessToken(currentSession.userId);
+    const hashedAccessToken = UserSessionService.hashToken(rawAccessToken);
+    const rawRefreshToken = UserSessionService.generateRefreshToken(currentSession.userId);
+    const hashedRefreshToken = UserSessionService.hashToken(rawRefreshToken);
+    // Update the session with the new tokens
     const updatedSession = await prisma.userSession.update({
-      where: { sessionId: session.sessionId },
+      where: { sessionId: currentSession.sessionId },
       data: {
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
-        sessionExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+        sessionExpiry: new Date(Date.now() + SEVEN_DAYS_MS),
       },
     });
-
-
-    return UserSessionService.omitSensitiveFields(updatedSession);
+    // Return the updated session and tokens
+    return {
+      userSession: UserSessionService.omitSensitiveFields(updatedSession),
+      rawAccessToken,
+      rawRefreshToken,
+    };
   }
 
 
