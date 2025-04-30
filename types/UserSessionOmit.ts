@@ -1,10 +1,9 @@
 export interface UserSessionOmit {
+    sessionId: string;
     userId: string;
-    accessToken: string;
-    refreshToken: string;
     otpNeeded: boolean;
-    tenantId?: string | null;
-    tenantUserId?: string | null;
+    tenantId: string | null;
+    tenantUserId: string | null;
     sessionExpiry: Date;
 }
 

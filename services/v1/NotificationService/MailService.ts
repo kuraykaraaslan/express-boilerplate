@@ -6,6 +6,7 @@ import { User, UserSession } from '@prisma/client';
 
 // Types
 import UserOmit from './../../../types/UserOmit';
+import UserSessionOmit from '@/types/UserSessionOmit';
 
 const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
 
@@ -80,18 +81,17 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSession) {
+    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSessionOmit) {
 
         const name = user.name || user.email;
         const email = user.email;
-        const location = session?.city + ", " + session?.state + ", " + session?.country;
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'new-login.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
-            device: session?.device || "Unknown",
-            ip : session?.ip || "Unknown",
-            location: location,
+            device: "Unknown",
+            ip :  "Unknown",
+            location: "Unknown",
             loginTime: new Date().toLocaleString(),
             forgotPasswordLink: MailService.FRONTEND_FORGOT_PASSWORD_LINK,
             supportEmail: MailService.FRONTEND_SUPPORT_EMAIL,

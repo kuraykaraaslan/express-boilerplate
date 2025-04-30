@@ -25,4 +25,32 @@ describe('Auth API', () => {
     expect(res.status).toBe(500); // TODO: Change to 401
     expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
   });
+
+  it('should fail login with empty credentials', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({
+      email: '',
+      password: '',
+    });
+
+    expect(res.status).toBe(500); // TODO: Change to 400
+    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+  });
+
+  it('should fail login with invalid email', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({
+      email: 'kurayexample.com',
+      password : 'qwerty20',
+    });
+    expect(res.status).toBe(500); // TODO: Change to 400
+    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+  });
+
+  it('should fail login with invalid password', async () => {
+    const res = await request(app).post('/api/v1/auth/login').send({
+      email: 'kurayexample.com',
+      password : 'qwerty201',
+    });
+    expect(res.status).toBe(500); // TODO: Change to 400
+    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+  });
 });

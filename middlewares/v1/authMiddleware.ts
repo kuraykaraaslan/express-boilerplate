@@ -45,20 +45,12 @@ export default function (requiredRole: string) {
       const deviceFingerprint = await UserSessionService.generateDeviceFingerprint(request);
 
       console.log('Device fingerprint:', deviceFingerprint);
-      const sessionWithUser = await UserSessionService.getSession(sessionData, deviceFingerprint);
 
-      if (!sessionWithUser || !sessionWithUser.user || !sessionWithUser.userSession) {
-        throw new Error(AuthErrors.SESSION_NOT_FOUND);
-      }
-
-      console.log('Session with user:', sessionWithUser);
+      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, deviceFingerprint);
 
       // Attach user and session
-      request.user = sessionWithUser.user;
-      request.userSession = sessionWithUser.userSession;
-
-      console.log('User session:', request.userSession);
-      console.log('User:', request.user);
+      request.user = user;
+      request.userSession = UserSessionService.omitSensitiveFields(userSession);
 
       if (request.userSession.otpNeeded) {
         return response.status(403).json({ error: AuthErrors.OTP_NEEDED });

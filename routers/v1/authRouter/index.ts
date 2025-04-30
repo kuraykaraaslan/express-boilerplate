@@ -98,14 +98,16 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
 
     const data = new LoginRequest(request.body);
     const user = await AuthService.login(data);
-    const userSession = await UserSessionService.createSession(user, request, true);
+    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request, true);
     MailService.sendNewLoginEmail(user, userSession);
+
     return response.json({ 
         user, 
-        userSession: UserSessionService.omitSensitiveFields(userSession)
+        accessToken: rawAccessToken,
+        refreshToken: rawRefreshToken,
     }); 
-});
 
+});
 
 
 /**
@@ -191,6 +193,23 @@ AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Reque
 
 AuthRouter.use(AuthMiddleware("USER"));
 
+
+
+/**
+ * GET /session
+ * Get the current user session.
+ *
+ * Response:
+ * - 200: User session details.
+ * - 401: Unauthorized if user is not logged in.
+ */
+AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
+    return response.json({
+        user: request.user!
+    });
+});
+
+
 /**
  * POST /logout
  * Logout the current user.
@@ -202,21 +221,6 @@ AuthRouter.use(AuthMiddleware("USER"));
  */
 AuthRouter.post('/logout', async (request: Request, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
     return response.json({ message: "LOGOUT_SUCCESS" });
-});
-
-/**
- * GET /session
- * Get the current user session.
- * 
- * Request Body:
- * - accessToken (string): The session token of the user (required).
- * 
- * Response:
- * - 200: Session details of the user.
- * - 401: Unauthorized if user is not logged in.
- */
-AuthRouter.get('/session', async (request: Request, response: Response<LoginResponse>) => {
-    return response.json({ user: request.user!, userSession: request.userSession! });
 });
 
 
@@ -242,7 +246,7 @@ AuthRouter.use('/session/tenant', tenantAuthRouter);
  * - 401: Unauthorized if user is not logged in.
  */
 AuthRouter.post('/session/destroy-other-sessions', async (request: Request, response: Response<MessageResponse>) => {
-    await UserSessionService.destroyOtherSessions({ user: request.user!, userSession: request.userSession! });
+    await UserSessionService.destroyOtherSessions(request.userSession!);
     return response.json({ message: "DESTROY_OTHER_SESSIONS_SUCCESS" });
 });
 

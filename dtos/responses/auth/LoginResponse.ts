@@ -3,5 +3,6 @@ import AuthUserSessionResponse from "../../../types/UserSessionOmit";
 
 export default interface AuthResponse {
     user: AuthUserResponse;
-    userSession: AuthUserSessionResponse;
+    accessToken?: string;
+    refreshToken?: string;
 }
