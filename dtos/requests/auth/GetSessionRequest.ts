@@ -9,8 +9,6 @@ export default class GetSessionRequest {
    constructor(data: any) {
       this.accessToken = data.accessToken;
 
-      console.log('GetSessionRequest data:', data);
-
    }
 
 

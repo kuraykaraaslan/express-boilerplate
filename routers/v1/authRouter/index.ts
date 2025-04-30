@@ -98,7 +98,7 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
 
     const data = new LoginRequest(request.body);
     const user = await AuthService.login(data);
-    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request, true);
+    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request, false);
     MailService.sendNewLoginEmail(user, userSession);
 
     return response.json({ 

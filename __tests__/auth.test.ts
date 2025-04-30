@@ -21,7 +21,6 @@ describe('Auth API', () => {
       password: 'qwerty20',
     });
 
-    console.log(res.body);
     expect(res.status).toBe(500); // TODO: Change to 401
     expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
   });

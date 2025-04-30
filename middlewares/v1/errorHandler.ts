@@ -9,7 +9,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 function errorMessageAndCodeSpit(error: string): [string, number] {
     const [errorMessage, errorCodeStr] = error.split(':');
     return [errorMessage, parseInt(errorCodeStr)];
-  }
+}
 
 export default function errorHandler(error: any, request: Request, response: Response, next: NextFunction): Response<ErrorResponse> {
     // Handle known application errors

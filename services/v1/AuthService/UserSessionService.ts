@@ -3,7 +3,6 @@ import { Request } from "express";
 import prisma from "../../../libs/prisma";
 
 // DTOs
-import LoginResponse from "../../../dtos/responses/auth/LoginResponse";
 import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
 
 
@@ -14,8 +13,6 @@ import UserAgentUtil from "../../../utils/UserAgentUtil";
 import UserSessionOmit from "../../../types/UserSessionOmit";
 import UserOmit from "../../../types/UserOmit";
 import jwt from 'jsonwebtoken';
-import TenantService from "../TenantService";
-import TenantUserService from "../TenantService/TenantUserService";
 import crypto from "crypto";
 import AuthErrors from "../../../errors/AuthErrors";
 
@@ -26,7 +23,7 @@ const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || '1h'; // 
 const REFRESH_TOKEN_SECRET: jwt.Secret = process.env.REFRESH_TOKEN_SECRET! || 'your-default-secret'; // Burada bir varsayılan değer belirleyebilirsiniz
 const REFRESH_TOKEN_EXPIRES_IN: string | number = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // veya '7d' gibi
 
-const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
+const SESSION_EXPIRY_MS = parseInt(process.env.SESSION_EXPIRY_MS || `${1000 * 60 * 60 * 24 * 7}`);
 
 export default class UserSessionService {
 
@@ -59,6 +56,24 @@ export default class UserSessionService {
   }
 
   /**
+   * Verifies a access token.
+   * @param token - The access token to verify.
+   * @returns The decoded token payload.
+   */
+  static async verifyAccessToken(token: string): Promise<void> {
+    //TODO: Implement token verification logic
+  }
+
+  /**
+   * Verifies a refresh token.
+   * @param token - The refresh token to verify.
+   * @returns The decoded token payload.
+   */
+  static verifyRefreshToken(token: string): any {
+    //TODO: Implement token verification logic
+  }
+
+  /**
    * Hashes a token using SHA-256.
    * @param token - The access token to verify.
    * @returns The decoded token payload.
@@ -88,7 +103,7 @@ export default class UserSessionService {
    * @param userId - The user ID.
    * @returns The created session.
    */
-  static async createSession(user: UserOmit, request: Request<any>, otpConsired: boolean = false): Promise<
+  static async createSession(user: UserOmit, request: Request<any>, otpEnforce: boolean = false): Promise<
     {
       userSession: UserSessionOmit,
       otpNeeded: boolean,
@@ -98,24 +113,25 @@ export default class UserSessionService {
 
     const userAgentData = await UserAgentUtil.parseRequest(request);
 
-    console.log("User Agent Data: ", userAgentData);
-
     const rawAccessToken = UserSessionService.generateAccessToken(user.userId);
     const hashedAccessToken = UserSessionService.hashToken(rawAccessToken);
 
     const rawRefreshToken = UserSessionService.generateRefreshToken(user.userId);
     const hashedRefreshToken = UserSessionService.hashToken(rawRefreshToken);
 
-    const otpNeeded = otpConsired ? user.otpEnabled : false;
+    const deviceFingerprint = await UserSessionService.generateDeviceFingerprint(request);
+
+    const otpNeeded = otpEnforce || user.otpEnabled;
 
     const userSession = await prisma.userSession.create({
       data: {
         userId: user.userId,
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
-        sessionExpiry: new Date(Date.now() + SEVEN_DAYS_MS),
+        sessionExpiry: new Date(Date.now() + SESSION_EXPIRY_MS),
         sessionAgent: "Web",
-        otpNeeded: otpConsired ? user.otpEnabled : false,
+        deviceFingerprint: deviceFingerprint,
+        otpNeeded,
         ip: userAgentData.ip || "Unknown",
         os: userAgentData.os || "Unknown",
         device: userAgentData.device || "Unknown",
@@ -126,9 +142,10 @@ export default class UserSessionService {
       },
     });
 
+
     return {
       userSession: UserSessionService.omitSensitiveFields(userSession),
-      otpNeeded,
+      otpNeeded: userSession.otpNeeded,
       rawAccessToken,
       rawRefreshToken,
     };
@@ -140,21 +157,36 @@ export default class UserSessionService {
    * @param accessToken - The session token.
    * @returns The user session.
    */
-  static async getSessionDangerously(data: GetSessionRequest, deviceFingerprint: string): Promise<{ user: UserOmit, userSession: UserSession }> {
+  static async getSessionDangerously(data: GetSessionRequest, request: Request<any>): Promise<{ user: UserOmit, userSession: UserSessionOmit }> {
 
+    // Verify the access token
+    await UserSessionService.verifyAccessToken(data.accessToken);
+
+    // Check if the device fingerprint is provided
     const hashedAccessToken = UserSessionService.hashToken(data.accessToken);
+    const deviceFingerprint = await UserSessionService.generateDeviceFingerprint(request);
+
+    console.log("REQUEST DEVICE FINGERPRINT: ", deviceFingerprint);
 
     const userSession = await prisma.userSession.findUnique({
-      where: { accessToken: hashedAccessToken },
+      where: {
+        accessToken: hashedAccessToken,
+        //deviceFingerprint: deviceFingerprint,
+        sessionExpiry: {
+          gte: new Date(), // Check if the session is not expired   
+        },
+      },
     })
+    console.log("SESSIONID: ", userSession?.sessionId);
 
-    console.log("Session: ", userSession);
 
     if (!userSession) {
       throw new Error(AuthErrors.SESSION_NOT_FOUND);
     }
 
-    const user = await prisma.user.findUniqueOrThrow({
+    // Check if the session 
+
+    const user = await prisma.user.findUnique({
       where: { userId: userSession.userId },
     })
 
@@ -173,12 +205,14 @@ export default class UserSessionService {
    * @param session - The user session.
    * @returns The user session without sensitive fields.
    */
-  static async getSession(data: GetSessionRequest, deviceFingerprint: string): Promise<{ user: UserOmit, userSession: UserSessionOmit }> {
+  static async getSession(data: GetSessionRequest, request: Request<any>): Promise<{ user: UserOmit, userSession: UserSessionOmit }> {
     // Get the session using the provided access token
-    const { user, userSession } = await UserSessionService.getSessionDangerously(data, deviceFingerprint);
+    const { user, userSession } = await UserSessionService.getSessionDangerously(data, request);
+
+    // Check if the session is expired
     return {
       user: user,
-      userSession: UserSessionService.omitSensitiveFields(userSession),
+      userSession: userSession,
     };
   }
 
@@ -195,6 +229,10 @@ export default class UserSessionService {
 
 
   public static async refreshAccessToken({ currentSession, currentRefreshToken }: { currentSession: UserSession, currentRefreshToken: string }): Promise<{ userSession: UserSessionOmit, rawAccessToken: string, rawRefreshToken: string }> {
+    
+    // Verify the refresh token
+    await UserSessionService.verifyRefreshToken(currentRefreshToken);
+    
     // Check if the refresh token is valid
     const hashedCurrentRefreshToken = UserSessionService.hashToken(currentRefreshToken);
     if (currentSession.refreshToken !== hashedCurrentRefreshToken) {
@@ -218,7 +256,7 @@ export default class UserSessionService {
       data: {
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
-        sessionExpiry: new Date(Date.now() + SEVEN_DAYS_MS),
+        sessionExpiry: new Date(Date.now() + SESSION_EXPIRY_MS),
       },
     });
     // Return the updated session and tokens
@@ -238,11 +276,6 @@ export default class UserSessionService {
    * @returns A promise that resolves when the sessions are destroyed.
    */
   static async destroyOtherSessions(userSession: UserSessionOmit): Promise<void> {
-    // Get all sessions of the user
-    const sessions = await prisma.userSession.findMany({
-      where: { userId: userSession.userId },
-    });
-
     // Delete all sessions except the current one
     await prisma.userSession.deleteMany({
       where: {
@@ -257,8 +290,8 @@ export default class UserSessionService {
 
 
   /**
-   * Deletes a user session by token.
-   * @param token - The session token.
+   * Deletes a user session.
+   * @param data - The user session data to delete.
    */
 
   static async deleteSession(data: UserSessionOmit): Promise<void> {

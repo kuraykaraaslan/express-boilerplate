@@ -23,8 +23,6 @@ export default function (requiredRole: string) {
       // Extract access token
       const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
-      console.log('Access token:', accessToken);
-
       if (!accessToken) {
         throw new Error(AuthErrors.USER_NOT_AUTHENTICATED);
       }
@@ -38,19 +36,12 @@ export default function (requiredRole: string) {
       }
 
       // Otherwise validate session
-      const sessionData = new GetSessionRequest({ accessToken });
-
-      console.log('Session data:', sessionData);
-    
-      const deviceFingerprint = await UserSessionService.generateDeviceFingerprint(request);
-
-      console.log('Device fingerprint:', deviceFingerprint);
-
-      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, deviceFingerprint);
+      const sessionData = new GetSessionRequest({ accessToken });    
+      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, request);
 
       // Attach user and session
       request.user = user;
-      request.userSession = UserSessionService.omitSensitiveFields(userSession);
+      request.userSession = userSession;
 
       if (request.userSession.otpNeeded) {
         return response.status(403).json({ error: AuthErrors.OTP_NEEDED });
@@ -58,17 +49,6 @@ export default function (requiredRole: string) {
 
       if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
         return response.status(403).json({ error: AuthErrors.USER_DOES_NOT_HAVE_REQUIRED_ROLE });
-      }
-
-      const timeLeft = request.userSession.sessionExpiry.getTime() - new Date().getTime();
-
-      if (timeLeft < 300000) { // 300 saniye = 5 dakika
-
-        const refreshedSession = await UserSessionService.refreshAccessToken(request.userSession.refreshToken);
-
-        if (refreshedSession) {
-          response.setHeader('x-new-access-token', refreshedSession.accessToken);
-        }
       }
 
       return next();
