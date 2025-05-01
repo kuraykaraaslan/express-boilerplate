@@ -4,6 +4,7 @@ import ViewRouter from "./ViewRouter";
 import Logger from "../libs/logger";
 import Limiter from "../libs/limiter";
 
+import "../bootstrap/global-errors";
 
 const IndexRouter = Router();
 
@@ -40,6 +41,8 @@ IndexRouter.get("/", (req, res) => {
         linkedin: "linkedin.com/in/kuraykaraaslan",
     });
 });  
+
+
 
 
 export default IndexRouter;

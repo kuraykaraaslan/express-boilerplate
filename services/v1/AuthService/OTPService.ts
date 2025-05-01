@@ -1,6 +1,6 @@
 // OTPService.ts
 import prisma from "../../../libs/prisma";
-import AuthErrors from "../../../errors/AuthErrors";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
 import TwilloService from "../NotificationService/TwilloService";
 import crypto from "crypto";
@@ -26,7 +26,7 @@ export default class OTPService {
      * @param phone - The user's phone number.
      * @param method - The method to send the OTP (sms or email).
      */
-  static async otpSend(data: SendOTPRequest): Promise<MessageResponse> {
+  static async otpSend(data: SendOTPRequest): Promise<void> {
 
     // Get the session by token
     const session = await prisma.userSession.findUnique({
@@ -34,12 +34,12 @@ export default class OTPService {
     });
 
     if (!session) {
-      throw new Error(AuthErrors.SESSION_NOT_FOUND);
+      throw new AppError(AuthMessages.SESSION_NOT_FOUND, 401);
     }
 
     //if the session already has no otp needed
     if (!session.otpNeeded) {
-      throw new Error("OTP_NOT_NEEDED");
+      throw new AppError(AuthMessages.OTP_NOT_NEEDED, 400);
     }
 
     // Generate an OTP
@@ -60,7 +60,7 @@ export default class OTPService {
     });
 
     if (!user) {
-      throw new Error(AuthErrors.USER_NOT_FOUND);
+      throw new AppError(AuthMessages.USER_NOT_FOUND, 404);
     }
 
     switch (data.method) {
@@ -68,21 +68,21 @@ export default class OTPService {
         if (user.phone) {
           TwilloService.sendSMS(user.phone, `Your OTP is ${otpToken}`);
         } else {
-          throw new Error(AuthErrors.USER_HAS_NO_PHONE_NUMBER);
+          throw new AppError(AuthMessages.USER_HAS_NO_PHONE_NUMBER, 400);
         }
         break;
       case "email":
         if (user.email) {
           MailService.sendMail(user.email, "OTP", `Your OTP is ${otpToken}`);
         } else {
-          throw new Error(AuthErrors.USER_HAS_NO_EMAIL);
+          throw new AppError(AuthMessages.USER_HAS_NO_EMAIL, 400);
         }
         break;
       default:
-        throw new Error("INVALID_METHOD");
+        throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400);
     }
 
-    return { message: AuthErrors.OTP_SENT_SUCCESSFULLY };
+    return;
   }
 
   /**
@@ -90,7 +90,7 @@ export default class OTPService {
    * @param accessToken - The session token.
    * @param otp - The OTP.
    */
-  static async otpVerify(data: VerifyOTPRequest): Promise<MessageResponse> {
+  static async otpVerify(data: VerifyOTPRequest): Promise<void> {
 
     // Get the session by token
     const session = await prisma.userSession.findUnique({
@@ -98,17 +98,17 @@ export default class OTPService {
     });
 
     if (!session) {
-      throw new Error(AuthErrors.SESSION_NOT_FOUND);
+      throw new AppError(AuthMessages.SESSION_NOT_FOUND, 401);
     }
 
     // Check if the OTP is expired
     if (session.otpTokenExpiry && new Date() > session.otpTokenExpiry) {
-      throw new Error(AuthErrors.OTP_EXPIRED);
+      throw new AppError(AuthMessages.OTP_EXPIRED, 400);
     }
 
     // Check if the OTP is correct
     if (session.otpToken !== data.otpToken) {
-      throw new Error(AuthErrors.INVALID_OTP);
+      throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 
     // Update the session
@@ -119,7 +119,7 @@ export default class OTPService {
       },
     });
 
-    return { message: AuthErrors.OTP_VERIFIED_SUCCESSFULLY };
+    return;
   }
 
 
@@ -128,12 +128,12 @@ export default class OTPService {
    * @param user - The user object.
    * @param otpEnabled - Whether OTP is enabled.
    */
-  static async otpChangeStatus(user: UserOmit, data: ChangeOTPStatusRequest): Promise<MessageResponse> {
+  static async otpChangeStatus(user: UserOmit, data: ChangeOTPStatusRequest): Promise<void> {
     // If OTP is already enabled then throw an error
     if (data.otpEnabled && user.otpEnabled === data.otpEnabled) {
-      throw new Error("OTP_ALREADY_ENABLED");
+      throw new AppError(AuthMessages.OTP_ALREADY_ENABLED, 400);
     } else if (!data.otpEnabled && user.otpEnabled === data.otpEnabled) {
-      throw new Error("OTP_ALREADY_DISABLED");
+      throw new AppError(AuthMessages.OTP_ALREADY_DISABLED, 400);
     }
 
     // Update the user
@@ -151,7 +151,7 @@ export default class OTPService {
       MailService.sendOTPEmail(user.email, user.name, updatedUser.otpStatusChangeToken);
     }
 
-    return { message: AuthErrors.OTP_CHANGED_SUCCESSFULLY };
+    return;
   }
 
   /**
@@ -160,7 +160,7 @@ export default class OTPService {
    * @param otpEnabled - Whether OTP is enabled.
    * @param otpStatusChangeToken - The OTP status change token.
    */
-  static async otpChangeVerify(user: UserOmit, data: ChangeOTPVerifyRequest): Promise<MessageResponse> {
+  static async otpChangeVerify(user: UserOmit, data: ChangeOTPVerifyRequest): Promise<void> {
 
     // Check if the token is valid
     const updatedUser = await prisma.user.findUnique({
@@ -169,11 +169,11 @@ export default class OTPService {
 
 
     if (!updatedUser?.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
-      throw new Error(AuthErrors.INVALID_OTP);
+      throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 
     if (!updatedUser || updatedUser.otpStatusChangeToken !== data.otpStatusChangeToken) {
-      throw new Error(AuthErrors.INVALID_OTP);
+      throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 
     // if OTP is already enabled then throw an error
@@ -186,7 +186,7 @@ export default class OTPService {
           otpStatusChangeTokenExpiry: null,
         },
       });
-      throw new Error(AuthErrors.OTP_ALREADY_ENABLED);
+      throw new AppError(AuthMessages.OTP_ALREADY_ENABLED, 400);
 
     }
 
@@ -199,7 +199,7 @@ export default class OTPService {
           otpStatusChangeTokenExpiry: null,
         },
       });
-      throw new Error(AuthErrors.OTP_ALREADY_DISABLED);
+      throw new AppError(AuthMessages.OTP_ALREADY_DISABLED, 400);
     }
 
     // Update the user
@@ -221,7 +221,7 @@ export default class OTPService {
       MailService.sendOTPDisabledEmail(user.email, user.name || undefined);
     }
 
-    return { message: AuthErrors.OTP_CHANGED_SUCCESSFULLY };
+    return;
   }
 
 

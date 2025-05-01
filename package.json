@@ -66,6 +66,7 @@
     "ejs": "^3.1.10",
     "express-rate-limit": "^7.5.0",
     "geoip-lite": "^1.4.10",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
     "morgan": "^1.10.0",

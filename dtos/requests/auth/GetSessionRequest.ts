@@ -1,4 +1,4 @@
-import AuthErrors from "../../../errors/AuthErrors";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 import FieldValidater from "../../../utils/FieldValidater";
 
 

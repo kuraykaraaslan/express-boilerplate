@@ -1,65 +1,64 @@
 import { NextFunction, Request, Response } from 'express';
-
-// Services
 import AuthService from '../../services/v1/AuthService';
 import UserSessionService from '../../services/v1/AuthService/UserSessionService';
-
-// Models
 import { User } from '@prisma/client';
-
-// DTOs
 import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
-import AuthErrors from '../../errors/AuthErrors';
+import AuthMessages from '../../dictionaries/AuthMessages';
 
 
+/**
+ * Middleware to check if the user is authenticated and has the required role.
+ * @param {string} requiredRole - The role that is required to access the route.
+ * @returns {Function} - The middleware function.
+ */
 export default function (requiredRole: string) {
-  return async function authMiddleware(request: Request<any>, response: Response<any>, next: NextFunction) {
-    try {
-      // Allow guest if role is GUEST immediately
-      if (requiredRole === 'GUEST') {
-        return next();
+  return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+      if (requiredRole === 'GUEST') return next();
+
+      const hasCookieToken = Boolean(req.cookies?.accessToken);
+      const hasHeaderToken = req.headers.authorization?.startsWith('Bearer ') ?? false;
+
+      if (hasCookieToken && hasHeaderToken) {
+        throw new AppError(AuthMessages.TWO_AUTH_SOURCES);
       }
 
-      if (!/^Bearer /.test(request.headers.authorization || '')) {
-        return response.status(401).json({ error: AuthErrors.USER_NOT_AUTHENTICATED });
-      }
-      // Extract access token
-      const accessToken = request.headers?.authorization ? request.headers.authorization.split(' ')[1] : null;
 
-      console.log('Access token INCOMING: ', accessToken);
+      // ✅ Hangi kaynak varsa onu seç
+      const accessToken = hasCookieToken
+        ? req.cookies.accessToken
+        : hasHeaderToken
+        ? req.headers.authorization!.split(' ')[1]
+        : undefined;
+
+      const authSource = hasCookieToken ? 'cookie' : hasHeaderToken ? 'header' : 'none';
 
       if (!accessToken) {
-        throw new Error(AuthErrors.USER_NOT_AUTHENTICATED);
+        throw new AppError(AuthMessages.USER_NOT_AUTHENTICATED, 401);
       }
 
-      // If user already set by a previous middleware
-      if (request.user) {
-        if (!AuthService.checkIfUserHasRole(request.user as User, requiredRole)) {
-          return response.status(403).json({ error: AuthErrors.USER_DOES_NOT_HAVE_REQUIRED_ROLE });
+      // Zaten tanımlı user varsa tekrar kontrol etme
+      if (req.user) {
+        if (!AuthService.checkIfUserHasRole(req.user as User, requiredRole)) {
+          throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
         }
         return next();
       }
 
-      // Otherwise validate session
-      const sessionData = new GetSessionRequest({ accessToken });    
-      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, request);
+      const sessionData = new GetSessionRequest({ accessToken });
+      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, req);
 
-      // Attach user and session
-      request.user = user;
-      request.userSession = userSession;
+      req.user = user;
+      req.userSession = userSession;
 
-      if (request.userSession.otpNeeded) {
-        return response.status(403).json({ error: AuthErrors.OTP_NEEDED });
+      if (userSession.otpNeeded) {
+        throw new AppError(AuthMessages.OTP_NEEDED, 401);
       }
 
-      if (!AuthService.checkIfUserHasRole(request.user, requiredRole)) {
-        return response.status(403).json({ error: AuthErrors.USER_DOES_NOT_HAVE_REQUIRED_ROLE });
+      if (!AuthService.checkIfUserHasRole(user, requiredRole)) {
+        throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
       }
 
-      return next();
-
-    } catch (error: any) {
-      return response.status(500).json({ error: AuthErrors.UNKNOWN_ERROR });
-    }
+      return next();     
+    
   };
 }

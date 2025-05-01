@@ -22,5 +22,5 @@
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"], // Include all TypeScript files
   "exclude": ["node_modules", "dist"], // Exclude node_modules and dist
-  "files": ["./types/express.d.ts"] // Include custom type definitions
+  "files": ["./types/express.d.ts", "./types/global.d.ts"] // Include custom type definitions
 }

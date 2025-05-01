@@ -15,7 +15,7 @@ import MailService from "../NotificationService/MailService";
 // Utils
 import FieldValidater from "../../../utils/FieldValidater";
 import UserOmit from "../../../types/UserOmit";
-import AuthErrors from "../../../errors/AuthErrors";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 
 
 export default class AuthService {
@@ -66,13 +66,13 @@ export default class AuthService {
         })
 
         if (!user) {
-            throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+            throw new AppError(AuthMessages.INVALID_EMAIL_OR_PASSWORD, 401);
         }
 
         // Compare the password with the hash
 
         if (!await FieldValidater.comparePasswords(user.password, data.password)) {
-            throw new Error(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+            throw new AppError(AuthMessages.INVALID_EMAIL_OR_PASSWORD, 401);
         }
 
         return UserService.omitSensitiveFields(user);
@@ -90,7 +90,7 @@ export default class AuthService {
         });
 
         if (sessions.length === 0) {
-            throw new Error(AuthErrors.SESSION_NOT_FOUND);
+            throw new AppError(AuthMessages.SESSION_NOT_FOUND, 403);
         }
 
         // Delete the session if found
@@ -114,7 +114,7 @@ export default class AuthService {
         const existingUser = await UserService.getByEmail(email);
 
         if (existingUser) {
-            throw new Error(AuthErrors.EMAIL_ALREADY_EXISTS);
+            throw new AppError(AuthMessages.EMAIL_ALREADY_EXISTS);
         }
 
         // Create the user

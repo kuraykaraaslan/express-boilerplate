@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../index';
 import prismaClient from '../libs/prisma';
-import AuthErrors from '../errors/AuthErrors';
+import AuthMessages from '../dictionaries/AuthMessages';
 
 
 
@@ -22,7 +22,7 @@ describe('Auth API', () => {
     });
 
     expect(res.status).toBe(500); // TODO: Change to 401
-    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+    expect(res.body.error).toMatch(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
   });
 
   it('should fail login with empty credentials', async () => {
@@ -32,7 +32,7 @@ describe('Auth API', () => {
     });
 
     expect(res.status).toBe(500); // TODO: Change to 400
-    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+    expect(res.body.error).toMatch(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
   });
 
   it('should fail login with invalid email', async () => {
@@ -41,7 +41,7 @@ describe('Auth API', () => {
       password : 'qwerty20',
     });
     expect(res.status).toBe(500); // TODO: Change to 400
-    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+    expect(res.body.error).toMatch(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
   });
 
   it('should fail login with invalid password', async () => {
@@ -50,6 +50,6 @@ describe('Auth API', () => {
       password : 'qwerty201',
     });
     expect(res.status).toBe(500); // TODO: Change to 400
-    expect(res.body.error).toMatch(AuthErrors.INVALID_EMAIL_OR_PASSWORD);
+    expect(res.body.error).toMatch(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
   });
 });

@@ -10,13 +10,11 @@ import MicrosoftService from './MicrosoftService';
 import TwitterService from './TwitterService';
 import AuthUserResponse from '../../../../types/UserOmit';
 
+import { SSOMessages } from '../../../../dictionaries/SSOMessages';
+
 export default class SSOService {
 
     static APP_URL = process.env.APPLICATION_HOST + ":" + process.env.APPLICATION_PORT;
-
-    // Error Messages
-    private static INVALID_PROVIDER = "Invalid provider";
-    private static AUTHENTICATION_FAILED = "Authentication failed";
 
     /**
      * Create or Update User
@@ -27,7 +25,7 @@ export default class SSOService {
      */
     static async loginOrCreateUser(profile: any, accessToken: string, refreshToken: string, provider: string): Promise<AuthUserResponse> {
         if (!profile.email) {
-            throw new Error('Email is required');
+            throw new AppError(SSOMessages.EMAIL_NOT_FOUND, 400);
         }
 
         // Get the user by email
@@ -123,7 +121,7 @@ export default class SSOService {
             case 'twitter':
                 return TwitterService.generateAuthUrl();
             default:
-                throw new Error(this.INVALID_PROVIDER);
+                throw new AppError(SSOMessages.INVALID_PROVIDER, 400);
         }
     }
 
@@ -141,7 +139,7 @@ export default class SSOService {
         scope?: string,
     ): Promise<AuthUserResponse> {
         if (!provider || !code) {
-            throw new Error('Missing required parametkers');
+            throw new AppError(SSOMessages.INVALID_PROVIDER, 400);
         }
 
         switch (provider) {
@@ -158,7 +156,7 @@ export default class SSOService {
             case 'microsoft':
                 return this.handleMicrosoftCallback(code);
             default:
-                throw new Error(this.INVALID_PROVIDER);
+                throw new AppError(SSOMessages.INVALID_PROVIDER, 400);
         }
     }
 
@@ -172,7 +170,7 @@ export default class SSOService {
             const profile = await GoogleService.getUserInfo(access_token);
             return this.loginOrCreateUser(profile, access_token, refresh_token, "google");
         } catch (error) {
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 
@@ -187,7 +185,7 @@ export default class SSOService {
             const profile = await AppleService.getUserInfo(id_token);
             return this.loginOrCreateUser(profile, access_token, refresh_token, "apple");
         } catch (error) {
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 
@@ -201,7 +199,7 @@ export default class SSOService {
             const profile = await FacebookService.getUserInfo(access_token);
             return this.loginOrCreateUser(profile, access_token, '', "facebook");
         } catch (error) {
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 
@@ -216,7 +214,7 @@ export default class SSOService {
             return this.loginOrCreateUser(profile, access_token, '', "github");
         } catch (error) {
             console.error('GitHub authentication failed:', error);
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 
@@ -231,7 +229,7 @@ export default class SSOService {
             return this.loginOrCreateUser(profile, access_token, '', "linkedin");
         } catch (error) {
             console.error('LinkedIn authentication failed:', error);
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 
@@ -246,7 +244,7 @@ export default class SSOService {
             return this.loginOrCreateUser(profile, access_token, refresh_token, "microsoft");
         } catch (error) {
             console.error('Microsoft authentication failed:', error);
-            throw new Error(this.AUTHENTICATION_FAILED);
+            throw new AppError(SSOMessages.AUTHENTICATION_FAILED, 500);
         }
     }
 }

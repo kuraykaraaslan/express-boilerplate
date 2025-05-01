@@ -34,6 +34,8 @@ import UserSessionService from "../../../services/v1/AuthService/UserSessionServ
 import OTPService from "../../../services/v1/AuthService/OTPService";
 import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
+import AuthMessages from "../../../dictionaries/AuthMessages";
+
 // Router
 const AuthRouter = Router();
 
@@ -101,10 +103,27 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
     const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request, false);
     MailService.sendNewLoginEmail(user, userSession);
 
+    // Set the access token as a cookie
+    response.cookie('accessToken', rawAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production 
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    });
+
+    // Set the refresh token as a cookie
+    response.cookie('refreshToken', rawRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        path: '/api/v1/auth/session/refresh',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    });
+
     return response.json({ 
         user, 
-        accessToken: rawAccessToken,
-        refreshToken: rawRefreshToken,
+        //accessToken: rawAccessToken,
+        //refreshToken: rawRefreshToken,
     }); 
 
 });
@@ -141,8 +160,9 @@ AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: R
 AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<SendOTPRequest>, response: Response<MessageResponse>) => {
 
     const data = new SendOTPRequest(request.body);
-    return await OTPService.otpSend(data);
+    await OTPService.otpSend(data);
 
+    return response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
 });
 
 
@@ -162,6 +182,22 @@ AuthRouter.post('/session/refresh', async (request: Request, response: Response<
     const { refreshToken } = request.body;
     console.log("refreshToken", refreshToken);
     const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.refreshAccessToken(refreshToken);
+
+    // Set the new access token as a cookie
+    response.cookie('accessToken', rawAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    });
+    // Set the new refresh token as a cookie
+    response.cookie('refreshToken', rawRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    });
+
 
     return response.json({
         accessToken: rawAccessToken,
@@ -229,6 +265,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  */
 AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
+    
     return response.json({
         user: request.user!
     });
@@ -245,6 +282,23 @@ AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, resp
  * - 500: Internal server error if logout fails.
  */
 AuthRouter.post('/logout', async (request: Request, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
+
+    // Clear the cookies
+    response.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 0,
+    });
+    response.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 0,
+    });
+    // Destroy the session
+    await UserSessionService.deleteSession(request.userSession!);
+   
     return response.json({ message: "LOGOUT_SUCCESS" });
 });
 

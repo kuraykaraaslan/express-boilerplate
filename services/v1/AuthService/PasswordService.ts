@@ -2,7 +2,7 @@
 import prisma from "../../../libs/prisma";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import AuthErrors from "../../../errors/AuthErrors";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
 import TwilloService from "../NotificationService/TwilloService";
 import ForgotPasswordRequest from "../../../dtos/requests/auth/ForgotPasswordRequest";
@@ -29,7 +29,7 @@ export default class PasswordService {
     });
 
     if (!user) {
-      throw new Error(AuthErrors.USER_NOT_FOUND);
+      throw new Error(AuthMessages.USER_NOT_FOUND);
     }
 
     const resetToken = PasswordService.generateResetToken();
@@ -63,12 +63,12 @@ export default class PasswordService {
     });
 
     if (!user) {
-      throw new Error(AuthErrors.USER_NOT_FOUND);
+      throw new Error(AuthMessages.USER_NOT_FOUND);
     }
 
     // Check if the token is valid
     if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
-      throw new Error(AuthErrors.INVALID_TOKEN);
+      throw new Error(AuthMessages.INVALID_TOKEN);
     }
 
     // Update the user's password

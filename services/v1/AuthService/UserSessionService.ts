@@ -14,7 +14,7 @@ import UserSessionOmit from "../../../types/UserSessionOmit";
 import UserOmit from "../../../types/UserOmit";
 import jwt from 'jsonwebtoken';
 import crypto from "crypto";
-import AuthErrors from "../../../errors/AuthErrors";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -124,15 +124,15 @@ export default class UserSessionService {
       }) as { userId: string, deviceFingerprint: string, sessionId: string };
 
       if (decoded.deviceFingerprint !== deviceFingerprint) {
-        throw new Error(AuthErrors.INVALID_TOKEN);
+        throw new Error(AuthMessages.INVALID_TOKEN);
       }
 
       return { userId: decoded.userId };
     } catch (error: any) {
       if (error.name === "TokenExpiredError") {
-        throw new Error(AuthErrors.TOKEN_EXPIRED);
+        throw new Error(AuthMessages.TOKEN_EXPIRED);
       }
-      throw new Error(AuthErrors.INVALID_TOKEN);
+      throw new Error(AuthMessages.INVALID_TOKEN);
     }
   }
 
@@ -157,9 +157,9 @@ export default class UserSessionService {
       return decoded;
     } catch (error: any) {
       if (error.name === "TokenExpiredError") {
-        throw new Error(AuthErrors.TOKEN_EXPIRED);
+        throw new Error(AuthMessages.TOKEN_EXPIRED);
       }
-      throw new Error(AuthErrors.INVALID_TOKEN);
+      throw new Error(AuthMessages.INVALID_TOKEN);
     }
   }
 
@@ -277,22 +277,22 @@ export default class UserSessionService {
     })
 
     if (!userSession || userSession.userId !== userId) {
-      throw new Error(AuthErrors.SESSION_NOT_FOUND);
+      throw new Error(AuthMessages.SESSION_NOT_FOUND);
     }
 
     // Otp needed kontrolü
     if (userSession.otpNeeded) {
-      throw new Error(AuthErrors.OTP_NEEDED);
+      throw new Error(AuthMessages.OTP_NEEDED);
     }
 
     // Check if the connection is from the same device
     if (userSession.deviceFingerprint !== deviceFingerprint) {
-      throw new Error(AuthErrors.DEVICE_FINGERPRINT_NOT_MATCH);
+      throw new Error(AuthMessages.DEVICE_FINGERPRINT_NOT_MATCH);
     }
 
     // Check if the connection is from the same Country
     if (userSession.country !== userAgentData.country) {
-      throw new Error(AuthErrors.DEVICE_FINGERPRINT_NOT_MATCH);
+      throw new Error(AuthMessages.DEVICE_FINGERPRINT_NOT_MATCH);
     }
 
     // Check if the session 
@@ -301,7 +301,7 @@ export default class UserSessionService {
     })
 
     if (!user) {
-      throw new Error(AuthErrors.USER_NOT_FOUND);
+      throw new Error(AuthMessages.USER_NOT_FOUND);
     }
 
     return {
@@ -354,12 +354,12 @@ export default class UserSessionService {
     });
 
 
-    if (!userSession) throw new Error(AuthErrors.SESSION_NOT_FOUND);
+    if (!userSession) throw new Error(AuthMessages.SESSION_NOT_FOUND);
 
 
     // Otp needed kontrolü
     if (userSession.otpNeeded) {
-      throw new Error(AuthErrors.OTP_NEEDED);
+      throw new Error(AuthMessages.OTP_NEEDED);
     }
 
     const hashed = this.hashToken(currentRefreshToken);
@@ -373,7 +373,7 @@ export default class UserSessionService {
         },
       });
 
-      throw new Error(AuthErrors.REFRESH_TOKEN_REUSED); // ya da 401
+      throw new Error(AuthMessages.REFRESH_TOKEN_REUSED); // ya da 401
     }
 
     // 🔄 Token rotation

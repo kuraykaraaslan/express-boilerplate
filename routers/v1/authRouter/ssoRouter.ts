@@ -13,9 +13,7 @@ import FieldValidater from "../../../utils/FieldValidater";
 import GetSSOLinkRequest from "../../../dtos/requests/sso/GetSSOLinkRequest";
 import LoginResponse from "../../../dtos/responses/auth/LoginResponse";
 import EmptyRequest from "../../../dtos/requests/EmptyRequest";
-import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
 import SSOService from "../../../services/v1/AuthService/SSOService";
-import AuthService from "../../../services/v1/AuthService";
 import MailService from "../../../services/v1/NotificationService/MailService";
 import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
 
@@ -32,20 +30,6 @@ const OAUTH_ERROR = "OAUTH_ERROR";
 
 
 const ssoRouter = Router();
-
-/**
- * POST /sso
- * Get User and User Session
- * 
- */
-ssoRouter.post('/', async (request: Request<GetSessionRequest>, response: Response<LoginResponse>) => {
-
-    if (!FieldValidater.validateBody(request.body, GetSessionRequest)) {
-        throw new Error("BAD_REQUEST");
-    }
-
-    return await UserSessionService.getSession(request.body);
-});
 
 /**
  * GET /sso/:provider
@@ -108,7 +92,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
         throw new Error(AUTHENTICATION_FAILED);
     }
 
-    const userSession = await UserSessionService.createSession(user, request);
+    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request);
 
     MailService.sendWelcomeEmail(user);
 
@@ -118,7 +102,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.accessToken}`);
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${rawAccessToken}&refreshToken=${rawRefreshToken}`);
 
 });
 
@@ -165,7 +149,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?token=${userSession.accessToken}`);
+    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${userSession.rawAccessToken}&refreshToken=${userSession.rawRefreshToken}`);
 
 });
 
