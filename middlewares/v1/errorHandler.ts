@@ -4,11 +4,31 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 export default function errorHandler(
   error: any,
-  request: Request,
-  response: Response,
+  request: any,
+  response: any,
   next: NextFunction
 ) {
   const isAppError = error.isOperational && typeof error.statusCode === "number";
+
+  
+  if (error.code === "EBADCSRFTOKEN") {
+    // CSRF hatası durumunda XSRF cookie'lerini temizle
+    response.clearCookie("XSRF-TOKEN", {
+      httpOnly: false,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production"
+    });
+
+    response.clearCookie("_csrf", {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production"
+    });
+
+    return response.status(403).json({
+      error: "INVALID_CSRF_TOKEN",
+    });
+  }
 
   console.error("[Error Handler]", {
     name: error.name,

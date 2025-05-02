@@ -12,8 +12,15 @@ import UserOmit from "../../../types/UserOmit";
 import MessageResponse from "../../../dtos/responses/MessageResponse";
 
 export default class OTPService {
-  static generateToken(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+
+
+  static readonly OTP_EXPIRY_MS = 10 * 60 * 1000;
+  static readonly OTP_LENGTH = 6;
+
+  static generateToken(length = OTPService.OTP_LENGTH): string {
+    const min = Math.pow(10, length - 1);
+    const max = Math.pow(10, length) - 1;
+    return Math.floor(min + Math.random() * (max - min)).toString();
   }
 
   static async hashToken(token: string): Promise<string> {
@@ -44,13 +51,14 @@ export default class OTPService {
 
     // Generate an OTP
     const otpToken = OTPService.generateToken();
-
+    const hashedOtp = await OTPService.hashToken(otpToken);
+    
     // Save the OTP to the session
     await prisma.userSession.update({
       where: { sessionId: session.sessionId },
       data: {
-        otpToken,
-        otpTokenExpiry: new Date(Date.now() + 600000), // 10 minutes
+        otpToken : hashedOtp,
+        otpTokenExpiry: new Date(Date.now() + OTPService.OTP_EXPIRY_MS),
       },
       include: { user: true },
     });
@@ -106,8 +114,13 @@ export default class OTPService {
       throw new AppError(AuthMessages.OTP_EXPIRED, 400);
     }
 
+    
+    // Check if the OTP is valid
+    const hashedOtp = await OTPService.hashToken(data.otpToken);
+
+
     // Check if the OTP is correct
-    if (session.otpToken !== data.otpToken) {
+    if (session.otpToken !== hashedOtp) {
       throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 
@@ -116,6 +129,8 @@ export default class OTPService {
       where: { sessionId: session.sessionId },
       data: {
         otpNeeded: false,
+        otpToken: null,
+        otpTokenExpiry: null,
       },
     });
 
@@ -136,21 +151,22 @@ export default class OTPService {
       throw new AppError(AuthMessages.OTP_ALREADY_DISABLED, 400);
     }
 
+    const token = OTPService.generateToken();
+    const hashedOtp = await OTPService.hashToken(token);
+
     // Update the user
     const updatedUser = await prisma.user.update({
       where: { userId: user.userId },
       data: {
-        otpStatusChangeToken: OTPService.generateToken(),
+        otpStatusChangeToken: hashedOtp,
         otpStatusChangeTokenExpiry: new Date(Date.now() + 600000), // 10 minutes
       },
     });
 
     // Send the OTP
-    if (updatedUser.otpStatusChangeToken) {
-      TwilloService.sendSMS(user.phone, `Your OTP is ${updatedUser.otpStatusChangeToken}`);
-      MailService.sendOTPEmail(user.email, user.name, updatedUser.otpStatusChangeToken);
-    }
-
+    TwilloService.sendSMS(user.phone, `Your OTP is ${token}`);
+    MailService.sendOTPEmail(user.email, user.name, token);
+    
     return;
   }
 
@@ -168,11 +184,17 @@ export default class OTPService {
     });
 
 
-    if (!updatedUser?.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
+    if (!updatedUser) {
+      throw new AppError(AuthMessages.USER_NOT_FOUND, 404);
+    }
+    
+    if (!updatedUser.otpStatusChangeTokenExpiry || new Date() > updatedUser.otpStatusChangeTokenExpiry) {
       throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 
-    if (!updatedUser || updatedUser.otpStatusChangeToken !== data.otpStatusChangeToken) {
+    const hashedOtp = await OTPService.hashToken(data.otpStatusChangeToken);
+
+    if (!updatedUser || updatedUser.otpStatusChangeToken !== hashedOtp) {
       throw new AppError(AuthMessages.INVALID_OTP, 400);
     }
 

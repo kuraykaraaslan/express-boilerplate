@@ -52,7 +52,7 @@ ssoRouter.get('/:provider', async (request: Request<GetSSOLinkRequest>, response
 
     const url = await SSOService.generateAuthUrl(provider);
 
-    return response.redirect(url);
+    response.redirect(url);
 
 });
 
@@ -102,7 +102,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${rawAccessToken}&refreshToken=${rawRefreshToken}`);
+    response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${rawAccessToken}&refreshToken=${rawRefreshToken}`);
 
 });
 
@@ -149,7 +149,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
     }
 
     //redirect to frontend
-    return response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${userSession.rawAccessToken}&refreshToken=${userSession.rawRefreshToken}`);
+    response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${userSession.rawAccessToken}&refreshToken=${userSession.rawRefreshToken}`);
 
 });
 

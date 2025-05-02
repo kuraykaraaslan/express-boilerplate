@@ -1,20 +1,11 @@
 import { Router } from "express";
 import V1Router from "./v1";
 import ViewRouter from "./ViewRouter";
-import Logger from "../libs/logger";
-import Limiter from "../libs/limiter";
-
 import "../bootstrap/global-errors";
 
 const IndexRouter = Router();
 
-/*
- * Middlewares
- */
-IndexRouter.use(Logger.useLogger);
-IndexRouter.use(Limiter.useLimiter);
-
-IndexRouter.get("/", (req, res) => {
+IndexRouter.get("/", (req : any, res: any) => {
     res.setHeader("Content-Type", "application/json");
     return res.send({
         message: "Welcome to the Express Boilerplate",
@@ -30,7 +21,7 @@ IndexRouter.get("/", (req, res) => {
 IndexRouter.use("/api/v1", V1Router);
 IndexRouter.use("/views", ViewRouter);
 
-IndexRouter.get("/", (req, res) => {
+IndexRouter.get("/", (req : any, res: any) => {
     res.setHeader("Content-Type", "application/json");
     return res.send({
         message: "Welcome to the Express Boilerplate",

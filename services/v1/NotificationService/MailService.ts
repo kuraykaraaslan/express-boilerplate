@@ -2,17 +2,58 @@ import Logger from './../../../libs/logger';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import path from 'path';
-import { User, UserSession } from '@prisma/client';
+import { User } from '@prisma/client';
 
 // Types
 import UserOmit from './../../../types/UserOmit';
-import UserSessionOmit from '@/types/UserSessionOmit';
+import UserSessionOmit from './../../../types/UserSessionOmit';
 
-const { MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS } = process.env;
+// Libs
+import { Queue, Worker } from 'bullmq';
+import redisInstance from './../../../libs/redis';
+
+
+const MAIL_HOST = process.env.MAIL_HOST || "localhost";
+const MAIL_PORT = process.env.MAIL_PORT || 587;
+const MAIL_USER = process.env.MAIL_USER || "info@example.com";
+const MAIL_PASS = process.env.MAIL_PASS || "password";
 
 const pwd = process.env.PWD || process.cwd();
 
+
 export default class MailService {
+
+    static _initialized = false;
+
+    static readonly QUEUE_NAME = "mailQueue";
+
+    static readonly QUEUE = new Queue(MailService.QUEUE_NAME, {
+        connection: redisInstance,
+    });
+
+    static readonly WORKER = new Worker(MailService.QUEUE_NAME, async job => {
+        const { to, subject, html } = job.data;
+        Logger.info(`MAIL /MailService/Worker ${job.id} processing...`);
+        await MailService._sendMail(to, subject, html);
+    }, {
+        connection: redisInstance,
+    });
+
+    static {
+
+        if (!MailService._initialized) {
+
+            MailService.WORKER.on('completed', (job) => {
+                Logger.info(`MAIL /MailService/Worker ${job.id} completed`);
+            });
+
+            MailService.WORKER.on('failed', (job, err) => {
+                Logger.error(`MAIL /MailService/Worker ${(job?.id ?? 'unknown')} failed: ${err.message}`);
+            });
+        }
+    }
+
+
 
     static readonly TEMPLATE_PATH = path.join(pwd, 'views', 'email');
     static readonly APPLICATION_NAME = process.env.APPLICATION_NAME || "Express Boilerplate";
@@ -43,7 +84,7 @@ export default class MailService {
         host: MAIL_HOST,
         port: Number(MAIL_PORT),
 
-        secure: false,
+        secure: Number(MAIL_PORT) === 465,
         auth: {
             user: MAIL_USER,
             pass: MAIL_PASS,
@@ -52,14 +93,28 @@ export default class MailService {
 
     static async sendMail(to: string, subject: string, html: string) {
         try {
-            await MailService.transporter.sendMail({
-                from: MailService.APPLICATION_NAME + " <" + MAIL_USER + ">",
+            await MailService.QUEUE.add('sendMail', {
                 to,
                 subject,
                 html,
             });
         } catch (error: any) {
-            Logger.error("MAIL /MailService/sendMail " + to + " content: " + html);
+            Logger.error("MAIL /MailService/sendMail " + to + " " + subject + " " + error.message);
+        }
+    }
+
+
+
+    static async _sendMail(to: string, subject: string, html: string) {
+        try {
+            await MailService.transporter.sendMail({
+                from: `${MailService.APPLICATION_NAME} <${MAIL_USER}>`,
+                to,
+                subject,
+                html,
+            });
+        } catch (error: any) {
+            Logger.error("MAIL /MailService/sendMail " + to + " " + subject + " " + error.message);
         }
     };
 
@@ -90,7 +145,7 @@ export default class MailService {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
             device: "Unknown",
-            ip :  "Unknown",
+            ip: "Unknown",
             location: "Unknown",
             loginTime: new Date().toLocaleString(),
             forgotPasswordLink: MailService.FRONTEND_FORGOT_PASSWORD_LINK,
@@ -104,7 +159,7 @@ export default class MailService {
 
 
     static async sendForgotPasswordEmail(
-        email: string, 
+        email: string,
         name?: string | null,
         resetToken?: string) {
 
@@ -124,10 +179,10 @@ export default class MailService {
     }
 
     static async sendPasswordResetSuccessEmail(
-        email: string, 
+        email: string,
         name?: string | null
     ) {
-        
+
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'password-reset.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
@@ -136,14 +191,14 @@ export default class MailService {
             termsLink: MailService.FRONTEND_TERMS_LINK,
             privacyLink: MailService.FRONTEND_PRIVACY_LINK,
         });
-  
+
         await MailService.sendMail(email, 'Password Reset Successful', emailContent);
 
     }
 
     static async sendOTPEmail(
-        email: string, 
-        name?: string | null, 
+        email: string,
+        name?: string | null,
         otpToken?: string
     ) {
 
@@ -163,8 +218,8 @@ export default class MailService {
     }
 
     static async sendOTPEnabledEmail(email: string, name?: string) {
-        
-      
+
+
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp-enabled.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
@@ -175,10 +230,10 @@ export default class MailService {
             privacyLink: MailService.FRONTEND_PRIVACY_LINK,
         });
 
-        
+
         await MailService.sendMail(email, 'OTP Enabled', emailContent);
     }
-    
+
 
     static async sendOTPDisabledEmail(email: string, name?: string) {
 

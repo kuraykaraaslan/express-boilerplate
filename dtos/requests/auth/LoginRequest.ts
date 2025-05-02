@@ -8,13 +8,4 @@ export default class LoginRequest {
         this.password = data.password;
     }
 
-    validate() {
-        if (!FieldValidater.isEmail(this.email)) {
-            throw new Error("INVALID_EMAIL");
-        }
-
-        if (!FieldValidater.isPassword(this.password)) {
-            throw new Error("INVALID_PASSWORD");
-        }
-    }
 }

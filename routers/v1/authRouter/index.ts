@@ -75,11 +75,11 @@ AuthRouter.get('/register', async (request: Request, response: Response) => {
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request, response: Response<MessageResponse>) => {
+AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request<RegisterRequest>, response: Response<MessageResponse>) => {
 
     const data = new RegisterRequest(request.body);
     const user = await AuthService.register(data);
-    return response.json({ message: "REGISTER_SUCCESS" });
+    response.json({ message: "REGISTER_SUCCESS" });
 
 });
 
@@ -96,12 +96,11 @@ AuthRouter.post('/register', Limiter.useAuthLimiter, async (request: Request, re
  * - 400: Validation error if email or password is missing.
  * - 401: Unauthorized if email or password is incorrect.
  */
-AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
+AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginRequest>, response: Response<LoginResponse>) => {
 
     const data = new LoginRequest(request.body);
     const user = await AuthService.login(data);
     const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.createSession(user, request, false);
-    MailService.sendNewLoginEmail(user, userSession);
 
     // Set the access token as a cookie
     response.cookie('accessToken', rawAccessToken, {
@@ -120,10 +119,12 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
         maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     });
 
-    return response.json({ 
+    MailService.sendNewLoginEmail(user, userSession);
+
+    response.json({ 
         user, 
-        //accessToken: rawAccessToken,
-        //refreshToken: rawRefreshToken,
+        accessToken: rawAccessToken,
+        refreshToken: rawRefreshToken,
     }); 
 
 });
@@ -140,7 +141,8 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request, respo
  */
 AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: Request<VerifyOTPRequest>, response: Response<MessageResponse>) => {
     const data = new VerifyOTPRequest(request.body);
-    return await OTPService.otpVerify(data);
+    await OTPService.otpVerify(data);
+    response.json({ message: AuthMessages.OTP_VERIFIED_SUCCESSFULLY });
 });
 
 /**
@@ -162,7 +164,7 @@ AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Req
     const data = new SendOTPRequest(request.body);
     await OTPService.otpSend(data);
 
-    return response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
+    response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
 });
 
 
@@ -199,7 +201,7 @@ AuthRouter.post('/session/refresh', async (request: Request, response: Response<
     });
 
 
-    return response.json({
+    response.json({
         accessToken: rawAccessToken,
         refreshToken: rawRefreshToken,
     });
@@ -224,7 +226,7 @@ AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Requ
     const data = new ForgotPasswordRequest(request.body);
     await PasswordService.forgotPassword(data);
 
-    return response.json({ message: "FORGOT_PASSWORD_SUCCESS" });
+    response.json({ message: AuthMessages.FORGOT_PASSWORD_SUCCESSFUL });
 
 });
 
@@ -246,6 +248,8 @@ AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Reque
     const data = new ResetPasswordRequest(request.body);
     await PasswordService.resetPassword(data);
 
+    response.json({ message: AuthMessages.PASSWORD_RESET_SUCCESSFUL });
+
 });
 
 
@@ -266,7 +270,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  */
 AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
     
-    return response.json({
+    response.json({
         user: request.user!
     });
 });
@@ -281,7 +285,7 @@ AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, resp
  * - 401: Unauthorized if user is not logged in.
  * - 500: Internal server error if logout fails.
  */
-AuthRouter.post('/logout', async (request: Request, response: Response<MessageResponse>): Promise<Response<MessageResponse>> => {
+AuthRouter.post('/logout', async (request: Request, response: Response<MessageResponse>) => {
 
     // Clear the cookies
     response.clearCookie('accessToken', {
@@ -299,7 +303,7 @@ AuthRouter.post('/logout', async (request: Request, response: Response<MessageRe
     // Destroy the session
     await UserSessionService.deleteSession(request.userSession!);
    
-    return response.json({ message: "LOGOUT_SUCCESS" });
+    response.json({ message: AuthMessages.LOGGED_OUT_SUCCESSFULLY });
 });
 
 
@@ -326,7 +330,7 @@ AuthRouter.use('/session/tenant', tenantAuthRouter);
  */
 AuthRouter.post('/session/destroy-other-sessions', async (request: Request, response: Response<MessageResponse>) => {
     await UserSessionService.destroyOtherSessions(request.userSession!);
-    return response.json({ message: "DESTROY_OTHER_SESSIONS_SUCCESS" });
+    response.json({ message: AuthMessages.OTHER_SESSIONS_DESTROYED });
 });
 
 
@@ -346,7 +350,7 @@ AuthRouter.post('/settings/otp-change', async (request: Request, response: Respo
 
     const data = new ChangeOTPStatusRequest(request.body);
     await OTPService.otpChangeStatus(request.user!, data);
-    return response.json({ message: "OTP_CHANGE_SUCCESS" });
+    response.json({ message: AuthMessages.OTP_CHANGED_SUCCESSFULLY });
 });
 
 
@@ -367,7 +371,7 @@ AuthRouter.post('/settings/otp-verify', async (request: Request, response: Respo
 
     const data = new ChangeOTPVerifyRequest(request.body);
     await OTPService.otpChangeVerify(request.user!, data);
-    return response.json({ message: "OTP_CHANGE_SUCCESS" });
+    response.json({ message: AuthMessages.OTP_CHANGED_SUCCESSFULLY });
 });
 
 
