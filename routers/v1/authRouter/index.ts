@@ -35,6 +35,7 @@ import OTPService from "../../../services/v1/AuthService/OTPService";
 import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 import AuthMessages from "../../../dictionaries/AuthMessages";
+import PermissionService from "../../../services/v1/PermissionService";
 
 // Router
 const AuthRouter = Router();
@@ -118,6 +119,8 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
         path: '/api/v1/auth/session/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     });
+
+    console.log(PermissionService.determineModel(user));
 
     MailService.sendNewLoginEmail(user, userSession);
 

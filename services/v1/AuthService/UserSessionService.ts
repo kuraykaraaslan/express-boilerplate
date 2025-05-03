@@ -306,7 +306,7 @@ export default class UserSessionService {
 
     return {
       user: UserService.omitSensitiveFields(user),
-      userSession: userSession,
+      userSession: UserSessionService.omitSensitiveFields(userSession),
     };
   }
 
@@ -332,7 +332,6 @@ export default class UserSessionService {
       userId: session.userId,
       otpNeeded: session.otpNeeded,
       tenantUserId: session.tenantUserId,
-      tenantId: session.tenantId,
       sessionExpiry: session.sessionExpiry,
     };
   }

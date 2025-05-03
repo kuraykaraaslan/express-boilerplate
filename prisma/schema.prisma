@@ -62,10 +62,8 @@ model UserSession {
   sessionExpiry DateTime
   sessionAgent  String
 
-  //Tenant Data
-  tenantId     String?
+  //Tenant Relationship
   tenantUserId String?     @unique
-  tenant       Tenant?     @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
   tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [tenantUserId], onDelete: Cascade)
 
   //OTP verification
@@ -142,7 +140,6 @@ model Tenant {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
-  UserSession UserSession[]
 }
 
 enum TenantStatus {

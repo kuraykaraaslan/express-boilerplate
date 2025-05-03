@@ -18,6 +18,7 @@ import UserOmit from "../../../types/UserOmit";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 
 
+import { User } from "@prisma/client";
 export default class AuthService {
 
     static readonly UserOmitSelect = {

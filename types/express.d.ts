@@ -6,12 +6,10 @@ import { Request } from "express";
 declare module "express-serve-static-core" {
     interface Request {
         user?: UserOmit;
+        tenantUser?: TenantUserOmit;
+
         userSession?: UserSessionOmit;
 
-        // Tenancy related
-        tenant?: Tenant;
-        tenantUser?: TenantUserOmit;
     }
-
 
 }

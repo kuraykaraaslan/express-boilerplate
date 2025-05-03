@@ -1,5 +1,5 @@
 import prisma from "../../../libs/prisma";
-import { TenantUser, UserSession } from "@prisma/client";
+import { TenantUser, UserSession, TenantUserRole } from "@prisma/client";
 import GetTenantUsersRequest from "../../../dtos/requests/tenantuser/GetTenantUsersRequest";
 import GetTenantUsersResponse from "../../../dtos/responses/tenantuser/GetTenantUsersResponse";
 
@@ -13,6 +13,7 @@ export default class TenantAuthService {
     static readonly TENANT_USER_NOT_FOUND = "TENANT_USER_NOT_FOUND";
     static readonly INVALID_TENANT_USER_REQUEST = "INVALID_TENANT_USER_REQUEST";
     static readonly INVALID_TENANT_USER_SESSION_REQUEST = "INVALID_TENANT_USER_SESSION_REQUEST";
+
 
     static async setUserSessionTenantUser(data: { tenantUser: TenantUserOmit, accessToken: string }): Promise<boolean> {
 
@@ -45,7 +46,6 @@ export default class TenantAuthService {
             },
             data: {
                 tenantUserId: tenantUser.tenantUserId,
-                tenantId: tenantUser.tenantId,
             }
         });
 
