@@ -34,9 +34,9 @@ const csrfProtection = csrf({
       maxAge: 60 * 60 * 24 * 7,
     }
   });
-
+/*
 app.use(csrfProtection);
-
+*/
 
 const port = process.env.PORT || process.env.APPLICATION_PORT || 3002;
 

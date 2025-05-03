@@ -2,15 +2,9 @@ import { User, Tenant } from '@prisma/client';
 import UserPermissionService from './UserPermissionService';
 import TenantPermissionService from './TenantPermissionService';
 import Logger from '../../../libs/logger';
+import OPERATIONS from './Operations';
 
 export default class PermissionService {
-
-    static readonly OPERATIONS = {
-        CREATE: 'CREATE',
-        READ: 'READ',
-        UPDATE: 'UPDATE',
-        DELETE: 'DELETE',
-    };
 
     static readonly MODELS = ['User', 'Tenant'];
 
@@ -36,64 +30,46 @@ export default class PermissionService {
         throw new Error('PermissionService: Could not determine model from provided object.');
     }
 
-    static async hasPermission(operator: User, subject: any, action: string): Promise<boolean> {
+    static async execute({
+        operator,
+        subject,
+        action,
+        callback,
+        fallback
+    }: {
+        operator: any;
+        subject: any;
+        action: any;
+        callback: (data: any) => Promise<any>;
+        fallback?: (data: any) => Promise<any>;
+    }): Promise<any> {
 
-        // Check if the action is valid
-        if (!Object.values(PermissionService.OPERATIONS).includes(action)) {
-            throw new Error(`PermissionService: Invalid action: ${action}`);
+        // Check if the operator is valid
+        if (!operator || !operator.userId) {
+            throw new Error('PermissionService: Invalid operator. Operator must have a userId.');
         }
 
-        const _operatorModel = PermissionService.determineModel(operator);
+        const subjectmodel = this.determineModel(subject);
 
-        // Operator had to be a valid model
-        if (!PermissionService.MODELS.includes(_operatorModel)) {
-            throw new Error('PermissionService: Operator must be valid model.');
-        }
-
-        // Operator had to be a user
-        if (_operatorModel !== 'User') {
-            throw new Error('PermissionService: Operator must be a user.');
-        }
-
-        // Subject had to be a user or tenant
-        const _subjectModel = PermissionService.determineModel(subject);
-
-        if (!PermissionService.MODELS.includes(_subjectModel)) {
-            throw new Error('PermissionService: Subject must be valid model.');
-        }
-
-        // Check if the operator has permission to perform the action on the subject
-        const _operatorModelUserRole = operator.userRole;
-
-        if (_operatorModelUserRole === 'ADMIN') {
-            return true;
-        }
-
-        if (_operatorModelUserRole === 'USER') {
-            if (_subjectModel === 'User') {
-                return await UserPermissionService.hasPermission(operator, subject, action);
-            } else if (_subjectModel === 'Tenant') {
-                return await TenantPermissionService.hasPermission(operator, subject, action);
-            }
-        }
-
-        return false;
-    }
-
-    static async execute(operator: User, subject: any, action: string, callback: () => Promise<any>, fallback?: () => Promise<any>): Promise<any> {
-        const hasPermission = await PermissionService.hasPermission(operator, subject, action);
-
-        if (hasPermission) {
+        // Check if the operator is admin
+        if (operator.userRole === 'ADMIN') {
             Logger.info(`PermissionService: User ${operator.userId} has permission to perform ${action} on ${subject}`);
-            return await callback();
-        } else {
-            Logger.warn(`PermissionService: User ${operator.userId} does not have permission to perform ${action} on ${subject}`);
-            if (fallback) {
-                return await fallback();
-            } else {
-                throw new Error(`PermissionService: User ${operator.userId} does not have permission to perform ${action} on ${subject}`);
-            }
+            return await callback(subject);
         }
+
+        switch (subjectmodel) {
+            case 'User':
+                return await UserPermissionService.execute({
+                    operator,
+                    subject,
+                    action,
+                    callback,
+                    fallback,
+                });
+            default:
+                throw new Error(`PermissionService: Unknown subject model ${subjectmodel}`);
+        }
+
     }
 
 }
