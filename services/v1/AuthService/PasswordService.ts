@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
-import TwilloService from "../NotificationService/TwilloService";
+import SMSService from "../NotificationService/SMSService";
 import ForgotPasswordRequest from "../../../dtos/requests/auth/ForgotPasswordRequest";
 import ResetPasswordRequest from "../../../dtos/requests/auth/ResetPasswordRequest";
 
@@ -45,7 +45,7 @@ export default class PasswordService {
 
     // Send the password reset email
     MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
-    TwilloService.sendSMS(user.phone, `Your password reset token is ${user.resetToken}`);
+    SMSService.sendShortMessage(user.phone!, `Your password reset token is ${user.resetToken}`);
 
   }
 
@@ -83,7 +83,7 @@ export default class PasswordService {
 
     // Notify the user
     MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
-    TwilloService.sendSMS(user.phone, "Your password has been reset successfully.");
+    SMSService.sendShortMessage(user.phone!, "Your password has been reset successfully.");
 
   }
 

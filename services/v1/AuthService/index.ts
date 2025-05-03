@@ -9,7 +9,7 @@ import RegisterRequest from "../../../dtos/requests/auth/RegisterRequest";
 
 // Other Services
 import UserService from "../UserService";
-import TwilloService from "../NotificationService/TwilloService";
+import SMSService from "../NotificationService/SMSService";
 import MailService from "../NotificationService/MailService";
 
 // Utils
@@ -127,7 +127,7 @@ export default class AuthService {
 
         // Send a welcome email
         MailService.sendWelcomeEmail(createdUser);
-        TwilloService.sendSMS(phone, "Welcome to our platform!");
+        SMSService.sendShortMessage(phone!, "Welcome to our platform!");
 
         // Create a session for the user
         return UserService.omitSensitiveFields(createdUser);

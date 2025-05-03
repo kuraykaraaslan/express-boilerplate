@@ -46,12 +46,36 @@ export default class Logger {
     ],
   });
 
+  private static warnLogger = winston.createLogger({
+    level: 'warn',
+    format: combine(
+      timestamp({ format: timestampFormat }),
+      json(),
+      printf(({ level, message, timestamp }) => {
+        return `[${timestamp}] [${level}]: ${message}`;
+      })
+    ),
+    transports: (NODE_ENV === 'vercel') ? [
+      new winston.transports.Console(), // Add a console transport to log information to console
+    ] : [
+      new winston.transports.File({
+        filename: 'logs/' + new Date().toISOString().split('T')[0] + '.log',
+        level: 'error',
+      }),
+    ],
+  });
+
+
   static info(message: string) {
     Logger.infoLogger.info(message);
   }
 
   static error(message: string) {
     Logger.errorLogger.error(message);
+  }
+
+  static warn(message: string) {
+    Logger.warnLogger.warn(message);
   }
 
 

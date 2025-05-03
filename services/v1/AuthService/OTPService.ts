@@ -2,7 +2,7 @@
 import prisma from "../../../libs/prisma";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
-import TwilloService from "../NotificationService/TwilloService";
+import SMSService from "../NotificationService/SMSService";
 import crypto from "crypto";
 import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
 import SendOTPRequest from "../../../dtos/requests/auth/SendOTPRequest";
@@ -74,7 +74,7 @@ export default class OTPService {
     switch (data.method) {
       case "sms":
         if (user.phone) {
-          TwilloService.sendSMS(user.phone, `Your OTP is ${otpToken}`);
+          SMSService.sendShortMessage(user.phone, `Your OTP is ${otpToken}`);
         } else {
           throw new AppError(AuthMessages.USER_HAS_NO_PHONE_NUMBER, 400);
         }
@@ -164,7 +164,7 @@ export default class OTPService {
     });
 
     // Send the OTP
-    TwilloService.sendSMS(user.phone, `Your OTP is ${token}`);
+    SMSService.sendShortMessage(user.phone!, `Your OTP is ${token}`);
     MailService.sendOTPEmail(user.email, user.name, token);
     
     return;
