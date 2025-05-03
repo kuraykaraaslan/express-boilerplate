@@ -3,6 +3,7 @@ import UserPermissionService from './UserPermissionService';
 import TenantPermissionService from './TenantPermissionService';
 import Logger from '../../../libs/logger';
 import OPERATIONS from './Operations';
+import { PermissionMessages } from '../../../dictionaries/PermissionMessages';
 
 export default class PermissionService {
 
@@ -14,7 +15,7 @@ export default class PermissionService {
     };
 
 
-    static determineModel(model: Record<string, any>): string {
+    static getModelByPrimaryKey(model: Record<string, any>): string {
 
         if (typeof model !== 'object' || model === null) {
             throw new Error('PermissionService: Invalid model. Expected a non-null object.');
@@ -46,18 +47,18 @@ export default class PermissionService {
 
         // Check if the operator is valid
         if (!operator || !operator.userId) {
-            throw new Error('PermissionService: Invalid operator. Operator must have a userId.');
+            throw new AppError(PermissionMessages.INVALID_OPERATOR, 401);
         }
 
-        const subjectmodel = this.determineModel(subject);
+        const subjectModel  = this.getModelByPrimaryKey(subject);
 
         // Check if the operator is admin
         if (operator.userRole === 'ADMIN') {
-            Logger.info(`PermissionService: User ${operator.userId} has permission to perform ${action} on ${subject}`);
+            Logger.info(PermissionMessages.ADMIN_PERMISSION_GRANTED);
             return await callback(subject);
         }
 
-        switch (subjectmodel) {
+        switch (subjectModel ) {
             case 'User':
                 return await UserPermissionService.execute({
                     operator,
@@ -67,7 +68,7 @@ export default class PermissionService {
                     fallback,
                 });
             default:
-                throw new Error(`PermissionService: Unknown subject model ${subjectmodel}`);
+                throw new AppError(PermissionMessages.INVALID_MODEL, 400);
         }
 
     }
