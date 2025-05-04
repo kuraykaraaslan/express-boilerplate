@@ -40,7 +40,7 @@ export default class SMSService {
         async (job) => {
             const { to, body } = job.data;
             Logger.info(`SMS /SMSService/Worker ${job.id} processing...`);
-            await SMSService._sendShortMessage(to, body);
+            await SMSService._sendShortMessage({ to, body });
         },
         {
             connection: redisInstance,
@@ -63,7 +63,7 @@ export default class SMSService {
 
     static readonly APPLICATION_NAME = process.env.APPLICATION_NAME || 'Express Boilerplate';
 
-    static async sendShortMessage(to: string, body: string): Promise<void> {
+    static async sendShortMessage({ to, body }: { to: string; body: string }): Promise<void> {
         if (!to?.trim() || !body?.trim()) {
             Logger.warn('SMSService: Missing phone number or message body.');
             return;
@@ -84,7 +84,7 @@ export default class SMSService {
         Logger.info(`SMSService: Queued SMS to ${to}`);
     }
 
-    static async _sendShortMessage(to: string, body: string): Promise<void> {
+    static async _sendShortMessage({ to, body }: { to: string; body: string }): Promise<void> {
         if (!to?.trim() || !body?.trim()) {
             Logger.warn('SMSService: Missing phone number or message body.');
             return;

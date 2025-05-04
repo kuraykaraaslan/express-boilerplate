@@ -61,7 +61,7 @@ tenantUserRouter.post('/',
         request.body.tenantId = tenantId;
 
         const tenantUser = await TenantUserService.create(request.body);
-        return response.json({ tenantUser });
+        response.json({ tenantUser });
     });
 
 /**
@@ -90,7 +90,7 @@ tenantUserRouter.get('/',
         });
 
         const { tenantUsers, total } = await TenantUserService.getAll(data);
-        return response.json({ tenantUsers, total });
+        response.json({ tenantUsers, total });
     });
 
 /**
@@ -113,7 +113,7 @@ tenantUserRouter.get('/:tenantUserId',
             tenantUserId: tenantUserId,
         });
 
-        return await TenantUserService.getById(data);
+        await TenantUserService.getById(data);
 
     });
 
@@ -155,7 +155,7 @@ tenantUserRouter.put('/:tenantUserId',
 
         const tenantUser = await TenantUserService.update(request.body);
 
-        return response.json({ tenantUser });
+        response.json({ tenantUser });
 
     });
 
@@ -188,7 +188,7 @@ tenantUserRouter.delete('/:tenantUserId',
 
         const tenantUser = await TenantUserService.delete(request.body);
 
-        return response.json({ tenantUser });
+        response.json({ tenantUser });
     });
 
 

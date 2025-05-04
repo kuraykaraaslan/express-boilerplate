@@ -17,7 +17,7 @@ export default function (
     return async function tenantMiddleware(request: Request<any>, response: Response, next: NextFunction) {
         try {
             // Check if tenant user and tenant object already exist in the request
-            if (request.tenantUser && request.tenant) {
+            if (request.tenantUser) {
                 if (TenantUserService.checkIfUserHasRole(request.tenantUser, requiredRole)) {
                     return next();
                 } else {
@@ -41,10 +41,6 @@ export default function (
             if (!tenant) {
                 throw new Error("TENANT_NOT_FOUND");
             }
-
-            // Attach tenant to request
-            request.tenant = tenant;
-
             
             const data = new GetTenantUserRequest({
                 tenantId: tenant.tenantId,

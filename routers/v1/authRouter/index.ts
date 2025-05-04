@@ -31,7 +31,7 @@ import MailService from "../../../services/v1/NotificationService/MailService";
 // Mid Router
 import tenantAuthRouter from "./tenantAuthRouter";
 import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
-import OTPService from "../../../services/v1/AuthService/OTPService";
+import UserSessionOTPService from "../../../services/v1/AuthService/UserSessionOTPService";
 import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 import AuthMessages from "../../../dictionaries/AuthMessages";
@@ -120,9 +120,7 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
         maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     });
 
-    console.log(PermissionService.determineModel(user));
-
-    MailService.sendNewLoginEmail(user, userSession);
+    await MailService.sendNewLoginEmail(user, userSession);
 
     response.json({ 
         user, 
@@ -132,43 +130,6 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
 
 });
 
-
-/**
- * POST /session/otp-verify
- * Verify the OTP of the user.
- * 
- * Request Body:
- * - token (string): The session token of the user (required).
- * - otp (string): The OTP of the user (required).
- * 
- */
-AuthRouter.post('/session/otp-verify', Limiter.useAuthLimiter, async (request: Request<VerifyOTPRequest>, response: Response<MessageResponse>) => {
-    const data = new VerifyOTPRequest(request.body);
-    await OTPService.otpVerify(data);
-    response.json({ message: AuthMessages.OTP_VERIFIED_SUCCESSFULLY });
-});
-
-/**
- * POST /session/otp-send
- * Send the OTP to the user's phone number.
- * 
- * Request Body:
- * - accessToken (string): The session accessToken of the user (required).
- * - method (string): The method to send the OTP (sms or email) (required).
- * 
- * Response:
- * - 200: OTP sent successfully.
- * - 400: Validation error if accessToken is missing.
- * - 404: User not found if accessToken is invalid.
- * - 500: Internal server error if OTP sending fails.
- */
-AuthRouter.post('/session/otp-send', Limiter.useAuthLimiter, async (request: Request<SendOTPRequest>, response: Response<MessageResponse>) => {
-
-    const data = new SendOTPRequest(request.body);
-    await OTPService.otpSend(data);
-
-    response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
-});
 
 
 /*
@@ -335,48 +296,6 @@ AuthRouter.post('/session/destroy-other-sessions', async (request: Request, resp
     await UserSessionService.destroyOtherSessions(request.userSession!);
     response.json({ message: AuthMessages.OTHER_SESSIONS_DESTROYED });
 });
-
-
-
-/**
- * POST /settings/otp
- * Send the OTP Enable to user.
- * 
- * Request Body:
- * - otpEnabled (boolean): The OTP Enable of the user (required).
- * 
- * Response:
- * - 200: OTP Enable message sent successfully.
- * - 500: OTP Already Enabled.
- */
-AuthRouter.post('/settings/otp-change', async (request: Request, response: Response<MessageResponse>) => {
-
-    const data = new ChangeOTPStatusRequest(request.body);
-    await OTPService.otpChangeStatus(request.user!, data);
-    response.json({ message: AuthMessages.OTP_CHANGED_SUCCESSFULLY });
-});
-
-
-/**
- * POST /settings/otp
- * Change the OTP Enable of the user.
- * 
- * Request Body:
- * - otpEnabled (boolean): The OTP Enable of the user (required).
- * - otpStatusChangeToken(string): The OTP Enable of the user (required).
- *
- * Response:
- * - 200: OTP Enable message sent successfully.
- * - 500: OTP Already Enabled.
- * - 401: Unauthorized if user is not logged in.
- */
-AuthRouter.post('/settings/otp-verify', async (request: Request, response: Response<MessageResponse>) => {
-
-    const data = new ChangeOTPVerifyRequest(request.body);
-    await OTPService.otpChangeVerify(request.user!, data);
-    response.json({ message: AuthMessages.OTP_CHANGED_SUCCESSFULLY });
-});
-
 
 
 

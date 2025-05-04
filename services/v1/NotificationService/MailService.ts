@@ -196,11 +196,23 @@ export default class MailService {
 
     }
 
-    static async sendOTPEmail(
-        email: string,
-        name?: string | null,
-        otpToken?: string
-    ) {
+    static async sendOTPEmail({
+        email,
+        name,
+        otpToken,
+    }: {
+        email: string;
+        name?: string | null;
+        otpToken: string;
+    }) {
+
+        if (!otpToken) {
+            throw new Error("OTP token is required");
+        }
+
+        if (!email) {
+            throw new Error("Email is required");
+        }
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'otp.ejs'), {
             user: { name: name || email },

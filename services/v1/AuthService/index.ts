@@ -128,7 +128,10 @@ export default class AuthService {
 
         // Send a welcome email
         MailService.sendWelcomeEmail(createdUser);
-        SMSService.sendShortMessage(phone!, "Welcome to our platform!");
+        SMSService.sendShortMessage({
+            to: createdUser.phone!,
+            body: `Welcome ${createdUser.name || createdUser.email}! Your account has been created successfully.`,
+        });
 
         // Create a session for the user
         return UserService.omitSensitiveFields(createdUser);

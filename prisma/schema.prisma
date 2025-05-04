@@ -1,11 +1,18 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["prismaSchemaFolder"]
+  previewFeatures = []
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum OTPMethod {
+  EMAIL
+  SMS
+  TOTP_APP // (e.g. Authenticator apps)
+  PUSH_APP // (e.g. Your own mobile app with push notification)
 }
 
 model User {
@@ -33,10 +40,8 @@ model User {
   profilePicture String?
 
   //OTP verification
-  otpEnabled                 Boolean   @default(false)
-  otpEnabledAt               DateTime?
-  otpStatusChangeToken       String?
-  otpStatusChangeTokenExpiry DateTime?
+  otpMethods OTPMethod[] @default([])
+  otpSecret  String?
 
   userSessions       UserSession[]
   userSocialAccounts UserSocialAccount[]
@@ -52,7 +57,8 @@ model User {
 }
 
 model UserSession {
-  sessionId String @id @default(cuid())
+  userSessionId String @id @default(cuid())
+
   userId    String
   user      User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
@@ -60,16 +66,15 @@ model UserSession {
   refreshToken String @unique
 
   sessionExpiry DateTime
-  sessionAgent  String
 
-  //Tenant Relationship
-  tenantUserId String?     @unique
-  tenantUser   TenantUser? @relation(fields: [tenantUserId], references: [tenantUserId], onDelete: Cascade)
+  //OTP Needed
+  otpNeeded Boolean @default(false)
 
-  //OTP verification
-  otpNeeded      Boolean   @default(false)
-  otpToken       String?
-  otpTokenExpiry DateTime?
+  // OTP verification
+  otpVerified   Boolean   @default(false)
+  otpVerifiedAt DateTime?
+
+  userSessionOTP UserSessionOTP[]
 
   // User Agent
   ip      String?
@@ -86,6 +91,28 @@ model UserSession {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model UserSessionOTP {
+  sessionOtpId String @id @default(cuid())
+
+  userSessionId String
+  session   UserSession @relation(fields: [userSessionId], references: [userSessionId], onDelete: Cascade)
+
+  method OTPMethod // EMAIL, SMS, etc.
+
+  code String? // OTP code Hash
+
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userSessionId, method])
+  @@index([userSessionId, method])
 }
 
 model UserSocialAccount {
@@ -137,9 +164,9 @@ model Tenant {
   subscriptions Subscription[]
 
   //Timestamps
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  deletedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 enum TenantStatus {
@@ -177,7 +204,6 @@ model TenantUser {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   deletedAt   DateTime?
-  UserSession UserSession?
 }
 
 model Settings {

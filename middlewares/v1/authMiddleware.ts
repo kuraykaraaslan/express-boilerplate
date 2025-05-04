@@ -4,6 +4,7 @@ import UserSessionService from '../../services/v1/AuthService/UserSessionService
 import { User } from '@prisma/client';
 import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
 import AuthMessages from '../../dictionaries/AuthMessages';
+import UserOmit from '../../types/UserOmit';
 
 
 /**
@@ -38,7 +39,7 @@ export default function (requiredRole: string) {
 
       // Zaten tanımlı user varsa tekrar kontrol etme
       if (req.user) {
-        if (!AuthService.checkIfUserHasRole(req.user as User, requiredRole)) {
+        if (!AuthService.checkIfUserHasRole(req.user as UserOmit, requiredRole)) {
           throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
         }
         return next();

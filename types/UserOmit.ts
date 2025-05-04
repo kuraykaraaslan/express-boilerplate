@@ -1,3 +1,5 @@
+import { OTPMethod } from "@prisma/client";
+
 class UserOmit {
     userId!: string;
     email!: string;
@@ -7,8 +9,7 @@ class UserOmit {
     createdAt?: Date;
     updatedAt?: Date;
     profilePicture?: string | null;
-    otpEnabled!: boolean;
-    otpEnabledAt!: Date | null;
+    otpMethods?: OTPMethod[];
 }
 
 export default UserOmit;

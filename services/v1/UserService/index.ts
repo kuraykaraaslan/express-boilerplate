@@ -37,8 +37,8 @@ export default class UserService {
      * @param user - The user object.
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
-    static omitSensitiveFields(user: User): AuthUserResponse {
-        const omitted : AuthUserResponse = {
+    static omitSensitiveFields(user: User): UserOmit {
+        const omitted : UserOmit = {
             userId: user.userId,
             email: user.email,
             phone: user.phone,
@@ -47,8 +47,7 @@ export default class UserService {
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
             profilePicture: user.profilePicture,
-            otpEnabled: user.otpEnabled,
-            otpEnabledAt: user.otpEnabledAt,
+            otpMethods: user.otpMethods,
         };
 
         return omitted;

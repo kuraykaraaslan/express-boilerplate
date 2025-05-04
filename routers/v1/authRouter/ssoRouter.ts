@@ -139,7 +139,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
         throw new Error(AUTHENTICATION_FAILED);
     }
 
-    const userSession = await UserSessionService.createSession(user, request);
+    const { userSession, rawAccessToken, rawRefreshToken} = await UserSessionService.createSession(user, request, true);
 
     MailService.sendWelcomeEmail(user);
 
@@ -149,7 +149,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
     }
 
     //redirect to frontend
-    response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${userSession.rawAccessToken}&refreshToken=${userSession.rawRefreshToken}`);
+    response.redirect(`${FRONTEND_URL}${FRONTEND_CALLBACK_PATH}?accessToken=${rawAccessToken}&refreshToken=${rawRefreshToken}`);
 
 });
 

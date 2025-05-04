@@ -45,7 +45,10 @@ export default class PasswordService {
 
     // Send the password reset email
     MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
-    SMSService.sendShortMessage(user.phone!, `Your password reset token is ${user.resetToken}`);
+    SMSService.sendShortMessage({
+      to: user.phone!,
+      body: `Your password reset token is ${resetToken}. It is valid for 1 hour.`,
+    });
 
   }
 
@@ -83,7 +86,10 @@ export default class PasswordService {
 
     // Notify the user
     MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
-    SMSService.sendShortMessage(user.phone!, "Your password has been reset successfully.");
+    SMSService.sendShortMessage({
+      to: user.phone!,
+      body: `Your password has been successfully reset.`,
+    });
 
   }
 

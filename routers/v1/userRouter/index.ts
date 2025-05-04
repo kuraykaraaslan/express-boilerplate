@@ -41,10 +41,10 @@ userRouter.use(AuthMiddleware("ADMIN"));
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-userRouter.post("/", async (request: Request, response: Response<UserOmit>): Promise<Response<UserOmit>> => {
+userRouter.post("/", async (request: Request, response: Response<UserOmit>) => {
     const data = new CreateUserRequest(request.body);
     const user = await UserService.create(data);
-    return response.status(201).json(user);
+    response.status(201).json(user);
 });
 
 /**
@@ -63,11 +63,11 @@ userRouter.post("/", async (request: Request, response: Response<UserOmit>): Pro
  * - 200: Single user details if userId is provided and found.
  * - 404: User not found if userId is provided and no matching user exists.
  */
-userRouter.get("/", async (request: Request, response: Response<GetUsersResponse>): Promise<Response<GetUsersResponse>> => {
+userRouter.get("/", async (request: Request, response: Response<GetUsersResponse>) => {
 
     const data = new GetUsersRequest(request.query);
     const { users, total } = await UserService.getAll(data);
-    return response.json({ users, total });
+    response.json({ users, total });
 
 });
 
@@ -82,7 +82,7 @@ userRouter.get("/", async (request: Request, response: Response<GetUsersResponse
  * - 200: User details if found.
  * - 404: User not found if no matching user exists.
  */
-userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>): Promise<Response<UserOmit>> => {
+userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>) => {
 
     const data = new GetUserRequest(request.params);
     const user = await UserService.getById(data);
@@ -91,7 +91,7 @@ userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>
         throw new Error("USER_NOT_FOUND");
     }
 
-    return response.json(user);
+    response.json(user);
 });
 
 /**
@@ -110,7 +110,7 @@ userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>
  * - 400: Validation error if email or password is missing.
  * - 404: User not found if no matching user exists.
  */
-userRouter.put("/:userId", async (request: Request, response: Response<UserOmit>): Promise<Response<UserOmit>> => {
+userRouter.put("/:userId", async (request: Request, response: Response<UserOmit>) => {
 
     const data = new PutUserRequest(request.body);
     const userId = request.params.userId;
@@ -121,7 +121,7 @@ userRouter.put("/:userId", async (request: Request, response: Response<UserOmit>
 
     const user = await UserService.update(request.body);
 
-    return response.json(user);
+    response.json(user);
 });
 
 /**
@@ -135,7 +135,7 @@ userRouter.put("/:userId", async (request: Request, response: Response<UserOmit>
  * - 204: User successfully deleted.
  * - 404: User not found if no matching user exists.
  */
-userRouter.delete("/:userId", async (request: Request, response: Response): Promise<Response<UserOmit>> => {
+userRouter.delete("/:userId", async (request: Request, response: Response) => {
   
     const data = new GetUserRequest(request.params);
     const userId = request.params.userId;
@@ -146,7 +146,7 @@ userRouter.delete("/:userId", async (request: Request, response: Response): Prom
   
     const deletedUser = await UserService.delete(data);
 
-    return response.json(deletedUser);
+    response.json(deletedUser);
 });
 
 

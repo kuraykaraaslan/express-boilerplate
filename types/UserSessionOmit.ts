@@ -1,5 +1,5 @@
 export interface UserSessionOmit {
-    sessionId: string;
+    userSessionId: string;
     userId: string;
     otpNeeded: boolean;
     tenantUserId: string | null;

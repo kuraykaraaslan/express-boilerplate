@@ -42,18 +42,18 @@ export default class UserSessionService {
 
   static readonly UserSessionOmitSelect = {
     userId: true,
-    sessionId: true,
+    userSessionId: true,
   }
 
 
   /*
    * Generate Session CUID Token
     * @param userId - The user ID.
-    * @param sessionId - The session ID.
+    * @param userSessionId - The session ID.
     * @param deviceFingerprint - The device fingerprint.
   * @returns A random cuid token.
   */
-  private static generateAccessToken(userId: string, sessionId: string, deviceFingerprint: string): string {
+  private static generateAccessToken(userId: string, userSessionId: string, deviceFingerprint: string): string {
 
     if (!ACCESS_TOKEN_SECRET) {
       throw new Error("ACCESS_TOKEN_SECRET is not defined");
@@ -63,7 +63,7 @@ export default class UserSessionService {
     return jwt.sign(
       {
         userId: userId,
-        sessionId: sessionId, // her session için eşsiz
+        userSessionId: userSessionId, // her session için eşsiz
         deviceFingerprint: deviceFingerprint,
       },
       ACCESS_TOKEN_SECRET,
@@ -79,18 +79,18 @@ export default class UserSessionService {
   /**
    * Generate Refresh Token
    * @param userId - The user ID.
-   * @param sessionId - The session ID.
+   * @param userSessionId - The session ID.
    * @param deviceFingerprint - The device fingerprint.
    * @returns A random refresh token.
    */
 
-  private static generateRefreshToken(userId: string, sessionId: string, deviceFingerprint: string): string {
+  private static generateRefreshToken(userId: string, userSessionId: string, deviceFingerprint: string): string {
     // @ts-ignore
     return jwt.sign(
       {
         userId: userId,
         deviceFingerprint: deviceFingerprint,
-        sessionId: sessionId, // her session için eşsiz
+        userSessionId: userSessionId, // her session için eşsiz
       },
       REFRESH_TOKEN_SECRET as string,
       {
@@ -121,7 +121,7 @@ export default class UserSessionService {
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET, {
         issuer: 'relatia.kuray.dev',
         audience: 'web',
-      }) as { userId: string, deviceFingerprint: string, sessionId: string };
+      }) as { userId: string, deviceFingerprint: string, userSessionId: string };
 
       if (decoded.deviceFingerprint !== deviceFingerprint) {
         throw new Error(AuthMessages.INVALID_TOKEN);
@@ -193,7 +193,7 @@ export default class UserSessionService {
    * @param userId - The user ID.
    * @returns The created session.
    */
-  static async createSession(user: UserOmit, request: Request<any>, otpEnforce: boolean = false): Promise<
+  static async createSession(user: UserOmit, request: Request<any>, otpIgnore: boolean = false): Promise<
     {
       userSession: UserSessionOmit,
       otpNeeded: boolean,
@@ -206,22 +206,21 @@ export default class UserSessionService {
     const userAgentData = await UserAgentUtil.parseRequest(request);
 
     // Generate a random session ID
-    const sessionId = uuidv4();
+    const userSessionId = uuidv4();
 
-    const rawAccessToken = UserSessionService.generateAccessToken(user.userId, sessionId, deviceFingerprint);
+    const rawAccessToken = UserSessionService.generateAccessToken(user.userId, userSessionId, deviceFingerprint);
     const hashedAccessToken = UserSessionService.hashToken(rawAccessToken);
 
 
 
-    const rawRefreshToken = UserSessionService.generateRefreshToken(user.userId, sessionId, deviceFingerprint);
+    const rawRefreshToken = UserSessionService.generateRefreshToken(user.userId, userSessionId, deviceFingerprint);
     const hashedRefreshToken = UserSessionService.hashToken(rawRefreshToken);
 
-
-    const otpNeeded = otpEnforce || user.otpEnabled;
+    const otpNeeded = !otpIgnore && user.otpMethods && user.otpMethods.length > 0;
 
     const userSession = await prisma.userSession.create({
       data: {
-        sessionId: sessionId,
+        userSessionId: userSessionId,
         userId: user.userId,
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
@@ -328,7 +327,7 @@ export default class UserSessionService {
 
   static omitSensitiveFields(session: UserSession): UserSessionOmit {
     return {
-      sessionId: session.sessionId,
+      userSessionId: session.userSessionId,
       userId: session.userId,
       otpNeeded: session.otpNeeded,
       tenantUserId: session.tenantUserId,
@@ -376,12 +375,12 @@ export default class UserSessionService {
     }
 
     // 🔄 Token rotation
-    const newAccessToken = this.generateAccessToken(userSession.userId, userSession.sessionId, userSession.deviceFingerprint!);
-    const newRefreshToken = this.generateRefreshToken(userSession.userId, userSession.sessionId, userSession.deviceFingerprint!);
+    const newAccessToken = this.generateAccessToken(userSession.userId, userSession.userSessionId, userSession.deviceFingerprint!);
+    const newRefreshToken = this.generateRefreshToken(userSession.userId, userSession.userSessionId, userSession.deviceFingerprint!);
     const newRefreshTokenHash = this.hashToken(newRefreshToken);
 
     const updatedSession = await prisma.userSession.update({
-      where: { sessionId: userSession.sessionId },
+      where: { userSessionId: userSession.userSessionId },
       data: {
         accessToken: this.hashToken(newAccessToken),
         refreshToken: newRefreshTokenHash,
@@ -409,8 +408,8 @@ export default class UserSessionService {
     await prisma.userSession.deleteMany({
       where: {
         userId: userSession.userId,
-        sessionId: {
-          not: userSession.sessionId,
+        userSessionId: {
+          not: userSession.userSessionId,
         },
       },
     });
@@ -426,7 +425,7 @@ export default class UserSessionService {
   static async deleteSession(data: UserSessionOmit): Promise<void> {
 
     await prisma.userSession.deleteMany({
-      where: { sessionId: data.sessionId },
+      where: { userSessionId: data.userSessionId },
     });
 
   }

@@ -38,7 +38,7 @@ tenantRouter.post('/',
 
         const data = new CreateTenantRequest(request.body);
         const tenant = await TenantService.create(data);
-        return response.json({ tenant });
+        response.json({ tenant });
     });
 
 
@@ -52,7 +52,7 @@ tenantRouter.get('/',
 
         const data = new GetTenantsRequest(request.query);
         const { tenants, total } = await TenantService.getAll(data);
-        return response.json({ tenants, total });
+        response.json({ tenants, total });
     });
 
 
@@ -73,7 +73,7 @@ tenantRouter.get('/:tenantId',
             throw new Error("TENANT_NOT_FOUND");
         }
 
-        return response.json({ tenant });
+        response.json({ tenant });
 
     });
 
@@ -95,7 +95,7 @@ tenantRouter.put('/:tenantId',
         
         const tenant = await TenantService.update(data);
 
-        return response.json({ tenant });
+        response.json({ tenant });
     });
 
 /**
@@ -111,7 +111,7 @@ tenantRouter.delete('/:tenantId',
 
         const data = new GetTenantRequest(request.params);
         const tenant = await TenantService.delete(data);
-        return response.json({ tenant });
+        response.json({ tenant });
     });
 
 
