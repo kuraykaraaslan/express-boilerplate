@@ -3,6 +3,7 @@ import UserSessionOTPService from ".";
 import MailService from "../../NotificationService/MailService";
 import prisma from "../../../../libs/prisma";
 import AuthMessages from "../../../../dictionaries/AuthMessages";
+import bcrypt from "bcrypt";
 
 export default class UserSessionOTPMailService {
 
@@ -58,11 +59,12 @@ export default class UserSessionOTPMailService {
             throw new Error(AuthMessages.OTP_EXPIRED);
         }
 
-        const hashedOtp = await UserSessionOTPService.hashToken(otpToken);
+        const isValid = await bcrypt.compare(otpToken, userSessionOTP.code!);
 
-        if (userSessionOTP.code !== hashedOtp) {
+        if (!isValid) {
             throw new Error(AuthMessages.INVALID_OTP);
         }
+
 
         // TODO: Mark the OTP as verified
 

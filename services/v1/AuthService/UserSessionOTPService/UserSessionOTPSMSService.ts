@@ -4,6 +4,7 @@ import MailService from "../../NotificationService/MailService";
 import prisma from "../../../../libs/prisma";
 import SMSService from "../../NotificationService/SMSService";
 import AuthMessages from "../../../../dictionaries/AuthMessages";
+import bcrypt from "bcrypt";
 
 export default class UserSessionOTPSMSService {
 
@@ -60,9 +61,9 @@ export default class UserSessionOTPSMSService {
             throw new Error("OTP has expired.");
         }
 
-        const hashedOtp = await UserSessionOTPService.hashToken(otpToken);
+        const isValid = await bcrypt.compare(otpToken, userSessionOTP.code!);
 
-        if (userSessionOTP.code !== hashedOtp) {
+        if (!isValid) {
             throw new Error(AuthMessages.INVALID_OTP);
         }
 
