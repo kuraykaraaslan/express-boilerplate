@@ -61,13 +61,10 @@ export default class UserSessionOTPSMSService {
             throw new Error("OTP has expired.");
         }
 
-        const isValid = await bcrypt.compare(otpToken, userSessionOTP.code!);
+        const isValid = await UserSessionOTPService.compareToken(otpToken, userSessionOTP.code!);
+        if (!isValid) throw new Error(AuthMessages.INVALID_OTP);
 
-        if (!isValid) {
-            throw new Error(AuthMessages.INVALID_OTP);
-        }
-
-        // TODO: Mark the OTP as verified
+        await UserSessionOTPService.markAsVerified(userSession.userSessionId);
 
     }
 }

@@ -9,7 +9,7 @@ import { authenticator } from 'otplib';
 
 
 export default class UserSessionOTPTOTPService {
-    
+
     static async sendOTP({ user, userSession }: { user: User; userSession: UserSession }) {
         // NO NEED TO SEND OTP FOR TOTP
         throw new Error(AuthMessages.INVALID_OTP_METHOD);
@@ -31,6 +31,8 @@ export default class UserSessionOTPTOTPService {
         }
 
         // TODO: Mark the OTP as verified
+        await UserSessionOTPService.markAsVerified(userSession.userSessionId);
+
 
     }
 
