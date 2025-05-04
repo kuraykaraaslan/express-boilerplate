@@ -32,10 +32,6 @@ model User {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  //Password reset
-  resetToken       String?
-  resetTokenExpiry DateTime?
-
   //Profile
   profilePicture String?
 
@@ -74,8 +70,6 @@ model UserSession {
   otpVerified   Boolean   @default(false)
   otpVerifiedAt DateTime?
 
-  userSessionOTP UserSessionOTP[]
-
   // User Agent
   ip      String?
   os      String?
@@ -91,28 +85,6 @@ model UserSession {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
-}
-
-model UserSessionOTP {
-  sessionOtpId String @id @default(cuid())
-
-  userSessionId String
-  session   UserSession @relation(fields: [userSessionId], references: [userSessionId], onDelete: Cascade)
-
-  method OTPMethod // EMAIL, SMS, etc.
-
-  code String? // OTP code Hash
-
-  expiresAt DateTime
-  verified  Boolean  @default(false)
-
-  ip        String?
-  userAgent String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([userSessionId, method])
-  @@index([userSessionId, method])
 }
 
 model UserSocialAccount {
