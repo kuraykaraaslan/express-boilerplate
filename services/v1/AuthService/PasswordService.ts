@@ -1,7 +1,7 @@
-// PasswordService.ts
-import prisma from "../../../libs/prisma";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import redis from "../../../libs/redis";
+import prisma from "../../../libs/prisma";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
 import SMSService from "../NotificationService/SMSService";
@@ -9,88 +9,92 @@ import ForgotPasswordRequest from "../../../dtos/requests/auth/ForgotPasswordReq
 import ResetPasswordRequest from "../../../dtos/requests/auth/ResetPasswordRequest";
 
 export default class PasswordService {
-  static generateResetToken(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  static RESET_TOKEN_EXPIRY_SECONDS = parseInt(process.env.RESET_TOKEN_EXPIRY_SECONDS || "3600"); // 1 saat
+  static RESET_TOKEN_LENGTH = Math.max(4, parseInt(process.env.RESET_TOKEN_LENGTH || "6"));
+
+  static generateResetToken(length = this.RESET_TOKEN_LENGTH): string {
+    const min = Math.pow(10, length - 1);
+    const max = Math.pow(10, length) - 1;
+    return Math.floor(min + Math.random() * (max - min)).toString().padStart(length, "0");
   }
 
   static async hashToken(token: string): Promise<string> {
     return crypto.createHash("sha256").update(token).digest("hex");
   }
 
-  /**
-   * Sends a password reset email to the user.
-   * @param email - The user's email.
-   */
-  static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
-
-    // Get the user by email
-    let user = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
-
-    if (!user) {
-      throw new Error(AuthMessages.USER_NOT_FOUND);
-    }
-
-    const resetToken = PasswordService.generateResetToken();
-
-    // Save the token to the user
-    user = await prisma.user.update({
-      where: { userId: user.userId },
-      data: {
-        resetToken: resetToken,
-        resetTokenExpiry: new Date(Date.now() + 3600000), // 1 hour
-      },
-    });
-
-    // Send the password reset email
-    MailService.sendForgotPasswordEmail(user.email, user.name || undefined, resetToken);
-    SMSService.sendShortMessage({
-      to: user.phone!,
-      body: `Your password reset token is ${resetToken}. It is valid for 1 hour.`,
-    });
-
+  static getRedisKey(email: string, method: "email" | "sms"): string {
+    return `reset-password:${method}:${email.toLowerCase()}`;
   }
 
+  static getRateKey(email: string, method: "email" | "sms"): string {
+    return `reset-password-rate:${method}:${email.toLowerCase()}`;
+  }
 
-  /**
-   * Resets the password of the user.
-   * @param token - The password reset token.
-   * @param password - The new password.
-   */
-  static async resetPassword(data: ResetPasswordRequest): Promise<void> {
+  static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
 
-    // Get the user by token
-    const user = await prisma.user.findFirst({
-      where: { email: data.email },
-    });
+    const emailKey = user.email.toLowerCase();
 
-    if (!user) {
-      throw new Error(AuthMessages.USER_NOT_FOUND);
+    const emailToken = this.generateResetToken();
+    const hashedEmailToken = await this.hashToken(emailToken);
+    const emailTokenKey = this.getRedisKey(emailKey, "email");
+    const emailRateKey = this.getRateKey(emailKey, "email");
+
+    const alreadyEmailSent = await redis.get(emailRateKey);
+    if (!alreadyEmailSent) {
+      await redis.set(emailTokenKey, hashedEmailToken, "EX", this.RESET_TOKEN_EXPIRY_SECONDS);
+      await redis.set(emailRateKey, "1", "EX", 60);
+      await MailService.sendForgotPasswordEmail(user.email, user.name || undefined, emailToken);
     }
 
-    // Check if the token is valid
-    if (user.resetToken !== data.resetToken || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
+    if (user.phone) {
+      const smsToken = this.generateResetToken();
+      const hashedSmsToken = await this.hashToken(smsToken);
+      const smsTokenKey = this.getRedisKey(emailKey, "sms");
+      const smsRateKey = this.getRateKey(emailKey, "sms");
+
+      const alreadySmsSent = await redis.get(smsRateKey);
+      if (!alreadySmsSent) {
+        await redis.set(smsTokenKey, hashedSmsToken, "EX", this.RESET_TOKEN_EXPIRY_SECONDS);
+        await redis.set(smsRateKey, "1", "EX", 60);
+        await SMSService.sendShortMessage({
+          to: user.phone,
+          body: `Your password reset code is ${smsToken}. It will expire in ${this.RESET_TOKEN_EXPIRY_SECONDS / 60} minutes.`,
+        });
+      }
+    }
+  }
+
+  static async resetPassword(data: ResetPasswordRequest & { method: "email" | "sms" }): Promise<void> {
+    const user = await prisma.user.findFirst({ where: { email: data.email } });
+    if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
+
+    const key = this.getRedisKey(user.email, data.method);
+    const storedHashed = await redis.get(key);
+    if (!storedHashed) throw new Error(AuthMessages.INVALID_TOKEN);
+
+    const hashedInput = await this.hashToken(data.resetToken);
+    if (hashedInput !== storedHashed) {
       throw new Error(AuthMessages.INVALID_TOKEN);
     }
 
-    // Update the user's password
     await prisma.user.update({
       where: { userId: user.userId },
       data: {
         password: await bcrypt.hash(data.password, 10),
-        resetToken: null,
-        resetTokenExpiry: null,
       },
     });
 
-    // Notify the user
-    MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
-    SMSService.sendShortMessage({
-      to: user.phone!,
-      body: `Your password has been successfully reset.`,
-    });
+    await redis.del(key); // one-time usage
 
+    await MailService.sendPasswordResetSuccessEmail(user.email, user.name || undefined);
+
+    if (user.phone) {
+      await SMSService.sendShortMessage({
+        to: user.phone,
+        body: `Your password has been successfully reset.`,
+      });
+    }
   }
-
 }
