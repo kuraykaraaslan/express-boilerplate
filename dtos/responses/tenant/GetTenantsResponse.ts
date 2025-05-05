@@ -1,6 +1,6 @@
-import TenantOmit from "../../../types/TenantOmit";
+import SafeTenant from "../../../types/SafeTenant";
 
 export default interface GetTenantsResponse {
-    tenants: TenantOmit[];
+    tenants: SafeTenant[];
     total: number;
 }

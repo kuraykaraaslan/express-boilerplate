@@ -4,8 +4,9 @@ import UserSessionService from '../../services/v1/AuthService/UserSessionService
 import { User } from '@prisma/client';
 import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
 import AuthMessages from '../../dictionaries/AuthMessages';
-import UserOmit from '../../types/UserOmit';
+import SafeUser from '../../types/SafeUser';
 
+const OTP_BYPASS_PATHS = ['/session/otp-send', '/session/otp-verify', '/session'];
 
 /**
  * Middleware to check if the user is authenticated and has the required role.
@@ -13,53 +14,60 @@ import UserOmit from '../../types/UserOmit';
  * @returns {Function} - The middleware function.
  */
 export default function (requiredRole: string) {
+
+  function assertUserHasRole(user: SafeUser, role: string) {
+    if (!AuthService.checkIfUserHasRole(user, role)) {
+      throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
+    }
+  };
+
+  function extractAccessToken(req: Request): string | undefined {
+    const cookieToken = req.cookies?.accessToken;
+    const headerToken = req.headers.authorization?.startsWith('Bearer ') 
+      ? req.headers.authorization!.split(' ')[1] 
+      : undefined;
+  
+    if (cookieToken && headerToken) {
+      throw new AppError(AuthMessages.TWO_AUTH_SOURCES);
+    }
+  
+    return cookieToken ?? headerToken;
+  }
+  
+
+
   return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-      if (requiredRole === 'GUEST') return next();
+    if (requiredRole === 'GUEST') return next();
 
-      const hasCookieToken = Boolean(req.cookies?.accessToken);
-      const hasHeaderToken = req.headers.authorization?.startsWith('Bearer ') ?? false;
+    // ✅ Hangi kaynak varsa onu seç
+    const accessToken = extractAccessToken(req);
 
-      if (hasCookieToken && hasHeaderToken) {
-        throw new AppError(AuthMessages.TWO_AUTH_SOURCES);
-      }
+    if (!accessToken) {
+      throw new AppError(AuthMessages.USER_NOT_AUTHENTICATED, 401);
+    }
 
+    // Zaten tanımlı user varsa tekrar kontrol etme
+    if (req.user) {
+      assertUserHasRole(req.user as SafeUser, requiredRole);
+      return next();
+    }
 
-      // ✅ Hangi kaynak varsa onu seç
-      const accessToken = hasCookieToken
-        ? req.cookies.accessToken
-        : hasHeaderToken
-        ? req.headers.authorization!.split(' ')[1]
-        : undefined;
+    const sessionData = new GetSessionRequest({ accessToken });
+    const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, req);
 
-      const authSource = hasCookieToken ? 'cookie' : hasHeaderToken ? 'header' : 'none';
+    req.user = user;
+    req.userSession = userSession;
 
-      if (!accessToken) {
-        throw new AppError(AuthMessages.USER_NOT_AUTHENTICATED, 401);
-      }
-
-      // Zaten tanımlı user varsa tekrar kontrol etme
-      if (req.user) {
-        if (!AuthService.checkIfUserHasRole(req.user as UserOmit, requiredRole)) {
-          throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
-        }
-        return next();
-      }
-
-      const sessionData = new GetSessionRequest({ accessToken });
-      const { user, userSession } = await UserSessionService.getSessionDangerously(sessionData, req);
-
-      req.user = user;
-      req.userSession = userSession;
-
-      if (userSession.otpNeeded) {
+    //eğer path /session/otp-send ve /session/otp-verify değilse
+    if (!OTP_BYPASS_PATHS.includes(req.path)) {
+      if (userSession.otpVerifyNeeded) {
         throw new AppError(AuthMessages.OTP_NEEDED, 401);
       }
+    }
 
-      if (!AuthService.checkIfUserHasRole(user, requiredRole)) {
-        throw new AppError(AuthMessages.USER_DOES_NOT_HAVE_REQUIRED_ROLE, 403);
-      }
+    assertUserHasRole(user, requiredRole);
 
-      return next();     
-    
+    return next();
+
   };
 }

@@ -1,6 +1,6 @@
-import UserOmit from "../../../types/UserOmit";
+import SafeUser from "../../../types/SafeUser";
 
 export default interface GetUsersResponse {
-    users: UserOmit[];
+    users: SafeUser[];
     total: number;
 }

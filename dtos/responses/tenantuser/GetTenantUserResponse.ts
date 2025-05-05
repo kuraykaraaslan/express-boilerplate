@@ -1,5 +1,5 @@
-import TenantUserOmit from "../../../types/TenantUserOmit";
+import SafeTenantUser from "../../../types/SafeTenantUser";
 
 export default interface GetTenantUserResponse {
-    tenantUser: TenantUserOmit
+    tenantUser: SafeTenantUser
 }

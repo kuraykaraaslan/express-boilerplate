@@ -9,7 +9,7 @@ import GetTenantsRequest from './../../../dtos/requests/tenant/GetTenantsRequest
 import GetTenantsResponse from './../../../dtos/responses/tenant/GetTenantsResponse';
 
 // Omit
-import TenantOmit from './../../../types/TenantOmit';
+import SafeTenant from '../../../types/SafeTenant';
 
 export default class TenantService {
 
@@ -20,7 +20,7 @@ export default class TenantService {
     static readonly TENANT_NOT_FOUND = "TENANT_NOT_FOUND";
     static readonly INVALID_TENANT_REQUEST = "INVALID_TENANT_REQUEST";
 
-    static readonly TenantOmitSelect = {
+    static readonly SafeTenantSelect = {
         tenantId: true,
         domain: true,
         name: true,
@@ -37,9 +37,9 @@ export default class TenantService {
      * @param tenant - The user object.
      * @returns The tenant object without the deletedAt.
      */
-    static omitSensitiveFields(tenant: Tenant): TenantOmit
+    static omitSensitiveFields(tenant: Tenant): SafeTenant
     {
-        const omitted: TenantOmit = {
+        const omitted: SafeTenant = {
             tenantId: tenant.tenantId,
             domain: tenant.domain,
             name: tenant.name,
@@ -94,7 +94,7 @@ export default class TenantService {
      * @returns The tenant.
      */      
 
-    public static async getById(data: GetTenantRequest): Promise<TenantOmit> {
+    public static async getById(data: GetTenantRequest): Promise<SafeTenant> {
 
         const { tenantId , domain } = data;
 
@@ -124,7 +124,7 @@ export default class TenantService {
      * @param data - The tenant data.
      * @returns The created tenant.
      */
-    public static async create(data: CreateTenantRequest): Promise<TenantOmit> {
+    public static async create(data: CreateTenantRequest): Promise<SafeTenant> {
         let tenant = await prisma.tenant.create({
             data
         });
@@ -137,7 +137,7 @@ export default class TenantService {
      * @param data - The tenant data.
      * @returns The updated tenant.
      */
-    public static async update(data: PutTenantRequest): Promise<TenantOmit> {
+    public static async update(data: PutTenantRequest): Promise<SafeTenant> {
         let tenant = await prisma.tenant.update({
             where: {
                 tenantId: data.tenantId
@@ -153,7 +153,7 @@ export default class TenantService {
      * @param data - The tenant data.
      * @returns The deleted tenant.
      */
-    public static async delete(data: GetTenantRequest): Promise<TenantOmit> {
+    public static async delete(data: GetTenantRequest): Promise<SafeTenant> {
         let tenant = await prisma.tenant.delete({
             where: {
                 tenantId: data.tenantId

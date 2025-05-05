@@ -13,7 +13,7 @@ import UserService from "../../../services/v1/UserService";
 import GetUsersRequest from "../../../dtos/requests/user/GetUsersRequest";
 import GetUsersResponse from "../../../dtos/responses/user/GetUsersResponse";
 import PutUserRequest from "../../../dtos/requests/user/PutUserRequest";
-import UserOmit from "../../../types/UserOmit";
+import SafeUser from "../../../types/SafeUser";
 import GetUserRequest from "../../../dtos/requests/user/GetUserRequest";
 
 // Middlewares
@@ -41,7 +41,7 @@ userRouter.use(AuthMiddleware("ADMIN"));
  * - 201: User successfully created with details of the created user.
  * - 400: Validation error if email or password is missing.
  */
-userRouter.post("/", async (request: Request, response: Response<UserOmit>) => {
+userRouter.post("/", async (request: Request, response: Response<SafeUser>) => {
     const data = new CreateUserRequest(request.body);
     const user = await UserService.create(data);
     response.status(201).json(user);
@@ -82,7 +82,7 @@ userRouter.get("/", async (request: Request, response: Response<GetUsersResponse
  * - 200: User details if found.
  * - 404: User not found if no matching user exists.
  */
-userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>) => {
+userRouter.get("/:userId", async (request: Request, response: Response<SafeUser>) => {
 
     const data = new GetUserRequest(request.params);
     const user = await UserService.getById(data);
@@ -110,7 +110,7 @@ userRouter.get("/:userId", async (request: Request, response: Response<UserOmit>
  * - 400: Validation error if email or password is missing.
  * - 404: User not found if no matching user exists.
  */
-userRouter.put("/:userId", async (request: Request, response: Response<UserOmit>) => {
+userRouter.put("/:userId", async (request: Request, response: Response<SafeUser>) => {
 
     const data = new PutUserRequest(request.body);
     const userId = request.params.userId;

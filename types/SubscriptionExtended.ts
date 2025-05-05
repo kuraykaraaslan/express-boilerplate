@@ -1,8 +1,8 @@
 import { Address, Subscription, SubscriptionPrice, SubscriptionPlan } from "@prisma/client";
-import TenantOmit from "./TenantOmit";
+import SafeTenant from "./SafeTenant";
 
 interface SubscriptionExtended extends Subscription {
-    tenant: TenantOmit,
+    tenant: SafeTenant,
     billingAddress: Address,
     subscriptionPlan: SubscriptionPlan,
     subscriptionPrice: SubscriptionPrice,

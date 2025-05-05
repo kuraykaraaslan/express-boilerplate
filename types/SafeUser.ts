@@ -1,6 +1,6 @@
 import { OTPMethod } from "@prisma/client";
 
-class UserOmit {
+class SafeUser {
     userId!: string;
     email!: string;
     phone?: string | null;
@@ -12,4 +12,4 @@ class UserOmit {
     otpMethods?: OTPMethod[];
 }
 
-export default UserOmit;
+export default SafeUser;

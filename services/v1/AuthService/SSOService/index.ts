@@ -8,7 +8,7 @@ import GithubService from './GithubService';
 import LinkedInService from './LinkedInService';
 import MicrosoftService from './MicrosoftService';
 import TwitterService from './TwitterService';
-import AuthUserResponse from '../../../../types/UserOmit';
+import AuthUserResponse from '../../../../types/SafeUser';
 
 import { SSOMessages } from '../../../../dictionaries/SSOMessages';
 

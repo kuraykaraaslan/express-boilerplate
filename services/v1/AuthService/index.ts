@@ -14,14 +14,14 @@ import MailService from "../NotificationService/MailService";
 
 // Utils
 import FieldValidater from "../../../utils/FieldValidater";
-import UserOmit from "../../../types/UserOmit";
+import SafeUser from "../../../types/SafeUser";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 
 
 import { User } from "@prisma/client";
 export default class AuthService {
 
-    static readonly UserOmitSelect = {
+    static readonly SafeUserSelect = {
         userId: true,
         email: true,
         name: true,
@@ -59,7 +59,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The authenticated user.
      */
-    static async login(data: LoginRequest): Promise<UserOmit> {
+    static async login(data: LoginRequest): Promise<SafeUser> {
 
         // Get the user by email
         const user = await prisma.user.findUnique({
@@ -107,7 +107,7 @@ export default class AuthService {
      * @param password - The user's password.
      * @returns The registered user.
      */
-    static async register(data: RegisterRequest): Promise<UserOmit> {
+    static async register(data: RegisterRequest): Promise<SafeUser> {
 
         const { email, name, password, phone } = data;
 
@@ -143,7 +143,7 @@ export default class AuthService {
      * @param requiredRoles - The required roles.
      * @returns Whether the user has the required role.
      */
-    public static checkIfUserHasRole(user: UserOmit, requiredRole: string): boolean {
+    public static checkIfUserHasRole(user: SafeUser, requiredRole: string): boolean {
 
         const roles = [
             'SUPER_ADMIN',

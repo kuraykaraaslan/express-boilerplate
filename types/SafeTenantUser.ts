@@ -1,8 +1,8 @@
 import { TenantUserRole , TenantUserStatus } from '@prisma/client';
-import TenantOmit from './TenantOmit';
-import UserOmit from './UserOmit';
+import SafeTenant from './SafeTenant';
+import SafeUser from './SafeUser';
 
-export default interface TenantUserOmit {
+export default interface SafeTenantUser {
     tenantUserId: string;
     tenantId: string;
     userId: string;
@@ -10,7 +10,7 @@ export default interface TenantUserOmit {
     tenantUserRole: TenantUserRole;
     tenantUserStatus: TenantUserStatus;
 
-    tenant?: TenantOmit;
-    user?: UserOmit;
+    tenant?: SafeTenant;
+    user?: SafeUser;
 
 }

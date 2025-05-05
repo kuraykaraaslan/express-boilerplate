@@ -1,6 +1,6 @@
-import TenantUserOmit from "../../../types/TenantUserOmit";
+import SafeTenantUser from "../../../types/SafeTenantUser";
 
 export default interface GetTenantUsersResponse {
-    tenantUsers: TenantUserOmit[];
+    tenantUsers: SafeTenantUser[];
     total: number;
 }

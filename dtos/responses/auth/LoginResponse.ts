@@ -1,4 +1,4 @@
-import AuthUserResponse from "../../../types/UserOmit";
+import AuthUserResponse from "../../../types/SafeUser";
 
 export default interface AuthResponse {
     user?: AuthUserResponse;

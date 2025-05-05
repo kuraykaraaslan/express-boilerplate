@@ -6,6 +6,8 @@ import SMSService from "../NotificationService/SMSService";
 import prisma from "../../../libs/prisma";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 import { authenticator } from "otplib";
+import SafeUser from "../../../types/SafeUser";
+import SafeUserSession from "../../../types/SafeUserSession";
 
 export default class UserSessionOTPService {
   static OTP_EXPIRY_SECONDS = parseInt(process.env.OTP_EXPIRY_SECONDS || "600"); // 10 dk
@@ -26,6 +28,21 @@ export default class UserSessionOTPService {
     return bcrypt.compare(raw, hashed);
   }
 
+  static async generateTOTPSecret(): Promise<string> {
+    const secret = authenticator.generateSecret();
+    return secret;
+  }
+
+  static async getUserOTPSecret(userId: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      select: { otpSecret: true },
+    });
+    if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
+    if (!user.otpSecret) return null;
+    return user.otpSecret;
+  }
+
   static async rateLimitGuard(sessionId: string, method: OTPMethod) {
     const key = `otp:rate:${sessionId}:${method}`;
     const exists = await redis.get(key);
@@ -39,8 +56,8 @@ export default class UserSessionOTPService {
     await redis.set(key, hashed, "EX", this.OTP_EXPIRY_SECONDS);
   }
 
-  static async sendOTP({ user, userSession, method }: { user: User; userSession: UserSession; method: OTPMethod }) {
-    if (!userSession.otpNeeded || userSession.otpVerified) throw new Error(AuthMessages.OTP_NOT_NEEDED);
+  static async sendOTP({ user, userSession, method }: { user: SafeUser; userSession: SafeUserSession; method: OTPMethod }) {
+    if (!userSession.otpVerifyNeeded ) throw new Error(AuthMessages.OTP_NOT_NEEDED);
     if (userSession.sessionExpiry < new Date()) throw new Error(AuthMessages.SESSION_NOT_FOUND);
 
     if (method === OTPMethod.TOTP_APP) {
@@ -64,14 +81,15 @@ export default class UserSessionOTPService {
     }
   }
 
-  static async validateOTP({ user, userSession, otpToken, method }: { user: User; userSession: UserSession; otpToken: string; method: OTPMethod }) {
-    if (!userSession.otpNeeded || userSession.otpVerified) throw new Error(AuthMessages.OTP_NOT_NEEDED);
+  static async validateOTP({ user, userSession, otpToken, method }: { user: SafeUser; userSession: SafeUserSession; otpToken: string; method: OTPMethod }) {
+    if (!userSession.otpVerifyNeeded) throw new Error(AuthMessages.OTP_NOT_NEEDED);
     if (userSession.sessionExpiry < new Date()) throw new Error(AuthMessages.SESSION_NOT_FOUND);
 
     if (method === OTPMethod.TOTP_APP) {
-      if (!user.otpSecret) throw new Error(AuthMessages.INVALID_OTP_METHOD);
+      const otpSecret = await this.getUserOTPSecret(user.userId);
+      if (!otpSecret) throw new Error(AuthMessages.INVALID_OTP_METHOD);
 
-      const isValid = authenticator.check(otpToken, user.otpSecret);
+      const isValid = authenticator.check(otpToken, otpSecret);
       if (!isValid) throw new Error(AuthMessages.INVALID_OTP);
     } else {
       const key = `otp:code:${userSession.userSessionId}:${method}`;
@@ -87,7 +105,7 @@ export default class UserSessionOTPService {
 
     await prisma.userSession.update({
       where: { userSessionId: userSession.userSessionId },
-      data: { otpVerified: true },
+      data: { otpVerifyNeeded: false },
     });
   }
 }

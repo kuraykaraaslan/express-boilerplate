@@ -1,5 +1,5 @@
-import TenantOmit from "../../../types/TenantOmit";
+import SafeTenant from "../../../types/SafeTenant";
 
 export default interface GetTenantResponse {
-    tenant: TenantOmit;
+    tenant: SafeTenant;
 }

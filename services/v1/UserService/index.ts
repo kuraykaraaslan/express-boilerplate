@@ -9,11 +9,11 @@ import FieldValidater from "../../../utils/FieldValidater";
 
 
 // Omit
-import UserOmit from "../../../types/UserOmit";
+import SafeUser from "../../../types/SafeUser";
 
 // DTOs
 import CreateUserRequest from "./../../../dtos/requests/user/CreateUserRequest";
-import AuthUserResponse from "./../../../types/UserOmit";
+import AuthUserResponse from "./../../../types/SafeUser";
 import GetUsersRequest from "./../../../dtos/requests/user/GetUsersRequest";
 import GetUsersResponse from "./../../../dtos/responses/user/GetUsersResponse";
 import PutUserRequest from "./../../../dtos/requests/user/PutUserRequest";
@@ -37,8 +37,8 @@ export default class UserService {
      * @param user - The user object.
      * @returns The user object without the password, resetToken, and resetTokenExpiry.
      */
-    static omitSensitiveFields(user: User): UserOmit {
-        const omitted : UserOmit = {
+    static omitSensitiveFields(user: User): SafeUser {
+        const omitted : SafeUser = {
             userId: user.userId,
             email: user.email,
             phone: user.phone,
@@ -139,7 +139,7 @@ export default class UserService {
      * @param userId - The user ID to retrieve.
      * @returns The user details.
      */
-    static async getById(data: GetUserRequest): Promise<UserOmit> {
+    static async getById(data: GetUserRequest): Promise<SafeUser> {
 
         const { userId } = data;
         
@@ -164,7 +164,7 @@ export default class UserService {
      * @param data - Partial user data to update.
      * @returns The updated user details.
      */
-    static async update(data: PutUserRequest): Promise<UserOmit> {
+    static async update(data: PutUserRequest): Promise<SafeUser> {
 
         const { userId } = data;
 

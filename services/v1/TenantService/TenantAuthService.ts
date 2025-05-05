@@ -5,17 +5,17 @@ import GetTenantUsersResponse from "../../../dtos/responses/tenantuser/GetTenant
 
 import AuthService from ".";
 import TenantService from "../TenantService";
-import TenantUserOmit from "../../../types/TenantUserOmit";
+import SafeTenantUser from "../../../types/SafeTenantUser";
 
 export default class TenantAuthService {
 
-    static readonly TenantOmitSelect = TenantService.TenantOmitSelect;
+    static readonly SafeTenantSelect = TenantService.SafeTenantSelect;
     static readonly TENANT_USER_NOT_FOUND = "TENANT_USER_NOT_FOUND";
     static readonly INVALID_TENANT_USER_REQUEST = "INVALID_TENANT_USER_REQUEST";
     static readonly INVALID_TENANT_USER_SESSION_REQUEST = "INVALID_TENANT_USER_SESSION_REQUEST";
 
 
-    static async setUserSessionTenantUser(data: { tenantUser: TenantUserOmit, accessToken: string }): Promise<boolean> {
+    static async setUserSessionTenantUser(data: { tenantUser: SafeTenantUser, accessToken: string }): Promise<boolean> {
 
         const { tenantUser, accessToken } = data;
 
@@ -40,15 +40,7 @@ export default class TenantAuthService {
             throw new Error(this.INVALID_TENANT_USER_SESSION_REQUEST);
         }
 
-        await prisma.userSession.update({
-            where: {
-                accessToken: userSession.accessToken,
-            },
-            data: {
-                tenantUserId: tenantUser.tenantUserId,
-            }
-        });
-
+  
         return true;
 
     }

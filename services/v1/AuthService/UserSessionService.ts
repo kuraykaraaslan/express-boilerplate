@@ -10,8 +10,8 @@ import GetSessionRequest from "../../../dtos/requests/auth/GetSessionRequest";
 import UserService from "../UserService";
 // Utils
 import UserAgentUtil from "../../../utils/UserAgentUtil";
-import UserSessionOmit from "../../../types/UserSessionOmit";
-import UserOmit from "../../../types/UserOmit";
+import SafeUserSession from "../../../types/SafeUserSession";
+import SafeUser from "../../../types/SafeUser";
 import jwt from 'jsonwebtoken';
 import crypto from "crypto";
 import AuthMessages from "../../../dictionaries/AuthMessages";
@@ -193,10 +193,10 @@ export default class UserSessionService {
    * @param userId - The user ID.
    * @returns The created session.
    */
-  static async createSession(user: UserOmit, request: Request<any>, otpIgnore: boolean = false): Promise<
+  static async createSession(user: SafeUser, request: Request<any>, otpIgnore: boolean = false): Promise<
     {
-      userSession: UserSessionOmit,
-      otpNeeded: boolean,
+      userSession: SafeUserSession,
+      otpVerifyNeeded: boolean,
       rawAccessToken: string,
       rawRefreshToken: string
     }> {
@@ -216,7 +216,7 @@ export default class UserSessionService {
     const rawRefreshToken = UserSessionService.generateRefreshToken(user.userId, userSessionId, deviceFingerprint);
     const hashedRefreshToken = UserSessionService.hashToken(rawRefreshToken);
 
-    const otpNeeded = !otpIgnore && user.otpMethods && user.otpMethods.length > 0;
+    const otpVerifyNeeded = !otpIgnore && user.otpMethods && user.otpMethods.length > 0;
 
     const userSession = await prisma.userSession.create({
       data: {
@@ -225,9 +225,8 @@ export default class UserSessionService {
         accessToken: hashedAccessToken,
         refreshToken: hashedRefreshToken,
         sessionExpiry: new Date(Date.now() + SESSION_EXPIRY_MS),
-        sessionAgent: "Web",
         deviceFingerprint: deviceFingerprint,
-        otpNeeded,
+        otpVerifyNeeded,
         ip: userAgentData.ip || "Unknown",
         os: userAgentData.os || "Unknown",
         device: userAgentData.device || "Unknown",
@@ -241,7 +240,7 @@ export default class UserSessionService {
 
     return {
       userSession: UserSessionService.omitSensitiveFields(userSession),
-      otpNeeded: userSession.otpNeeded,
+      otpVerifyNeeded: userSession.otpVerifyNeeded,
       rawAccessToken,
       rawRefreshToken,
     };
@@ -253,7 +252,7 @@ export default class UserSessionService {
    * @param accessToken - The session token.
    * @returns The user session.
    */
-  static async getSessionDangerously(data: GetSessionRequest, request: Request<any>): Promise<{ user: UserOmit, userSession: UserSessionOmit }> {
+  static async getSessionDangerously(data: GetSessionRequest, request: Request<any>): Promise<{ user: SafeUser, userSession: SafeUserSession }> {
 
     // Verify the access token
     const userAgentData = await UserAgentUtil.parseRequest(request);
@@ -280,7 +279,7 @@ export default class UserSessionService {
     }
 
     // Otp needed kontrolü
-    if (userSession.otpNeeded) {
+    if (userSession.otpVerifyNeeded) {
       throw new Error(AuthMessages.OTP_NEEDED);
     }
 
@@ -314,7 +313,7 @@ export default class UserSessionService {
    * @param session - The user session.
    * @returns The user session without sensitive fields.
    */
-  static async getSession(data: GetSessionRequest, request: Request<any>): Promise<{ user: UserOmit, userSession: UserSessionOmit }> {
+  static async getSession(data: GetSessionRequest, request: Request<any>): Promise<{ user: SafeUser, userSession: SafeUserSession }> {
     // Get the session using the provided access token
     const { user, userSession } = await UserSessionService.getSessionDangerously(data, request);
 
@@ -325,12 +324,11 @@ export default class UserSessionService {
     };
   }
 
-  static omitSensitiveFields(session: UserSession): UserSessionOmit {
+  static omitSensitiveFields(session: UserSession): SafeUserSession {
     return {
       userSessionId: session.userSessionId,
       userId: session.userId,
-      otpNeeded: session.otpNeeded,
-      tenantUserId: session.tenantUserId,
+      otpVerifyNeeded: session.otpVerifyNeeded,
       sessionExpiry: session.sessionExpiry,
     };
   }
@@ -356,7 +354,7 @@ export default class UserSessionService {
 
 
     // Otp needed kontrolü
-    if (userSession.otpNeeded) {
+    if (userSession.otpVerifyNeeded) {
       throw new Error(AuthMessages.OTP_NEEDED);
     }
 
@@ -403,7 +401,7 @@ export default class UserSessionService {
    * @param userSession - The current user session.
    * @returns A promise that resolves when the sessions are destroyed.
    */
-  static async destroyOtherSessions(userSession: UserSessionOmit): Promise<void> {
+  static async destroyOtherSessions(userSession: SafeUserSession): Promise<void> {
     // Delete all sessions except the current one
     await prisma.userSession.deleteMany({
       where: {
@@ -422,7 +420,7 @@ export default class UserSessionService {
    * @param data - The user session data to delete.
    */
 
-  static async deleteSession(data: UserSessionOmit): Promise<void> {
+  static async deleteSession(data: SafeUserSession): Promise<void> {
 
     await prisma.userSession.deleteMany({
       where: { userSessionId: data.userSessionId },

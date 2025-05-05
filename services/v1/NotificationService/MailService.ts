@@ -5,8 +5,8 @@ import path from 'path';
 import { User } from '@prisma/client';
 
 // Types
-import UserOmit from './../../../types/UserOmit';
-import UserSessionOmit from './../../../types/UserSessionOmit';
+import SafeUser from './../../../types/SafeUser';
+import SafeUserSession from './../../../types/SafeUserSession';
 
 // Libs
 import { Queue, Worker } from 'bullmq';
@@ -119,7 +119,7 @@ export default class MailService {
     };
 
 
-    static async sendWelcomeEmail(user: User | UserOmit) {
+    static async sendWelcomeEmail(user: User | SafeUser) {
 
         const name = user.name || user.email;
         const email = user.email;
@@ -136,7 +136,7 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(user: User | UserOmit, session?: UserSessionOmit) {
+    static async sendNewLoginEmail(user: User | SafeUser, session?: SafeUserSession) {
 
         const name = user.name || user.email;
         const email = user.email;

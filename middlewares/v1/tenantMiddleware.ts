@@ -5,10 +5,10 @@ import TenantService from '../../services/v1/TenantService';
 import TenantUserService from '../../services/v1/TenantService/TenantUserService';
 
 // Omits
-import UserOmit from '../../types/UserOmit';
+import SafeUser from '../../types/SafeUser';
 import GetTenantRequest from '../../dtos/requests/tenant/GetTenantRequest';
 import GetTenantUserRequest from '../../dtos/requests/tenantuser/GetTenantUserRequest';
-import TenantUserOmit from '../../types/TenantUserOmit';
+import SafeTenantUser from '../../types/SafeTenantUser';
 
 export default function (
     requiredRole: string = 'USER', 
@@ -30,7 +30,7 @@ export default function (
                 throw new Error("USER_NOT_FOUND");
             }
 
-            const user = request.user as UserOmit;
+            const user = request.user as SafeUser;
             
             let tenant;
 
@@ -52,7 +52,7 @@ export default function (
             if (!tenantUser) {
                 //if tenant user not found but user is admin, then create a temporary tenant user
                 if (user.userRole === 'ADMIN') {
-                    const temporaryTenantUser : TenantUserOmit = {
+                    const temporaryTenantUser : SafeTenantUser = {
                         tenantUserId: 'TEMP_TENANT_USER_ID_' + user.userId,
                         tenantId: tenant.tenantId,
                         userId: user.userId,

@@ -64,10 +64,7 @@ model UserSession {
   sessionExpiry DateTime
 
   //OTP Needed
-  otpNeeded Boolean @default(false)
-
-  // OTP verification
-  otpVerified   Boolean   @default(false)
+  otpVerifyNeeded Boolean @default(false)
   otpVerifiedAt DateTime?
 
   // User Agent

@@ -9,7 +9,7 @@ import PutTenantUserRequest from './../../../dtos/requests/tenantuser/PutTenantU
 import CreateTenantUserRequest from './../../../dtos/requests/tenantuser/CreateTenantUserRequest';
 
 // Omit
-import TenantUserOmit from './../../../types/TenantUserOmit';
+import SafeTenantUser from './../../../types/SafeTenantUser';
 
 export default class TenantUserService {
 
@@ -23,7 +23,7 @@ export default class TenantUserService {
     /**
      * Select fields to be omitted from the tenant user object.
      */
-    static readonly TenantUserOmitSelect = {
+    static readonly SafeTenantUserSelect = {
         tenantUserId: true,
         tenantId: true,
         userId: true,
@@ -36,9 +36,9 @@ export default class TenantUserService {
      * @param tenant - The user object.
      * @returns The tenant object without the deletedAt.
      */
-    static omitSensitiveFields(tenantUser: TenantUser): TenantUserOmit
+    static omitSensitiveFields(tenantUser: TenantUser): SafeTenantUser
     {
-        const omitted: TenantUserOmit = {
+        const omitted: SafeTenantUser = {
             tenantUserId: tenantUser.tenantUserId,
             tenantId: tenantUser.tenantId,
             userId: tenantUser.userId,
@@ -48,7 +48,7 @@ export default class TenantUserService {
         return omitted;
     }
 
-    public static async getById(data: GetTenantUserRequest): Promise<TenantUserOmit | null> {
+    public static async getById(data: GetTenantUserRequest): Promise<SafeTenantUser | null> {
 
 
         const { tenantId , userId, tenantUserId } = data;
@@ -106,7 +106,7 @@ export default class TenantUserService {
      * @throws TENANT_USER_NOT_FOUND
      * @throws INVALID_TENANT_USER_REQUEST
      */
-    public static async delete(data: GetTenantUserRequest): Promise<TenantUserOmit> {
+    public static async delete(data: GetTenantUserRequest): Promise<SafeTenantUser> {
         const { tenantId, userId, tenantUserId } = data;
 
         // check if tenantId or userId is provided
@@ -132,7 +132,7 @@ export default class TenantUserService {
      * @throws TENANT_USER_NOT_FOUND
      * @throws INVALID_TENANT_USER_REQUEST
      */
-    public static async update(data: PutTenantUserRequest): Promise<TenantUserOmit> {
+    public static async update(data: PutTenantUserRequest): Promise<SafeTenantUser> {
         const { tenantUserId, tenantUserRole, tenantUserStatus } = data;
 
         if (!tenantUserId) {
@@ -158,7 +158,7 @@ export default class TenantUserService {
      * @returns The created tenant user.
      * @throws INVALID_TENANT_USER_REQUEST
      */
-    public static async create(data: CreateTenantUserRequest): Promise<TenantUserOmit> {
+    public static async create(data: CreateTenantUserRequest): Promise<SafeTenantUser> {
         const { tenantId, userId, tenantUserRole, tenantUserStatus } = data;
 
         if (!tenantId || !userId || !tenantUserRole || !tenantUserStatus) {
@@ -175,7 +175,7 @@ export default class TenantUserService {
     /**
      * checkIfUserHasRole
      */
-    public static checkIfUserHasRole(tenantUser: TenantUserOmit, requiredRole: string): boolean {
+    public static checkIfUserHasRole(tenantUser: SafeTenantUser, requiredRole: string): boolean {
         const roles = [
             'ADMIN',
             'USER',

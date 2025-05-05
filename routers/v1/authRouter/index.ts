@@ -36,6 +36,8 @@ import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 import AuthMessages from "../../../dictionaries/AuthMessages";
 import PermissionService from "../../../services/v1/PermissionService";
+import OTPService from "@/services/v1/AuthService/OTPService";
+import { OTPMethod } from "@prisma/client";
 
 // Router
 const AuthRouter = Router();
@@ -122,12 +124,46 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
 
     await MailService.sendNewLoginEmail(user, userSession);
 
-    response.json({ 
-        user, 
+    response.json({
+        user,
         accessToken: rawAccessToken,
         refreshToken: rawRefreshToken,
-    }); 
+    });
 
+});
+
+
+AuthRouter.post('/session/otp-send/:method', Limiter.useAuthLimiter, async (request: Request, response: Response) => {
+    const user = request.user!;
+    const session = request.userSession!;
+    const method = request.params.method.toUpperCase();
+
+    const allowedMethods: OTPMethod[] = ['EMAIL', 'SMS', 'TOTP_APP', 'PUSH_APP'];
+    if (!allowedMethods.includes(method as OTPMethod)) {
+        throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400);
+    }
+
+    await UserSessionOTPService.sendOTP({ user, userSession: session, method: method as OTPMethod });
+
+    response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
+});
+
+AuthRouter.post('/session/otp-verify/:method', Limiter.useAuthLimiter, async (request: Request, response: Response) => {
+    
+    const user = request.user!;
+    const session = request.userSession!;
+    const method = request.params.method.toUpperCase();
+
+    const allowedMethods: OTPMethod[] = ['EMAIL', 'SMS', 'TOTP_APP', 'PUSH_APP'];
+    if (!allowedMethods.includes(method as OTPMethod)) {
+        throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400);
+    }
+
+    const data = new VerifyOTPRequest(request.body);
+
+    await UserSessionOTPService.validateOTP({ user, userSession: session, otpToken: data.otpToken , method: method as OTPMethod});
+
+    response.json({ message: AuthMessages.OTP_VERIFIED_SUCCESSFULLY });
 });
 
 
@@ -233,7 +269,7 @@ AuthRouter.use(AuthMiddleware("USER"));
  * - 401: Unauthorized if user is not logged in.
  */
 AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
-    
+
     response.json({
         user: request.user!
     });
@@ -266,7 +302,7 @@ AuthRouter.post('/logout', async (request: Request, response: Response<MessageRe
     });
     // Destroy the session
     await UserSessionService.deleteSession(request.userSession!);
-   
+
     response.json({ message: AuthMessages.LOGGED_OUT_SUCCESSFULLY });
 });
 
