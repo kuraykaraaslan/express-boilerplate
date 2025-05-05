@@ -1,8 +1,3 @@
-import AuthMessages from "../../../dictionaries/AuthMessages";
-import FieldValidater from "../../../utils/FieldValidater";
-
-
-
 export default class GetSessionRequest {
    accessToken!: string;
 

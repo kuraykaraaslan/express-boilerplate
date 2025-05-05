@@ -1,7 +1,5 @@
 // src/bootstrap/global-errors.ts
 
-// @ts-nocheck OR cast with `as any` below if needed
-
 if (!global.AppError) {
   global.AppError = class AppError extends Error {
     public statusCode: number;

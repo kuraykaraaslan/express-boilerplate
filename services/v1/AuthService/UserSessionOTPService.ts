@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import redis from "../../../libs/redis";
-import { OTPMethod, User, UserSession } from "@prisma/client";
+import { OTPMethod } from "@prisma/client";
 import MailService from "../NotificationService/MailService";
 import SMSService from "../NotificationService/SMSService";
 import prisma from "../../../libs/prisma";

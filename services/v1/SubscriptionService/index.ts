@@ -1,4 +1,4 @@
-import { Subscription, User } from '@prisma/client';
+import { Subscription } from '@prisma/client';
 import prisma from '../../../libs/prisma';
 
 /**

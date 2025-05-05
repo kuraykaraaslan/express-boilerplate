@@ -58,7 +58,7 @@ export default class TenantUserService {
             throw new Error(TenantUserService.INVALID_TENANT_USER_REQUEST);
         }
 
-        let tenantUser = await prisma.tenantUser.findFirst({
+        const tenantUser = await prisma.tenantUser.findFirst({
             where: {
                 tenantId,
                 userId,
@@ -76,7 +76,7 @@ export default class TenantUserService {
 
     public static async getAll(data: GetTenantUsersRequest): Promise<GetTenantUsersResponse> {
 
-        const { skip, take, search, tenantId , userId , tenantUserId } = data;
+        const { skip, take, search, tenantId , userId  } = data;
 
         const queryOptions = {
             skip,

@@ -136,7 +136,7 @@ export default class MailService {
         await MailService.sendMail(email, 'Welcome to ' + MailService.APPLICATION_NAME, emailContent);
     };
 
-    static async sendNewLoginEmail(user: User | SafeUser, session?: SafeUserSession) {
+    static async sendNewLoginEmail(user: User | SafeUser, userSession?: SafeUserSession) {
 
         const name = user.name || user.email;
         const email = user.email;

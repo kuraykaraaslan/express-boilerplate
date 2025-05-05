@@ -1,7 +1,6 @@
 import BaseProvider from './BaseProvider';
 import axios, { AxiosInstance } from 'axios';
 import Logger from '../../../../libs/logger';
-import qs from 'qs';
 
 export default class ClickatellService extends BaseProvider {
   private static readonly CLICKATELL_API_KEY = process.env.CLICKATELL_API_KEY!;

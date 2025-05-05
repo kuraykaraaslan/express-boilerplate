@@ -72,7 +72,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
         throw new Error("INVALID_PROVIDER");
     }
 
-    var { code, state } = request.query;
+    let { code, state } = request.query;
 
     //if code and state are not present, then try to get it from the body
     if (!code) {
@@ -119,7 +119,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
         throw new Error("INVALID_PROVIDER");
     }
 
-    var { code, state } = request.query;
+    let { code, state } = request.query;
 
     //if code and state are not present, then try to get it from the body
     if (!code) {

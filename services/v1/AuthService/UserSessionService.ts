@@ -59,7 +59,7 @@ export default class UserSessionService {
       throw new Error("ACCESS_TOKEN_SECRET is not defined");
     }
 
-    // @ts-ignore
+    // @ts-expect-error: this is a valid use of the jwt.sign method 
     return jwt.sign(
       {
         userId: userId,
@@ -85,7 +85,7 @@ export default class UserSessionService {
    */
 
   private static generateRefreshToken(userId: string, userSessionId: string, deviceFingerprint: string): string {
-    // @ts-ignore
+    // @ts-expect-error: this is a valid use of the jwt.sign method
     return jwt.sign(
       {
         userId: userId,

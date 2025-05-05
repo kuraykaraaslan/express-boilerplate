@@ -4,14 +4,19 @@ import tseslint from "typescript-eslint";
 import unusedImports from "eslint-plugin-unused-imports";
 
 export default [
-  { files: ["src/*.{js,mjs,cjs,ts}"] },
+  { files: ["**/*.{js,mjs,cjs,ts}", "server.ts", "index.ts"] },
 
-  { languageOptions: { globals: globals.browser } },
+  { languageOptions: { globals: {
+    ...globals.node,
+    ...globals.jest,
+  }, } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
     ignores: [
-      "src/**/*.test.ts",
+      "__tests__/**/*",
+      "dictionaries/**/*",
+      "utils/**/*",
       "dist/**/*",
       "public/**/*",
       "node_modules/**/*",
@@ -24,18 +29,27 @@ export default [
     },
     rules: {
       // Allow unused variables starting with exactly one underscore.
-      "no-unused-vars": "off",
       "@typescript-eslint/no-unsafe-declaration-merging": "off",
       "@typescript-eslint/no-unused-vars": [
         "off",
         {
-          varsIgnorePattern: "^_",
-          argsIgnorePattern: "^_",
-          caughtErrorsIgnorePattern: "^_",
+          varsIgnorePattern: "^_|_|request|response|error|userSession",
+          argsIgnorePattern: "^_|_|request|response|error|userSession",
+          caughtErrorsIgnorePattern: "^_|error",
         },
       ],
       // no-explicit-any is too strict for some cases. ignore "error" values.
       "@typescript-eslint/no-explicit-any": ["off"],
+      "unused-imports/no-unused-imports": "warn",
+      "unused-imports/no-unused-vars": [
+        "warn",
+        {
+          vars: "all",
+          varsIgnorePattern: "^_|_|request|response|error|userSession",
+          args: "after-used",
+          argsIgnorePattern: "^_|_|request|response|error|userSession",
+        },
+      ],
     },
   },
 ];

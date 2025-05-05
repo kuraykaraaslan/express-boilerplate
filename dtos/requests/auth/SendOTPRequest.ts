@@ -1,7 +1,3 @@
-import FieldValidater from "../../../utils/FieldValidater";
-
-
-
 export default class SendOTPRequest {
    method!: string;
 

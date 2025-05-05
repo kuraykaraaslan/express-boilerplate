@@ -13,7 +13,6 @@ import SafeUser from "../../../types/SafeUser";
 
 // DTOs
 import CreateUserRequest from "./../../../dtos/requests/user/CreateUserRequest";
-import AuthUserResponse from "./../../../types/SafeUser";
 import GetUsersRequest from "./../../../dtos/requests/user/GetUsersRequest";
 import GetUsersResponse from "./../../../dtos/responses/user/GetUsersResponse";
 import PutUserRequest from "./../../../dtos/requests/user/PutUserRequest";
@@ -60,7 +59,7 @@ export default class UserService {
      * @param data - Partial user data to create the user.
      * @returns The created user without sensitive fields like password.
      */
-    static async create(data: CreateUserRequest): Promise<AuthUserResponse> {
+    static async create(data: CreateUserRequest): Promise<SafeUser> {
 
         const { email, password, name } = data;
 
@@ -76,9 +75,13 @@ export default class UserService {
         // Check if the email is already in use
         const existingUser = await prisma.user.findUnique({
             where: { email },
-        }).then((user) => {
+        }).then(() => {
             throw new Error(this.EMAIL_ALREADY_EXISTS);
         });
+
+        if (existingUser) {
+            throw new Error(this.EMAIL_ALREADY_EXISTS);
+        }
 
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -152,7 +155,6 @@ export default class UserService {
             throw new Error(this.USER_NOT_FOUND);
         }
 
-        // Exclude sensitive fields from the response
         const { password: _, ...userWithoutPassword } = user;
 
         return userWithoutPassword;

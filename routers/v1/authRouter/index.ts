@@ -21,10 +21,7 @@ import Limiter from "../../../libs/limiter";
 import ForgotPasswordRequest from '../../../dtos/requests/auth/ForgotPasswordRequest';
 import ResetPasswordRequest from '../../../dtos/requests/auth/ResetPasswordRequest';
 import MessageResponse from "../../../dtos/responses/MessageResponse";
-import SendOTPRequest from "../../../dtos/requests/auth/SendOTPRequest";
 import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
-import ChangeOTPStatusRequest from "../../../dtos/requests/auth/ChangeOTPStatusRequest";
-import ChangeOTPVerifyRequest from "../../../dtos/requests/auth/ChangeOTPVerifyRequest";
 import AuthService from "../../../services/v1/AuthService";
 import MailService from "../../../services/v1/NotificationService/MailService";
 
@@ -35,8 +32,6 @@ import UserSessionOTPService from "../../../services/v1/AuthService/UserSessionO
 import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 import AuthMessages from "../../../dictionaries/AuthMessages";
-import PermissionService from "../../../services/v1/PermissionService";
-import OTPService from "@/services/v1/AuthService/OTPService";
 import { OTPMethod } from "@prisma/client";
 
 // Router

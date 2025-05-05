@@ -7,8 +7,8 @@ import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber';
 import BaseProvider from './BaseProvider';
 import TwilloService from './TwilloService';
 import NetGSMService from './NetGSMService';
-import ClickatellService from './ClickatellService';
-import NexmoService from './NexmoService';
+//import ClickatellService from './ClickatellService';
+//import NexmoService from './NexmoService';
 
 export default class SMSService {
     static _initialized = false;

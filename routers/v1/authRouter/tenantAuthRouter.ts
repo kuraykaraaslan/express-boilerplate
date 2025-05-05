@@ -5,11 +5,8 @@
  * It uses the AuthService to interact with the database and perform necessary actions.
  */
 import { Router, Request, Response } from "express";
-import TenantAuthService from "../../../services/v1/TenantService/TenantAuthService";
 import GetTenantUserRequest from "../../../dtos/requests/tenantuser/GetTenantUserRequest";
 import GetTenantUsersResponse from "../../../dtos/responses/tenantuser/GetTenantUsersResponse";
-import TenantService from "../../../services/v1/TenantService";
-import GetTenantRequest from "../../../dtos/requests/tenant/GetTenantRequest";
 import TenantUserService from "../../../services/v1/TenantService/TenantUserService";
 
 

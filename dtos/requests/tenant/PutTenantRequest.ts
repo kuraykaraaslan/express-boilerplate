@@ -1,4 +1,4 @@
-import { TenantStatus, User } from "@prisma/client";
+import { TenantStatus } from "@prisma/client";
 import FieldValidater from "../../../utils/FieldValidater";
 
 

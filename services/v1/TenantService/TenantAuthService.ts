@@ -1,9 +1,4 @@
 import prisma from "../../../libs/prisma";
-import { TenantUser, UserSession, TenantUserRole } from "@prisma/client";
-import GetTenantUsersRequest from "../../../dtos/requests/tenantuser/GetTenantUsersRequest";
-import GetTenantUsersResponse from "../../../dtos/responses/tenantuser/GetTenantUsersResponse";
-
-import AuthService from ".";
 import TenantService from "../TenantService";
 import SafeTenantUser from "../../../types/SafeTenantUser";
 

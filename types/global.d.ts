@@ -1,9 +1,8 @@
-// types/global.d.ts
-
+// @ts-expect-error : That code works but typescript doesn't understand it
 export {};
 
 declare global {
-  var AppError: {
+  const AppError: {
     new (message: string, statusCode?: number): Error & {
       statusCode: number;
       isOperational: boolean;

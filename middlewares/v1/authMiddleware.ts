@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import AuthService from '../../services/v1/AuthService';
 import UserSessionService from '../../services/v1/AuthService/UserSessionService';
-import { User } from '@prisma/client';
 import GetSessionRequest from '../../dtos/requests/auth/GetSessionRequest';
 import AuthMessages from '../../dictionaries/AuthMessages';
 import SafeUser from '../../types/SafeUser';
@@ -33,8 +32,6 @@ export default function (requiredRole: string) {
   
     return cookieToken ?? headerToken;
   }
-  
-
 
   return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     if (requiredRole === 'GUEST') return next();

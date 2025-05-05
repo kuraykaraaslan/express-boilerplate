@@ -73,7 +73,7 @@ tenantUserRouter.get('/',
     TenantMiddleware("USER"),
     async (request: Request<GetTenantUsersRequest>, response: Response<GetTenantUsersResponse>) => {
 
-        let { skip, take, search } = request.query as any;
+        const { skip, take, search } = request.query as any;
 
         if (skip ? !FieldValidater.isNumber(skip) : false) {
             throw new Error("INVALID_SKIP");

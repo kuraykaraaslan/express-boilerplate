@@ -7,7 +7,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import path from "path";
 import bodyParser from "body-parser";
-import csrf from "csurf";
+//import csrf from "csurf";
 
 import errorHandler from "./middlewares/v1/errorHandler";
 import IndexRouter from "./routers";
@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
 
-// CSRF middleware’i cookie ile çalışacak şekilde tanımla
+/*
 const csrfProtection = csrf({
     cookie: {
       httpOnly: true,
@@ -34,7 +34,7 @@ const csrfProtection = csrf({
       maxAge: 60 * 60 * 24 * 7,
     }
   });
-/*
+
 app.use(csrfProtection);
 */
 

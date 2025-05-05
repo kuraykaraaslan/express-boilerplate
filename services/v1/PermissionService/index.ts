@@ -1,8 +1,5 @@
-import { User, Tenant } from '@prisma/client';
 import UserPermissionService from './UserPermissionService';
-import TenantPermissionService from './TenantPermissionService';
 import Logger from '../../../libs/logger';
-import OPERATIONS from './Operations';
 import { PermissionMessages } from '../../../dictionaries/PermissionMessages';
 
 export default class PermissionService {

@@ -31,12 +31,10 @@ export default function (
             }
 
             const user = request.user as SafeUser;
-            
-            let tenant;
-
+            const tenantId = request.params.tenantId;
     
-            const dataPath = new GetTenantRequest({ tenantId: request.params.tenantId });
-            tenant = await TenantService.getById(dataPath);
+            const dataPath = new GetTenantRequest({ tenantId });
+            const tenant = await TenantService.getById(dataPath);
 
             if (!tenant) {
                 throw new Error("TENANT_NOT_FOUND");

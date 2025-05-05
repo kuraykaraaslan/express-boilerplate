@@ -98,7 +98,7 @@ export default class TenantService {
 
         const { tenantId , domain } = data;
 
-        let tenant = await prisma.tenant.findFirst({
+        const tenant = await prisma.tenant.findFirst({
             where: {
                 OR: [
                     {
@@ -125,7 +125,7 @@ export default class TenantService {
      * @returns The created tenant.
      */
     public static async create(data: CreateTenantRequest): Promise<SafeTenant> {
-        let tenant = await prisma.tenant.create({
+        const tenant = await prisma.tenant.create({
             data
         });
 
@@ -138,7 +138,7 @@ export default class TenantService {
      * @returns The updated tenant.
      */
     public static async update(data: PutTenantRequest): Promise<SafeTenant> {
-        let tenant = await prisma.tenant.update({
+        const tenant = await prisma.tenant.update({
             where: {
                 tenantId: data.tenantId
             },
@@ -154,7 +154,7 @@ export default class TenantService {
      * @returns The deleted tenant.
      */
     public static async delete(data: GetTenantRequest): Promise<SafeTenant> {
-        let tenant = await prisma.tenant.delete({
+        const tenant = await prisma.tenant.delete({
             where: {
                 tenantId: data.tenantId
             }

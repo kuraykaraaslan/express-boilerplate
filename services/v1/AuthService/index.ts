@@ -17,8 +17,6 @@ import FieldValidater from "../../../utils/FieldValidater";
 import SafeUser from "../../../types/SafeUser";
 import AuthMessages from "../../../dictionaries/AuthMessages";
 
-
-import { User } from "@prisma/client";
 export default class AuthService {
 
     static readonly SafeUserSelect = {
@@ -111,6 +109,8 @@ export default class AuthService {
 
         const { email, name, password, phone } = data;
 
+        // TODO: Validate the input data
+
         // Check if the user already exists
         const existingUser = await UserService.getByEmail(email);
 
@@ -121,6 +121,8 @@ export default class AuthService {
         // Create the user
         const createdUser = await prisma.user.create({
             data: {
+                name,
+                phone,
                 email,
                 password: await AuthService.hashPassword(password),
             },
