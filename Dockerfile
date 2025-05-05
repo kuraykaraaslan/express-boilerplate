@@ -1,5 +1,5 @@
 # Use Node.js 22
-FROM node:22
+FROM node:23-slim
 
 # Set the working directory
 WORKDIR /usr/src/app
