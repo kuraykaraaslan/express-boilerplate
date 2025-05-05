@@ -21,18 +21,16 @@ export default function (requiredRole: string) {
   };
 
   function extractAccessToken(req: Request): string | undefined {
-    const cookieToken = req.cookies?.accessToken;
-    const headerToken = req.headers.authorization?.startsWith('Bearer ') 
-      ? req.headers.authorization!.split(' ')[1] 
-      : undefined;
+    const tokenFromCookie = req.cookies?.accessToken;
+    const tokenFromHeader = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
   
-    if (cookieToken && headerToken) {
+    if (tokenFromCookie && tokenFromHeader) {
       throw new AppError(AuthMessages.TWO_AUTH_SOURCES);
     }
   
-    return cookieToken ?? headerToken;
+    return tokenFromCookie || tokenFromHeader;
   }
-
+  
   return async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     if (requiredRole === 'GUEST') return next();
 
@@ -54,6 +52,30 @@ export default function (requiredRole: string) {
 
     req.user = user;
     req.userSession = userSession;
+
+    const sessionExpiry = userSession.sessionExpiry;
+    const currentTime = new Date();
+    
+    // Eğer oturum süresi 1 günden az kaldıysa, oturumu yenile
+    if (sessionExpiry && sessionExpiry.getTime() - currentTime.getTime() < 24 * 60 * 60 * 1000) {
+      const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.refreshAccessToken(accessToken);
+
+      // Set the new access token as a cookie
+      res.cookie('accessToken', rawAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      });
+      // Set the new refresh token as a cookie
+      res.cookie('refreshToken', rawRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set to true in production
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      });
+      req.userSession = userSession;
+    }
 
     //eğer path /session/otp-send ve /session/otp-verify değilse
     if (!OTP_BYPASS_PATHS.includes(req.path)) {

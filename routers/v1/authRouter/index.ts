@@ -18,21 +18,16 @@ import AuthMiddleware from "../../../middlewares/v1/authMiddleware";
 import Limiter from "../../../libs/limiter";
 
 // DTOs
-import ForgotPasswordRequest from '../../../dtos/requests/auth/ForgotPasswordRequest';
-import ResetPasswordRequest from '../../../dtos/requests/auth/ResetPasswordRequest';
 import MessageResponse from "../../../dtos/responses/MessageResponse";
-import VerifyOTPRequest from "../../../dtos/requests/auth/VerifyOTPRequest";
 import AuthService from "../../../services/v1/AuthService";
 import MailService from "../../../services/v1/NotificationService/MailService";
 
 // Mid Router
-import tenantAuthRouter from "./tenantAuthRouter";
 import UserSessionService from "../../../services/v1/AuthService/UserSessionService";
-import UserSessionOTPService from "../../../services/v1/AuthService/UserSessionOTPService";
-import PasswordService from "../../../services/v1/AuthService/PasswordService";
 
 import AuthMessages from "../../../dictionaries/AuthMessages";
-import { OTPMethod } from "@prisma/client";
+import UserSessionRouter from "./userSessionRouter";
+import PasswordRouter from "./passwordRouter";
 
 // Router
 const AuthRouter = Router();
@@ -128,125 +123,14 @@ AuthRouter.post('/login', Limiter.useAuthLimiter, async (request: Request<LoginR
 });
 
 
-AuthRouter.post('/session/otp-send/:method', Limiter.useAuthLimiter, async (request: Request, response: Response) => {
-    const user = request.user!;
-    const session = request.userSession!;
-    const method = request.params.method.toUpperCase();
-
-    const allowedMethods: OTPMethod[] = ['EMAIL', 'SMS', 'TOTP_APP', 'PUSH_APP'];
-    if (!allowedMethods.includes(method as OTPMethod)) {
-        throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400);
-    }
-
-    await UserSessionOTPService.sendOTP({ user, userSession: session, method: method as OTPMethod });
-
-    response.json({ message: AuthMessages.OTP_SENT_SUCCESSFULLY });
-});
-
-AuthRouter.post('/session/otp-verify/:method', Limiter.useAuthLimiter, async (request: Request, response: Response) => {
-    
-    const user = request.user!;
-    const session = request.userSession!;
-    const method = request.params.method.toUpperCase();
-
-    const allowedMethods: OTPMethod[] = ['EMAIL', 'SMS', 'TOTP_APP', 'PUSH_APP'];
-    if (!allowedMethods.includes(method as OTPMethod)) {
-        throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400);
-    }
-
-    const data = new VerifyOTPRequest(request.body);
-
-    await UserSessionOTPService.validateOTP({ user, userSession: session, otpToken: data.otpToken , method: method as OTPMethod});
-
-    response.json({ message: AuthMessages.OTP_VERIFIED_SUCCESSFULLY });
-});
-
-
-
-/*
- * POST /session/refresh
- * Refresh the user session.
- *
- * Request Body:
- * - refreshToken (string): The refresh token of the user (required).
- *
- * Response:
- * - 200: User session refreshed successfully with new access and refresh tokens.   
- * - 401: Unauthorized if refresh token is invalid.
- * - 500: Internal server error if session refresh fails.
- */
-AuthRouter.post('/session/refresh', async (request: Request, response: Response<LoginResponse>) => {
-    const { refreshToken } = request.body;
-    console.log("refreshToken", refreshToken);
-    const { userSession, rawAccessToken, rawRefreshToken } = await UserSessionService.refreshAccessToken(refreshToken);
-
-    // Set the new access token as a cookie
-    response.cookie('accessToken', rawAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    });
-    // Set the new refresh token as a cookie
-    response.cookie('refreshToken', rawRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    });
-
-
-    response.json({
-        accessToken: rawAccessToken,
-        refreshToken: rawRefreshToken,
-    });
-});
-
-
-
 /**
- * POST /forgot-password
- * Send a password reset email to the user.
- * 
- * Request Body:
- * - email (string): The email address of the user (required).
- * 
- * Response:
- * - 200: Password reset email sent successfully.
- * - 400: Validation error if email is missing.
- * - 404: User not found if email does not exist in the database.
+ * USE /password
+ * Password management routes.
+ *
+ * This includes routes for password reset and forgot password functionalities.
  */
-AuthRouter.post('/forgot-password', Limiter.useAuthLimiter, async (request: Request<ForgotPasswordRequest>, response: Response<MessageResponse>) => {
 
-    const data = new ForgotPasswordRequest(request.body);
-    await PasswordService.forgotPassword(data);
-
-    response.json({ message: AuthMessages.FORGOT_PASSWORD_SUCCESSFUL });
-
-});
-
-/**
- * POST /reset-password
- * Reset the password of the user.
- * 
- * Request Body:
- * - accessToken (string): The password reset token sent to the user's email (required).
- * - password (string): The new password for the user (required).
- * 
- * Response:
- * - 200: Password successfully reset.
- * - 400: Validation error if token or password is missing.
- * - 404: User not found if token is invalid.
- */
-AuthRouter.post('/reset-password', Limiter.useAuthLimiter, async (request: Request<ResetPasswordRequest>, response: Response<MessageResponse>) => {
-
-    const data = new ResetPasswordRequest(request.body);
-    await PasswordService.resetPassword(data);
-
-    response.json({ message: AuthMessages.PASSWORD_RESET_SUCCESSFUL });
-
-});
-
+AuthRouter.use('/password', Limiter.useAuthLimiter, PasswordRouter);
 
 
 // All routes below this point require the user to be logged in
@@ -255,20 +139,7 @@ AuthRouter.use(AuthMiddleware("USER"));
 
 
 
-/**
- * GET /session
- * Get the current user session.
- *
- * Response:
- * - 200: User session details.
- * - 401: Unauthorized if user is not logged in.
- */
-AuthRouter.get('/session', Limiter.useAuthLimiter, async (request: Request, response: Response<LoginResponse>) => {
-
-    response.json({
-        user: request.user!
-    });
-});
+AuthRouter.use('/session', Limiter.useAuthLimiter, UserSessionRouter);
 
 
 /**
@@ -302,31 +173,7 @@ AuthRouter.post('/logout', async (request: Request, response: Response<MessageRe
 });
 
 
-/**
- * POST /session/tenant
- * Tenant Auth Router
- *
- * This module provides endpoints to manage user authentication operations such as registration and login.
- * It uses the AuthService to interact with the database and perform necessary actions.
- */
-AuthRouter.use('/session/tenant', tenantAuthRouter);
 
-
-
-
-/**
- * POST /settings/destroy-other-sessions
- * Destroy all other sessions of the user.
- *
- * Response:
- * - 200: All other sessions destroyed successfully.
- * - 500: Internal server error if session destruction fails.
- * - 401: Unauthorized if user is not logged in.
- */
-AuthRouter.post('/session/destroy-other-sessions', async (request: Request, response: Response<MessageResponse>) => {
-    await UserSessionService.destroyOtherSessions(request.userSession!);
-    response.json({ message: AuthMessages.OTHER_SESSIONS_DESTROYED });
-});
 
 
 

@@ -181,11 +181,19 @@ export default class TenantUserService {
             'USER',
         ];
 
-        const roleIndex = roles.indexOf(requiredRole);
+        console.log("TenantUserService.checkIfUserHasRole", tenantUser, requiredRole);
+
         const userRoleIndex = roles.indexOf(tenantUser.tenantUserRole);
+        const roleIndex = roles.indexOf(requiredRole);
 
-        return roleIndex <= userRoleIndex;
+        if (userRoleIndex === -1 || roleIndex === -1) {
+            console.error("Invalid role provided", tenantUser.tenantUserRole, requiredRole);
+            return false;
+        }
 
+        console.log("TenantUserService.checkIfUserHasRole", userRoleIndex, roleIndex);
+
+        return userRoleIndex <= roleIndex;
     }
     
 

@@ -34,7 +34,7 @@ tenantUserRouter.use(AuthMiddleware("USER"));
  */
 tenantUserRouter.post('/',
     TenantMiddleware("ADMIN"),
-    async (request: Request<CreateTenantUserRequest>, response: Response<GetTenantUserResponse>) => {
+    async (request: Request, response: Response<GetTenantUserResponse>) => {
 
         if (!FieldValidater.validateBody(request.body, CreateTenantUserRequest)) {
             throw new Error("BAD_REQUEST");
@@ -71,7 +71,7 @@ tenantUserRouter.post('/',
  */
 tenantUserRouter.get('/',
     TenantMiddleware("USER"),
-    async (request: Request<GetTenantUsersRequest>, response: Response<GetTenantUsersResponse>) => {
+    async (request: Request, response: Response<GetTenantUsersResponse>) => {
 
         const { skip, take, search } = request.query as any;
 
@@ -124,7 +124,7 @@ tenantUserRouter.get('/:tenantUserId',
  */
 tenantUserRouter.put('/:tenantUserId',
     TenantMiddleware("ADMIN"),
-    async (request: Request<PutTenantUserRequest>, response: Response<GetTenantUserResponse>) => {
+    async (request: Request, response: Response<GetTenantUserResponse>) => {
 
         const { tenantUserId } = request.params;
 
@@ -166,7 +166,7 @@ tenantUserRouter.put('/:tenantUserId',
  */
 tenantUserRouter.delete('/:tenantUserId',
     TenantMiddleware("ADMIN"),
-    async (request: Request<GetTenantUserRequest>, response: Response) => {
+    async (request: Request, response: Response) => {
 
         const { tenantUserId } = request.params;
 

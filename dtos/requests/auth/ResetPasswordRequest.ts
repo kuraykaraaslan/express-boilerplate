@@ -1,18 +1,15 @@
 import FieldValidater from "../../../utils/FieldValidater";
 
 export default class ResetPasswordRequest {
-    email!: string;
+    email?: string;
+    phone?: string;
     password!: string;
     resetToken!: string;
-    method!: "email" | "sms";
 
     constructor(data: any) {
         this.email = data.email;
         this.password = data.password;
         this.resetToken = data.resetToken;
-        this.method = data.method;
-        this.email = this.email.toLowerCase();
-
         this.validate();
     }
 

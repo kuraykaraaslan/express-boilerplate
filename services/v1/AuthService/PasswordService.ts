@@ -22,12 +22,12 @@ export default class PasswordService {
     return crypto.createHash("sha256").update(token).digest("hex");
   }
 
-  static getRedisKey(email: string, method: "email" | "sms"): string {
-    return `reset-password:${method}:${email.toLowerCase()}`;
+  static getRedisKey(email: string): string {
+    return `reset-password:${email.toLowerCase()}`;
   }
 
-  static getRateKey(email: string, method: "email" | "sms"): string {
-    return `reset-password-rate:${method}:${email.toLowerCase()}`;
+  static getRateKey(email: string): string {
+    return `reset-password-rate:${email.toLowerCase()}`;
   }
 
   static async forgotPassword(data: ForgotPasswordRequest): Promise<void> {
@@ -38,8 +38,8 @@ export default class PasswordService {
 
     const emailToken = this.generateResetToken();
     const hashedEmailToken = await this.hashToken(emailToken);
-    const emailTokenKey = this.getRedisKey(emailKey, "email");
-    const emailRateKey = this.getRateKey(emailKey, "email");
+    const emailTokenKey = this.getRedisKey(emailKey);
+    const emailRateKey = this.getRateKey(emailKey);
 
     const alreadyEmailSent = await redis.get(emailRateKey);
     if (!alreadyEmailSent) {
@@ -48,29 +48,13 @@ export default class PasswordService {
       await MailService.sendForgotPasswordEmail(user.email, user.name || undefined, emailToken);
     }
 
-    if (user.phone) {
-      const smsToken = this.generateResetToken();
-      const hashedSmsToken = await this.hashToken(smsToken);
-      const smsTokenKey = this.getRedisKey(emailKey, "sms");
-      const smsRateKey = this.getRateKey(emailKey, "sms");
-
-      const alreadySmsSent = await redis.get(smsRateKey);
-      if (!alreadySmsSent) {
-        await redis.set(smsTokenKey, hashedSmsToken, "EX", this.RESET_TOKEN_EXPIRY_SECONDS);
-        await redis.set(smsRateKey, "1", "EX", 60);
-        await SMSService.sendShortMessage({
-          to: user.phone,
-          body: `Your password reset code is ${smsToken}. It will expire in ${this.RESET_TOKEN_EXPIRY_SECONDS / 60} minutes.`,
-        });
-      }
-    }
   }
 
-  static async resetPassword(data: ResetPasswordRequest & { method: "email" | "sms" }): Promise<void> {
+  static async resetPassword(data: ResetPasswordRequest): Promise<void> {
     const user = await prisma.user.findFirst({ where: { email: data.email } });
     if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
 
-    const key = this.getRedisKey(user.email, data.method);
+    const key = this.getRedisKey(user.email);
     const storedHashed = await redis.get(key);
     if (!storedHashed) throw new Error(AuthMessages.INVALID_TOKEN);
 

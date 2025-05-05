@@ -24,6 +24,9 @@ import TenantUserRouter from "./tenantUserRouter";
 import TenantService from "../../../services/v1/TenantService";
 import GetTenantRequest from "../../../dtos/requests/tenant/GetTenantRequest";
 
+//Permission Management
+import PermissionService from "../../../services/v1/PermissionService";
+
 const tenantRouter = Router();
 
 tenantRouter.use(AuthMiddleware("USER"));
@@ -49,9 +52,9 @@ tenantRouter.post('/',
 tenantRouter.get('/',
     AuthMiddleware("ADMIN"),
     async (request: Request, response: Response<GetTenantsResponse>) => {
-
         const data = new GetTenantsRequest(request.query);
         const { tenants, total } = await TenantService.getAll(data);
+
         response.json({ tenants, total });
     });
 
@@ -64,17 +67,23 @@ tenantRouter.get('/',
  */
 tenantRouter.get('/:tenantId',
     TenantMiddleware("USER"),
-    async (request: Request, response: Response<GetTenantResponse>) => {
+    async (request: Request, response: Response) => {
+    
         
-        const data = new GetTenantRequest(request.params);
-        const tenant = await TenantService.getById(data);
-
-        if (!tenant) {
-            throw new Error("TENANT_NOT_FOUND");
-        }
-
-        response.json({ tenant });
-
+        const result = await PermissionService.execute({
+            request,
+            action: "READ",
+            subject: "Tenant",
+            callback: async () => {
+                const data = new GetTenantRequest(request.params);
+                const tenant = await TenantService.getById(data);        
+                return { tenant };
+            },
+            fallback: async () => {
+                console.log("Permission denied");
+            }
+        });
+        response.json(  result );
     });
 
 

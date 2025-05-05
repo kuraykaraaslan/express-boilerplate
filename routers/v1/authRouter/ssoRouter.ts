@@ -68,7 +68,7 @@ ssoRouter.get('/callback/:provider', async (request: Request<any>, response: Res
 
     const provider = request.params.provider! as string;
 
-    if (ALLOWED_PROVIDERS.includes(provider)) {
+    if (!ALLOWED_PROVIDERS.includes(provider)) {
         throw new Error("INVALID_PROVIDER");
     }
 
@@ -115,7 +115,7 @@ ssoRouter.post('/callback/:provider', async (request: Request<any>, response: Re
 
     const provider = request.params.provider! as string;
 
-    if (ALLOWED_PROVIDERS.includes(provider)) {
+    if (!ALLOWED_PROVIDERS.includes(provider)) {
         throw new Error("INVALID_PROVIDER");
     }
 

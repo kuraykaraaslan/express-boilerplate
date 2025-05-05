@@ -1,6 +1,8 @@
 import UserPermissionService from './UserPermissionService';
 import Logger from '../../../libs/logger';
 import { PermissionMessages } from '../../../dictionaries/PermissionMessages';
+import TenantPermissionService from './TenantPermissionService';
+import { Request } from 'express';
 
 export default class PermissionService {
 
@@ -29,28 +31,32 @@ export default class PermissionService {
     }
 
     static async execute({
-        operator,
+        request,
         subject,
         action,
         callback,
-        fallback
+        fallback,
     }: {
-        operator: any;
+        request: Request;
         subject: any;
         action: any;
         callback: (data: any) => Promise<any>;
         fallback?: (data: any) => Promise<any>;
     }): Promise<any> {
 
-        // Check if the operator is valid
-        if (!operator || !operator.userId) {
-            throw new AppError(PermissionMessages.INVALID_OPERATOR, 401);
+        let subjectModel ;
+
+        // Subject can be a string or an object
+        if (typeof subject === 'string') {
+            subjectModel = PermissionService.MODELS.find(model => model === subject);
+        } else if (typeof subject === 'object') {
+            subjectModel = PermissionService.getModelByPrimaryKey(subject);
+        } else {
+            throw new AppError(PermissionMessages.INVALID_SUBJECT, 400);
         }
-
-        const subjectModel  = this.getModelByPrimaryKey(subject);
-
+        
         // Check if the operator is admin
-        if (operator.userRole === 'ADMIN') {
+        if (request.user!.userRole === 'ADMIN') {
             Logger.info(PermissionMessages.ADMIN_PERMISSION_GRANTED);
             return await callback(subject);
         }
@@ -58,7 +64,15 @@ export default class PermissionService {
         switch (subjectModel ) {
             case 'User':
                 return await UserPermissionService.execute({
-                    operator,
+                    operator: request.user!,
+                    subject,
+                    action,
+                    callback,
+                    fallback,
+                });
+            case 'Tenant':
+                return await TenantPermissionService.execute({
+                    operator : request.tenantUser!,
                     subject,
                     action,
                     callback,

@@ -44,8 +44,10 @@ export default class TenantService {
             domain: tenant.domain,
             name: tenant.name,
             tenantStatus: tenant.tenantStatus,
-            description: tenant.description,
+            description: tenant.description ? tenant.description : undefined,
             region: tenant.region,
+            createdAt: tenant.createdAt,
+            updatedAt: tenant.updatedAt,
         };
 
         return omitted;
