@@ -427,4 +427,16 @@ export default class UserSessionService {
     });
 
   }
+
+  /**
+   * Deletes all user sessions of a user.
+   * @param userId - The user ID.
+   * @returns A promise that resolves when the sessions are deleted.
+   */
+  static async deleteAllUserSessions(userId: string): Promise<void> {
+    await prisma.userSession.deleteMany({
+      where: { userId: userId },
+    });
+  }
+
 }

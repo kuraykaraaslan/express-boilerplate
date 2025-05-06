@@ -1,29 +1,25 @@
-import FieldValidater from "../../../utils/FieldValidater";
-
 export default class ResetPasswordRequest {
     email?: string;
-    phone?: string;
     password!: string;
-    resetToken!: string;
+    numericToken?: string;
+    base64Token?: string;
+
 
     constructor(data: any) {
         this.email = data.email;
         this.password = data.password;
-        this.resetToken = data.resetToken;
+        this.numericToken = data.numericToken;
+        this.base64Token = data.base64Token;
+
+        // cant have both numericToken and base64Token
+        if (this.numericToken && this.base64Token) {
+            throw new Error("BOTH_TOKENS_PROVIDED");
+        }
+
         this.validate();
     }
 
     validate() {
-        if (!FieldValidater.isEmail(this.email)) {
-            throw new Error("INVALID_EMAIL");
-        }
 
-        if (!FieldValidater.isPassword(this.password)) {
-            throw new Error("INVALID_PASSWORD");
-        }
-
-        if (!FieldValidater.isVerificationToken(this.resetToken)) {
-            throw new Error("INVALID_RESET_TOKEN");
-        }
     }
 }

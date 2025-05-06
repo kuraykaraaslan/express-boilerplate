@@ -159,15 +159,18 @@ export default class MailService {
 
 
     static async sendForgotPasswordEmail(
+        {email, name, numericToken, base64Token}: {
         email: string,
-        name?: string | null,
-        resetToken?: string) {
+        numericToken: string,
+        base64Token: string,
+        name?: string | null
+    }) {
 
         const emailContent = await ejs.renderFile(path.join(MailService.TEMPLATE_PATH, 'forgot-password.ejs'), {
             user: { name: name || email },
             appName: MailService.APPLICATION_NAME,
-            resetToken: resetToken,
-            resetLink: MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH + "?token=" + resetToken,
+            numericToken: numericToken,
+            resetLink: MailService.FRONTEND_URL + MailService.FRONTEND_FORGOT_PASSWORD_PATH + "?oneTimeToken=" + base64Token,
             expiryTime: 1, // Expiry time in hours
             termsLink: MailService.FRONTEND_TERMS_LINK,
             privacyLink: MailService.FRONTEND_PRIVACY_LINK,

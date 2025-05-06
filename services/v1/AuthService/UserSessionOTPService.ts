@@ -1,18 +1,29 @@
 import bcrypt from "bcrypt";
 import redis from "../../../libs/redis";
+import prisma from "../../../libs/prisma";
 import { OTPMethod } from "@prisma/client";
+import { authenticator } from "otplib";
+import AuthMessages from "../../../dictionaries/AuthMessages";
 import MailService from "../NotificationService/MailService";
 import SMSService from "../NotificationService/SMSService";
-import prisma from "../../../libs/prisma";
-import AuthMessages from "../../../dictionaries/AuthMessages";
-import { authenticator } from "otplib";
 import SafeUser from "../../../types/SafeUser";
 import SafeUserSession from "../../../types/SafeUserSession";
 
 export default class UserSessionOTPService {
-  static OTP_EXPIRY_SECONDS = parseInt(process.env.OTP_EXPIRY_SECONDS || "600"); // 10 dk
-  static OTP_LENGTH = parseInt(process.env.OTP_LENGTH || "6");
-  static OTP_RATE_LIMIT_SECONDS = parseInt(process.env.OTP_RATE_LIMIT_SECONDS || "60");
+  static readonly OTP_EXPIRY_SECONDS = parseInt(process.env.OTP_EXPIRY_SECONDS || "600");
+  static readonly OTP_LENGTH = parseInt(process.env.OTP_LENGTH || "6");
+  static readonly OTP_RATE_LIMIT_SECONDS = parseInt(process.env.OTP_RATE_LIMIT_SECONDS || "60");
+  static readonly OTP_RATE_LIMIT_MAX_ATTEMPTS = 5;
+
+  // -- Helpers --
+
+  private static otpKey(sessionId: string, method: OTPMethod): string {
+    return `otp:code:${sessionId}:${method}`;
+  }
+
+  private static rateKey(sessionId: string, method: OTPMethod): string {
+    return `otp:rate:${sessionId}:${method}`;
+  }
 
   static generateToken(length = this.OTP_LENGTH): string {
     const min = Math.pow(10, length - 1);
@@ -29,8 +40,7 @@ export default class UserSessionOTPService {
   }
 
   static async generateTOTPSecret(): Promise<string> {
-    const secret = authenticator.generateSecret();
-    return secret;
+    return authenticator.generateSecret();
   }
 
   static async getUserOTPSecret(userId: string): Promise<string | null> {
@@ -39,72 +49,110 @@ export default class UserSessionOTPService {
       select: { otpSecret: true },
     });
     if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
-    if (!user.otpSecret) return null;
     return user.otpSecret;
   }
 
-  static async rateLimitGuard(sessionId: string, method: OTPMethod) {
-    const key = `otp:rate:${sessionId}:${method}`;
-    const exists = await redis.get(key);
-    if (exists) throw new Error(AuthMessages.OTP_ALREADY_SENT);
-    await redis.set(key, "1", "EX", this.OTP_RATE_LIMIT_SECONDS);
-  }
+  // -- Core Logic --
 
-  static async storeOTP(sessionId: string, method: OTPMethod, token: string) {
-    const hashed = await this.hashToken(token);
-    const key = `otp:code:${sessionId}:${method}`;
-    await redis.set(key, hashed, "EX", this.OTP_EXPIRY_SECONDS);
-  }
+  private static async incrementRateLimit(sessionId: string, method: OTPMethod): Promise<void> {
+    const key = this.rateKey(sessionId, method);
+    const current = await redis.get(key);
+    const count = current ? parseInt(current) : 0;
 
-  static async sendOTP({ user, userSession, method }: { user: SafeUser; userSession: SafeUserSession; method: OTPMethod }) {
-    if (!userSession.otpVerifyNeeded ) throw new Error(AuthMessages.OTP_NOT_NEEDED);
-    if (userSession.sessionExpiry < new Date()) throw new Error(AuthMessages.SESSION_NOT_FOUND);
-
-    if (method === OTPMethod.TOTP_APP) {
-      throw new Error(AuthMessages.INVALID_OTP_METHOD); // çünkü TOTP kendiliğinden üretilecek
+    if (count >= this.OTP_RATE_LIMIT_MAX_ATTEMPTS) {
+      throw new Error(AuthMessages.RATE_LIMIT_EXCEEDED);
     }
 
-    await this.rateLimitGuard(userSession.userSessionId, method);
+    await redis.set(key, (count + 1).toString(), "EX", this.OTP_RATE_LIMIT_SECONDS);
+  }
+
+  private static async storeOTP(sessionId: string, method: OTPMethod, token: string): Promise<void> {
+    const hashed = await this.hashToken(token);
+    await redis.set(this.otpKey(sessionId, method), hashed, "EX", this.OTP_EXPIRY_SECONDS);
+  }
+
+  private static async validateOTPCode(sessionId: string, method: OTPMethod, otpToken: string): Promise<void> {
+    const hashed = await redis.get(this.otpKey(sessionId, method));
+    if (!hashed) throw new Error(AuthMessages.OTP_EXPIRED);
+
+    const isValid = await this.compareToken(otpToken, hashed);
+    if (!isValid) throw new Error(AuthMessages.INVALID_OTP);
+
+    await redis.del(this.otpKey(sessionId, method));
+    await redis.del(this.rateKey(sessionId, method));
+  }
+
+  static async sendOTP({
+    user,
+    userSession,
+    method,
+  }: {
+    user: SafeUser;
+    userSession: SafeUserSession;
+    method: OTPMethod;
+  }) {
+    if (!userSession.otpVerifyNeeded) throw new Error(AuthMessages.OTP_NOT_NEEDED);
+    if (userSession.sessionExpiry < new Date()) throw new Error(AuthMessages.SESSION_NOT_FOUND);
+    if (method === OTPMethod.TOTP_APP) throw new Error(AuthMessages.INVALID_OTP_METHOD);
+
+    const sessionId = userSession.userSessionId;
+
+    await this.incrementRateLimit(sessionId, method);
+    await redis.del(this.otpKey(sessionId, method));
+
     const token = this.generateToken();
-    await this.storeOTP(userSession.userSessionId, method, token);
+    await this.storeOTP(sessionId, method, token);
 
     switch (method) {
       case OTPMethod.EMAIL:
-        await MailService.sendOTPEmail({ email: user.email, name: user.name, otpToken: token });
+        if (!user.email) throw new Error(AuthMessages.USER_HAS_NO_EMAIL);
+        await MailService.sendOTPEmail({
+          email: user.email,
+          name: user.name,
+          otpToken: token,
+        });
         break;
+
       case OTPMethod.SMS:
-        if (!user.phone) throw new Error(AuthMessages.INVALID_OTP_METHOD);
-        await SMSService.sendShortMessage({ to: user.phone, body: `Your OTP code is ${token}. Valid for ${this.OTP_EXPIRY_SECONDS / 60} minutes.` });
+        if (!user.phone) throw new Error(AuthMessages.USER_HAS_NO_PHONE_NUMBER);
+        await SMSService.sendShortMessage({
+          to: user.phone,
+          body: `Your OTP code is ${token}. Valid for ${this.OTP_EXPIRY_SECONDS / 60} minutes.`,
+        });
         break;
+
       default:
         throw new Error(AuthMessages.INVALID_OTP_METHOD);
     }
   }
 
-  static async validateOTP({ user, userSession, otpToken, method }: { user: SafeUser; userSession: SafeUserSession; otpToken: string; method: OTPMethod }) {
+  static async validateOTP({
+    user,
+    userSession,
+    otpToken,
+    method,
+  }: {
+    user: SafeUser;
+    userSession: SafeUserSession;
+    otpToken: string;
+    method: OTPMethod;
+  }) {
     if (!userSession.otpVerifyNeeded) throw new Error(AuthMessages.OTP_NOT_NEEDED);
     if (userSession.sessionExpiry < new Date()) throw new Error(AuthMessages.SESSION_NOT_FOUND);
 
+    const sessionId = userSession.userSessionId;
+
     if (method === OTPMethod.TOTP_APP) {
-      const otpSecret = await this.getUserOTPSecret(user.userId);
-      if (!otpSecret) throw new Error(AuthMessages.INVALID_OTP_METHOD);
-
-      const isValid = authenticator.check(otpToken, otpSecret);
-      if (!isValid) throw new Error(AuthMessages.INVALID_OTP);
+      const secret = await this.getUserOTPSecret(user.userId);
+      if (!secret || !authenticator.check(otpToken, secret)) {
+        throw new Error(AuthMessages.INVALID_OTP);
+      }
     } else {
-      const key = `otp:code:${userSession.userSessionId}:${method}`;
-      const hashed = await redis.get(key);
-      if (!hashed) throw new Error(AuthMessages.OTP_EXPIRED);
-
-      const isValid = await this.compareToken(otpToken, hashed);
-      if (!isValid) throw new Error(AuthMessages.INVALID_OTP);
-
-      await redis.del(key);
-      await redis.del(`otp:rate:${userSession.userSessionId}:${method}`);
+      await this.validateOTPCode(sessionId, method, otpToken);
     }
 
     await prisma.userSession.update({
-      where: { userSessionId: userSession.userSessionId },
+      where: { userSessionId: sessionId },
       data: { otpVerifyNeeded: false },
     });
   }
