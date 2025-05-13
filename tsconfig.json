@@ -18,9 +18,8 @@
       "@/*": ["./*"], // Map @/ to the root directory,
       "@/dtos/*": ["./dtos/*"], // Map @/dtos/ to the types directory      
     },
-    "typeRoots": ["./node_modules/@types", "types"], // Custom type roots
+    "typeRoots": [".domains/**/types", "./node_modules/@types"]
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"], // Include all TypeScript files
   "exclude": ["node_modules", "dist"], // Exclude node_modules and dist
-  "files": ["./types/express.d.ts", "./types/global.d.ts"] // Include custom type definitions
 }

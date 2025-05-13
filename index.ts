@@ -1,6 +1,6 @@
 import 'module-alias/register';
 import './bootstrap/global-errors';
-import express, { Request, Response } from "express";
+import express, { Request, Response, Router } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
@@ -9,11 +9,17 @@ import path from "path";
 import bodyParser from "body-parser";
 //import csrf from "csurf";
 
-import errorHandler from "./middlewares/v1/errorHandler";
-import IndexRouter from "./routers";
+import errorHandler from "./src/shared/middleware/errorHandler";
+import Logger from "./src/shared/libs/logger";
+import Limiter from "./src/shared/libs/limiter";
+import prisma from './src/shared/libs/prisma';
+import redisInstance from './src/shared/libs/redis';
 
-import Logger from "./libs/logger";
-import Limiter from "./libs/limiter";
+// Routers
+import userRouter from "./src/user/router";
+import authRouter from "./src/auth/router"
+import tenantRouter from "./src/tenant/router";
+import tenantUserRouter from './src/tenantUser/router';
 
 dotenv.config();
 
@@ -73,13 +79,47 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // --- Routes ---
-app.use("/", IndexRouter);
 
+const router = Router();
+router.use("/auth", authRouter);
+router.use("/tenant", tenantRouter);
+router.use("/tenantUser", tenantUserRouter);
+router.use("/user", userRouter);
+
+
+app.use("/api", router);
 
 
 // --- Welcome Route ---
 app.get("/", (request: Request, response: Response) => {
-    response.send("Welcome to the Express server!");
+    response.json({
+        message: "Welcome to the API",
+        version: process.env.npm_package_version,
+        env: process.env.NODE_ENV,
+        csrfToken: request.csrfToken(),
+        csrfCookie: request.cookies["XSRF-TOKEN"],
+        csrfHeader: request.headers["x-xsrf-token"],
+    });
+});
+
+// --- Health Check Route ---
+app.get("/health", async (request: Request, response: Response) => {
+
+    const redisStatus = await redisInstance.ping()
+        .then(() => true)
+        .catch(() => false);
+    const dbStatus = await prisma.$queryRaw`SELECT 1`
+        .then(() => true)
+        .catch(() => false);
+    const serverStatus = true;
+    const status = redisStatus && dbStatus && serverStatus;
+
+    response.status(200).json({
+        message: "OK",
+        databaseStatus: dbStatus ? "OK" : "ERROR",
+        redisStatus: redisStatus ? "OK" : "ERROR",
+        serverStatus: serverStatus ? "OK" : "ERROR",
+    });
 });
 
 

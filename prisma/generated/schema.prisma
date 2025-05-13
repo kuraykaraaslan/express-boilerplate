@@ -1,0 +1,349 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+  output          = "../prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OTPMethod {
+  EMAIL
+  SMS
+  TOTP_APP // (e.g. Authenticator apps)
+  PUSH_APP // (e.g. Your own mobile app with push notification)
+}
+
+model User {
+  userId   String  @id @default(cuid())
+  email    String  @unique
+  phone    String? @unique
+  password String
+
+  name     String?
+  lastName String?
+
+  userRole   UserRole   @default(USER)
+  userStatus UserStatus @default(ACTIVE)
+
+  //Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  //Profile
+  profilePicture String?
+
+  //OTP verification
+  otpMethods OTPMethod[] @default([])
+  otpSecret  String?
+
+  userSessions       UserSession[]
+  userSocialAccounts UserSocialAccount[]
+  tenantUsers        TenantUser[]
+
+  //User Nationalty
+  userNationalityId      String?
+  userNationalityCountry String?
+
+  //index
+  @@index([email])
+  @@index([phone])
+}
+
+model UserSession {
+  userSessionId String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  accessToken  String @unique
+  refreshToken String @unique
+
+  sessionExpiry DateTime
+
+  //OTP Needed
+  otpVerifyNeeded Boolean   @default(false)
+  otpVerifiedAt   DateTime?
+
+  // User Agent
+  ip      String?
+  os      String?
+  device  String?
+  browser String?
+  city    String?
+  state   String?
+  country String?
+
+  deviceFingerprint String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserSocialAccount {
+  userSocialAccountId String @id @default(cuid())
+  userId              String
+  user                User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  provider       String // google, facebook, etc
+  providerId     String    @unique
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiry    DateTime?
+  profilePicture String?
+  profileUrl     String?
+  scopes         String? // Store granted scopes as a comma-separated list if needed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([provider, providerId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Tenant {
+  tenantId    String  @id @default(cuid())
+  name        String
+  description String?
+
+  tenantStatus TenantStatus @default(ACTIVE)
+
+  //Relationships
+  tenantUsers TenantUser[]
+
+  //Domain
+  domain String
+
+  region String @default("TR")
+
+  subscriptions Subscription[]
+
+  //Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TenantUserRole {
+  USER
+  ADMIN
+}
+
+enum TenantUserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model TenantUser {
+  tenantUserId String @id @default(cuid())
+  tenantId     String
+  tenant       Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  tenantUserRole   TenantUserRole   @default(USER)
+  tenantUserStatus TenantUserStatus @default(ACTIVE)
+
+  //Session
+  userSessionId String? @unique
+
+  //Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Settings {
+  tenantSettingId String @id @default(cuid())
+  tenantId        String // "SYSTEM" for system settings
+
+  key   String
+  value String // JSON string to store complex settings
+
+  @@unique([tenantId, key])
+  @@index([tenantId, key])
+}
+
+enum SubscriptionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  IYZICO
+}
+
+enum Currency {
+  USD
+  EUR
+  TRY
+  GBP
+}
+
+enum SubscriptionBillingCycle {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model SubscriptionPrice {
+  subscriptionPriceId String @id @default(cuid())
+
+  default Boolean @default(false)
+
+  region   String[] @default(["TR", "EU", "US"])
+  currency Currency @default(USD)
+  price    Float
+
+  methods PaymentMethod[] @default([STRIPE, PAYPAL, IYZICO])
+
+  subscriptionPlanId String
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
+
+  iyzicoPricingPlanRefId String? // Reference ID for Iyzico pricing plan
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cancelledAt DateTime?
+
+  Subscription Subscription[]
+
+  @@unique([region, currency])
+}
+
+model SubscriptionPlan {
+  subscriptionPlanId String  @id @default(cuid())
+  name               String
+  description        String?
+
+  price        SubscriptionPrice[]
+  billingCycle SubscriptionBillingCycle @default(MONTHLY)
+
+  //Relationships
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  subscriptionId String @id @default(cuid())
+
+  // Stripe Fields (Optional)
+  stripePaymentIntentId           String?
+  stripePaymentIntentStatus       String?
+  stripePaymentIntentClientSecret String?
+
+  // PayPal Fields (Optional)
+  paypalOrderId     String?
+  paypalApprovalUrl String?
+  paypalCaptureId   String?
+
+  // Iyzico Fields (Optional)
+  iyzicoPaymentId String?
+  iyzicoToken     String?
+
+  subscriptionPlanId String
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [subscriptionPlanId], onDelete: Cascade)
+
+  subscriptionPriceId String
+  subscriptionPrice   SubscriptionPrice @relation(fields: [subscriptionPriceId], references: [subscriptionPriceId], onDelete: Cascade)
+
+  // Discounts
+  discountCode   String? // Code used for discount
+  discountAmount Float? // Amount of discount applied
+
+  taxRate   Float? // Tax rate applied to the order
+  taxAmount Float? // Amount of tax applied to the order
+
+  paidPrice Float // Total amount after discounts and taxes
+  currency  Currency @default(USD)
+
+  subscriptionStatus SubscriptionStatus @default(PENDING)
+  paymentMethod      PaymentMethod
+
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  cancelledAt DateTime?
+  refundedAt  DateTime?
+
+  //Address Snapshots
+  billingAddressId String?
+  billingAddress   Address? @relation("BillingAddress", fields: [billingAddressId], references: [addressId])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+}
+
+enum AddressIntent {
+  BILLING
+  SHIPPING
+}
+
+enum AddressType {
+  PERSONAL
+  BUSINESS
+}
+
+model Address {
+  addressId String @id @default(cuid())
+  tenantId  String
+
+  // Opposite relation fields
+  billingOrders Subscription[] @relation("BillingAddress")
+
+  addressIntents AddressIntent[]
+  addressType    AddressType
+
+  name String
+
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  country      String
+  zipCode      String?
+
+  //Personal Information
+  phoneNumber String?
+  email       String?
+
+  firstName String? //Business Name for business addresses
+  lastName  String? // Empty for business addresses
+
+  taxOffice String?
+  taxId     String?
+
+  // Relationships
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
