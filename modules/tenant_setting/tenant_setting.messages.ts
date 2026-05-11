@@ -1,0 +1,4 @@
+export enum TenantSettingMessages {
+  SETTING_NOT_FOUND = 'SETTING_NOT_FOUND',
+  SETTING_UPDATED = 'SETTING_UPDATED',
+}
