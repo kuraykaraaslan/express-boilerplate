@@ -1,8 +1,14 @@
-import app from './index';
+import app from "./index";
+import { AppDataSource } from "@/libs/typeorm";
+import { env } from "@/libs/env";
 
-const port = process.env.PORT || process.env.APPLICATION_PORT || 3002;
+const port = env.PORT;
 
-app.listen(port, () => {
-    console.log(`Server started at port ${port}`);
-});
-
+AppDataSource.initialize()
+  .then(() => {
+    console.log('TypeORM connection ready');
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  })
+  .catch((error: any) => console.error('TypeORM connection error:', error));

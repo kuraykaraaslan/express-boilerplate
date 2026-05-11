@@ -1,11 +1,11 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
     'index.ts',
     '!node_modules/**',
     '!public/**',
-    './**/*.ts',
+    "@/**/*.ts",
   ],
   format: ['cjs'],
   target: 'node18',

@@ -13,13 +13,26 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "baseUrl": "./", // Base directory for module resolution
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"], // Map @/ to the root directory,
-      "@/dtos/*": ["./dtos/*"], // Map @/dtos/ to the types directory      
+      "@/*": [
+        "./*"
+      ]
     },
-    "typeRoots": [".domains/**/types", "./node_modules/@types"]
+    "typeRoots": [
+      "node_modules/@types"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"], // Include all TypeScript files
-  "exclude": ["node_modules", "dist"], // Exclude node_modules and dist
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts",
+    "modules/**/*.ts",
+    "libs/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src"
+  ]
 }

@@ -1,9 +1,10 @@
-import type { Config } from 'jest';
+import type { Config } from "jest";
 
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/\\.claude/'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
