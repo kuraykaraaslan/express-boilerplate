@@ -1,5 +1,3 @@
-import "module-alias/register";
-import "./modules/common/app-error";
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
