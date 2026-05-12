@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import { SafeUser } from '@/modules/user/user.types';
 import { SafeUserSession } from '@/modules/user_session/user_session.types';
 import UserSessionService from '@/modules/user_session/user_session.service';

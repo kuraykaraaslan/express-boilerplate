@@ -1,10 +1,10 @@
 import app from "./index";
-import { AppDataSource } from "@/modules_express/db";
-import { env } from "@/modules_express/env";
+import { SystemDataSource } from "@/modules/db/db.system";
+import { env } from "@/modules/env";
 
 const port = env.PORT;
 
-AppDataSource.initialize()
+SystemDataSource.initialize()
   .then(() => {
     console.log('TypeORM connection ready');
     app.listen(port, () => {

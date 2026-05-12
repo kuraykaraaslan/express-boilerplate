@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import WebhookService from '@/modules/webhook/webhook.service';
 import { CreateWebhookDTO, UpdateWebhookDTO, ListWebhooksDTO, ListDeliveriesDTO } from '@/modules/webhook/webhook.dto';
 

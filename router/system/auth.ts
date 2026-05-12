@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
-import Limiter from '@/modules_express/limiter';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
+import Limiter from '@/modules_express/limiter/limiter.service.express';
 
 import AuthService from '@/modules/auth/auth.service';
 import AuthPasswordService from '@/modules/auth/auth.password.service';

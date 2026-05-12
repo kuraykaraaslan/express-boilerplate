@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import SettingService from "@/modules/setting/setting.service";
-import { AppError } from "@/modules_express/common/app-error";
+import { AppError } from "@/modules/common/app-error";
 
 const router = Router();
 

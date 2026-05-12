@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import TenantSubscriptionService from '@/modules/tenant_subscription/tenant_subscription.service';
 import { AssignSubscriptionRequestSchema } from '@/modules/tenant_subscription/tenant_subscription.dto';
 

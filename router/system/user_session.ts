@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import UserSessionService from '@/modules/user_session/user_session.service';
 import { RefreshTokenDTO } from '@/modules/auth/auth.dto';
 import { UserSessionMessages } from '@/modules/user_session/user_session.messages';

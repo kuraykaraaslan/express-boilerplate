@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import UserSecurityService from '@/modules/user_security/user_security.service';
 
 // TODO: import AuthMiddleware from "@/modules/auth/middleware"

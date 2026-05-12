@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import UserProfileService from '@/modules/user_profile/user_profile.service';
 import { UpdateProfileRequestSchema } from '@/modules/user_profile/user_profile.dto';
 

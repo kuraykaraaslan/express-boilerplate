@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import ApiKeyService from '@/modules/api_key/api_key.service';
 import { CreateApiKeyDTO, ListApiKeysDTO } from '@/modules/api_key/api_key.dto';
 

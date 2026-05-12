@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import PaymentService from '@/modules/payment/payment.service';
 import { CreatePaymentRequestSchema, GetPaymentByIdRequestSchema } from '@/modules/payment/payment.dto';
 

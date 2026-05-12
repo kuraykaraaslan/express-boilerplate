@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import TenantSettingService from '@/modules/tenant_setting/tenant_setting.service';
 
 // TODO: import { AuthMiddleware } from '@/modules_express/auth/middleware';

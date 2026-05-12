@@ -1,4 +1,4 @@
-import "@/../bootstrap/global-errors";
+import "@/modules/common/app-error";
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -7,11 +7,11 @@ import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
 import { errorHandler } from "@/modules_express/common/error-handler.middleware";
-import Logger from "@/modules_express/logger";
-import Limiter from "@/modules_express/limiter";
-import redis from "@/modules_express/redis";
-import { AppDataSource } from "@/modules_express/db";
-import { env } from "@/modules_express/env";
+import Logger from "@/modules_express/logger/logger.service.express";
+import Limiter from "@/modules_express/limiter/limiter.service.express";
+import redis from "@/modules/redis";
+import { SystemDataSource } from "@/modules/db/db.system";
+import { env } from "@/modules/env";
 
 import proxyRouter from "@/router";
 
@@ -68,7 +68,7 @@ app.get("/health", async (_req: Request, response: Response) => {
     const redisStatus = await redis.ping()
         .then(() => true)
         .catch(() => false);
-    const dbStatus = await AppDataSource.query('SELECT 1')
+    const dbStatus = await SystemDataSource.query('SELECT 1')
         .then(() => true)
         .catch(() => false);
     const serverStatus = true;

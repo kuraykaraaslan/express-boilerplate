@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import CouponService from '@/modules/coupon/coupon.service';
 import { ValidateCouponRequestSchema, ApplyCouponRequestSchema } from '@/modules/coupon/coupon.dto';
 

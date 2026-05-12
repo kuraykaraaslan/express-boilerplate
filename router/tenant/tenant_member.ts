@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import { SafeUser } from '@/modules/user/user.types';
 import AuthMiddleware from '@/modules_express/auth/auth.middleware';
 import TenantMemberMiddleware from '@/modules_express/tenant_member/tenant_member.middleware';
