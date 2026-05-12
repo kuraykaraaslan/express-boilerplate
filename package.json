@@ -11,9 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "clean": "rm -rf dist",
-    "rebuild": "npm run clean && npm run build",
-    "vercel-build": "npm run build"
+    "clean": "rm -rf dist"
   },
   "repository": {
     "type": "git",
