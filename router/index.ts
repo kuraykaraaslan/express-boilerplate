@@ -6,8 +6,8 @@ import systemRouter from "@/router/system";
 import tenantScopedRouter from "@/router/tenant";
 
 const isDev = process.env.NODE_ENV !== "production";
-const DEFAULT_SUBDOMAIN = process.env.TENANT_DEFAULT_SUBDOMAIN || "system";
-const WILDCARD_DOMAIN = process.env.TENANT_WILDCARD_DOMAIN || "example.com";
+const DEFAULT_SUBDOMAIN = process.env.TENANT_DEFAULT_SUBDOMAIN || "express-boilerplate";
+const WILDCARD_DOMAIN = process.env.TENANT_WILDCARD_DOMAIN || "kuray.dev";
 const TENANCY_MODE = (process.env.TENANCY_MODE || "domain") as "domain" | "path";
 const TENANT_PATH_PREFIX = process.env.TENANT_PATH_PREFIX || "t";
 
