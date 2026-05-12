@@ -1,38 +1,47 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { SessionStatusEnum } from "./user_session.enums";
+import { TenantMemberRoleEnum } from "../tenant_member/tenant_member.enums";
+
+export const SessionMetaSchema = z.object({
+  impersonation: z.object({
+    impersonatorUserId: z.string().uuid(),
+    impersonatorSessionId: z.string().uuid(),
+    tenantId: z.string().uuid().optional(),
+    targetTenantRole: TenantMemberRoleEnum.optional(),
+  }).optional(),
+}).passthrough();
+
+export type SessionMeta = z.infer<typeof SessionMetaSchema>;
 
 // Helper to coerce dates from JSON (handles both Date and string)
-const dateOrString = z
-  .union([z.date(), z.string().datetime()])
-  .transform((val) => (typeof val === 'string' ? new Date(val) : val));
+const dateOrString = z.union([z.date(), z.string().datetime()]).transform(val => 
+  typeof val === 'string' ? new Date(val) : val
+);
 
-const dateOrStringNullable = z
-  .union([z.date(), z.string().datetime()])
-  .transform((val) => (typeof val === 'string' ? new Date(val) : val))
-  .nullable();
+const dateOrStringNullable = z.union([z.date(), z.string().datetime()]).transform(val => 
+  typeof val === 'string' ? new Date(val) : val
+).nullable();
 
 export const UserSessionSchema = z.object({
   userSessionId: z.string().uuid(),
   userId: z.string().uuid(),
   accessToken: z.string(),
   refreshToken: z.string(),
+  deviceFingerprint: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  ipAddress: z.string().nullable(),
+  sessionStatus: SessionStatusEnum.default("ACTIVE"),
+  otpVerifyNeeded: z.boolean().nullish().transform(val => val ?? false),
   sessionExpiry: dateOrString,
-  deviceFingerprint: z.string().nullable().optional(),
-  otpVerifyNeeded: z.boolean().default(false),
-  otpVerifiedAt: dateOrStringNullable.optional(),
-  ip: z.string().nullable().optional(),
-  os: z.string().nullable().optional(),
-  device: z.string().nullable().optional(),
-  browser: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  state: z.string().nullable().optional(),
-  country: z.string().nullable().optional(),
   createdAt: dateOrStringNullable,
   updatedAt: dateOrStringNullable,
+  metadata: SessionMetaSchema.nullable().optional(),
 });
 
 export const SafeUserSessionSchema = UserSessionSchema.omit({
   accessToken: true,
   refreshToken: true,
+  deviceFingerprint: true,
 });
 
 export type UserSession = z.infer<typeof UserSessionSchema>;

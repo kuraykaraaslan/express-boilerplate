@@ -1,107 +1,67 @@
 import 'reflect-metadata';
-import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { AppDataSource } from '@/libs/typeorm';
-import { Logger } from '@/libs/logger';
-import { AuditLog as AuditLogEntity } from './entities/AuditLog';
-import { AuditLogSchema } from './audit_log.types';
-import type { AuditLog, CreateAuditLogInput } from './audit_log.types';
-import type { GetAuditLogsInput } from './audit_log.dto';
+import { ILike } from 'typeorm';
+import { getSystemDataSource, tenantDataSourceFor } from '@/libs/typeorm';
+import { AuditLog as AuditLogEntity } from './entities/audit_log.entity';
+import { TenantAuditLog as TenantAuditLogEntity } from './entities/audit_log_tenant.entity';
+import Logger from '@/libs/logger';
+import { AuditLogSchema, type AuditLog } from './audit_log.types';
+import { CreateAuditLogDTO, GetAuditLogsDTO, type CreateAuditLogInput, type GetAuditLogsInput } from './audit_log.dto';
 
 export default class AuditLogService {
-  private static get repo() {
-    return AppDataSource.getRepository(AuditLogEntity);
+
+  static async log(input: CreateAuditLogInput): Promise<void> {
+    try {
+      const data = CreateAuditLogDTO.parse(input);
+
+      if (data.tenantId) {
+        const { tenantId, ...rest } = data;
+        const ds = await tenantDataSourceFor(tenantId);
+        const repo = ds.getRepository(TenantAuditLogEntity);
+        await repo.save(repo.create({ ...rest, tenantId } as any));
+      } else {
+        const { tenantId: _t, ...systemData } = data;
+        const ds = await getSystemDataSource();
+        const repo = ds.getRepository(AuditLogEntity);
+        await repo.save(repo.create(systemData as any));
+      }
+
+      Logger.info(
+        `[AUDIT] ${data.actorType}:${data.actorId ?? 'system'} → ${data.action}` +
+        (data.resourceType ? ` on ${data.resourceType}:${data.resourceId ?? '?'}` : '') +
+        (data.tenantId ? ` [tenant:${data.tenantId}]` : '')
+      );
+    } catch (err: unknown) {
+      Logger.error(`[AUDIT] Failed to write audit log: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
-  /**
-   * Fire-and-forget audit log write. Returns promise for explicit await.
-   */
-  static async log(data: CreateAuditLogInput): Promise<AuditLog> {
-    const repo = AuditLogService.repo;
-    const entry = repo.create({
-      action: data.action,
-      tenantId: data.tenantId ?? null,
-      userId: data.userId ?? null,
-      resourceType: data.resourceType ?? null,
-      resourceId: data.resourceId ?? null,
-      metadata: data.metadata ?? null,
-      ipAddress: data.ipAddress ?? null,
-      userAgent: data.userAgent ?? null,
-    });
-    const saved = await repo.save(entry);
-    return AuditLogSchema.parse(saved);
-  }
+  static async getAll(input: GetAuditLogsInput): Promise<{ logs: AuditLog[]; total: number }> {
+    const { tenantId, actorId, action, resourceType, resourceId, page, pageSize } = GetAuditLogsDTO.parse(input);
 
-  /**
-   * Try/catch wrapper — errors are silently logged and never thrown.
-   */
-  static logSafe(data: CreateAuditLogInput): void {
-    AuditLogService.log(data).catch((err) => {
-      Logger.error(`[AuditLog] Failed to write log: ${err instanceof Error ? err.message : String(err)}`);
-    });
-  }
+    const where: Record<string, unknown> = {};
+    if (actorId) where.actorId = actorId;
+    if (action) where.action = ILike(`%${action}%`);
+    if (resourceType) where.resourceType = resourceType;
+    if (resourceId) where.resourceId = resourceId;
 
-  static async findByTenant(
-    tenantId: string,
-    filter: GetAuditLogsInput,
-  ): Promise<{ logs: AuditLog[]; total: number }> {
-    const { page, limit, action, startDate, endDate } = filter;
-    const where: Record<string, unknown> = { tenantId };
+    if (tenantId) {
+      where.tenantId = tenantId;
+      const ds = await tenantDataSourceFor(tenantId);
+      const repo = ds.getRepository(TenantAuditLogEntity);
+      const [rows, total] = await Promise.all([
+        repo.find({ where: where as any, order: { createdAt: 'DESC' }, skip: (page - 1) * pageSize, take: pageSize }),
+        repo.count({ where: where as any }),
+      ]);
+      return { logs: rows.map((r) => AuditLogSchema.parse(r)), total };
+    }
 
-    if (action) where.action = action;
-    if (startDate && endDate) where.createdAt = Between(startDate, endDate);
-    else if (startDate) where.createdAt = MoreThanOrEqual(startDate);
-    else if (endDate) where.createdAt = LessThanOrEqual(endDate);
-
-    const [rows, total] = await AuditLogService.repo.findAndCount({
-      where: where as any,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(AuditLogEntity);
+    const [rows, total] = await Promise.all([
+      repo.find({ where: where as any, order: { createdAt: 'DESC' }, skip: (page - 1) * pageSize, take: pageSize }),
+      repo.count({ where: where as any }),
+    ]);
     return { logs: rows.map((r) => AuditLogSchema.parse(r)), total };
   }
 
-  static async findByUser(
-    userId: string,
-    filter: GetAuditLogsInput,
-  ): Promise<{ logs: AuditLog[]; total: number }> {
-    const { page, limit, action, startDate, endDate } = filter;
-    const where: Record<string, unknown> = { userId };
-
-    if (action) where.action = action;
-    if (startDate && endDate) where.createdAt = Between(startDate, endDate);
-    else if (startDate) where.createdAt = MoreThanOrEqual(startDate);
-    else if (endDate) where.createdAt = LessThanOrEqual(endDate);
-
-    const [rows, total] = await AuditLogService.repo.findAndCount({
-      where: where as any,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    return { logs: rows.map((r) => AuditLogSchema.parse(r)), total };
-  }
-
-  static async findSystemLogs(
-    filter: GetAuditLogsInput,
-  ): Promise<{ logs: AuditLog[]; total: number }> {
-    const { page, limit, action, startDate, endDate } = filter;
-    const where: Record<string, unknown> = { tenantId: null };
-
-    if (action) where.action = action;
-    if (startDate && endDate) where.createdAt = Between(startDate, endDate);
-    else if (startDate) where.createdAt = MoreThanOrEqual(startDate);
-    else if (endDate) where.createdAt = LessThanOrEqual(endDate);
-
-    const [rows, total] = await AuditLogService.repo.findAndCount({
-      where: where as any,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    return { logs: rows.map((r) => AuditLogSchema.parse(r)), total };
-  }
 }

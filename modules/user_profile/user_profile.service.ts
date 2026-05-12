@@ -1,82 +1,114 @@
 import 'reflect-metadata';
-
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-
-import { UserProfile as UserProfileEntity } from './entities/UserProfile';
-import { UserProfile, SafeUserProfile, UserProfileSchema, SafeUserProfileSchema } from './user_profile.types';
-import { UpdateUserProfileInput } from './user_profile.dto';
-import { UserProfileMessages } from './user_profile.messages';
+import { getSystemDataSource } from '@/libs/typeorm';
+import { UserProfile as UserProfileEntity } from './entities/user_profile.entity';
+import { UserProfile, UserProfileSchema, SocialLinkItem } from './user_profile.types';
 
 export default class UserProfileService {
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Find or Create
-  // ──────────────────────────────────────────────────────────────────────────
+  static async getByUserId(userId: string): Promise<UserProfile | null> {
+    const ds = await getSystemDataSource();
+    const profile = await ds.getRepository(UserProfileEntity).findOne({ where: { userId } });
+    return profile ? UserProfileSchema.parse(profile) : null;
+  }
 
-  /**
-   * Returns existing profile or creates a default one.
-   */
-  static async findOrCreate(userId: string): Promise<UserProfile> {
-    const repo = AppDataSource.getRepository(UserProfileEntity);
+  static async create(userId: string, data?: Partial<UserProfile>): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
     const existing = await repo.findOne({ where: { userId } });
-    if (existing) return UserProfileSchema.parse(existing);
+    if (existing) throw new Error('Profile already exists for this user');
 
     const profile = repo.create({
       userId,
-      socialLinks: [],
+      name: data?.name ?? undefined,
+      biography: data?.biography ?? undefined,
+      profilePicture: data?.profilePicture ?? undefined,
+      headerImage: data?.headerImage ?? undefined,
+      socialLinks: data?.socialLinks ?? [],
     });
     const saved = await repo.save(profile);
     return UserProfileSchema.parse(saved);
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Read
-  // ──────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Returns the safe profile for the given userId. Creates if not found.
-   */
-  static async findByUserId(userId: string): Promise<SafeUserProfile> {
-    const profile = await this.findOrCreate(userId);
-    return this.omitSensitiveFields(profile);
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Update
-  // ──────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Updates mutable profile fields and returns the updated safe profile.
-   */
-  static async update(userId: string, data: UpdateUserProfileInput): Promise<SafeUserProfile> {
-    const repo = AppDataSource.getRepository(UserProfileEntity);
+  static async update(userId: string, data: Partial<UserProfile>): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
     const profile = await repo.findOne({ where: { userId } });
-    if (!profile) {
-      throw new AppError(UserProfileMessages.PROFILE_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
-    }
+    if (!profile) throw new Error('Profile not found');
 
     await repo.update({ userId }, {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.lastName !== undefined && { lastName: data.lastName }),
-      ...(data.biography !== undefined && { biography: data.biography }),
-      ...(data.profilePicture !== undefined && { profilePicture: data.profilePicture }),
-      ...(data.headerImage !== undefined && { headerImage: data.headerImage }),
-      ...(data.socialLinks !== undefined && { socialLinks: data.socialLinks }),
+      name: data.name || undefined,
+      biography: data.biography || undefined,
+      profilePicture: data.profilePicture || undefined,
+      headerImage: data.headerImage || undefined,
+      socialLinks: data.socialLinks,
     });
-
     const updated = await repo.findOne({ where: { userId } });
-    return this.omitSensitiveFields(UserProfileSchema.parse(updated!));
+    return UserProfileSchema.parse(updated!);
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Safe fields
-  // ──────────────────────────────────────────────────────────────────────────
+  static async upsert(userId: string, data: Partial<UserProfile>): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
+    const existing = await repo.findOne({ where: { userId } });
 
-  /**
-   * Parses a profile through the SafeUserProfileSchema.
-   */
-  static omitSensitiveFields(profile: UserProfile): SafeUserProfile {
-    return SafeUserProfileSchema.parse(profile);
+    if (existing) {
+      await repo.update({ userId }, {
+        name: data.name || undefined,
+        biography: data.biography || undefined,
+        profilePicture: data.profilePicture || undefined,
+        headerImage: data.headerImage || undefined,
+        socialLinks: data.socialLinks,
+      });
+      const updated = await repo.findOne({ where: { userId } });
+      return UserProfileSchema.parse(updated!);
+    }
+
+    return this.create(userId, data);
+  }
+
+  static async delete(userId: string): Promise<void> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
+    const profile = await repo.findOne({ where: { userId } });
+    if (!profile) throw new Error('Profile not found');
+    await repo.delete({ userId });
+  }
+
+  static async addSocialLink(userId: string, link: SocialLinkItem): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
+    const profile = await repo.findOne({ where: { userId } });
+    if (!profile) throw new Error('Profile not found');
+
+    const socialLinks = [...(profile.socialLinks as SocialLinkItem[]), link];
+    await repo.update({ userId }, { socialLinks });
+    const updated = await repo.findOne({ where: { userId } });
+    return UserProfileSchema.parse(updated!);
+  }
+
+  static async removeSocialLink(userId: string, linkId: string): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
+    const profile = await repo.findOne({ where: { userId } });
+    if (!profile) throw new Error('Profile not found');
+
+    const socialLinks = (profile.socialLinks as SocialLinkItem[]).filter((l) => l.id !== linkId);
+    await repo.update({ userId }, { socialLinks });
+    const updated = await repo.findOne({ where: { userId } });
+    return UserProfileSchema.parse(updated!);
+  }
+
+  static async updateSocialLink(userId: string, linkId: string, data: Partial<SocialLinkItem>): Promise<UserProfile> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserProfileEntity);
+    const profile = await repo.findOne({ where: { userId } });
+    if (!profile) throw new Error('Profile not found');
+
+    const socialLinks = (profile.socialLinks as SocialLinkItem[]).map((l) =>
+      l.id === linkId ? { ...l, ...data } : l
+    );
+    await repo.update({ userId }, { socialLinks });
+    const updated = await repo.findOne({ where: { userId } });
+    return UserProfileSchema.parse(updated!);
   }
 }

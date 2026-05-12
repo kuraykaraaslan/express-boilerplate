@@ -1,31 +1,47 @@
 import { z } from 'zod';
 import { OTPMethodEnum } from './user_security.enums';
 
-// Helper to coerce dates from JSON
-const dateOrString = z
-  .union([z.date(), z.string().datetime()])
-  .transform((val) => (typeof val === 'string' ? new Date(val) : val))
-  .nullable();
+export const StoredPasskeySchema = z.object({
+  credentialId: z.string(),
+  publicKey: z.string(),       // base64url encoded COSE key
+  counter: z.number(),
+  aaguid: z.string(),
+  label: z.string(),
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+  transports: z.array(z.string()),
+});
+
+export type StoredPasskey = z.infer<typeof StoredPasskeySchema>;
 
 export const UserSecuritySchema = z.object({
-  userSecurityId: z.string().uuid(),
-  userId: z.string(),
-  failedLoginAttempts: z.number().int().default(0),
-  lockedUntil: dateOrString.optional(),
-  otpMethods: z.array(OTPMethodEnum).nullish().transform((val) => val ?? []),
-  otpSecret: z.string().nullable().optional(),
-  otpBackupCodes: z.array(z.string()).nullish().transform((val) => val ?? []),
-  emailVerifiedAt: dateOrString.optional(),
-  lastLoginAt: dateOrString.optional(),
-  lastLoginIp: z.string().nullable().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  otpMethods: z.array(OTPMethodEnum).nullish().transform(val => val ?? []),
+  otpSecret: z.string().nullable(),
+  otpBackupCodes: z.array(z.string()).nullish().transform(val => val ?? []),
+  lastLoginAt: z.date().nullable(),
+  lastLoginIp: z.string().nullable(),
+  lastLoginDevice: z.string().nullable(),
+  failedLoginAttempts: z.number().nullish().transform(val => val ?? 0),
+  lockedUntil: z.date().nullable(),
+  passkeyEnabled: z.boolean().nullish().transform(val => val ?? false),
+  passkeys: z.array(StoredPasskeySchema).nullish().transform(val => val ?? []),
 });
 
 export const SafeUserSecuritySchema = UserSecuritySchema.omit({
   otpSecret: true,
   otpBackupCodes: true,
 });
+
+export const SafeUserSecurityDefault: z.infer<typeof SafeUserSecuritySchema> = {
+  otpMethods: [],
+  lastLoginAt: null,
+  lastLoginIp: null,
+  lastLoginDevice: null,
+  failedLoginAttempts: 0,
+  lockedUntil: null,
+  passkeyEnabled: false,
+  passkeys: [],
+};
 
 export type UserSecurity = z.infer<typeof UserSecuritySchema>;
 export type SafeUserSecurity = z.infer<typeof SafeUserSecuritySchema>;

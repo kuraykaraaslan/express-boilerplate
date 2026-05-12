@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
-export const DomainVerificationStatusEnum = z.enum(['PENDING', 'VERIFIED', 'FAILED']);
+export const DomainStatusEnum = z.enum([
+  'ACTIVE',
+  'INACTIVE',
+  'PENDING',
+  'VERIFIED'
+]);
 
-export type DomainVerificationStatus = z.infer<typeof DomainVerificationStatusEnum>;
+export const VerificationMethodEnum = z.enum([
+  'TXT',
+  'CNAME'
+]);
+
+export type DomainStatus = z.infer<typeof DomainStatusEnum>;
+export type VerificationMethod = z.infer<typeof VerificationMethodEnum>;

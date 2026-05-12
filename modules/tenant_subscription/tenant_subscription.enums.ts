@@ -1,18 +1,19 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
-export const SubscriptionStatusEnum = z.enum([
-  'ACTIVE',
-  'INACTIVE',
-  'TRIAL',
-  'PAST_DUE',
-  'CANCELED',
-  'EXPIRED',
-]);
+// Subscription Plan Status - matches Prisma SubscriptionPlanStatus enum
+export const SubscriptionPlanStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED'])
 
-export const BillingCycleEnum = z.enum(['MONTHLY', 'ANNUAL']);
+// Subscription Status - matches Prisma SubscriptionStatus enum
+export const SubscriptionStatusEnum = z.enum(['ACTIVE', 'PAST_DUE', 'CANCELLED', 'EXPIRED', 'TRIALING'])
 
-export const CurrencyEnum = z.enum(['USD', 'EUR', 'TRY', 'GBP']);
+// Billing Interval - matches Prisma BillingInterval enum
+export const BillingIntervalEnum = z.enum(['MONTHLY', 'YEARLY'])
 
-export type SubscriptionStatus = z.infer<typeof SubscriptionStatusEnum>;
-export type BillingCycle = z.infer<typeof BillingCycleEnum>;
-export type Currency = z.infer<typeof CurrencyEnum>;
+// Plan Feature Type - matches Prisma PlanFeatureType enum
+export const PlanFeatureTypeEnum = z.enum(['BOOLEAN', 'LIMIT'])
+
+// Type exports
+export type SubscriptionPlanStatus = z.infer<typeof SubscriptionPlanStatusEnum>
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatusEnum>
+export type BillingInterval = z.infer<typeof BillingIntervalEnum>
+export type PlanFeatureType = z.infer<typeof PlanFeatureTypeEnum>

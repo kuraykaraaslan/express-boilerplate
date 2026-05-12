@@ -1,216 +1,145 @@
 import 'reflect-metadata';
-import { IsNull } from 'typeorm';
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import { TenantMember as TenantMemberEntity } from './entities/TenantMember';
+import { IsNull, ILike, In } from 'typeorm';
+import type { FindOptionsWhere } from 'typeorm';
+import { getSystemDataSource, tenantDataSourceFor, getDefaultTenantDataSource } from '@/libs/typeorm';
+import redis from '@/libs/redis';
+import { User as UserEntity } from '../user/entities/user.entity';
+import { TenantMember as TenantMemberEntity } from './entities/tenant_member.entity';
 import { SafeTenantMember, SafeTenantMemberSchema } from './tenant_member.types';
-import { AddMemberInput, UpdateMemberRoleInput, GetMembersInput } from './tenant_member.dto';
-import { TenantMemberMessages } from './tenant_member.messages';
+import { CreateTenantMemberInput, UpdateTenantMemberInput, GetTenantMembersInput, GetTenantMemberInput } from './tenant_member.dto';
+import TenantMemberMessages from './tenant_member.messages';
 import type { TenantMemberRole } from './tenant_member.enums';
 
-// Role hierarchy: OWNER(0) > ADMIN(1) > USER(2)
-// Lower index = higher privilege
-const ROLE_HIERARCHY: TenantMemberRole[] = ['OWNER', 'ADMIN', 'USER'];
-
 export default class TenantMemberService {
-  private static get repo() {
-    return AppDataSource.getRepository(TenantMemberEntity);
-  }
 
-  static omitSensitiveFields(member: TenantMemberEntity): SafeTenantMember {
-    return SafeTenantMemberSchema.parse(member);
-  }
+  private static readonly ROLE_HIERARCHY: TenantMemberRole[] = ['OWNER', 'ADMIN', 'USER'];
 
-  /**
-   * Add a user to a tenant. Throws if already a member.
-   */
-  static async addMember(data: AddMemberInput): Promise<SafeTenantMember> {
-    const existing = await TenantMemberService.repo.findOne({
-      where: { tenantId: data.tenantId, userId: data.userId },
-    });
+  static async getByTenantId({ tenantId, page, pageSize, search, memberRole, memberStatus }: GetTenantMembersInput): Promise<{ members: SafeTenantMember[]; total: number }> {
+    const whereBase: Record<string, unknown> = { tenantId, deletedAt: IsNull() };
+    if (memberRole) whereBase.memberRole = memberRole;
+    if (memberStatus) whereBase.memberStatus = memberStatus;
 
-    if (existing) {
-      throw new AppError(
-        TenantMemberMessages.MEMBER_ALREADY_EXISTS,
-        409,
-        ErrorCode.CONFLICT,
-      );
+    if (search) {
+      const sysDs = await getSystemDataSource();
+      const matchingUsers = await sysDs.getRepository(UserEntity).find({
+        where: { email: ILike(`%${search}%`) },
+        select: { userId: true },
+      });
+      const matchingIds = matchingUsers.map((u) => u.userId);
+      if (!matchingIds.length) return { members: [], total: 0 };
+      whereBase.userId = In(matchingIds);
     }
 
-    const member = TenantMemberService.repo.create({
-      tenantId: data.tenantId,
-      userId: data.userId,
-      memberRole: data.memberRole,
-      memberStatus: 'ACTIVE',
-      joinedAt: new Date(),
-    });
+    const safePage = Math.max(1, page);
+    const tenantDs = await tenantDataSourceFor(tenantId);
+    const repo = tenantDs.getRepository(TenantMemberEntity);
 
-    const saved = await TenantMemberService.repo.save(member);
-    return SafeTenantMemberSchema.parse(saved);
-  }
+    const [members, total] = await Promise.all([
+      repo.find({ where: whereBase as FindOptionsWhere<TenantMemberEntity>, skip: (safePage - 1) * pageSize, take: pageSize, order: { createdAt: 'DESC' } }),
+      repo.count({ where: whereBase as FindOptionsWhere<TenantMemberEntity> }),
+    ]);
 
-  /**
-   * Find a member by tenantId + userId. Returns null if not found.
-   */
-  static async findByTenantAndUser(
-    tenantId: string,
-    userId: string,
-  ): Promise<TenantMemberEntity | null> {
-    return TenantMemberService.repo.findOne({
-      where: { tenantId, userId },
-    });
-  }
-
-  /**
-   * List all members of a tenant with pagination.
-   */
-  static async findByTenant(
-    data: GetMembersInput,
-  ): Promise<{ members: SafeTenantMember[]; total: number }> {
-    const { tenantId, page, limit } = data;
-    const skip = (page - 1) * limit;
-
-    const [members, total] = await TenantMemberService.repo.findAndCount({
-      where: { tenantId },
-      skip,
-      take: limit,
-      order: { joinedAt: 'ASC' },
-    });
+    const userIds = members.map((m) => m.userId);
+    const sysDs = await getSystemDataSource();
+    const users = await sysDs.getRepository(UserEntity).find({ where: { userId: In(userIds) } });
+    const userMap = Object.fromEntries(users.map((u) => [u.userId, u]));
 
     return {
-      members: members.map((m) => SafeTenantMemberSchema.parse(m)),
+      members: members.map((member) => ({ ...SafeTenantMemberSchema.parse(member), user: userMap[member.userId] as any })),
       total,
     };
   }
 
-  /**
-   * Find all tenant memberships for a given user.
-   */
-  static async findByUser(userId: string): Promise<SafeTenantMember[]> {
-    const members = await TenantMemberService.repo.find({
-      where: { userId, memberStatus: 'ACTIVE' },
-      order: { joinedAt: 'DESC' },
-    });
-
-    return members.map((m) => SafeTenantMemberSchema.parse(m));
+  static async getById(tenantMemberId: string): Promise<SafeTenantMember> {
+    const ds = await getDefaultTenantDataSource();
+    const member = await ds.getRepository(TenantMemberEntity).findOne({ where: { tenantMemberId, deletedAt: IsNull() } });
+    if (!member) throw new Error(TenantMemberMessages.MEMBER_NOT_FOUND);
+    return SafeTenantMemberSchema.parse(member);
   }
 
-  /**
-   * Update a member's role. The OWNER role cannot be changed.
-   */
-  static async updateRole(
-    tenantId: string,
-    userId: string,
-    memberRole: TenantMemberRole,
-  ): Promise<SafeTenantMember> {
-    const member = await TenantMemberService.repo.findOne({
-      where: { tenantId, userId },
-    });
+  static async getByTenantAndUser({ tenantMemberId, tenantId, userId }: GetTenantMemberInput): Promise<SafeTenantMember | null> {
+    if (tenantMemberId) {
+      const ds = await getDefaultTenantDataSource();
+      const member = await ds.getRepository(TenantMemberEntity).findOne({ where: { tenantMemberId, deletedAt: IsNull() } });
+      if (!member || member.tenantId !== tenantId || member.userId !== userId) return null;
+      return SafeTenantMemberSchema.parse(member);
+    }
+    if (!tenantId || !userId) return null;
+    const ds = await tenantDataSourceFor(tenantId);
+    const member = await ds.getRepository(TenantMemberEntity).findOne({ where: { tenantId, userId, deletedAt: IsNull() } });
+    return member ? SafeTenantMemberSchema.parse(member) : null;
+  }
 
-    if (!member) {
-      throw new AppError(
-        TenantMemberMessages.MEMBER_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
+  static async create(data: CreateTenantMemberInput): Promise<SafeTenantMember> {
+    const ds = await tenantDataSourceFor(data.tenantId);
+    const repo = ds.getRepository(TenantMemberEntity);
+    const existing = await repo.findOne({ where: { tenantId: data.tenantId, userId: data.userId, deletedAt: IsNull() } });
+    if (existing) throw new Error(TenantMemberMessages.MEMBER_ALREADY_EXISTS);
+
+    const member = repo.create(data as Partial<TenantMemberEntity>);
+    const saved = await repo.save(member);
+    return SafeTenantMemberSchema.parse(saved);
+  }
+
+  static async update(tenantMemberId: string, data: UpdateTenantMemberInput): Promise<SafeTenantMember> {
+    const ds = await getDefaultTenantDataSource();
+    const repo = ds.getRepository(TenantMemberEntity);
+    const member = await repo.findOne({ where: { tenantMemberId, deletedAt: IsNull() } });
+    if (!member) throw new Error(TenantMemberMessages.MEMBER_NOT_FOUND);
+
+    const tenantDs = await tenantDataSourceFor(member.tenantId);
+    const tenantRepo = tenantDs.getRepository(TenantMemberEntity);
+
+    if (member.memberRole === 'OWNER' && data.memberRole && data.memberRole !== 'OWNER') {
+      const ownerCount = await tenantRepo.count({ where: { tenantId: member.tenantId, memberRole: 'OWNER', deletedAt: IsNull() } });
+      if (ownerCount <= 1) throw new Error(TenantMemberMessages.CANNOT_DEMOTE_OWNER);
     }
 
-    if (member.memberRole === 'OWNER') {
-      throw new AppError(
-        TenantMemberMessages.CANNOT_REMOVE_OWNER,
-        403,
-        ErrorCode.FORBIDDEN,
-      );
-    }
-
-    await TenantMemberService.repo.update(
-      { tenantId, userId },
-      { memberRole },
-    );
-
-    const updated = await TenantMemberService.repo.findOne({
-      where: { tenantId, userId },
-    });
-
+    const updateData = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== null));
+    await tenantRepo.update({ tenantMemberId }, updateData as Partial<TenantMemberEntity>);
+    await tenantRepo.increment({ tenantMemberId }, 'sessionVersion', 1);
+    await redis.del(`tenant:member:${member.userId}:${member.tenantId}`).catch(() => {});
+    const updated = await tenantRepo.findOne({ where: { tenantMemberId } });
     return SafeTenantMemberSchema.parse(updated!);
   }
 
-  /**
-   * Remove a member from a tenant. The OWNER cannot be removed.
-   */
-  static async removeMember(tenantId: string, userId: string): Promise<void> {
-    const member = await TenantMemberService.repo.findOne({
-      where: { tenantId, userId },
-    });
+  static async delete(tenantMemberId: string): Promise<void> {
+    const ds = await getDefaultTenantDataSource();
+    const repo = ds.getRepository(TenantMemberEntity);
+    const member = await repo.findOne({ where: { tenantMemberId, deletedAt: IsNull() } });
+    if (!member) throw new Error(TenantMemberMessages.MEMBER_NOT_FOUND);
 
-    if (!member) {
-      throw new AppError(
-        TenantMemberMessages.MEMBER_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
-    }
+    const tenantDs = await tenantDataSourceFor(member.tenantId);
+    const tenantRepo = tenantDs.getRepository(TenantMemberEntity);
 
     if (member.memberRole === 'OWNER') {
-      throw new AppError(
-        TenantMemberMessages.CANNOT_REMOVE_OWNER,
-        403,
-        ErrorCode.FORBIDDEN,
-      );
+      const ownerCount = await tenantRepo.count({ where: { tenantId: member.tenantId, memberRole: 'OWNER', deletedAt: IsNull() } });
+      if (ownerCount <= 1) throw new Error(TenantMemberMessages.LAST_OWNER);
     }
 
-    await TenantMemberService.repo.delete({ tenantId, userId });
+    await tenantRepo.update({ tenantMemberId }, { deletedAt: new Date() });
   }
 
-  /**
-   * Check whether a user has at least the required role.
-   * Returns true if the user's role is >= requiredRole in the hierarchy.
-   */
-  static async checkPermission(
-    tenantId: string,
-    userId: string,
-    requiredRole: TenantMemberRole,
-  ): Promise<boolean> {
-    const member = await TenantMemberService.repo.findOne({
-      where: { tenantId, userId, memberStatus: 'ACTIVE' },
+  static async getUserTenants(userId: string): Promise<SafeTenantMember[]> {
+    const ds = await getDefaultTenantDataSource();
+    const members = await ds.getRepository(TenantMemberEntity).find({
+      where: { userId, memberStatus: 'ACTIVE', deletedAt: IsNull() },
     });
+    return members.map((m) => SafeTenantMemberSchema.parse(m));
+  }
 
+  static hasRole(member: SafeTenantMember, requiredRole: TenantMemberRole): boolean {
+    const memberIdx = TenantMemberService.ROLE_HIERARCHY.indexOf(member.memberRole);
+    const requiredIdx = TenantMemberService.ROLE_HIERARCHY.indexOf(requiredRole);
+    return memberIdx <= requiredIdx;
+  }
+
+  static async checkPermission(tenantId: string, userId: string, requiredRole: TenantMemberRole): Promise<boolean> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const member = await ds.getRepository(TenantMemberEntity).findOne({
+      where: { tenantId, userId, memberStatus: 'ACTIVE', deletedAt: IsNull() },
+    });
     if (!member) return false;
-
-    const memberIdx = ROLE_HIERARCHY.indexOf(member.memberRole as TenantMemberRole);
-    const requiredIdx = ROLE_HIERARCHY.indexOf(requiredRole);
-
-    return memberIdx !== -1 && memberIdx <= requiredIdx;
-  }
-
-  /**
-   * Assert that a user has at least the required role.
-   * Throws 403 if not.
-   */
-  static async assertPermission(
-    tenantId: string,
-    userId: string,
-    requiredRole: TenantMemberRole,
-  ): Promise<void> {
-    const hasPermission = await TenantMemberService.checkPermission(
-      tenantId,
-      userId,
-      requiredRole,
-    );
-
-    if (!hasPermission) {
-      throw new AppError(
-        TenantMemberMessages.INSUFFICIENT_PERMISSIONS,
-        403,
-        ErrorCode.FORBIDDEN,
-      );
-    }
-  }
-
-  /**
-   * Get total number of members in a tenant.
-   */
-  static async getMemberCount(tenantId: string): Promise<number> {
-    return TenantMemberService.repo.count({ where: { tenantId } });
+    return this.hasRole(SafeTenantMemberSchema.parse(member), requiredRole);
   }
 }

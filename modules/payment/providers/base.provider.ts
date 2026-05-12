@@ -1,9 +1,23 @@
-import type { CreateCheckoutParams, CheckoutSessionResult } from '../payment.types';
+import { AxiosInstance } from 'axios'
 
-export abstract class BasePaymentProvider {
-  abstract readonly name: string;
-  abstract createCheckoutSession(params: CreateCheckoutParams): Promise<CheckoutSessionResult>;
-  abstract getPaymentStatus(externalId: string): Promise<string>;
+export interface CheckoutSessionParams {
+  amount: number
+  currency: string
+  description: string
+  metadata?: Record<string, string>
+  successUrl: string
+  cancelUrl: string
 }
 
-export type { CreateCheckoutParams, CheckoutSessionResult };
+export interface CheckoutSessionResult {
+  sessionId: string
+  checkoutUrl: string
+  providerData?: Record<string, any>
+}
+
+export default abstract class BasePaymentProvider {
+  abstract readonly name: string
+  abstract getAxiosInstance(): AxiosInstance
+  abstract getPaymentStatus(token: string): Promise<any>
+  abstract createCheckoutSession(params: CheckoutSessionParams): Promise<CheckoutSessionResult>
+}

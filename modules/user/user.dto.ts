@@ -1,49 +1,46 @@
 import { z } from 'zod';
-import { UserStatusEnum } from './user.enums';
+import { UserRoleEnum, UserStatusEnum } from './user.enums';
 
 // ============================================================================
-// Create User DTO
+// User Management DTOs
 // ============================================================================
 
-export const CreateUserDTO = z.object({
+export const CreateUserRequestSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().optional(),
-  phone: z.string().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  phone: z.string().nullable(),
+  userRole: UserRoleEnum.nullable().transform(val => val ?? 'USER'),
+  userStatus: UserStatusEnum.nullable().transform(val => val ?? 'ACTIVE')
 });
 
-export type CreateUserInput = z.infer<typeof CreateUserDTO>;
-
-// ============================================================================
-// Update User DTO
-// ============================================================================
-
-export const UpdateUserDTO = z.object({
-  name: z.string().optional(),
-  phone: z.string().optional(),
-  userStatus: UserStatusEnum.optional(),
+export const UpdateUserRequestSchema = z.object({
+  email: z.string().email().nullable(),
+  phone: z.string().nullable(),
+  userRole: UserRoleEnum.nullable(),
+  userStatus: UserStatusEnum.nullable()
 });
 
-export type UpdateUserInput = z.infer<typeof UpdateUserDTO>;
-
-// ============================================================================
-// Get Users (pagination) DTO
-// ============================================================================
-
-export const GetUsersDTO = z.object({
-  page: z.coerce.number().int().nonnegative().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(10),
-  search: z.string().optional(),
+export const GetAllUsersQuerySchema = z.object({
+  page: z.number().int().nonnegative().default(0),
+  pageSize: z.number().int().positive().max(100).default(10),
+  search: z.string().nullable(),
+  userId: z.string().nullable()
 });
 
-export type GetUsersInput = z.infer<typeof GetUsersDTO>;
-
-// ============================================================================
-// User ID DTO
-// ============================================================================
-
-export const UserIdDTO = z.object({
-  userId: z.string().uuid(),
+export const GetUserByIdSchema = z.object({
+  userId: z.string()
 });
 
-export type UserIdInput = z.infer<typeof UserIdDTO>;
+export const DeleteUserSchema = z.object({
+  userId: z.string()
+});
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>;
+export type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>;
+export type GetAllUsersQuery = z.infer<typeof GetAllUsersQuerySchema>;
+export type GetUserById = z.infer<typeof GetUserByIdSchema>;
+export type DeleteUser = z.infer<typeof DeleteUserSchema>;

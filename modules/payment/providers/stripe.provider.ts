@@ -1,61 +1,88 @@
-import axios, { AxiosInstance } from 'axios';
-import qs from 'querystring';
-import { BasePaymentProvider } from './base.provider';
-import type { CreateCheckoutParams, CheckoutSessionResult } from '../payment.types';
-import { PaymentMessages } from '../payment.messages';
-import { env } from '@/libs/env';
+import axios, { AxiosInstance } from 'axios'
+import BasePaymentProvider, { CheckoutSessionParams, CheckoutSessionResult } from './base.provider'
+import { PAYMENT_MESSAGES } from '../payment.messages'
+import SettingService from '@/modules/setting/setting.service'
+import qs from 'querystring'
 
 export default class StripeProvider extends BasePaymentProvider {
-  readonly name = 'stripe';
+  readonly name = 'stripe'
 
-  private static readonly STRIPE_API_URL = 'https://api.stripe.com/v1';
+  private static readonly STRIPE_API_URL = 'https://api.stripe.com/v1'
 
-  private getAxiosInstance(): AxiosInstance {
-    const secretKey = env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
-      throw new Error(PaymentMessages.PROVIDER_NOT_CONFIGURED);
-    }
+  private static async getSecretKey(): Promise<string> {
+    const key = await SettingService.getValue('stripeSecretKey')
+    if (!key) throw new Error(PAYMENT_MESSAGES.PROVIDER_NOT_CONFIGURED)
+    return key
+  }
+
+  private static cachedAxios: AxiosInstance | null = null
+
+  private static initializeAxios(secretKey: string): AxiosInstance {
     return axios.create({
       baseURL: StripeProvider.STRIPE_API_URL,
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-    });
+    })
   }
 
-  async getPaymentStatus(externalId: string): Promise<string> {
-    const client = this.getAxiosInstance();
-    const response = await client.get(`/payment_intents/${externalId}`);
-    return response.data.status;
-  }
-
-  async createCheckoutSession(params: CreateCheckoutParams): Promise<CheckoutSessionResult> {
-    const client = this.getAxiosInstance();
-
-    const body: Record<string, unknown> = {
-      'mode': 'payment',
-      'line_items[0][price_data][currency]': params.currency.toLowerCase(),
-      'line_items[0][price_data][product_data][name]': `Payment ${params.paymentId}`,
-      'line_items[0][price_data][unit_amount]': Math.round(params.amount * 100),
-      'line_items[0][quantity]': 1,
-      'success_url': params.successUrl ?? 'https://example.com/success',
-      'cancel_url': params.cancelUrl ?? 'https://example.com/cancel',
-      'metadata[paymentId]': params.paymentId,
-      'metadata[tenantId]': params.tenantId,
-    };
-
-    if (params.metadata) {
-      for (const [key, value] of Object.entries(params.metadata)) {
-        body[`metadata[${key}]`] = value;
-      }
+  getAxiosInstance(): AxiosInstance {
+    // Fallback for basic usage - will be overridden by dynamic key in methods
+    if (!StripeProvider.cachedAxios) {
+      StripeProvider.cachedAxios = axios.create({
+        baseURL: StripeProvider.STRIPE_API_URL,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
     }
+    return StripeProvider.cachedAxios
+  }
 
-    const response = await client.post('/checkout/sessions', qs.stringify(body as Record<string, string>));
+  private async getAuthenticatedAxios(): Promise<AxiosInstance> {
+    const secretKey = await StripeProvider.getSecretKey()
+    return StripeProvider.initializeAxios(secretKey)
+  }
 
-    return {
-      checkoutUrl: response.data.url,
-      externalId: response.data.id,
-    };
+  async getPaymentStatus(token: string): Promise<any> {
+    try {
+      const client = await this.getAuthenticatedAxios()
+      const response = await client.get(`/payment_intents/${token}`)
+      return response.data.status
+    } catch (error) {
+      throw new Error(PAYMENT_MESSAGES.STRIPE_GET_STATUS_FAILED)
+    }
+  }
+
+  async createCheckoutSession(params: CheckoutSessionParams): Promise<CheckoutSessionResult> {
+    try {
+      const client = await this.getAuthenticatedAxios()
+
+      const body: Record<string, any> = {
+        'mode': 'payment',
+        'line_items[0][price_data][currency]': params.currency.toLowerCase(),
+        'line_items[0][price_data][product_data][name]': params.description,
+        'line_items[0][price_data][unit_amount]': Math.round(params.amount * 100), // Stripe uses cents
+        'line_items[0][quantity]': 1,
+        'success_url': params.successUrl,
+        'cancel_url': params.cancelUrl,
+      }
+
+      // Add metadata
+      if (params.metadata) {
+        for (const [key, value] of Object.entries(params.metadata)) {
+          body[`metadata[${key}]`] = value
+        }
+      }
+
+      const response = await client.post('/checkout/sessions', qs.stringify(body))
+
+      return {
+        sessionId: response.data.id,
+        checkoutUrl: response.data.url,
+        providerData: { sessionId: response.data.id },
+      }
+    } catch (error) {
+      throw new Error(PAYMENT_MESSAGES.STRIPE_CREATE_INTENT_FAILED)
+    }
   }
 }

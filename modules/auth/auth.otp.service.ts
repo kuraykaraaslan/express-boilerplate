@@ -1,126 +1,211 @@
-import crypto from 'crypto';
-import redis from '@/libs/redis';
 import { env } from '@/libs/env';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import { OTPMethod } from '@/modules/user/user.enums';
-import AuthMessages from './auth.messages';
+import crypto from "crypto";
+import redis from "@/libs/redis";
+import { SafeUser } from "../user/user.types";
+import { SafeUserSession } from "../user_session/user_session.types";
+import { OTPMethod, OTPAction } from "../user_security/user_security.enums";
+import UserSessionService from "../user_session/user_session.service";
+import MailService from "../notification_mail/notification_mail.service";
+import SMSService from "../notification_sms/notification_sms.service";
+import AuthMessages from "./auth.messages";
+import Logger from "@/libs/logger";
 
-export default class AuthOTPService {
+export default class OTPService {
   private static readonly OTP_LENGTH = env.OTP_LENGTH ?? 6;
   private static readonly OTP_EXPIRY_SECONDS = env.OTP_EXPIRY_SECONDS ?? 600;
   private static readonly OTP_RATE_LIMIT_SECONDS = env.OTP_RATE_LIMIT_SECONDS ?? 60;
   private static readonly OTP_MAX_ATTEMPTS = env.OTP_MAX_ATTEMPTS ?? 5;
 
-  // ── Key helpers ────────────────────────────────────────────────────────────
-
-  private static getOTPKey(userId: string, method: OTPMethod): string {
-    return `otp:auth:${userId}:${method}`;
-  }
-
-  private static getRateKey(userId: string, method: OTPMethod): string {
-    return `otp:auth:rate:${userId}:${method}`;
-  }
-
-  private static getAttemptKey(userId: string, method: OTPMethod): string {
-    return `otp:auth:attempts:${userId}:${method}`;
-  }
-
-  // ── OTP generation ─────────────────────────────────────────────────────────
-
-  static generateToken(length = AuthOTPService.OTP_LENGTH): string {
+  /**
+   * Generate a numeric OTP token
+   */
+  static generateToken(length = OTPService.OTP_LENGTH): string {
     const min = Math.pow(10, length - 1);
     const max = Math.pow(10, length) - 1;
-    return Math.floor(min + Math.random() * (max - min))
+    return Math.floor(min + crypto.randomInt(max - min + 1))
       .toString()
-      .padStart(length, '0');
+      .padStart(length, "0");
   }
 
+  /**
+   * Hash OTP token
+   */
   private static hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
+    return crypto.createHash("sha256").update(token).digest("hex");
   }
 
-  // ── Send OTP ───────────────────────────────────────────────────────────────
+  /**
+   * Get Redis key for OTP
+   */
+  private static getOTPKey(userSessionId: string, method: OTPMethod, action: OTPAction): string {
+    return `otp:${action}:${userSessionId}:${method}`;
+  }
 
-  static async sendOTP(userId: string, method: OTPMethod): Promise<void> {
-    if (method === 'TOTP_APP' || method === 'PUSH_APP') {
-      throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400, ErrorCode.VALIDATION_ERROR);
+  /**
+   * Get Redis key for rate limiting
+   */
+  private static getRateKey(userSessionId: string, method: OTPMethod): string {
+    return `otp:rate:${userSessionId}:${method}`;
+  }
+
+  /**
+   * Get Redis key for attempt tracking
+   */
+  private static getAttemptKey(userSessionId: string, method: OTPMethod, action: OTPAction): string {
+    return `otp:attempts:${userSessionId}:${method}:${action}`;
+  }
+
+  /**
+   * Request OTP - generates and sends OTP via specified method
+   */
+  static async requestOTP({
+    user,
+    userSession,
+    method,
+    action,
+  }: {
+    user: SafeUser;
+    userSession: SafeUserSession;
+    method: OTPMethod;
+    action: OTPAction;
+  }): Promise<{ otpToken: string }> {
+    if (method === "TOTP_APP") {
+      throw new Error(AuthMessages.USE_AUTHENTICATOR_APP);
     }
 
-    const rateKey = AuthOTPService.getRateKey(userId, method);
+    const rateKey = this.getRateKey(userSession.userSessionId, method);
+
+    // Check rate limit
     const rateCount = await redis.get(rateKey);
-
-    if (rateCount && parseInt(rateCount) >= AuthOTPService.OTP_MAX_ATTEMPTS) {
-      throw new AppError(AuthMessages.RATE_LIMIT_EXCEEDED, 429, ErrorCode.RATE_LIMIT_EXCEEDED);
+    if (rateCount && parseInt(rateCount) >= this.OTP_MAX_ATTEMPTS) {
+      throw new Error(AuthMessages.RATE_LIMIT_EXCEEDED);
     }
 
-    const otpToken = AuthOTPService.generateToken();
-    const hashedToken = AuthOTPService.hashToken(otpToken);
-
-    const otpKey = AuthOTPService.getOTPKey(userId, method);
-    await redis.setex(otpKey, AuthOTPService.OTP_EXPIRY_SECONDS, hashedToken);
-
+    // Increment rate limit
     if (rateCount) {
       await redis.incr(rateKey);
     } else {
-      await redis.setex(rateKey, AuthOTPService.OTP_RATE_LIMIT_SECONDS, '1');
+      await redis.setex(rateKey, this.OTP_RATE_LIMIT_SECONDS, "1");
     }
 
-    // TODO: send via email or SMS
-    // switch (method) {
-    //   case 'EMAIL':
-    //     await MailService.sendOTPEmail({ email: user.email, otpToken });
-    //     break;
-    //   case 'SMS':
-    //     await SMSService.sendShortMessage({ to: user.phone, body: `Your OTP is ${otpToken}` });
-    //     break;
-    // }
+    // Validate delivery prerequisites before generating the OTP
+    if (method === "SMS" && !user.phone) {
+      throw new Error(AuthMessages.USER_HAS_NO_PHONE_NUMBER);
+    }
+
+    // Generate OTP
+    const otpToken = this.generateToken();
+    const hashedToken = this.hashToken(otpToken);
+
+    // Store OTP
+    const otpKey = this.getOTPKey(userSession.userSessionId, method, action);
+    await redis.setex(otpKey, this.OTP_EXPIRY_SECONDS, hashedToken);
+
+    // Send OTP — delivery failures are logged but must NOT propagate to the frontend
+    switch (method) {
+      case "EMAIL":
+        MailService.sendOTPEmail({ email: user.email, otpToken }).catch((err: unknown) => {
+          Logger.error(`OTPService: sendOTPEmail failed for user ${user.userId}: ${err instanceof Error ? err.message : err}`);
+        });
+        break;
+
+      case "SMS":
+        SMSService.sendShortMessage({
+          to: user.phone!,
+          body: `Your verification code is ${otpToken}. Valid for ${this.OTP_EXPIRY_SECONDS / 60} minutes.`,
+        }).catch((err: unknown) => {
+          Logger.error(`OTPService: sendShortMessage failed for user ${user.userId}: ${err instanceof Error ? err.message : err}`);
+        });
+        break;
+
+      default:
+        throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    Logger.info(`OTP sent via ${method} to user ${user.userId}`);
+    
+    return { otpToken };
   }
 
-  // ── Verify OTP ─────────────────────────────────────────────────────────────
-
-  static async verifyOTP(userId: string, otp: string, method: OTPMethod): Promise<boolean> {
-    if (method === 'TOTP_APP' || method === 'PUSH_APP') {
-      throw new AppError(AuthMessages.INVALID_OTP_METHOD, 400, ErrorCode.VALIDATION_ERROR);
+  /**
+   * Verify OTP
+   */
+  static async verifyOTP({
+    user,
+    userSession,
+    method,
+    action,
+    otpToken,
+  }: {
+    user: SafeUser;
+    userSession: SafeUserSession;
+    method: OTPMethod;
+    action: OTPAction;
+    otpToken: string;
+  }): Promise<{ verified: boolean }> {
+    if (method === "TOTP_APP") {
+      throw new Error(AuthMessages.USE_AUTHENTICATOR_APP);
     }
 
-    const otpKey = AuthOTPService.getOTPKey(userId, method);
-    const attemptKey = AuthOTPService.getAttemptKey(userId, method);
+    const otpKey = this.getOTPKey(userSession.userSessionId, method, action);
+    const attemptKey = this.getAttemptKey(userSession.userSessionId, method, action);
 
+    // Check attempt limit
     const attempts = await redis.get(attemptKey);
-    if (attempts && parseInt(attempts) >= AuthOTPService.OTP_MAX_ATTEMPTS) {
+    if (attempts && parseInt(attempts) >= this.OTP_MAX_ATTEMPTS) {
+      // Clear the OTP on too many attempts
       await redis.del(otpKey);
-      throw new AppError(AuthMessages.RATE_LIMIT_EXCEEDED, 429, ErrorCode.RATE_LIMIT_EXCEEDED);
+      throw new Error(AuthMessages.RATE_LIMIT_EXCEEDED);
     }
 
+    // Get stored OTP
     const storedHash = await redis.get(otpKey);
     if (!storedHash) {
-      throw new AppError(AuthMessages.OTP_EXPIRED, 400, ErrorCode.VALIDATION_ERROR);
+      throw new Error(AuthMessages.OTP_EXPIRED);
     }
 
-    const inputHash = AuthOTPService.hashToken(otp);
-
+    // Verify OTP
+    const inputHash = this.hashToken(otpToken);
     if (inputHash !== storedHash) {
+      // Increment attempt counter
       if (attempts) {
         await redis.incr(attemptKey);
       } else {
-        await redis.setex(attemptKey, AuthOTPService.OTP_EXPIRY_SECONDS, '1');
+        await redis.setex(attemptKey, this.OTP_EXPIRY_SECONDS, "1");
       }
-      throw new AppError(AuthMessages.INVALID_OTP, 400, ErrorCode.VALIDATION_ERROR);
+      throw new Error(AuthMessages.INVALID_OTP);
     }
 
     // Clean up on success
     await redis.del(otpKey);
     await redis.del(attemptKey);
-    await redis.del(AuthOTPService.getRateKey(userId, method));
+    await redis.del(this.getRateKey(userSession.userSessionId, method));
 
-    return true;
+    // If this was for authentication, mark session as verified
+    if (action === "authenticate" && userSession.otpVerifyNeeded) {
+      await UserSessionService.updateSession(userSession.userSessionId, {
+        otpVerifyNeeded: false,
+      });
+    }
+
+    Logger.info(`OTP verified via ${method} for user ${user.userId}`);
+
+    return { verified: true };
   }
 
-  // ── Clear OTP ──────────────────────────────────────────────────────────────
+  /**
+   * Invalidate all OTPs for a session
+   */
+  static async invalidateSessionOTPs(userSessionId: string): Promise<void> {
+    const methods: OTPMethod[] = ["EMAIL", "SMS"];
+    const actions: OTPAction[] = ["enable", "disable", "authenticate"];
 
-  static async clearOTP(userId: string, method: OTPMethod): Promise<void> {
-    await redis.del(AuthOTPService.getOTPKey(userId, method));
-    await redis.del(AuthOTPService.getAttemptKey(userId, method));
-    await redis.del(AuthOTPService.getRateKey(userId, method));
+    for (const method of methods) {
+      for (const action of actions) {
+        await redis.del(this.getOTPKey(userSessionId, method, action));
+        await redis.del(this.getAttemptKey(userSessionId, method, action));
+      }
+      await redis.del(this.getRateKey(userSessionId, method));
+    }
   }
 }

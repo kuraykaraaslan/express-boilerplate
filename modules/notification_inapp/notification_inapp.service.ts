@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { Redis } from 'ioredis';
 import redis, { createRedisConnection } from '@/libs/redis';
-import { AppDataSource } from '@/libs/typeorm';
-import { User as UserEntity } from '../user/entities/User';
+import { getSystemDataSource } from '@/libs/typeorm';
+import { User as UserEntity } from '../user/entities/user.entity';
 import { v4 as uuid } from 'uuid';
 import type { Notification, NotificationPayload } from './notification_inapp.types';
 import type { UserRole } from '../user/user.enums';
@@ -60,11 +60,12 @@ export default class NotificationInAppService {
   }
 
   static async pushToRole(role: UserRole, data: NotificationPayload): Promise<void> {
-    const users = await AppDataSource.getRepository(UserEntity).find({
+    const ds = await getSystemDataSource();
+    const users = await ds.getRepository(UserEntity).find({
       where: { userRole: role },
       select: ['userId'],
     });
-    await Promise.all(users.map((u: any) => this.push(u.userId, data)));
+    await Promise.all(users.map((u) => this.push(u.userId, data)));
   }
 
   static async pushToAdmins(data: NotificationPayload): Promise<void> {
@@ -72,11 +73,12 @@ export default class NotificationInAppService {
   }
 
   static async pushToAll(data: NotificationPayload): Promise<void> {
-    const users = await AppDataSource.getRepository(UserEntity).find({
+    const ds = await getSystemDataSource();
+    const users = await ds.getRepository(UserEntity).find({
       where: { userStatus: 'ACTIVE' },
       select: ['userId'],
     });
-    await Promise.all(users.map((u: any) => this.push(u.userId, data)));
+    await Promise.all(users.map((u) => this.push(u.userId, data)));
   }
 
   static async getAll(userId: string): Promise<Notification[]> {

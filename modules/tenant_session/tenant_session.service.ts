@@ -1,8 +1,9 @@
 import 'reflect-metadata';
 import { env } from '@/libs/env';
+import { IsNull } from 'typeorm';
 import { tenantDataSourceFor, getDefaultTenantDataSource } from '@/libs/typeorm';
-import { Tenant as TenantEntity } from '@/modules/tenant/entities/Tenant';
-import { TenantMember as TenantMemberEntity } from '@/modules/tenant_member/entities/TenantMember';
+import { Tenant as TenantEntity } from '@/modules/tenant/entities/tenant.entity';
+import { TenantMember as TenantMemberEntity } from '@/modules/tenant_member/entities/tenant_member.entity';
 import redis from '@/libs/redis';
 import { SafeTenant, SafeTenantSchema } from '@/modules/tenant/tenant.types';
 import { SafeTenantMember, SafeTenantMemberSchema } from '@/modules/tenant_member/tenant_member.types';
@@ -28,7 +29,7 @@ export default class TenantSessionService {
 
   static async getTenantMembership(tenantId: string, userId: string): Promise<SafeTenantMember | null> {
     const ds = await tenantDataSourceFor(tenantId);
-    const member = await ds.getRepository(TenantMemberEntity).findOne({ where: { tenantId, userId } });
+    const member = await ds.getRepository(TenantMemberEntity).findOne({ where: { tenantId, userId, deletedAt: IsNull() } });
     return member ? SafeTenantMemberSchema.parse(member) : null;
   }
 
@@ -40,7 +41,7 @@ export default class TenantSessionService {
   static validateMemberStatus(tenantMember: SafeTenantMember): void {
     if (tenantMember.memberStatus === 'INACTIVE') throw new Error(TenantAuthMessages.MEMBER_INACTIVE);
     if (tenantMember.memberStatus === 'SUSPENDED') throw new Error(TenantAuthMessages.MEMBER_SUSPENDED);
-    // 'PENDING' is not a valid TenantMemberStatus in this version
+    if (tenantMember.memberStatus === 'PENDING') throw new Error(TenantAuthMessages.MEMBER_PENDING);
   }
 
   static async authenticateTenantMembership({ user, tenantId, requiredRole = 'USER' }: {
@@ -55,11 +56,19 @@ export default class TenantSessionService {
       try {
         const cachedData = JSON.parse(cached);
         if (cachedData?.tenant && cachedData?.tenantMember) {
-          // sessionVersion is not available in this version — use cached data directly
-          if (!this.hasRequiredRole(cachedData.tenantMember.memberRole, requiredRole)) {
-            throw new Error(TenantAuthMessages.INSUFFICIENT_TENANT_PERMISSIONS);
+          // Quick sessionVersion check to detect role/status changes
+          const ds = await tenantDataSourceFor(tenantId);
+          const dbMember = await ds.getRepository(TenantMemberEntity)
+            .findOne({ where: { tenantId, userId: user.userId }, select: { sessionVersion: true } });
+          if (dbMember && dbMember.sessionVersion !== cachedData.tenantMember.sessionVersion) {
+            // Cache is stale — evict and fall through to full re-fetch below
+            await redis.del(cacheKey);
+          } else {
+            if (!this.hasRequiredRole(cachedData.tenantMember.memberRole, requiredRole)) {
+              throw new Error(TenantAuthMessages.INSUFFICIENT_TENANT_PERMISSIONS);
+            }
+            return { tenant: cachedData.tenant, tenantMember: cachedData.tenantMember };
           }
-          return { tenant: cachedData.tenant, tenantMember: cachedData.tenantMember };
         }
       } catch (e: unknown) {
         if (e instanceof Error && e.message === TenantAuthMessages.INSUFFICIENT_TENANT_PERMISSIONS) throw e;
@@ -86,7 +95,7 @@ export default class TenantSessionService {
   static async getUserTenants(userId: string): Promise<Array<{ tenant: SafeTenant; tenantMember: SafeTenantMember }>> {
     const ds = await getDefaultTenantDataSource();
     const members = await ds.getRepository(TenantMemberEntity).find({
-      where: { userId, memberStatus: 'ACTIVE' },
+      where: { userId, memberStatus: 'ACTIVE', deletedAt: IsNull() },
     });
 
     const results: Array<{ tenant: SafeTenant; tenantMember: SafeTenantMember }> = [];

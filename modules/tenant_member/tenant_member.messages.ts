@@ -1,10 +1,10 @@
-export enum TenantMemberMessages {
-  MEMBER_NOT_FOUND = 'MEMBER_NOT_FOUND',
-  MEMBER_ALREADY_EXISTS = 'MEMBER_ALREADY_EXISTS',
-  MEMBER_ADDED = 'MEMBER_ADDED',
-  MEMBER_REMOVED = 'MEMBER_REMOVED',
-  MEMBER_ROLE_UPDATED = 'MEMBER_ROLE_UPDATED',
-  INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS',
-  CANNOT_REMOVE_OWNER = 'CANNOT_REMOVE_OWNER',
-  TENANT_ACCESS_DENIED = 'TENANT_ACCESS_DENIED',
-}
+const TenantMemberMessages = {
+  MEMBER_NOT_FOUND: "Tenant member not found",
+  MEMBER_ALREADY_EXISTS: "User is already a member of this tenant",
+  INVALID_MEMBER_DATA: "Invalid member data",
+  CANNOT_REMOVE_OWNER: "Cannot remove the owner from the tenant",
+  CANNOT_DEMOTE_OWNER: "Cannot demote the owner",
+  LAST_OWNER: "Cannot remove the last owner of the tenant"
+} as const;
+
+export default TenantMemberMessages;

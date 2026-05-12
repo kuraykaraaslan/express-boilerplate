@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 import { tenantDataSourceFor } from '@/libs/typeorm';
-import { TenantMember } from '@/modules/tenant_member/entities/TenantMember';
-import { TenantDomain } from '@/modules/tenant_domain/entities/TenantDomain';
-import { AuditLog } from '@/modules/audit_log/entities/AuditLog';
-import { Webhook } from '@/modules/webhook/entities/Webhook';
-import { TenantSetting } from '@/modules/tenant_setting/entities/TenantSetting';
+import { TenantMember } from '@/modules/tenant_member/entities/tenant_member.entity';
+import { TenantDomain } from '@/modules/tenant_domain/entities/tenant_domain.entity';
+import { TenantAuditLog } from '@/modules/audit_log/entities/audit_log_tenant.entity';
+import { Webhook } from '@/modules/webhook/entities/webhook.entity';
+import { TenantSetting } from '@/modules/tenant_setting/entities/tenant_setting.entity';
 import Logger from '@/libs/logger';
 
 export interface TenantExportData {
@@ -27,7 +27,7 @@ export default class TenantExportService {
     const [members, domains, auditLogs, webhooks, settings] = await Promise.all([
       ds.getRepository(TenantMember).find({ where: { tenantId } }),
       ds.getRepository(TenantDomain).find({ where: { tenantId } }),
-      ds.getRepository(AuditLog).find({
+      ds.getRepository(TenantAuditLog).find({
         where: { tenantId },
         order: { createdAt: 'DESC' },
         take: 1000,

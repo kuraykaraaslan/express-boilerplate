@@ -1,26 +1,31 @@
 import { z } from 'zod';
 import { SocialLinkPlatformEnum } from './user_profile.enums';
 
-export const SocialLinkSchema = z.object({
+export const SocialLinkItemSchema = z.object({
+  id: z.string().uuid(),
   platform: SocialLinkPlatformEnum,
-  url: z.string().url(),
+  url: z.string().url().nullable(),
+  order: z.number().int().nonnegative()
 });
+
+export const SocialLinksSchema = z.array(SocialLinkItemSchema).default([]);
 
 export const UserProfileSchema = z.object({
-  userProfileId: z.string().uuid(),
-  userId: z.string(),
-  name: z.string().nullable().optional(),
-  lastName: z.string().nullable().optional(),
-  biography: z.string().nullable().optional(),
-  profilePicture: z.string().nullable().optional(),
-  headerImage: z.string().nullable().optional(),
-  socialLinks: z.array(SocialLinkSchema).nullish().transform((val) => val ?? []),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  name: z.string().nullable(),
+  biography: z.string().nullable(),
+  profilePicture: z.string().nullable(),
+  headerImage: z.string().nullable(),
+  socialLinks: SocialLinksSchema
 });
 
-export const SafeUserProfileSchema = UserProfileSchema;
+
+export const UserProfileDefault: z.infer<typeof UserProfileSchema> = {
+  name: null,
+  biography: null,
+  profilePicture: null,
+  headerImage: null,
+  socialLinks: []
+};
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
-export type SafeUserProfile = z.infer<typeof SafeUserProfileSchema>;
-export type SocialLink = z.infer<typeof SocialLinkSchema>;
+export type SocialLinkItem = z.infer<typeof SocialLinkItemSchema>;

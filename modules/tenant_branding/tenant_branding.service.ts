@@ -7,23 +7,22 @@ import type { TenantBranding } from './tenant_branding.types';
 export default class TenantBrandingService {
 
   static async get(tenantId: string): Promise<TenantBranding> {
-    const allSettings = await TenantSettingService.getAll(tenantId);
-    const keyValueMap = TenantSettingService.toKeyValueMap(allSettings);
-    const filtered: Record<string, string> = {};
-    for (const key of TENANT_BRANDING_KEYS) {
-      if (keyValueMap[key] !== undefined) {
-        filtered[key] = keyValueMap[key];
-      }
-    }
-    return TenantBrandingSchema.parse(filtered);
+    const raw = await TenantSettingService.getByKeys(tenantId, [...TENANT_BRANDING_KEYS]);
+    return TenantBrandingSchema.parse(raw);
   }
 
   static async update(tenantId: string, data: Partial<TenantBranding>): Promise<TenantBranding> {
+    const updates: Record<string, string> = {};
+
     for (const key of TENANT_BRANDING_KEYS) {
       const value = data[key];
       if (value !== undefined) {
-        await TenantSettingService.set({ tenantId, key, value });
+        updates[key] = value;
       }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await TenantSettingService.updateMany(tenantId, updates);
     }
 
     return this.get(tenantId);

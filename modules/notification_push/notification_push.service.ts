@@ -2,9 +2,9 @@ import 'reflect-metadata';
 import { In } from 'typeorm';
 import { env } from '@/libs/env';
 import webpush from 'web-push';
-import { AppDataSource } from '@/libs/typeorm';
+import { getSystemDataSource } from '@/libs/typeorm';
 import { PushSubscription as PushSubscriptionEntity } from './entities/push_subscription.entity';
-import { User as UserEntity } from '../user/entities/User';
+import { User as UserEntity } from '../user/entities/user.entity';
 import Logger from '@/libs/logger';
 import type { UserRole } from '../user/user.enums';
 
@@ -21,7 +21,7 @@ function ensureVapid() {
   if (vapidInitialised) return;
   webpush.setVapidDetails(
     `mailto:${env.VAPID_CONTACT_EMAIL ?? 'info@example.com'}`,
-    env.VAPID_PUBLIC_KEY!,
+    env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
     env.VAPID_PRIVATE_KEY!
   );
   vapidInitialised = true;
@@ -33,7 +33,7 @@ export default class NotificationPushService {
     userId: string,
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } }
   ): Promise<void> {
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     const repo = ds.getRepository(PushSubscriptionEntity);
     const existing = await repo.findOne({ where: { endpoint: subscription.endpoint } });
     if (existing) {
@@ -53,40 +53,40 @@ export default class NotificationPushService {
   }
 
   static async unsubscribe(userId: string): Promise<void> {
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     await ds.getRepository(PushSubscriptionEntity).delete({ userId });
   }
 
   static async unsubscribeByEndpoint(endpoint: string): Promise<void> {
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     await ds.getRepository(PushSubscriptionEntity).delete({ endpoint });
   }
 
   static async sendToUser(userId: string, payload: PushPayload): Promise<void> {
     ensureVapid();
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     const subs = await ds.getRepository(PushSubscriptionEntity).find({ where: { userId } });
-    await Promise.allSettled(subs.map((sub: any) => this.sendToSubscription(sub, payload)));
+    await Promise.allSettled(subs.map((sub) => this.sendToSubscription(sub, payload)));
   }
 
   static async sendToUsers(userIds: string[], payload: PushPayload): Promise<void> {
     ensureVapid();
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     const subs = await ds.getRepository(PushSubscriptionEntity).find({ where: { userId: In(userIds) } });
-    await Promise.allSettled(subs.map((sub: any) => this.sendToSubscription(sub, payload)));
+    await Promise.allSettled(subs.map((sub) => this.sendToSubscription(sub, payload)));
   }
 
   static async sendToRole(role: UserRole, payload: PushPayload): Promise<void> {
     ensureVapid();
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     const users = await ds.getRepository(UserEntity).find({
       where: { userRole: role },
       select: ['userId'],
     });
     const subs = await ds.getRepository(PushSubscriptionEntity).find({
-      where: { userId: In(users.map((u: any) => u.userId)) },
+      where: { userId: In(users.map((u) => u.userId)) },
     });
-    await Promise.allSettled(subs.map((sub: any) => this.sendToSubscription(sub, payload)));
+    await Promise.allSettled(subs.map((sub) => this.sendToSubscription(sub, payload)));
   }
 
   static async sendToAdmins(payload: PushPayload): Promise<void> {
@@ -95,9 +95,9 @@ export default class NotificationPushService {
 
   static async sendToAll(payload: PushPayload): Promise<void> {
     ensureVapid();
-    const ds = AppDataSource;
+    const ds = await getSystemDataSource();
     const subs = await ds.getRepository(PushSubscriptionEntity).find();
-    await Promise.allSettled(subs.map((sub: any) => this.sendToSubscription(sub, payload)));
+    await Promise.allSettled(subs.map((sub) => this.sendToSubscription(sub, payload)));
   }
 
   private static async sendToSubscription(
@@ -112,7 +112,7 @@ export default class NotificationPushService {
     } catch (error: any) {
       if (error.statusCode === 410 || error.statusCode === 404) {
         Logger.warn(`Push subscription ${sub.id} expired (${error.statusCode}), removing.`);
-        const ds = AppDataSource;
+        const ds = await getSystemDataSource();
         await ds.getRepository(PushSubscriptionEntity).delete({ id: sub.id }).catch(() => {});
       } else {
         Logger.error(`Push notification failed for ${sub.id}: ${error.message}`);

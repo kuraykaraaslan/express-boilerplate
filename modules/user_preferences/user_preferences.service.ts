@@ -1,73 +1,68 @@
 import 'reflect-metadata';
-
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-
-import { UserPreferences as UserPreferencesEntity } from './entities/UserPreferences';
-import { UserPreferences, UserPreferencesSchema } from './user_preferences.types';
-import { UpdateUserPreferencesInput } from './user_preferences.dto';
-import { UserPreferencesMessages } from './user_preferences.messages';
+import { getSystemDataSource } from '@/libs/typeorm';
+import { UserPreferences as UserPreferencesEntity } from './entities/user_preferences.entity';
+import { UserPreferences, UserPreferencesDefault, UserPreferencesSchema } from './user_preferences.types';
 
 export default class UserPreferencesService {
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Find or Create
-  // ──────────────────────────────────────────────────────────────────────────
+  static async getByUserId(userId: string): Promise<UserPreferences | null> {
+    const ds = await getSystemDataSource();
+    const prefs = await ds.getRepository(UserPreferencesEntity).findOne({ where: { userId } });
+    return prefs ? UserPreferencesSchema.parse(prefs) : null;
+  }
 
-  /**
-   * Returns existing preferences or creates default ones.
-   */
-  static async findOrCreate(userId: string): Promise<UserPreferences> {
-    const repo = AppDataSource.getRepository(UserPreferencesEntity);
+  static async create(userId: string, data?: Partial<UserPreferences>): Promise<UserPreferences> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserPreferencesEntity);
     const existing = await repo.findOne({ where: { userId } });
-    if (existing) return UserPreferencesSchema.parse(existing);
+    if (existing) throw new Error('Preferences already exist for this user');
 
-    const prefs = repo.create({
-      userId,
-      language: 'en',
-      timezone: 'UTC',
-      theme: 'light',
-      emailNotifications: true,
-      pushNotifications: false,
-    });
+    const prefs = repo.create({ userId, ...UserPreferencesDefault, ...data });
     const saved = await repo.save(prefs);
     return UserPreferencesSchema.parse(saved);
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Read
-  // ──────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Returns preferences for the given userId. Creates defaults if not found.
-   */
-  static async findByUserId(userId: string): Promise<UserPreferences> {
-    return this.findOrCreate(userId);
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Update
-  // ──────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Updates mutable preference fields and returns the updated record.
-   */
-  static async update(userId: string, data: UpdateUserPreferencesInput): Promise<UserPreferences> {
-    const repo = AppDataSource.getRepository(UserPreferencesEntity);
+  static async update(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserPreferencesEntity);
     const prefs = await repo.findOne({ where: { userId } });
-    if (!prefs) {
-      throw new AppError(UserPreferencesMessages.PREFERENCES_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
-    }
+    if (!prefs) throw new Error('Preferences not found');
 
-    await repo.update({ userId }, {
-      ...(data.language !== undefined && { language: data.language }),
-      ...(data.timezone !== undefined && { timezone: data.timezone }),
-      ...(data.theme !== undefined && { theme: data.theme }),
-      ...(data.emailNotifications !== undefined && { emailNotifications: data.emailNotifications }),
-      ...(data.pushNotifications !== undefined && { pushNotifications: data.pushNotifications }),
-    });
-
+    await repo.update({ userId }, data as any);
     const updated = await repo.findOne({ where: { userId } });
     return UserPreferencesSchema.parse(updated!);
+  }
+
+  static async upsert(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserPreferencesEntity);
+    const existing = await repo.findOne({ where: { userId } });
+
+    if (existing) {
+      await repo.update({ userId }, data as any);
+      const updated = await repo.findOne({ where: { userId } });
+      return UserPreferencesSchema.parse(updated!);
+    }
+
+    const defaults = UserPreferencesSchema.parse({});
+    const prefs = repo.create({ userId, ...defaults, ...data });
+    const saved = await repo.save(prefs);
+    return UserPreferencesSchema.parse(saved);
+  }
+
+  static async delete(userId: string): Promise<void> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserPreferencesEntity);
+    const prefs = await repo.findOne({ where: { userId } });
+    if (!prefs) throw new Error('Preferences not found');
+    await repo.delete({ userId });
+  }
+
+  static async getOrCreateDefault(userId: string): Promise<UserPreferences> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserPreferencesEntity);
+    const existing = await repo.findOne({ where: { userId } });
+    if (existing) return UserPreferencesSchema.parse(existing);
+    return this.create(userId);
   }
 }

@@ -76,12 +76,12 @@ export default class SSOService {
         );
       }
 
-      const user = await UserService.findById(existingUserId);
+      const user = await UserService.getById(existingUserId);
       return { user, isNewUser: false };
     }
 
     // Check if user with email exists
-    const existingUser = await UserService.findByEmail(profile.email);
+    const existingUser = await UserService.getByEmail(profile.email);
 
     if (existingUser) {
       // Link social account to existing user
@@ -92,7 +92,7 @@ export default class SSOService {
         tokens.accessToken,
       );
 
-      const user = await UserService.findById(existingUser.userId);
+      const user = await UserService.getById(existingUser.userId);
       return { user, isNewUser: false };
     }
 

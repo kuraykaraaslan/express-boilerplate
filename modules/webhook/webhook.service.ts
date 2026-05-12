@@ -1,19 +1,20 @@
 import 'reflect-metadata';
 import crypto from 'crypto';
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import { Logger } from '@/libs/logger';
-import { createQueue, getBullMQConnection } from '@/libs/redis';
-import { Worker, Job } from 'bullmq';
-import { Webhook } from './entities/Webhook';
-import { WebhookDelivery } from './entities/WebhookDelivery';
-import { WebhookMessages } from './webhook.messages';
-import { WebhookSchema, WebhookDeliverySchema } from './webhook.types';
-import type { Webhook as WebhookType, WebhookDelivery as WebhookDeliveryType } from './webhook.types';
-import type { CreateWebhookInput, UpdateWebhookInput } from './webhook.dto';
+import { Queue, Worker, Job } from 'bullmq';
+import { getBullMQConnection } from '@/libs/redis/bullmq';
+import { tenantDataSourceFor } from '@/libs/typeorm';
+import { Webhook as WebhookEntity } from './entities/webhook.entity';
+import { WebhookDelivery as WebhookDeliveryEntity } from './entities/webhook_delivery.entity';
+import { SafeWebhookSchema, WebhookDeliverySchema } from './webhook.types';
+import type { SafeWebhook, WebhookDelivery } from './webhook.types';
+import type { CreateWebhookInput, UpdateWebhookInput, ListWebhooksInput, ListDeliveriesInput } from './webhook.dto';
+import type { WebhookEvent } from './webhook.enums';
+import WebhookMessages from './webhook.messages';
+import Logger from '@/libs/logger';
 
 interface DeliveryJobData {
   deliveryId: string;
+  tenantId: string;
   webhookId: string;
   url: string;
   secret: string;
@@ -23,18 +24,20 @@ interface DeliveryJobData {
 }
 
 const MAX_ATTEMPTS = 3;
+// Exponential backoff: attempt 1 → 60s, attempt 2 → 300s, attempt 3 → 900s
 const RETRY_DELAYS_MS = [60_000, 300_000, 900_000];
-const QUEUE_NAME = 'webhook-delivery-queue';
 
 export default class WebhookService {
-  static readonly QUEUE_NAME = QUEUE_NAME;
+  static readonly QUEUE_NAME = 'webhookDeliveryQueue';
 
-  static readonly QUEUE = createQueue<DeliveryJobData>(QUEUE_NAME);
+  static readonly QUEUE = new Queue<DeliveryJobData>(WebhookService.QUEUE_NAME, {
+    connection: getBullMQConnection(),
+  });
 
   static readonly WORKER = new Worker<DeliveryJobData>(
-    QUEUE_NAME,
+    WebhookService.QUEUE_NAME,
     async (job: Job<DeliveryJobData>) => {
-      await WebhookService.sendDelivery(job.data.deliveryId);
+      await WebhookService._executeDelivery(job.data);
     },
     {
       connection: getBullMQConnection(),
@@ -42,84 +45,111 @@ export default class WebhookService {
     },
   );
 
-  private static get webhookRepo() {
-    return AppDataSource.getRepository(Webhook);
+  // ============================================================================
+  // HMAC signature
+  // ============================================================================
+
+  static signPayload(secret: string, body: string): string {
+    return 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');
   }
 
-  private static get deliveryRepo() {
-    return AppDataSource.getRepository(WebhookDelivery);
+  static generateSecret(): string {
+    return crypto.randomBytes(32).toString('hex');
   }
 
-  // ── HMAC signature ────────────────────────────────────────────────────────────
+  // ============================================================================
+  // CRUD
+  // ============================================================================
 
-  static sign(payload: string, secret: string): string {
-    return 'sha256=' + crypto.createHmac('sha256', secret).update(payload).digest('hex');
-  }
-
-  static getRetryDelay(attempt: number): number {
-    return RETRY_DELAYS_MS[attempt] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
-  }
-
-  // ── CRUD ──────────────────────────────────────────────────────────────────────
-
-  static async create(data: CreateWebhookInput): Promise<WebhookType> {
-    const webhook = WebhookService.webhookRepo.create({
-      tenantId: data.tenantId,
-      url: data.url,
-      secret: data.secret,
-      events: data.events,
-      isActive: true,
-    });
-    const saved = await WebhookService.webhookRepo.save(webhook);
-    return WebhookSchema.parse(saved);
-  }
-
-  static async findByTenant(tenantId: string): Promise<WebhookType[]> {
-    const webhooks = await WebhookService.webhookRepo.find({
+  static async list({ tenantId, page, pageSize }: ListWebhooksInput): Promise<{ webhooks: SafeWebhook[]; total: number }> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const [rows, total] = await ds.getRepository(WebhookEntity).findAndCount({
       where: { tenantId },
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
-    return webhooks.map((w) => WebhookSchema.parse(w));
+    return { webhooks: rows.map((r) => SafeWebhookSchema.parse(r)), total };
   }
 
-  static async findById(webhookId: string): Promise<WebhookType> {
-    const webhook = await WebhookService.webhookRepo.findOne({ where: { webhookId } });
-    if (!webhook) {
-      throw new AppError(WebhookMessages.WEBHOOK_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
+  static async getById(tenantId: string, webhookId: string): Promise<SafeWebhook> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const row = await ds.getRepository(WebhookEntity).findOne({ where: { webhookId, tenantId } });
+    if (!row) throw new Error(WebhookMessages.NOT_FOUND);
+    return SafeWebhookSchema.parse(row);
+  }
+
+  static async create(tenantId: string, createdByUserId: string, input: CreateWebhookInput): Promise<SafeWebhook> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(WebhookEntity);
+
+    const entity = repo.create({
+      tenantId,
+      createdByUserId,
+      name: input.name,
+      description: input.description ?? null,
+      url: input.url,
+      secret: WebhookService.generateSecret(),
+      events: input.events,
+      isActive: true,
+    });
+
+    const saved = await repo.save(entity);
+    return SafeWebhookSchema.parse(saved);
+  }
+
+  static async update(tenantId: string, webhookId: string, input: UpdateWebhookInput): Promise<SafeWebhook> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(WebhookEntity);
+
+    const row = await repo.findOne({ where: { webhookId, tenantId } });
+    if (!row) throw new Error(WebhookMessages.NOT_FOUND);
+
+    if (input.name !== undefined) row.name = input.name;
+    if (input.description !== undefined) row.description = input.description ?? null;
+    if (input.url !== undefined) row.url = input.url;
+    if (input.events !== undefined) row.events = input.events;
+    if (input.isActive !== undefined) row.isActive = input.isActive;
+
+    const saved = await repo.save(row);
+    return SafeWebhookSchema.parse(saved);
+  }
+
+  static async delete(tenantId: string, webhookId: string): Promise<void> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(WebhookEntity);
+    const row = await repo.findOne({ where: { webhookId, tenantId } });
+    if (!row) throw new Error(WebhookMessages.NOT_FOUND);
+    await repo.remove(row);
+  }
+
+  // ============================================================================
+  // Dispatch — called from other services when an event occurs
+  // ============================================================================
+
+  static async dispatchEvent(
+    tenantId: string,
+    event: WebhookEvent,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      const ds = await tenantDataSourceFor(tenantId);
+      const webhooks = await ds.getRepository(WebhookEntity).find({
+        where: { tenantId, isActive: true },
+      });
+
+      const matching = webhooks.filter((w) => w.events.includes(event));
+      await Promise.all(matching.map((w) => WebhookService._enqueueDelivery(w, event, payload)));
+    } catch (err) {
+      Logger.error(`[Webhook] dispatchEvent failed for tenant=${tenantId} event=${event}: ${err}`);
     }
-    return WebhookSchema.parse(webhook);
   }
 
-  static async update(webhookId: string, data: UpdateWebhookInput): Promise<WebhookType> {
-    const webhook = await WebhookService.webhookRepo.findOne({ where: { webhookId } });
-    if (!webhook) {
-      throw new AppError(WebhookMessages.WEBHOOK_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
-    }
-
-    if (data.url !== undefined) webhook.url = data.url;
-    if (data.events !== undefined) webhook.events = data.events;
-    if (data.isActive !== undefined) webhook.isActive = data.isActive;
-
-    const saved = await WebhookService.webhookRepo.save(webhook);
-    return WebhookSchema.parse(saved);
-  }
-
-  static async delete(webhookId: string): Promise<void> {
-    const webhook = await WebhookService.webhookRepo.findOne({ where: { webhookId } });
-    if (!webhook) {
-      throw new AppError(WebhookMessages.WEBHOOK_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
-    }
-    await WebhookService.webhookRepo.remove(webhook);
-  }
-
-  // ── Delivery ──────────────────────────────────────────────────────────────────
-
-  static async deliver(webhookId: string, event: string, payload: unknown): Promise<void> {
-    const webhook = await WebhookService.webhookRepo.findOne({ where: { webhookId, isActive: true } });
-    if (!webhook) return;
-
-    if (!webhook.events.includes(event)) return;
-
+  private static async _enqueueDelivery(
+    webhook: WebhookEntity,
+    event: WebhookEvent,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const envelope = {
       webhookId: webhook.webhookId,
       tenantId: webhook.tenantId,
@@ -129,19 +159,32 @@ export default class WebhookService {
     };
     const requestBody = JSON.stringify(envelope);
 
-    const delivery = WebhookService.deliveryRepo.create({
+    const ds = await tenantDataSourceFor(webhook.tenantId);
+    const deliveryRepo = ds.getRepository(WebhookDeliveryEntity);
+
+    const delivery = deliveryRepo.create({
       webhookId: webhook.webhookId,
+      tenantId: webhook.tenantId,
       event,
       payload: envelope as Record<string, unknown>,
       status: 'PENDING',
-      attemptCount: 0,
+      attempts: 0,
+      maxAttempts: MAX_ATTEMPTS,
+      requestBody,
+      responseStatus: null,
+      responseBody: null,
+      errorMessage: null,
+      duration: null,
+      nextRetryAt: null,
     });
-    const saved = await WebhookService.deliveryRepo.save(delivery);
+
+    const saved = await deliveryRepo.save(delivery);
 
     await WebhookService.QUEUE.add(
       'deliver',
       {
         deliveryId: saved.deliveryId,
+        tenantId: webhook.tenantId,
         webhookId: webhook.webhookId,
         url: webhook.url,
         secret: webhook.secret,
@@ -153,62 +196,173 @@ export default class WebhookService {
     );
   }
 
-  static async sendDelivery(deliveryId: string): Promise<void> {
-    const delivery = await WebhookService.deliveryRepo.findOne({ where: { deliveryId } });
-    if (!delivery) return;
+  // ============================================================================
+  // Redeliver a failed delivery
+  // ============================================================================
 
-    const webhook = await WebhookService.webhookRepo.findOne({ where: { webhookId: delivery.webhookId } });
-    if (!webhook) return;
+  static async redeliver(tenantId: string, webhookId: string, deliveryId: string): Promise<void> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const deliveryRepo = ds.getRepository(WebhookDeliveryEntity);
+    const webhookRepo = ds.getRepository(WebhookEntity);
 
-    const requestBody = JSON.stringify(delivery.payload ?? {});
-    const signature = WebhookService.sign(requestBody, webhook.secret);
+    const delivery = await deliveryRepo.findOne({ where: { deliveryId, tenantId, webhookId } });
+    if (!delivery) throw new Error(WebhookMessages.DELIVERY_NOT_FOUND);
 
-    let statusCode: number | null = null;
+    const webhook = await webhookRepo.findOne({ where: { webhookId, tenantId } });
+    if (!webhook) throw new Error(WebhookMessages.NOT_FOUND);
+
+    delivery.status = 'PENDING';
+    delivery.attempts = 0;
+    delivery.nextRetryAt = null;
+    delivery.errorMessage = null;
+    await deliveryRepo.save(delivery);
+
+    await WebhookService.QUEUE.add(
+      'redeliver',
+      {
+        deliveryId: delivery.deliveryId,
+        tenantId: webhook.tenantId,
+        webhookId: webhook.webhookId,
+        url: webhook.url,
+        secret: webhook.secret,
+        event: delivery.event,
+        payload: delivery.payload,
+        requestBody: delivery.requestBody,
+      },
+      { attempts: MAX_ATTEMPTS, backoff: { type: 'exponential', delay: 60_000 } },
+    );
+  }
+
+  // ============================================================================
+  // Test delivery — immediate, synchronous, no retry
+  // ============================================================================
+
+  static async sendTest(tenantId: string, webhookId: string): Promise<WebhookDelivery> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const webhook = await ds.getRepository(WebhookEntity).findOne({ where: { webhookId, tenantId } });
+    if (!webhook) throw new Error(WebhookMessages.NOT_FOUND);
+
+    const envelope = {
+      webhookId: webhook.webhookId,
+      tenantId: webhook.tenantId,
+      event: 'test',
+      createdAt: new Date().toISOString(),
+      data: { message: 'This is a test delivery from the webhook system.' },
+    };
+    const requestBody = JSON.stringify(envelope);
+
+    const deliveryRepo = ds.getRepository(WebhookDeliveryEntity);
+    const delivery = deliveryRepo.create({
+      webhookId: webhook.webhookId,
+      tenantId: webhook.tenantId,
+      event: 'test',
+      payload: envelope as Record<string, unknown>,
+      status: 'PENDING',
+      attempts: 0,
+      maxAttempts: 1,
+      requestBody,
+      responseStatus: null,
+      responseBody: null,
+      errorMessage: null,
+      duration: null,
+      nextRetryAt: null,
+    });
+
+    const saved = await deliveryRepo.save(delivery);
+
+    await WebhookService._executeDelivery({
+      deliveryId: saved.deliveryId,
+      tenantId: webhook.tenantId,
+      webhookId: webhook.webhookId,
+      url: webhook.url,
+      secret: webhook.secret,
+      event: 'test',
+      payload: envelope as Record<string, unknown>,
+      requestBody,
+    });
+
+    const updated = await deliveryRepo.findOne({ where: { deliveryId: saved.deliveryId } });
+    return WebhookDeliverySchema.parse(updated!);
+  }
+
+  // ============================================================================
+  // Deliveries list
+  // ============================================================================
+
+  static async listDeliveries({ tenantId, webhookId, page, pageSize }: ListDeliveriesInput): Promise<{ deliveries: WebhookDelivery[]; total: number }> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const [rows, total] = await ds.getRepository(WebhookDeliveryEntity).findAndCount({
+      where: { tenantId, webhookId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return { deliveries: rows.map((r) => WebhookDeliverySchema.parse(r)), total };
+  }
+
+  // ============================================================================
+  // Internal HTTP delivery
+  // ============================================================================
+
+  private static async _executeDelivery(data: DeliveryJobData): Promise<void> {
+    const { deliveryId, tenantId, url, secret, requestBody } = data;
+    const signature = WebhookService.signPayload(secret, requestBody);
+    const startedAt = Date.now();
+
+    let responseStatus: number | null = null;
     let responseBody: string | null = null;
+    let errorMessage: string | null = null;
     let status: 'SUCCESS' | 'FAILED' = 'FAILED';
 
     try {
-      const response = await fetch(webhook.url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Webhook-Signature': signature,
-          'X-Webhook-Event': delivery.event,
+          'X-Webhook-Event': data.event,
           'X-Webhook-Delivery': deliveryId,
-          'User-Agent': 'ExpressBoilerplate-Webhooks/1.0',
+          'User-Agent': 'NextBoilerplate-Webhooks/1.0',
         },
         body: requestBody,
         signal: AbortSignal.timeout(15_000),
       });
 
-      statusCode = response.status;
+      responseStatus = response.status;
       responseBody = (await response.text()).slice(0, 4096);
       status = response.ok ? 'SUCCESS' : 'FAILED';
-    } catch (err: unknown) {
-      responseBody = err instanceof Error ? err.message : 'Unknown error';
+
+      if (!response.ok) {
+        errorMessage = `HTTP ${response.status}`;
+      }
+    } catch (err: any) {
+      errorMessage = err?.message ?? 'Unknown error';
     }
 
-    delivery.status = status;
-    delivery.statusCode = statusCode;
-    delivery.responseBody = responseBody;
-    delivery.attemptCount = delivery.attemptCount + 1;
+    const duration = Date.now() - startedAt;
 
-    if (status === 'FAILED' && delivery.attemptCount < MAX_ATTEMPTS) {
-      const delay = WebhookService.getRetryDelay(delivery.attemptCount - 1);
-      delivery.nextRetryAt = new Date(Date.now() + delay);
-      delivery.status = 'PENDING';
+    try {
+      const ds = await tenantDataSourceFor(tenantId);
+      const repo = ds.getRepository(WebhookDeliveryEntity);
+      const row = await repo.findOne({ where: { deliveryId } });
+      if (!row) return;
+
+      row.status = status;
+      row.attempts = row.attempts + 1;
+      row.responseStatus = responseStatus;
+      row.responseBody = responseBody;
+      row.errorMessage = errorMessage;
+      row.duration = duration;
+
+      if (status === 'FAILED' && row.attempts < row.maxAttempts) {
+        const delay = RETRY_DELAYS_MS[row.attempts - 1] ?? RETRY_DELAYS_MS.at(-1)!;
+        row.nextRetryAt = new Date(Date.now() + delay);
+        row.status = 'PENDING';
+      }
+
+      await repo.save(row);
+    } catch (err) {
+      Logger.error(`[Webhook] Failed to update delivery record ${deliveryId}: ${err}`);
     }
-
-    await WebhookService.deliveryRepo.save(delivery);
-
-    Logger.info(`[Webhook] Delivery ${deliveryId} → ${status} (attempt ${delivery.attemptCount})`);
-  }
-
-  static async getDeliveries(webhookId: string): Promise<WebhookDeliveryType[]> {
-    const deliveries = await WebhookService.deliveryRepo.find({
-      where: { webhookId },
-      order: { createdAt: 'DESC' },
-    });
-    return deliveries.map((d) => WebhookDeliverySchema.parse(d));
   }
 }

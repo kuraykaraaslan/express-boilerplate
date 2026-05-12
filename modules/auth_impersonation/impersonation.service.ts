@@ -1,14 +1,16 @@
 import 'reflect-metadata';
+import { IsNull } from 'typeorm';
 import { getSystemDataSource, tenantDataSourceFor } from '@/libs/typeorm';
-import { User as UserEntity } from '../user/entities/User';
-import { UserSession as UserSessionEntity } from '../user_session/entities/UserSession';
-import { TenantMember as TenantMemberEntity } from '../tenant_member/entities/TenantMember';
+import { User as UserEntity } from '../user/entities/user.entity';
+import { UserSession as UserSessionEntity } from '../user_session/entities/user_session.entity';
+import { TenantMember as TenantMemberEntity } from '../tenant_member/entities/tenant_member.entity';
 import { SafeUser } from '@/modules/user/user.types';
 import { SafeUserSession, SafeUserSessionSchema } from '@/modules/user_session/user_session.types';
 import UserSessionService from '@/modules/user_session/user_session.service';
 import { SafeTenantMember } from '@/modules/tenant_member/tenant_member.types';
 import type { TenantMemberRole } from '@/modules/tenant_member/tenant_member.enums';
 import AuditLogService from '@/modules/audit_log/audit_log.service';
+import { AuditActions } from '@/modules/audit_log/audit_log.enums';
 import ImpersonationMessages from './impersonation.messages';
 
 const GLOBAL_ROLE_ORDER: Record<string, number> = { USER: 0, ADMIN: 1 };
@@ -48,17 +50,16 @@ export default class ImpersonationService {
     if (!resolvedRole) {
       const ds = await tenantDataSourceFor(tenantId);
       const membership = await ds.getRepository(TenantMemberEntity).findOne({
-        where: { tenantId, userId: targetUserId },
+        where: { tenantId, userId: targetUserId, deletedAt: IsNull() },
       });
       resolvedRole = (membership?.memberRole as TenantMemberRole | undefined) ?? 'USER';
     }
 
-    // TODO: UserSessionService.createImpersonationSession does not exist in express boilerplate.
-    // Replace with createSession when impersonation session support is added.
-    const result = await (UserSessionService as any).createImpersonationSession({
+    const result = await UserSessionService.createImpersonationSession({
       targetUser: {
         userId: targetUser.userId,
         email: targetUser.email,
+        emailVerifiedAt: targetUser.emailVerifiedAt ?? null,
         phone: targetUser.phone ?? null,
         userRole: targetUser.userRole as any,
         userStatus: targetUser.userStatus as any,
@@ -76,8 +77,9 @@ export default class ImpersonationService {
     });
 
     AuditLogService.log({
-      userId: impersonatorUser.userId,
-      action: 'IMPERSONATION_STARTED',
+      actorType: 'USER',
+      actorId: impersonatorUser.userId,
+      action: AuditActions.IMPERSONATION_STARTED,
       resourceType: 'user',
       resourceId: targetUserId,
       metadata: { tenantId, targetTenantRole: resolvedRole, flow: 'system', ipAddress, userAgent },
@@ -115,7 +117,7 @@ export default class ImpersonationService {
 
     const ds = await tenantDataSourceFor(tenantId);
     const targetMembership = await ds.getRepository(TenantMemberEntity).findOne({
-      where: { tenantId, userId: targetUserId },
+      where: { tenantId, userId: targetUserId, deletedAt: IsNull() },
     });
     if (!targetMembership) throw new Error(ImpersonationMessages.TARGET_NOT_MEMBER_OF_TENANT);
 
@@ -123,12 +125,11 @@ export default class ImpersonationService {
       throw new Error(ImpersonationMessages.TARGET_MUST_BE_TENANT_USER);
     }
 
-    // TODO: UserSessionService.createImpersonationSession does not exist in express boilerplate.
-    // Replace with createSession when impersonation session support is added.
-    const result = await (UserSessionService as any).createImpersonationSession({
+    const result = await UserSessionService.createImpersonationSession({
       targetUser: {
         userId: targetUser.userId,
         email: targetUser.email,
+        emailVerifiedAt: targetUser.emailVerifiedAt ?? null,
         phone: targetUser.phone ?? null,
         userRole: targetUser.userRole as any,
         userStatus: targetUser.userStatus as any,
@@ -146,8 +147,9 @@ export default class ImpersonationService {
     });
 
     AuditLogService.log({
-      userId: impersonatorUser.userId,
-      action: 'IMPERSONATION_STARTED',
+      actorType: 'USER',
+      actorId: impersonatorUser.userId,
+      action: AuditActions.IMPERSONATION_STARTED,
       resourceType: 'user',
       resourceId: targetUserId,
       metadata: { tenantId, targetTenantRole: 'USER', flow: 'tenant', ipAddress, userAgent },
@@ -160,12 +162,13 @@ export default class ImpersonationService {
     userSessionId: string,
     context?: { actorId?: string; targetUserId?: string; tenantId?: string }
   ): Promise<void> {
-    await UserSessionService.deleteSession({ userSessionId } as any);
+    await UserSessionService.deleteSession(userSessionId);
 
     if (context?.actorId) {
       AuditLogService.log({
-        userId: context.actorId,
-        action: 'IMPERSONATION_ENDED',
+        actorType: 'USER',
+        actorId: context.actorId,
+        action: AuditActions.IMPERSONATION_ENDED,
         resourceType: 'user',
         resourceId: context.targetUserId,
         metadata: { tenantId: context.tenantId },
@@ -181,7 +184,7 @@ export default class ImpersonationService {
     });
 
     if (!session) return null;
-    if (!(session as any).metadata?.impersonation) return null;
+    if (!(session.metadata as any)?.impersonation) return null;
     if (session.sessionExpiry < new Date()) return null;
 
     return SafeUserSessionSchema.parse(session);

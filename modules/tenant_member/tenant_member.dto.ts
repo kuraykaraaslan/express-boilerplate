@@ -1,37 +1,38 @@
 import { z } from 'zod';
-import { TenantMemberRoleEnum } from './tenant_member.enums';
+import { TenantMemberRoleEnum, TenantMemberStatusEnum } from './tenant_member.enums';
 
-export const AddMemberDTO = z.object({
+export const CreateTenantMemberDTO = z.object({
   tenantId: z.string().uuid(),
   userId: z.string().uuid(),
   memberRole: TenantMemberRoleEnum.default('USER'),
+  memberStatus: TenantMemberStatusEnum.default('ACTIVE')
 });
 
-export const UpdateMemberRoleDTO = z.object({
+export const UpdateTenantMemberDTO = z.object({
+  memberRole: TenantMemberRoleEnum.nullable(),
+  memberStatus: TenantMemberStatusEnum.nullable()
+});
+
+export const GetTenantMemberDTO = z.object({
+  tenantMemberId: z.string().uuid().nullable(),
+  tenantId: z.string().uuid().nullable(),
+  userId: z.string().uuid().nullable()
+}).refine((data) => {
+  return data.tenantMemberId || (data.tenantId && data.userId);
+}, {
+  message: "Either tenantMemberId or both tenantId and userId must be provided"
+});
+
+export const GetTenantMembersDTO = z.object({
   tenantId: z.string().uuid(),
-  userId: z.string().uuid(),
-  memberRole: TenantMemberRoleEnum,
+  page: z.number().default(1),
+  pageSize: z.number().default(10),
+  search: z.string().nullable(),
+  memberRole: TenantMemberRoleEnum.nullable(),
+  memberStatus: TenantMemberStatusEnum.nullable()
 });
 
-export const RemoveMemberDTO = z.object({
-  tenantId: z.string().uuid(),
-  userId: z.string().uuid(),
-});
-
-export const GetMembersDTO = z.object({
-  tenantId: z.string().uuid(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-});
-
-export const CheckPermissionDTO = z.object({
-  tenantId: z.string().uuid(),
-  userId: z.string().uuid(),
-  requiredRole: TenantMemberRoleEnum,
-});
-
-export type AddMemberInput = z.infer<typeof AddMemberDTO>;
-export type UpdateMemberRoleInput = z.infer<typeof UpdateMemberRoleDTO>;
-export type RemoveMemberInput = z.infer<typeof RemoveMemberDTO>;
-export type GetMembersInput = z.infer<typeof GetMembersDTO>;
-export type CheckPermissionInput = z.infer<typeof CheckPermissionDTO>;
+export type CreateTenantMemberInput = z.infer<typeof CreateTenantMemberDTO>;
+export type UpdateTenantMemberInput = z.infer<typeof UpdateTenantMemberDTO>;
+export type GetTenantMemberInput = z.infer<typeof GetTenantMemberDTO>;
+export type GetTenantMembersInput = z.infer<typeof GetTenantMembersDTO>;

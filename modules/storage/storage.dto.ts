@@ -1,22 +1,34 @@
-import { z } from 'zod';
+import { z } from 'zod'
+import { StorageProviderTypeSchema } from './storage.enums'
 
-const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+export const UploadFileDTOSchema = z.object({
+  file: z.instanceof(File),
+  folder: z.string().optional(),
+  filename: z.string().optional(),
+  provider: StorageProviderTypeSchema.optional(),
+  tenantId: z.string().optional(),
+})
+export type UploadFileDTO = z.infer<typeof UploadFileDTOSchema>
 
-export const GetUploadUrlDTO = z.object({
-  filename: z.string().min(1),
-  contentType: z.string().min(1),
-  tenantId: z.string().uuid().optional(),
-  sizeBytes: z.number().int().positive().max(MAX_SIZE_BYTES),
-});
+export const UploadFromUrlDTOSchema = z.object({
+  url: z.string(),
+  folder: z.string().optional(),
+  filename: z.string().optional(),
+  provider: StorageProviderTypeSchema.optional(),
+  tenantId: z.string().optional(),
+})
+export type UploadFromUrlDTO = z.infer<typeof UploadFromUrlDTOSchema>
 
-export const GetDownloadUrlDTO = z.object({
-  key: z.string().min(1),
-});
+export const DeleteFileDTOSchema = z.object({
+  key: z.string(),
+  provider: StorageProviderTypeSchema.optional(),
+  tenantId: z.string().optional(),
+})
+export type DeleteFileDTO = z.infer<typeof DeleteFileDTOSchema>
 
-export const DeleteFileDTO = z.object({
-  key: z.string().min(1),
-});
-
-export type GetUploadUrlInput = z.infer<typeof GetUploadUrlDTO>;
-export type GetDownloadUrlInput = z.infer<typeof GetDownloadUrlDTO>;
-export type DeleteFileInput = z.infer<typeof DeleteFileDTO>;
+export const GetFileUrlDTOSchema = z.object({
+  key: z.string(),
+  provider: StorageProviderTypeSchema.optional(),
+  tenantId: z.string().optional(),
+})
+export type GetFileUrlDTO = z.infer<typeof GetFileUrlDTOSchema>

@@ -1,107 +1,215 @@
+import { env } from '@/libs/env';
 import { authenticator } from 'otplib';
 import bcrypt from 'bcrypt';
 import redis from '@/libs/redis';
-import { env } from '@/libs/env';
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import { User as UserEntity } from '@/modules/user/entities/User';
-import { SafeUser } from '@/modules/user/user.types';
 import AuthMessages from './auth.messages';
+import AuthService from './auth.service';
+import { SafeUser } from '../user/user.types';
+import { SafeUserSession } from '../user_session/user_session.types';
+import { OTPAction } from '../user_security/user_security.enums';
+import UserSecurityService from '../user_security/user_security.service';
 
-export default class AuthTOTPService {
-  static readonly TOTP_STEP_SECONDS = env.TOTP_STEP_SECONDS ?? 30;
-  static readonly TOTP_WINDOW = env.TOTP_WINDOW ?? 1;
-  static readonly TOTP_DIGITS = env.OTP_LENGTH ?? 6;
-  static readonly SETUP_EXPIRY_SECONDS = env.TOTP_SETUP_EXPIRY_SECONDS ?? 600;
-  static readonly ISSUER = env.TOTP_ISSUER ?? 'App';
+export default class TOTPService {
+  static TOTP_STEP_SECONDS = env.TOTP_STEP_SECONDS ?? 30;
+  static TOTP_WINDOW = env.TOTP_WINDOW ?? 1;
+  static TOTP_DIGITS = env.OTP_LENGTH ?? 6;
+  static SETUP_EXPIRY_SECONDS = env.TOTP_SETUP_EXPIRY_SECONDS ?? 600;
+  static ISSUER = env.TOTP_ISSUER || 'Relatia';
 
-  // ── otplib configuration ───────────────────────────────────────────────────
-
-  private static setupLib(): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (authenticator as any).options = {
-      step: AuthTOTPService.TOTP_STEP_SECONDS,
-      window: AuthTOTPService.TOTP_WINDOW,
-      digits: AuthTOTPService.TOTP_DIGITS,
-    };
+  static setupOtpLib() {
+    authenticator.options = {
+      step: TOTPService.TOTP_STEP_SECONDS,
+      window: TOTPService.TOTP_WINDOW,
+      digits: TOTPService.TOTP_DIGITS,
+    } as any;
   }
 
-  // ── Redis key ──────────────────────────────────────────────────────────────
-
-  private static getTempSecretKey(userId: string): string {
-    return `totp:setup:${userId}`;
+  static getRedisKey({ userSessionId, action }: { userSessionId: string; action: OTPAction | 'setup' }) {
+    return `totp:${action}:${userSessionId}`;
   }
 
-  // ── Setup TOTP ─────────────────────────────────────────────────────────────
+  static generateSecret() {
+    TOTPService.setupOtpLib();
+    return authenticator.generateSecret();
+  }
 
-  static async setupTOTP(userId: string): Promise<{ secret: string; qrCodeUrl: string }> {
-    AuthTOTPService.setupLib();
-
-    const repo = AppDataSource.getRepository(UserEntity);
-    const user = await repo.findOne({ where: { userId } });
-
-    if (!user) throw new AppError(AuthMessages.USER_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
-
-    const secret = authenticator.generateSecret();
+  static getOtpauthURL({ user, secret }: { user: SafeUser; secret: string }) {
+    TOTPService.setupOtpLib();
     const label = user.email;
-    const qrCodeUrl = authenticator.keyuri(label, AuthTOTPService.ISSUER, secret);
-
-    const key = AuthTOTPService.getTempSecretKey(userId);
-    await redis.setex(key, AuthTOTPService.SETUP_EXPIRY_SECONDS, secret);
-
-    return { secret, qrCodeUrl };
+    return authenticator.keyuri(label, TOTPService.ISSUER, secret);
   }
 
-  // ── Enable TOTP ────────────────────────────────────────────────────────────
+  // Start TOTP setup: generate temporary secret and return otpauth URL
+  static async requestSetup({ user, userSession }: { user: SafeUser; userSession: SafeUserSession }) {
+    const tempSecret = TOTPService.generateSecret();
+    const otpauthUrl = TOTPService.getOtpauthURL({ user, secret: tempSecret });
 
-  static async enableTOTP(userId: string, token: string): Promise<string[]> {
-    AuthTOTPService.setupLib();
+    const redisKey = TOTPService.getRedisKey({ userSessionId: userSession.userSessionId, action: 'setup' });
+    await redis.set(redisKey, tempSecret, 'EX', TOTPService.SETUP_EXPIRY_SECONDS);
 
-    const key = AuthTOTPService.getTempSecretKey(userId);
-    const tempSecret = await redis.get(key);
+    return { secret: tempSecret, otpauthUrl };
+  }
+
+  static verifyTokenWithSecret(otpToken: string, secret: string): boolean {
+    TOTPService.setupOtpLib();
+    return authenticator.check(otpToken, secret);
+  }
+
+  // Verify the code against the temp secret and enable TOTP for the user
+  static async verifyAndEnable({ user, userSession, otpToken }: { user: SafeUser; userSession: SafeUserSession; otpToken: string }) {
+    const setupKey = TOTPService.getRedisKey({ userSessionId: userSession.userSessionId, action: 'setup' });
+    const tempSecret = await redis.get(setupKey);
 
     if (!tempSecret) {
-      throw new AppError(AuthMessages.INVALID_OTP, 400, ErrorCode.VALIDATION_ERROR);
+      throw new Error(AuthMessages.INVALID_OTP);
     }
 
-    const valid = authenticator.check(token, tempSecret);
+    const valid = TOTPService.verifyTokenWithSecret(otpToken, tempSecret);
     if (!valid) {
-      throw new AppError(AuthMessages.INVALID_OTP, 400, ErrorCode.VALIDATION_ERROR);
+      throw new Error(AuthMessages.INVALID_OTP);
     }
 
-    // Generate 4 backup codes
-    const makePart = () => Math.random().toString().slice(2, 6);
+    const userSecurity = await UserSecurityService.getByUserId(user.userId);
+
+    const newMethods = Array.from(new Set([...(userSecurity.otpMethods || []), 'TOTP_APP']));
+
+    // Generate backup codes
     const codes: string[] = [];
-    for (let i = 0; i < 4; i++) {
-      codes.push(`${makePart()}-${makePart()}`);
-    }
-    const hashedCodes = await Promise.all(codes.map((c) => bcrypt.hash(c, 10)));
+    const charset = '0123456789';
+    const makeCode = () => {
+      let raw = '';
+      for (let i = 0; i < 8; i++) raw += charset[Math.floor(Math.random() * charset.length)];
+      return `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
+    };
 
-    // Persist secret and backup codes
-    // NOTE: UserEntity does not have otpSecret or otpBackupCodes columns by default.
-    // These fields should be added to the User entity or a separate UserSecurity entity.
-    // For now, we store the secret in Redis with a long TTL as a placeholder.
-    // TODO: persist to DB via UserSecurity module when available
-    await redis.del(key);
+    for (let i = 0; i < 4; i++) codes.push(makeCode());
+    const hashed = await Promise.all(codes.map((c) => bcrypt.hash(c, 10)));
 
-    return codes;
+    await UserSecurityService.updateUserSecurity(user.userId, {
+      otpSecret: tempSecret,
+      otpMethods: newMethods as any,
+      otpBackupCodes: hashed as any,
+    });
+
+    await redis.del(setupKey);
+
+    return { enabled: true, backupCodes: codes };
   }
 
-  // ── Verify TOTP ────────────────────────────────────────────────────────────
+  // Verify a login/authenticate action using persisted secret
+  static async verifyAuthenticate({ user, otpToken }: { user: SafeUser; otpToken: string }) {
+    const userSecurity = await UserSecurityService.getByUserId(user.userId);
 
-  static verifyTOTP(token: string, secret: string): boolean {
-    AuthTOTPService.setupLib();
-    return authenticator.check(token, secret);
-  }
-
-  // ── Disable TOTP ───────────────────────────────────────────────────────────
-
-  static async disableTOTP(userId: string, token: string, secret: string): Promise<void> {
-    const valid = AuthTOTPService.verifyTOTP(token, secret);
-    if (!valid) {
-      throw new AppError(AuthMessages.INVALID_OTP, 400, ErrorCode.VALIDATION_ERROR);
+    if (!userSecurity) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
     }
 
-    // TODO: remove otpSecret from UserSecurity when available
+    if (!userSecurity.otpMethods.includes('TOTP_APP' as any) || !userSecurity.otpSecret) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    const ok = TOTPService.verifyTokenWithSecret(otpToken, userSecurity.otpSecret);
+    if (!ok) {
+      throw new Error(AuthMessages.INVALID_OTP);
+    }
+
+    return { verified: true };
+  }
+
+  // Try TOTP first; if it fails, fallback to backup codes
+  static async verifyAuthenticateOrBackup({ user, otpToken }: { user: SafeUser; otpToken: string }) {
+    try {
+      await TOTPService.verifyAuthenticate({ user, otpToken });
+      return { verified: true, method: 'TOTP' };
+    } catch (_) {
+      const consumed = await TOTPService.consumeBackupCode({ user, code: otpToken });
+      if (!consumed.consumed) {
+        throw new Error(AuthMessages.INVALID_OTP);
+      }
+      return { verified: true, method: 'BACKUP_CODE' };
+    }
+  }
+
+  static async disable({ user, otpToken }: { user: SafeUser; otpToken: string }) {
+    const userSecurity = await UserSecurityService.getByUserId(user.userId);
+
+    if (!userSecurity) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    if (!userSecurity.otpMethods.includes('TOTP_APP' as any) || !userSecurity.otpSecret) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    const ok = TOTPService.verifyTokenWithSecret(otpToken, userSecurity.otpSecret);
+    if (!ok) {
+      throw new Error(AuthMessages.INVALID_OTP);
+    }
+
+    const newMethods = (userSecurity.otpMethods || []).filter(m => m !== 'TOTP_APP');
+    await UserSecurityService.updateUserSecurity(user.userId, {
+      otpSecret: undefined,
+      otpMethods: newMethods as any,
+      otpBackupCodes: [],
+    });
+    return { disabled: true };
+  }
+
+  // Generate backup codes, store hashed; return plaintext codes to the user
+  static async generateBackupCodes({ user, count = 4 }: { user: SafeUser; count?: number }) {
+    const userSecurity = await UserSecurityService.getByUserId(user.userId);
+
+    if (!userSecurity) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    if (!userSecurity.otpMethods.includes('TOTP_APP' as any) || !userSecurity.otpSecret) {
+      throw new Error(AuthMessages.INVALID_OTP_METHOD);
+    }
+
+    const codes: string[] = [];
+    const charset = '0123456789';
+    const makeCode = () => {
+      let raw = '';
+      for (let i = 0; i < 8; i++) raw += charset[Math.floor(Math.random() * charset.length)];
+      return `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
+    };
+
+    for (let i = 0; i < count; i++) codes.push(makeCode());
+    const hashed = await Promise.all(codes.map((c) => bcrypt.hash(c, 10)));
+
+    await UserSecurityService.updateUserSecurity(user.userId, {
+      otpBackupCodes: hashed as any,
+    });
+
+    return { codes };
+  }
+
+  // Consume a backup code: verify and remove it from stored list
+  static async consumeBackupCode({ user, code }: { user: SafeUser; code: string }) {
+
+    const userSecurity = await UserSecurityService.getByUserId(user.userId);
+    
+    const list = userSecurity.otpBackupCodes || [];
+    if (!list.length) {
+      return { consumed: false };
+    }
+
+    let matchIndex = -1;
+    for (let i = 0; i < list.length; i++) {
+      const ok = await bcrypt.compare(code, list[i]);
+      if (ok) { matchIndex = i; break; }
+    }
+
+    if (matchIndex === -1) {
+      return { consumed: false };
+    }
+
+    const newList = list.filter((_, idx) => idx !== matchIndex);
+    await UserSecurityService.updateUserSecurity(user.userId, {
+      otpBackupCodes: newList as any,
+    });
+
+    return { consumed: true };
   }
 }

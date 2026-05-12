@@ -1,8 +1,8 @@
-export enum TenantMessages {
-  TENANT_NOT_FOUND = 'TENANT_NOT_FOUND',
-  TENANT_ALREADY_EXISTS = 'TENANT_ALREADY_EXISTS',
-  TENANT_CREATED = 'TENANT_CREATED',
-  TENANT_UPDATED = 'TENANT_UPDATED',
-  TENANT_DELETED = 'TENANT_DELETED',
-  TENANT_ACCESS_DENIED = 'TENANT_ACCESS_DENIED',
-}
+const TenantMessages = {
+  TENANT_NOT_FOUND: "Tenant not found",
+  TENANT_ALREADY_EXISTS: "Tenant already exists",
+  INVALID_TENANT_DATA: "Invalid tenant data",
+  TENANT_ID_MISMATCH: "Tenant ID mismatch"
+} as const;
+
+export default TenantMessages;

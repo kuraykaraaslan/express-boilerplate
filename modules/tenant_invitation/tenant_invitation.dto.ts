@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { TenantMemberRoleEnum } from '@/modules/tenant_member/tenant_member.enums';
-import { InvitationStatusEnum } from './tenant_invitation.enums';
+import { TenantMemberRoleEnum } from '../tenant_member/tenant_member.enums';
+import { TenantInvitationStatusEnum } from './tenant_invitation.enums';
 
-export const CreateInvitationDTO = z.object({
-  tenantId: z.string().uuid(),
+export const SendInvitationDTO = z.object({
   email: z.string().email(),
-  memberRole: TenantMemberRoleEnum.default('USER').optional(),
+  memberRole: TenantMemberRoleEnum.default('USER'),
 });
 
 export const AcceptInvitationDTO = z.object({
@@ -18,12 +17,12 @@ export const DeclineInvitationDTO = z.object({
 
 export const GetInvitationsDTO = z.object({
   tenantId: z.string().uuid(),
-  status: InvitationStatusEnum.optional(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  page: z.number().default(1),
+  pageSize: z.number().default(10),
+  status: TenantInvitationStatusEnum.nullable().optional(),
 });
 
-export type CreateInvitationInput = z.infer<typeof CreateInvitationDTO>;
+export type SendInvitationInput = z.infer<typeof SendInvitationDTO>;
 export type AcceptInvitationInput = z.infer<typeof AcceptInvitationDTO>;
 export type DeclineInvitationInput = z.infer<typeof DeclineInvitationDTO>;
 export type GetInvitationsInput = z.infer<typeof GetInvitationsDTO>;

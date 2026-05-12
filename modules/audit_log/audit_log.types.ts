@@ -1,27 +1,18 @@
 import { z } from 'zod';
+import { AuditActorTypeEnum } from './audit_log.enums';
 
 export const AuditLogSchema = z.object({
-  auditLogId: z.string().uuid(),
-  tenantId: z.string().nullable().optional(),
-  userId: z.string().nullable().optional(),
-  action: z.string(),
-  resourceType: z.string().nullable().optional(),
-  resourceId: z.string().nullable().optional(),
-  metadata: z.record(z.unknown()).nullable().optional(),
-  ipAddress: z.string().nullable().optional(),
-  userAgent: z.string().nullable().optional(),
-  createdAt: z.date().nullable(),
+  auditLogId:   z.string().uuid(),
+  tenantId:     z.string().uuid().nullable(),
+  actorId:      z.string().uuid().nullable(),
+  actorType:    AuditActorTypeEnum,
+  action:       z.string(),
+  resourceType: z.string().nullable(),
+  resourceId:   z.string().nullable(),
+  metadata:     z.record(z.string(), z.unknown()).nullable(),
+  ipAddress:    z.string().nullable(),
+  userAgent:    z.string().nullable(),
+  createdAt:    z.date(),
 });
 
 export type AuditLog = z.infer<typeof AuditLogSchema>;
-
-export type CreateAuditLogInput = {
-  action: string;
-  tenantId?: string | null;
-  userId?: string | null;
-  resourceType?: string | null;
-  resourceId?: string | null;
-  metadata?: Record<string, unknown> | null;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-};

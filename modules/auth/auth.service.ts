@@ -1,21 +1,19 @@
 import 'reflect-metadata';
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
-
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import redis from '@/libs/redis';
 import { env } from '@/libs/env';
-
-import { User as UserEntity } from '@/modules/user/entities/User';
-import { SafeUser, SafeUserSchema } from '@/modules/user/user.types';
-import TenantService from '@/modules/tenant/tenant.service';
-
+import crypto from 'crypto';
+import { getSystemDataSource } from '@/libs/typeorm';
+import { User as UserEntity } from '../user/entities/user.entity';
+import bcrypt from 'bcrypt';
+import redis from '@/libs/redis';
+import Logger from '@/libs/logger';
+import UserService from '../user/user.service';
+import TenantService from '../tenant/tenant.service';
+import TenantInvitationService from '../tenant_invitation/tenant_invitation.service';
+import MailService from '../notification_mail/notification_mail.service';
+import { SafeUser, SafeUserSchema } from '../user/user.types';
 import AuthMessages from './auth.messages';
-import { LoginInput, RegisterInput } from './auth.dto';
 
 export default class AuthService {
-  // ── Token helpers ──────────────────────────────────────────────────────────
 
   static generateToken(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -25,71 +23,40 @@ export default class AuthService {
     return bcrypt.hash(password, 10);
   }
 
-  // ── Role check ─────────────────────────────────────────────────────────────
+  static async login({ email, password }: { email: string; password: string }): Promise<{ user: SafeUser }> {
+    const ds = await getSystemDataSource();
+    const user = await ds.getRepository(UserEntity).findOne({ where: { email: email.toLowerCase() } });
+    if (!user) throw new Error(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
 
-  public static checkIfUserHasRole(user: SafeUser, requiredRole: string): boolean {
-    const roles = ['SUPER_ADMIN', 'ADMIN', 'USER', 'GUEST'];
-    const userRoleIndex = roles.indexOf(user.userRole);
-    const requiredRoleIndex = roles.indexOf(requiredRole);
-    return userRoleIndex <= requiredRoleIndex;
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) throw new Error(AuthMessages.INVALID_EMAIL_OR_PASSWORD);
+
+    return { user: SafeUserSchema.parse(user) };
   }
 
-  // ── Login ──────────────────────────────────────────────────────────────────
+  static async logout({ accessToken }: { accessToken: string }): Promise<void> {}
 
-  static async login(data: LoginInput): Promise<SafeUser> {
-    const repo = AppDataSource.getRepository(UserEntity);
-    const user = await repo.findOne({ where: { email: data.email.toLowerCase() } });
+  static async register({ email, password, phone }: { email: string; password: string; phone?: string }): Promise<{ user: SafeUser }> {
+    const existingUser = await UserService.getByEmail(email);
+    if (existingUser) throw new Error(AuthMessages.EMAIL_ALREADY_EXISTS);
 
-    if (!user) {
-      throw new AppError(AuthMessages.INVALID_EMAIL_OR_PASSWORD, 401, ErrorCode.INVALID_CREDENTIALS);
-    }
-
-    const isPasswordValid = await bcrypt.compare(data.password, user.password);
-    if (!isPasswordValid) {
-      throw new AppError(AuthMessages.INVALID_EMAIL_OR_PASSWORD, 401, ErrorCode.INVALID_CREDENTIALS);
-    }
-
-    return SafeUserSchema.parse(user);
-  }
-
-  // ── Register ───────────────────────────────────────────────────────────────
-
-  static async register(data: RegisterInput): Promise<SafeUser> {
-    const { email, password, phone } = data;
-
-    const repo = AppDataSource.getRepository(UserEntity);
-    const existingByEmail = await repo.findOne({ where: { email: email.toLowerCase() } });
-
-    if (existingByEmail) {
-      throw new AppError(AuthMessages.EMAIL_ALREADY_EXISTS, 409, ErrorCode.CONFLICT);
-    }
-
-    const hashedPassword = await AuthService.hashPassword(password);
-
-    const user = repo.create({
+    const ds = await getSystemDataSource();
+    const newUser = ds.getRepository(UserEntity).create({
+      phone,
       email: email.toLowerCase(),
-      password: hashedPassword,
-      phone: phone ?? undefined,
-      userRole: 'USER',
-      userStatus: 'ACTIVE',
+      password: await AuthService.hashPassword(password),
     });
+    const saved = await ds.getRepository(UserEntity).save(newUser);
+    const parsedUser = SafeUserSchema.parse(saved);
 
-    const saved = await repo.save(user);
-    const safeUser = SafeUserSchema.parse(saved);
+    await TenantService.provisionPersonal(parsedUser.userId, parsedUser.email);
+    await TenantInvitationService.autoAcceptForEmail(parsedUser.userId, parsedUser.email);
 
-    // Provision personal tenant
-    await TenantService.provisionPersonalTenant(safeUser.userId, safeUser.email);
-
-    return safeUser;
+    return { user: parsedUser };
   }
 
-  // ── Email verification ─────────────────────────────────────────────────────
-
-  private static readonly EMAIL_VERIFY_TTL_SECONDS =
-    env.EMAIL_VERIFY_TTL_SECONDS ?? 60 * 60 * 24; // 24h
-
-  private static readonly EMAIL_VERIFY_RATE_LIMIT_SECONDS =
-    env.EMAIL_VERIFY_RATE_LIMIT_SECONDS ?? 300; // 5min
+  private static readonly EMAIL_VERIFY_TTL_SECONDS = env.EMAIL_VERIFY_TTL_SECONDS ?? (60 * 60 * 24);
+  private static readonly EMAIL_VERIFY_RATE_LIMIT_SECONDS = env.EMAIL_VERIFY_RATE_LIMIT_SECONDS ?? 300;
 
   private static getEmailVerifyKey(userId: string): string {
     return `email:verify:${userId}`;
@@ -99,47 +66,49 @@ export default class AuthService {
     return `email:verify:rate:${userId}`;
   }
 
-  static async sendEmailVerification(userId: string): Promise<void> {
-    const repo = AppDataSource.getRepository(UserEntity);
-    const user = await repo.findOne({ where: { userId } });
-
-    if (!user) throw new AppError(AuthMessages.USER_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
+  static async sendEmailVerification({ userId, email, name }: { userId: string; email: string; name?: string }): Promise<void> {
+    const ds = await getSystemDataSource();
+    const user = await ds.getRepository(UserEntity).findOne({ where: { userId } });
+    if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
+    if (user.emailVerifiedAt) throw new Error(AuthMessages.EMAIL_ALREADY_VERIFIED);
 
     const rateKey = AuthService.getEmailVerifyRateKey(userId);
-    if (await redis.get(rateKey)) {
-      throw new AppError(AuthMessages.RATE_LIMIT_EXCEEDED, 429, ErrorCode.RATE_LIMIT_EXCEEDED);
-    }
+    if (await redis.get(rateKey)) throw new Error(AuthMessages.RATE_LIMIT_EXCEEDED);
 
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     const verifyKey = AuthService.getEmailVerifyKey(userId);
-    await redis.setex(verifyKey, AuthService.EMAIL_VERIFY_TTL_SECONDS, hashedToken);
-    await redis.setex(rateKey, AuthService.EMAIL_VERIFY_RATE_LIMIT_SECONDS, '1');
+    await redis.set(verifyKey, hashedToken, 'EX', AuthService.EMAIL_VERIFY_TTL_SECONDS);
+    await redis.set(rateKey, '1', 'EX', AuthService.EMAIL_VERIFY_RATE_LIMIT_SECONDS);
 
-    // TODO: send email with rawToken
-    // await MailService.sendVerifyEmail({ email: user.email, verifyToken: rawToken });
+    await MailService.sendVerifyEmail({ email, name, verifyToken: rawToken });
+    Logger.info(`Email verification sent for user ${userId}`);
   }
 
-  static async verifyEmail(token: string, userId: string): Promise<void> {
-    const repo = AppDataSource.getRepository(UserEntity);
+  static async verifyEmail({ userId, token }: { userId: string; token: string }): Promise<void> {
+    const ds = await getSystemDataSource();
+    const repo = ds.getRepository(UserEntity);
     const user = await repo.findOne({ where: { userId } });
-
-    if (!user) throw new AppError(AuthMessages.USER_NOT_FOUND, 404, ErrorCode.NOT_FOUND);
+    if (!user) throw new Error(AuthMessages.USER_NOT_FOUND);
+    if (user.emailVerifiedAt) throw new Error(AuthMessages.EMAIL_ALREADY_VERIFIED);
 
     const verifyKey = AuthService.getEmailVerifyKey(userId);
     const storedHash = await redis.get(verifyKey);
-
-    if (!storedHash) {
-      throw new AppError(AuthMessages.VERIFICATION_TOKEN_EXPIRED, 400, ErrorCode.VALIDATION_ERROR);
-    }
+    if (!storedHash) throw new Error(AuthMessages.VERIFICATION_TOKEN_EXPIRED);
 
     const inputHash = crypto.createHash('sha256').update(token).digest('hex');
-    if (inputHash !== storedHash) {
-      throw new AppError(AuthMessages.INVALID_VERIFICATION_TOKEN, 400, ErrorCode.VALIDATION_ERROR);
-    }
+    if (inputHash !== storedHash) throw new Error(AuthMessages.INVALID_VERIFICATION_TOKEN);
 
+    await repo.update({ userId }, { emailVerifiedAt: new Date() });
     await redis.del(verifyKey);
     await redis.del(AuthService.getEmailVerifyRateKey(userId));
+
+    Logger.info(`Email verified for user ${userId}`);
+  }
+
+  public static checkIfUserHasRole(user: SafeUser, requiredRole: string): boolean {
+    const roles = ['SUPER_ADMIN', 'ADMIN', 'USER', 'GUEST'];
+    return roles.indexOf(user.userRole) <= roles.indexOf(requiredRole);
   }
 }

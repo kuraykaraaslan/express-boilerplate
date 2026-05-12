@@ -1,52 +1,130 @@
 import { z } from 'zod';
-import { OTPMethodEnum } from '@/modules/user/user.enums';
+import { OTPMethodEnum, OTPActionEnum } from '../user_security/user_security.enums';
+
+// ============================================================================
+// Authentication DTOs
+// ============================================================================
 
 export const LoginDTO = z.object({
-  email: z.string().email('Email must be valid'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email(),
+  password: z.string().min(1)
 });
-
-export type LoginInput = z.infer<typeof LoginDTO>;
 
 export const RegisterDTO = z.object({
-  email: z.string().email('Email must be valid'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  phone: z.string().optional()
 });
 
-export type RegisterInput = z.infer<typeof RegisterDTO>;
-
-export const ForgotPasswordDTO = z.object({
-  email: z.string().email('Email must be valid'),
+export const LogoutDTO = z.object({
+  accessToken: z.string()
 });
-
-export type ForgotPasswordInput = z.infer<typeof ForgotPasswordDTO>;
-
-export const ResetPasswordDTO = z.object({
-  token: z.string().min(1, 'Token is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  email: z.string().email().optional(),
-});
-
-export type ResetPasswordInput = z.infer<typeof ResetPasswordDTO>;
 
 export const VerifyEmailDTO = z.object({
-  token: z.string().min(1, 'Token is required'),
-  userId: z.string().uuid('User ID must be a valid UUID'),
+  token: z.string()
 });
 
+// ============================================================================
+// Password DTOs
+// ============================================================================
+
+export const ForgotPasswordDTO = z.object({
+  email: z.string().email()
+});
+
+export const ResetPasswordDTO = z.object({
+  email: z.string().email(),
+  resetToken: z.string(),
+  newPassword: z.string().min(8, "Password must be at least 8 characters")
+});
+
+export const ValidateResetTokenDTO = z.object({
+  email: z.string().email(),
+  resetToken: z.string()
+});
+
+export const InvalidateResetTokenDTO = z.object({
+  email: z.string().email()
+});
+
+export const ChangePasswordDTO = z.object({
+  currentPassword: z.string(),
+  newPassword: z.string().min(8, "Password must be at least 8 characters")
+});
+
+// ============================================================================
+// OTP DTOs
+// ============================================================================
+
+export const RequestOTPDTO = z.object({
+  method: OTPMethodEnum,
+  action: OTPActionEnum
+});
+
+export const VerifyOTPDTO = z.object({
+  method: OTPMethodEnum,
+  action: OTPActionEnum,
+  otpToken: z.string().min(4)
+});
+
+// ============================================================================
+// TOTP DTOs
+// ============================================================================
+
+export const TOTPSetupDTO = z.object({
+  // No additional fields needed - user/session from context
+});
+
+export const TOTPEnableDTO = z.object({
+  otpToken: z.string().min(6).max(6)
+});
+
+export const TOTPVerifyDTO = z.object({
+  otpToken: z.string().min(6).max(8) // 6 for TOTP, 8 for backup codes
+});
+
+export const TOTPDisableDTO = z.object({
+  otpToken: z.string().min(6).max(6)
+});
+
+export const TOTPBackupCodesDTO = z.object({
+  count: z.number().int().min(1).max(20).nullable().default(4)
+});
+
+export const TOTPConsumeBackupCodeDTO = z.object({
+  code: z.string()
+});
+
+// ============================================================================
+// Session DTOs
+// ============================================================================
+
+export const RefreshTokenDTO = z.object({
+  refreshToken: z.string()
+});
+
+// ============================================================================
+// Type Exports
+// ============================================================================
+
+export type LoginInput = z.infer<typeof LoginDTO>;
+export type RegisterInput = z.infer<typeof RegisterDTO>;
+export type LogoutInput = z.infer<typeof LogoutDTO>;
 export type VerifyEmailInput = z.infer<typeof VerifyEmailDTO>;
 
-export const OTPSendDTO = z.object({
-  method: OTPMethodEnum,
-});
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordDTO>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordDTO>;
+export type ValidateResetTokenInput = z.infer<typeof ValidateResetTokenDTO>;
+export type InvalidateResetTokenInput = z.infer<typeof InvalidateResetTokenDTO>;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordDTO>;
 
-export type OTPSendInput = z.infer<typeof OTPSendDTO>;
+export type RequestOTPInput = z.infer<typeof RequestOTPDTO>;
+export type VerifyOTPInput = z.infer<typeof VerifyOTPDTO>;
 
-export const OTPVerifyDTO = z.object({
-  otp: z.string().length(6, 'OTP must be 6 characters'),
-  method: OTPMethodEnum,
-});
-
-export type OTPVerifyInput = z.infer<typeof OTPVerifyDTO>;
+export type TOTPSetupInput = z.infer<typeof TOTPSetupDTO>;
+export type TOTPEnableInput = z.infer<typeof TOTPEnableDTO>;
+export type TOTPVerifyInput = z.infer<typeof TOTPVerifyDTO>;
+export type TOTPDisableInput = z.infer<typeof TOTPDisableDTO>;
+export type TOTPBackupCodesInput = z.infer<typeof TOTPBackupCodesDTO>;
+export type TOTPConsumeBackupCodeInput = z.infer<typeof TOTPConsumeBackupCodeDTO>;
+export type RefreshTokenInput = z.infer<typeof RefreshTokenDTO>;

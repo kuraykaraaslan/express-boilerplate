@@ -1,98 +1,113 @@
-import axios, { AxiosInstance } from 'axios';
-import { BasePaymentProvider } from './base.provider';
-import type { CreateCheckoutParams, CheckoutSessionResult } from '../payment.types';
-import { PaymentMessages } from '../payment.messages';
-import { env } from '@/libs/env';
+import axios, { AxiosInstance } from 'axios'
+import BasePaymentProvider, { CheckoutSessionParams, CheckoutSessionResult } from './base.provider'
+import { PAYMENT_MESSAGES } from '../payment.messages'
+import SettingService from '@/modules/setting/setting.service'
 
 export default class PaypalProvider extends BasePaymentProvider {
-  readonly name = 'paypal';
+  readonly name = 'paypal'
 
-  private static accessToken: string | null = null;
-  private static accessTokenExpires: Date | null = null;
+  private static PAYPAL_ACCESS_TOKEN: string | null = null
+  private static PAYPAL_ACCESS_TOKEN_EXPIRES: Date | null = null
 
-  private static getBaseUrl(): string {
-    return 'https://api-m.sandbox.paypal.com';
+  private static async getBaseUrl(): Promise<string> {
+    const sandbox = await SettingService.getValue('paypalSandboxMode')
+    return sandbox === 'true'
+      ? 'https://api-m.sandbox.paypal.com'
+      : 'https://api-m.paypal.com'
   }
 
-  private async getAccessToken(): Promise<string> {
+  private static async getAccessToken(): Promise<string> {
     if (
-      PaypalProvider.accessToken &&
-      PaypalProvider.accessTokenExpires &&
-      PaypalProvider.accessTokenExpires > new Date()
+      this.PAYPAL_ACCESS_TOKEN &&
+      this.PAYPAL_ACCESS_TOKEN_EXPIRES &&
+      this.PAYPAL_ACCESS_TOKEN_EXPIRES > new Date()
     ) {
-      return PaypalProvider.accessToken;
+      return this.PAYPAL_ACCESS_TOKEN
     }
 
-    const clientId = env.PAYPAL_CLIENT_ID;
-    const clientSecret = env.PAYPAL_CLIENT_SECRET;
+    const clientId = await SettingService.getValue('paypalClientId')
+    const clientSecret = await SettingService.getValue('paypalClientSecret')
+    if (!clientId || !clientSecret) throw new Error(PAYMENT_MESSAGES.PROVIDER_NOT_CONFIGURED)
 
-    if (!clientId || !clientSecret) {
-      throw new Error(PaymentMessages.PROVIDER_NOT_CONFIGURED);
-    }
+    const baseUrl = await this.getBaseUrl()
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
 
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-
-    const res = await axios.post(
-      `${PaypalProvider.getBaseUrl()}/v1/oauth2/token`,
-      'grant_type=client_credentials',
-      {
+    try {
+      const res = await axios.post(`${baseUrl}/v1/oauth2/token`, 'grant_type=client_credentials', {
         headers: {
           Authorization: `Basic ${credentials}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-      },
-    );
-
-    PaypalProvider.accessToken = res.data.access_token;
-    PaypalProvider.accessTokenExpires = new Date(Date.now() + res.data.expires_in * 1000);
-    return res.data.access_token;
+      })
+      this.PAYPAL_ACCESS_TOKEN = res.data.access_token
+      this.PAYPAL_ACCESS_TOKEN_EXPIRES = new Date(Date.now() + res.data.expires_in * 1000)
+      return res.data.access_token
+    } catch (error) {
+      throw new Error(PAYMENT_MESSAGES.PAYPAL_ACCESS_TOKEN_FAILED)
+    }
   }
 
   private async getAuthenticatedAxios(): Promise<AxiosInstance> {
-    const token = await this.getAccessToken();
+    const baseUrl = await PaypalProvider.getBaseUrl()
+    const token = await PaypalProvider.getAccessToken()
     return axios.create({
-      baseURL: PaypalProvider.getBaseUrl(),
+      baseURL: baseUrl,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-    });
+    })
   }
 
-  async getPaymentStatus(externalId: string): Promise<string> {
-    const client = await this.getAuthenticatedAxios();
-    const response = await client.get(`/v2/checkout/orders/${externalId}`);
-    return response.data.status;
+  getAxiosInstance(): AxiosInstance {
+    return axios.create({
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    })
   }
 
-  async createCheckoutSession(params: CreateCheckoutParams): Promise<CheckoutSessionResult> {
-    const client = await this.getAuthenticatedAxios();
+  async getPaymentStatus(token: string): Promise<any> {
+    try {
+      const client = await this.getAuthenticatedAxios()
+      const response = await client.get(`/v2/checkout/orders/${token}`)
+      return response.data
+    } catch (error) {
+      throw new Error(PAYMENT_MESSAGES.PAYPAL_GET_STATUS_FAILED)
+    }
+  }
 
-    const body = {
-      intent: 'CAPTURE',
-      purchase_units: [
-        {
-          custom_id: params.paymentId,
+  async createCheckoutSession(params: CheckoutSessionParams): Promise<CheckoutSessionResult> {
+    try {
+      const client = await this.getAuthenticatedAxios()
+
+      const body = {
+        intent: 'CAPTURE',
+        purchase_units: [{
           amount: {
             currency_code: params.currency.toUpperCase(),
             value: params.amount.toFixed(2),
           },
+          description: params.description,
+          custom_id: params.metadata?.paymentId,
+        }],
+        application_context: {
+          return_url: params.successUrl,
+          cancel_url: params.cancelUrl,
+          brand_name: params.description,
+          user_action: 'PAY_NOW',
         },
-      ],
-      application_context: {
-        return_url: params.successUrl ?? 'https://example.com/success',
-        cancel_url: params.cancelUrl ?? 'https://example.com/cancel',
-        user_action: 'PAY_NOW',
-      },
-    };
+      }
 
-    const response = await client.post('/v2/checkout/orders', body);
-    const approveLink = response.data.links?.find((l: { rel: string; href: string }) => l.rel === 'approve');
+      const response = await client.post('/v2/checkout/orders', body)
+      const approveLink = response.data.links?.find((l: any) => l.rel === 'approve')
 
-    return {
-      checkoutUrl: approveLink?.href ?? '',
-      externalId: response.data.id,
-    };
+      return {
+        sessionId: response.data.id,
+        checkoutUrl: approveLink?.href || '',
+        providerData: { orderId: response.data.id },
+      }
+    } catch (error) {
+      throw new Error(PAYMENT_MESSAGES.PAYPAL_CREATE_ORDER_FAILED)
+    }
   }
 }

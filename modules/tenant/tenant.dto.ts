@@ -2,29 +2,32 @@ import { z } from 'zod';
 import { TenantStatusEnum } from './tenant.enums';
 
 export const CreateTenantDTO = z.object({
-  name: z.string().min(2).max(64),
-  description: z.string().optional(),
-  isPersonal: z.boolean().optional(),
+  name: z.string().min(1).max(100),
+  description: z.string().nullable(),
+  region: z.string().default('TR')
 });
 
 export const UpdateTenantDTO = z.object({
-  name: z.string().min(2).max(64).optional(),
-  description: z.string().optional(),
-  tenantStatus: TenantStatusEnum.optional(),
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().nullable(),
+  region: z.string().nullable(),
+  tenantStatus: TenantStatusEnum.optional()
+});
+
+export const GetTenantDTO = z.object({
+  tenantId: z.string().uuid().nullable()
+}).refine((data) => data.tenantId, {
+  message: "tenantId must be provided"
 });
 
 export const GetTenantsDTO = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
-  search: z.string().optional(),
-  ownerId: z.string().uuid().optional(),
-});
-
-export const TenantIdDTO = z.object({
-  tenantId: z.string().uuid(),
+  page: z.number().default(1),
+  pageSize: z.number().default(10),
+  search: z.string().nullable(),
+  tenantId: z.string().uuid().nullable()
 });
 
 export type CreateTenantInput = z.infer<typeof CreateTenantDTO>;
 export type UpdateTenantInput = z.infer<typeof UpdateTenantDTO>;
+export type GetTenantInput = z.infer<typeof GetTenantDTO>;
 export type GetTenantsInput = z.infer<typeof GetTenantsDTO>;
-export type TenantIdInput = z.infer<typeof TenantIdDTO>;

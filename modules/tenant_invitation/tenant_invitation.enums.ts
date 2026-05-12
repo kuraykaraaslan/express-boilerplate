@@ -1,10 +1,11 @@
 import { z } from 'zod';
 
-export const InvitationStatusEnum = z.enum([
+export const TenantInvitationStatusEnum = z.enum([
   'PENDING',
   'ACCEPTED',
   'DECLINED',
   'EXPIRED',
+  'REVOKED'
 ]);
 
-export type InvitationStatus = z.infer<typeof InvitationStatusEnum>;
+export type TenantInvitationStatus = z.infer<typeof TenantInvitationStatusEnum>;

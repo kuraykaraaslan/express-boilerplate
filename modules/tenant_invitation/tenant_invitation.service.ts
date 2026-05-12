@@ -1,257 +1,160 @@
 import 'reflect-metadata';
-import crypto from 'crypto';
-import { LessThan, FindOptionsWhere } from 'typeorm';
 import { env } from '@/libs/env';
-import { AppDataSource } from '@/libs/typeorm';
-import { AppError, ErrorCode } from '@/libs/app-error';
-import { TenantInvitation as TenantInvitationEntity } from './entities/TenantInvitation';
-import { TenantInvitation, TenantInvitationSchema } from './tenant_invitation.types';
-import { CreateInvitationInput, GetInvitationsInput } from './tenant_invitation.dto';
-import { TenantInvitationMessages } from './tenant_invitation.messages';
-import TenantMemberService from '@/modules/tenant_member/tenant_member.service';
-import type { TenantMemberRole } from '@/modules/tenant_member/tenant_member.enums';
+import crypto from 'crypto';
+import { IsNull, LessThan, MoreThan } from 'typeorm';
+import { getSystemDataSource, tenantDataSourceFor, getDefaultTenantDataSource } from '@/libs/typeorm';
+import { User as UserEntity } from '../user/entities/user.entity';
+import { TenantInvitation as TenantInvitationEntity } from './entities/tenant_invitation.entity';
+import { Tenant as TenantEntity } from '../tenant/entities/tenant.entity';
+import { SafeTenantInvitation, SafeTenantInvitationSchema } from './tenant_invitation.types';
+import { SendInvitationInput, GetInvitationsInput } from './tenant_invitation.dto';
+import TenantInvitationMessages from './tenant_invitation.messages';
+import TenantMemberService from '../tenant_member/tenant_member.service';
+import type { TenantMemberRole } from '../tenant_member/tenant_member.enums';
 
-const INVITATION_TTL_SECONDS: number = env.INVITATION_TTL_SECONDS ?? 60 * 60 * 24 * 7;
+const INVITATION_TTL_SECONDS = env.INVITATION_TTL_SECONDS ?? (60 * 60 * 24 * 7);
 
 export default class TenantInvitationService {
-  private static get repo() {
-    return AppDataSource.getRepository(TenantInvitationEntity);
-  }
 
-  /**
-   * Hash a raw token with SHA-256.
-   */
   static hashToken(rawToken: string): string {
     return crypto.createHash('sha256').update(rawToken).digest('hex');
   }
 
-  /**
-   * Generate a cryptographically random token (hex).
-   */
   static generateRawToken(): string {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  /**
-   * Create and send an invitation.
-   * Revokes any existing pending invitation for the same email+tenantId.
-   * Returns the invitation and the raw (un-hashed) token.
-   */
-  static async create(
-    data: CreateInvitationInput,
-    invitedBy: string,
-  ): Promise<{ invitation: TenantInvitation; rawToken: string }> {
-    const normalizedEmail = data.email.toLowerCase();
+  static async getByTenantId({ tenantId, page, pageSize, status }: GetInvitationsInput): Promise<{ invitations: SafeTenantInvitation[]; total: number }> {
+    const where: Record<string, unknown> = { tenantId };
+    if (status) where.status = status;
 
-    // Check if the user is already a member
-    const existing = await TenantInvitationService.repo.findOne({
-      where: {
-        tenantId: data.tenantId,
-        email: normalizedEmail,
-        status: 'PENDING',
-      },
-    });
+    const safePage = Math.max(1, page);
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(TenantInvitationEntity);
 
-    if (existing) {
-      // Expire the old pending invitation before creating a new one
-      await TenantInvitationService.repo.update(
-        { tenantId: data.tenantId, email: normalizedEmail, status: 'PENDING' },
-        { status: 'EXPIRED' },
-      );
+    const [rows, total] = await Promise.all([
+      repo.find({ where: where as any, skip: (safePage - 1) * pageSize, take: pageSize, order: { createdAt: 'DESC' } }),
+      repo.count({ where: where as any }),
+    ]);
+
+    return { invitations: rows.map((r) => SafeTenantInvitationSchema.parse(r)), total };
+  }
+
+  static async getById(invitationId: string): Promise<SafeTenantInvitation> {
+    const ds = await getDefaultTenantDataSource();
+    const invitation = await ds.getRepository(TenantInvitationEntity).findOne({ where: { invitationId } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_NOT_FOUND);
+    return SafeTenantInvitationSchema.parse(invitation);
+  }
+
+  static async getByToken(rawToken: string): Promise<SafeTenantInvitation> {
+    const hashed = TenantInvitationService.hashToken(rawToken);
+    const ds = await getDefaultTenantDataSource();
+    const invitation = await ds.getRepository(TenantInvitationEntity).findOne({ where: { token: hashed } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_INVALID_TOKEN);
+    return SafeTenantInvitationSchema.parse(invitation);
+  }
+
+  static async send(tenantId: string, invitedByUserId: string, { email, memberRole }: SendInvitationInput): Promise<{ invitation: SafeTenantInvitation; rawToken: string }> {
+    const normalizedEmail = email.toLowerCase();
+
+    const sysDs = await getSystemDataSource();
+    const existingUser = await sysDs.getRepository(UserEntity).findOne({ where: { email: normalizedEmail } });
+    if (existingUser) {
+      const alreadyMember = await TenantMemberService.getByTenantAndUser({ tenantId, userId: existingUser.userId, tenantMemberId: null });
+      if (alreadyMember) throw new Error(TenantInvitationMessages.INVITATION_ALREADY_MEMBER);
     }
+
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(TenantInvitationEntity);
+
+    await repo.update({ tenantId, email: normalizedEmail, status: 'PENDING' }, { status: 'REVOKED' });
 
     const rawToken = TenantInvitationService.generateRawToken();
     const hashedToken = TenantInvitationService.hashToken(rawToken);
     const expiresAt = new Date(Date.now() + INVITATION_TTL_SECONDS * 1000);
 
-    const memberRole = data.memberRole ?? 'USER';
+    const invitation = repo.create({ tenantId, email: normalizedEmail, invitedByUserId, memberRole, token: hashedToken, status: 'PENDING', expiresAt });
+    const saved = await repo.save(invitation);
 
-    const invitation = TenantInvitationService.repo.create({
-      tenantId: data.tenantId,
-      email: normalizedEmail,
-      invitedBy,
-      memberRole,
-      token: hashedToken,
-      status: 'PENDING',
-      expiresAt,
-    });
-
-    const saved = await TenantInvitationService.repo.save(invitation);
-    return { invitation: TenantInvitationSchema.parse(saved), rawToken };
+    return { invitation: SafeTenantInvitationSchema.parse(saved), rawToken };
   }
 
-  /**
-   * Find an invitation by raw token (hashes internally before lookup).
-   */
-  static async findByToken(rawToken: string): Promise<TenantInvitation> {
+  static async preview(tenantId: string, rawToken: string): Promise<{ invitation: SafeTenantInvitation; tenant: { tenantId: string; name: string } }> {
     const hashed = TenantInvitationService.hashToken(rawToken);
+    const ds = await tenantDataSourceFor(tenantId);
+    const invitation = await ds.getRepository(TenantInvitationEntity).findOne({ where: { token: hashed, tenantId } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_INVALID_TOKEN);
+    TenantInvitationService.assertUsable(invitation);
 
-    const invitation = await TenantInvitationService.repo.findOne({
-      where: { token: hashed },
-    });
-
-    if (!invitation) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
-    }
-
-    return TenantInvitationSchema.parse(invitation);
-  }
-
-  /**
-   * Accept an invitation by raw token.
-   * Validates expiry and status, then adds the user as a tenant member.
-   */
-  static async accept(rawToken: string, userId: string): Promise<void> {
-    const hashed = TenantInvitationService.hashToken(rawToken);
-
-    const invitation = await TenantInvitationService.repo.findOne({
-      where: { token: hashed },
-    });
-
-    if (!invitation) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
-    }
-
-    if (invitation.status === 'ACCEPTED') {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_ALREADY_ACCEPTED,
-        409,
-        ErrorCode.CONFLICT,
-      );
-    }
-
-    if (invitation.status === 'EXPIRED' || invitation.expiresAt < new Date()) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_EXPIRED,
-        410,
-        ErrorCode.NOT_FOUND,
-      );
-    }
-
-    // Check if already a member
-    const alreadyMember = await TenantMemberService.findByTenantAndUser(
-      invitation.tenantId,
-      userId,
-    );
-
-    if (alreadyMember) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_ALREADY_MEMBER,
-        409,
-        ErrorCode.CONFLICT,
-      );
-    }
-
-    await TenantMemberService.addMember({
-      tenantId: invitation.tenantId,
-      userId,
-      memberRole: invitation.memberRole as TenantMemberRole,
-    });
-
-    await TenantInvitationService.repo.update(
-      { invitationId: invitation.invitationId },
-      { status: 'ACCEPTED' },
-    );
-  }
-
-  /**
-   * Decline an invitation by raw token.
-   */
-  static async decline(rawToken: string): Promise<void> {
-    const hashed = TenantInvitationService.hashToken(rawToken);
-
-    const invitation = await TenantInvitationService.repo.findOne({
-      where: { token: hashed },
-    });
-
-    if (!invitation) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
-    }
-
-    if (invitation.status !== 'PENDING') {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_ALREADY_ACCEPTED,
-        409,
-        ErrorCode.CONFLICT,
-      );
-    }
-
-    await TenantInvitationService.repo.update(
-      { invitationId: invitation.invitationId },
-      { status: 'DECLINED' },
-    );
-  }
-
-  /**
-   * Expire all invitations past their expiresAt date that are still PENDING.
-   * Intended to be called by a cron job.
-   */
-  static async expireOld(): Promise<void> {
-    await TenantInvitationService.repo.update(
-      {
-        status: 'PENDING',
-        expiresAt: LessThan(new Date()),
-      },
-      { status: 'EXPIRED' },
-    );
-  }
-
-  /**
-   * List invitations for a tenant with optional status filter and pagination.
-   */
-  static async findByTenant(
-    data: GetInvitationsInput,
-  ): Promise<{ invitations: TenantInvitation[]; total: number }> {
-    const { tenantId, status, page, limit } = data;
-    const skip = (page - 1) * limit;
-
-    const where: Record<string, unknown> = { tenantId };
-    if (status) where.status = status;
-
-    const [rows, total] = await TenantInvitationService.repo.findAndCount({
-      where: where as FindOptionsWhere<TenantInvitationEntity>,
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
-
+    const tenant = await ds.getRepository(TenantEntity).findOne({ where: { tenantId } });
     return {
-      invitations: rows.map((r) => TenantInvitationSchema.parse(r)),
-      total,
+      invitation: SafeTenantInvitationSchema.parse(invitation),
+      tenant: { tenantId: tenantId, name: tenant?.name ?? '' },
     };
   }
 
-  /**
-   * Revoke (cancel) a specific invitation by invitationId.
-   */
-  static async revokeInvitation(invitationId: string): Promise<void> {
-    const invitation = await TenantInvitationService.repo.findOne({
-      where: { invitationId },
+  static async accept(tenantId: string, userId: string, userEmail: string, rawToken: string): Promise<void> {
+    const hashed = TenantInvitationService.hashToken(rawToken);
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(TenantInvitationEntity);
+
+    const invitation = await repo.findOne({ where: { token: hashed, tenantId } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_INVALID_TOKEN);
+    if (invitation.email !== userEmail.toLowerCase()) throw new Error(TenantInvitationMessages.INVITATION_EMAIL_MISMATCH);
+    TenantInvitationService.assertUsable(invitation);
+
+    await TenantMemberService.create({ tenantId, userId, memberRole: invitation.memberRole as TenantMemberRole, memberStatus: 'ACTIVE' });
+    await repo.update({ invitationId: invitation.invitationId }, { status: 'ACCEPTED' });
+  }
+
+  static async decline(tenantId: string, userEmail: string, rawToken: string): Promise<void> {
+    const hashed = TenantInvitationService.hashToken(rawToken);
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(TenantInvitationEntity);
+
+    const invitation = await repo.findOne({ where: { token: hashed, tenantId } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_INVALID_TOKEN);
+    if (invitation.email !== userEmail.toLowerCase()) throw new Error(TenantInvitationMessages.INVITATION_EMAIL_MISMATCH);
+    TenantInvitationService.assertUsable(invitation);
+
+    await repo.update({ invitationId: invitation.invitationId }, { status: 'DECLINED' });
+  }
+
+  static async revoke(invitationId: string, tenantId: string): Promise<void> {
+    const ds = await tenantDataSourceFor(tenantId);
+    const repo = ds.getRepository(TenantInvitationEntity);
+    const invitation = await repo.findOne({ where: { invitationId, tenantId } });
+    if (!invitation) throw new Error(TenantInvitationMessages.INVITATION_NOT_FOUND);
+    if (invitation.status !== 'PENDING') throw new Error(TenantInvitationMessages.INVITATION_NOT_FOUND);
+    await repo.update({ invitationId }, { status: 'REVOKED' });
+  }
+
+  static async autoAcceptForEmail(userId: string, email: string): Promise<void> {
+    const normalizedEmail = email.toLowerCase();
+    const now = new Date();
+
+    const ds = await getDefaultTenantDataSource();
+    const pending = await ds.getRepository(TenantInvitationEntity).find({
+      where: { email: normalizedEmail, status: 'PENDING', expiresAt: MoreThan(now) },
     });
 
-    if (!invitation) {
-      throw new AppError(
-        TenantInvitationMessages.INVITATION_NOT_FOUND,
-        404,
-        ErrorCode.NOT_FOUND,
-      );
+    for (const invitation of pending) {
+      try {
+        const alreadyMember = await TenantMemberService.getByTenantAndUser({ tenantId: invitation.tenantId, userId, tenantMemberId: null });
+        if (!alreadyMember) {
+          await TenantMemberService.create({ tenantId: invitation.tenantId, userId, memberRole: invitation.memberRole as TenantMemberRole, memberStatus: 'ACTIVE' });
+        }
+        const invDs = await tenantDataSourceFor(invitation.tenantId);
+        await invDs.getRepository(TenantInvitationEntity).update({ invitationId: invitation.invitationId }, { status: 'ACCEPTED' });
+      } catch {}
     }
+  }
 
-    await TenantInvitationService.repo.update(
-      { invitationId },
-      { status: 'EXPIRED' },
-    );
+  private static assertUsable(invitation: { status: string; expiresAt: Date }): void {
+    if (invitation.status === 'ACCEPTED') throw new Error(TenantInvitationMessages.INVITATION_ALREADY_ACCEPTED);
+    if (invitation.status === 'DECLINED') throw new Error(TenantInvitationMessages.INVITATION_ALREADY_DECLINED);
+    if (invitation.status === 'REVOKED') throw new Error(TenantInvitationMessages.INVITATION_REVOKED);
+    if (invitation.status === 'EXPIRED' || invitation.expiresAt < new Date()) throw new Error(TenantInvitationMessages.INVITATION_EXPIRED);
   }
 }

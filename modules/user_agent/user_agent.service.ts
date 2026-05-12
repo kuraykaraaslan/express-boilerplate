@@ -154,15 +154,15 @@ export default class UserAgentService {
    */
   private static generateDeviceName(osName: OSName, browserName: BrowserName, deviceType: DeviceType): string {
     const parts: string[] = [];
-
+    
     if (deviceType !== 'Desktop') {
       parts.push(deviceType);
     }
-
+    
     if (osName !== 'Unknown') {
       parts.push(osName);
     }
-
+    
     if (browserName !== 'Unknown') {
       parts.push(browserName);
     }
@@ -237,7 +237,7 @@ export default class UserAgentService {
    */
   static formatLocation(geo: GeoLocation): string {
     const parts: string[] = [];
-
+    
     if (geo.city) parts.push(geo.city);
     if (geo.state) parts.push(geo.state);
     if (geo.country) parts.push(geo.country);

@@ -1,7 +1,7 @@
 import { env } from '@/libs/env';
 import Logger from "@/libs/logger";
 import { Queue, Worker, Job } from "bullmq";
-import { getBullMQConnection } from "@/libs/redis";
+import { getBullMQConnection } from "@/libs/redis/bullmq";
 import redis from "@/libs/redis";
 import { PhoneNumberUtil, PhoneNumberFormat } from "google-libphonenumber";
 
@@ -61,9 +61,9 @@ export default class SMSService {
 
     if (envMap) {
       // Parse from env: "TR:netgsm,US:twilio,GB:twilio,DE:twilio"
-      const pairs = envMap.split(",").map((p: string) => p.trim());
+      const pairs = envMap.split(",").map(p => p.trim());
       for (const pair of pairs) {
-        const [region, provider] = pair.split(":").map((s: string) => s.trim());
+        const [region, provider] = pair.split(":").map(s => s.trim());
         if (region && provider && SMSService.isValidProviderName(provider)) {
           map.set(region.toUpperCase(), provider as SMSProviderType);
         }

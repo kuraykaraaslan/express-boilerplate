@@ -3,7 +3,7 @@ import Logger from "@/libs/logger";
 import ejs from "ejs";
 import path from "path";
 import { Queue, Worker, Job } from "bullmq";
-import { getBullMQConnection } from "@/libs/redis";
+import { getBullMQConnection } from "@/libs/redis/bullmq";
 
 // Providers
 import BaseMailProvider, { MailOptions, MailResult } from "./providers/base.provider";
@@ -44,6 +44,7 @@ export default class MailService {
     ["resend", MailService.resendProvider],
   ]);
 
+  // Default provider from env or fallback to smtp
   private static readonly DEFAULT_PROVIDER: MailProviderType =
     (env.MAIL_PROVIDER as MailProviderType) || "smtp";
 
@@ -78,10 +79,11 @@ export default class MailService {
     }
   }
 
+  // Template paths - relative to this module
   static readonly TEMPLATE_PATH = path.join(__dirname, "templates");
 
   // Application config
-  static readonly APPLICATION_NAME = env.APPLICATION_NAME || "Express Boilerplate";
+  static readonly APPLICATION_NAME = env.APPLICATION_NAME || "Next Boilerplate";
   static readonly APPLICATION_HOST = env.APPLICATION_HOST || "http://localhost:3000";
   static readonly MAIL_FROM = env.MAIL_FROM || `${MailService.APPLICATION_NAME} <noreply@example.com>`;
 
@@ -99,6 +101,9 @@ export default class MailService {
   static readonly INFORM_MAIL = env.INFORM_MAIL;
   static readonly INFORM_NAME = env.INFORM_NAME;
 
+  /**
+   * Get the provider instance by name
+   */
   static getProvider(providerName?: MailProviderType): BaseMailProvider {
     const name = providerName || MailService.DEFAULT_PROVIDER;
     const provider = MailService.PROVIDER_MAP.get(name);
@@ -110,6 +115,7 @@ export default class MailService {
 
     if (!provider.isConfigured()) {
       Logger.warn(`MailService: Provider "${name}" is not configured, trying fallback`);
+      // Try to find a configured provider
       for (const [, p] of MailService.PROVIDER_MAP) {
         if (p.isConfigured()) {
           Logger.info(`MailService: Using fallback provider "${p.name}"`);
@@ -121,6 +127,9 @@ export default class MailService {
     return provider;
   }
 
+  /**
+   * List all available and configured providers
+   */
   static listProviders(): { name: MailProviderType; configured: boolean }[] {
     const result: { name: MailProviderType; configured: boolean }[] = [];
     for (const [name, provider] of MailService.PROVIDER_MAP) {
@@ -129,6 +138,9 @@ export default class MailService {
     return result;
   }
 
+  /**
+   * Base template variables for all emails
+   */
   static getBaseTemplateVars() {
     return {
       appName: MailService.APPLICATION_NAME,
@@ -143,6 +155,9 @@ export default class MailService {
     };
   }
 
+  /**
+   * Add email job to queue
+   */
   static async sendMail(
     to: string,
     subject: string,
@@ -157,6 +172,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Send email directly without queue (for urgent emails)
+   */
   static async sendMailDirect(
     to: string,
     subject: string,
@@ -166,6 +184,9 @@ export default class MailService {
     return MailService._sendMail({ to, subject, html, provider });
   }
 
+  /**
+   * Internal method to send email via provider
+   */
   private static async _sendMail({
     to,
     subject,
@@ -184,17 +205,23 @@ export default class MailService {
     return provider.sendMail(options);
   }
 
+  /**
+   * Renders an EJS template with layout
+   */
   static async renderTemplate(templateName: string, data: Record<string, unknown>): Promise<string> {
     const templatePath = path.join(MailService.TEMPLATE_PATH, templateName);
 
+    // Render the main email content
     const body = await ejs.renderFile(templatePath, data, { async: true });
 
+    // Render header and footer partials
     const headerPath = path.join(MailService.TEMPLATE_PATH, "partials", "email_header.ejs");
     const footerPath = path.join(MailService.TEMPLATE_PATH, "partials", "email_footer.ejs");
 
     const headerHtml = await ejs.renderFile(headerPath, data, { async: true });
     const footerHtml = await ejs.renderFile(footerPath, data, { async: true });
 
+    // Render the layout with body, header, and footer
     const layoutPath = path.join(MailService.TEMPLATE_PATH, "layouts", "email_layout.ejs");
 
     return await ejs.renderFile(
@@ -206,6 +233,9 @@ export default class MailService {
 
   // ==================== EMAIL METHODS ====================
 
+  /**
+   * Welcome email for new users
+   */
   static async sendWelcomeEmail({ email, name }: { email: string; name?: string }): Promise<void> {
     try {
       const subject = `Welcome to ${MailService.APPLICATION_NAME}`;
@@ -220,6 +250,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * New login detected email
+   */
   static async sendNewLoginEmail({
     email,
     name,
@@ -252,6 +285,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Forgot password email with reset token
+   */
   static async sendForgotPasswordEmail({
     email,
     name,
@@ -284,6 +320,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Password reset success email
+   */
   static async sendPasswordResetSuccessEmail({
     email,
     name,
@@ -304,6 +343,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * OTP verification email
+   */
   static async sendOTPEmail({
     email,
     name,
@@ -328,6 +370,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * OTP enabled notification
+   */
   static async sendOTPEnabledEmail({ email, name }: { email: string; name?: string }): Promise<void> {
     try {
       const subject = "OTP Enabled";
@@ -342,6 +387,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * OTP disabled notification
+   */
   static async sendOTPDisabledEmail({ email, name }: { email: string; name?: string }): Promise<void> {
     try {
       const subject = "OTP Disabled";
@@ -356,6 +404,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Email changed notification
+   */
   static async sendEmailChangedEmail({ email, name }: { email: string; name?: string }): Promise<void> {
     try {
       const subject = "Your Email Was Updated";
@@ -370,6 +421,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Email verification
+   */
   static async sendVerifyEmail({
     email,
     name,
@@ -395,6 +449,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Password changed notification
+   */
   static async sendPasswordChangedEmail({ email, name }: { email: string; name?: string }): Promise<void> {
     try {
       const subject = "Your Password Was Changed";
@@ -409,6 +466,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Suspicious activity alert
+   */
   static async sendSuspiciousActivityEmail({
     email,
     name,
@@ -441,6 +501,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * New device login alert
+   */
   static async sendNewDeviceAlertEmail({
     email,
     name,
@@ -473,6 +536,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Tenant invitation email
+   */
   static async sendTenantInvitationEmail({
     email,
     tenantName,
@@ -509,6 +575,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Contact form submission - Admin notification
+   */
   static async sendContactFormAdminEmail({
     message,
     name,
@@ -537,6 +606,9 @@ export default class MailService {
     }
   }
 
+  /**
+   * Contact form submission - User confirmation
+   */
   static async sendContactFormUserEmail({ name, email }: { name: string; email: string }): Promise<void> {
     try {
       const subject = "We Received Your Message";
