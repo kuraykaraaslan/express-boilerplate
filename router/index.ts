@@ -49,8 +49,11 @@ async function handleDomainMode(req: Request, _res: Response, next: NextFunction
     let tenantId: string | null = null;
     let isSystemDomain = false;
 
+    log(`[domain] Incoming request for host: ${host}, path: ${pathname}`);
+
     if (isLocalhost(host) || host === `${DEFAULT_SUBDOMAIN}.${WILDCARD_DOMAIN}`) {
         isSystemDomain = true;
+        log("[domain] Detected system domain (localhost or default subdomain)");
     } else {
         try {
             const domainInfo = await TenantDomainService.getByDomain(host);
@@ -136,7 +139,7 @@ router.use(async (req, res, next) => {
 });
 
 // Internal route mounts
-router.use("/system/api", systemRouter);
-router.use("/tenant/:tenantId/api", tenantScopedRouter);
+router.use("/system", systemRouter);
+router.use("/tenant/:tenantId", tenantScopedRouter);
 
 export default router;

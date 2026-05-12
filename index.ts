@@ -39,7 +39,7 @@ app.use(helmet.crossOriginEmbedderPolicy({ policy: "require-corp" }));
 app.enable('trust proxy');
 
 app.use(cors({
-    origin: env.CORS_ORIGIN || "http://localhost:3002",
+    origin: env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
 }));
 
@@ -49,33 +49,6 @@ app.use(Limiter.useLimiter);
 
 // --- Routes ---
 app.use(proxyRouter);
-
-// --- Welcome Route ---
-app.get("/", (_req: Request, response: Response) => {
-    response.json({
-        message: "Welcome to the API",
-        version: process.env.npm_package_version,
-        env: process.env.NODE_ENV,
-    });
-});
-
-// --- Health Check Route ---
-app.get("/health", async (_req: Request, response: Response) => {
-    const redisStatus = await redis.ping()
-        .then(() => true)
-        .catch(() => false);
-    const dbStatus = await SystemDataSource.query('SELECT 1')
-        .then(() => true)
-        .catch(() => false);
-    const serverStatus = true;
-
-    response.status(200).json({
-        message: "OK",
-        databaseStatus: dbStatus ? "OK" : "ERROR",
-        redisStatus: redisStatus ? "OK" : "ERROR",
-        serverStatus: serverStatus ? "OK" : "ERROR",
-    });
-});
 
 // --- Error Handling ---
 app.use(errorHandler);
