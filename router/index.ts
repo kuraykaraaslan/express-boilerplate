@@ -64,13 +64,13 @@ async function handleDomainMode(req: Request, _res: Response, next: NextFunction
     }
 
     if (tenantId) {
-        req.url = `/tenant/${tenantId}/api${pathname}`;
+        req.url = `/tenant/${tenantId}${pathname}`;
         log(`[domain] Rewriting to tenant: ${tenantId}`);
         return next();
     }
 
     if (isSystemDomain) {
-        req.url = `/system/api${pathname}`;
+        req.url = `/system${pathname}`;
         log("[domain] Rewriting to system");
         return next();
     }
@@ -89,35 +89,35 @@ function handlePathMode(req: Request, _res: Response, next: NextFunction): void 
         const rest = slashIndex === -1 ? "" : withoutPrefix.slice(slashIndex);
 
         if (!tenantId) {
-            req.url = `/system/api${pathname}`;
+            req.url = `/system${pathname}`;
             log("[path] No tenantId → rewriting to system");
             return next();
         }
 
-        req.url = `/tenant/${tenantId}/api${rest || "/"}`;
+        req.url = `/tenant/${tenantId}${rest || "/"}`;
         log(`[path] Rewriting to tenant: ${tenantId}`);
         return next();
     }
 
-    req.url = `/system/api${pathname}`;
+    req.url = `/system${pathname}`;
     log("[path] Rewriting to system");
     next();
 }
 
 const router = Router();
 
-// ✅ /api/system/{rest}            → /system/api/{rest}
-// ✅ /api/tenant/{tenantId}/{rest} → /tenant/{tenantId}/api/{rest}
+// ✅ /system/{rest}            → /system/{rest}
+// ✅ /tenant/{tenantId}/{rest} → /tenant/{tenantId}/{rest}
 router.use((req, _res, next) => {
-    if (req.path.startsWith("/api/system/") || req.path === "/api/system") {
-        req.url = `/system/api${req.path.slice("/api/system".length) || "/"}`;
+    if (req.path.startsWith("/system/") || req.path === "/system") {
+        req.url = `/system${req.path.slice("/system".length) || "/"}`;
         log(`[api] system → ${req.url}`);
-    } else if (req.path.startsWith("/api/tenant/")) {
-        const withoutPrefix = req.path.slice("/api/tenant/".length);
+    } else if (req.path.startsWith("/tenant/")) {
+        const withoutPrefix = req.path.slice("/tenant/".length);
         const slashIndex = withoutPrefix.indexOf("/");
         const tenantId = slashIndex === -1 ? withoutPrefix : withoutPrefix.slice(0, slashIndex);
         const rest = slashIndex === -1 ? "/" : withoutPrefix.slice(slashIndex);
-        req.url = `/tenant/${tenantId}/api${rest}`;
+        req.url = `/tenant/${tenantId}${rest}`;
         log(`[api] tenant(${tenantId}) → ${req.url}`);
     }
     next();
