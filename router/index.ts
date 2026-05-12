@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction, Router } from "express";
+import dotenv from "dotenv";
+dotenv.config();
 
 import SettingService from "@/modules/setting/setting.service";
 import TenantDomainService from "@/modules/tenant_domain/tenant_domain.service";
 import systemRouter from "@/router/system";
 import tenantScopedRouter from "@/router/tenant";
+
 
 const isDev = process.env.NODE_ENV !== "production";
 const DEFAULT_SUBDOMAIN = process.env.TENANT_DEFAULT_SUBDOMAIN || "express-boilerplate";

@@ -4,17 +4,15 @@
   "description": "Express based API boilerplate",
   "main": "index.js",
   "scripts": {
+    "dev": "tsx watch index.ts",
+    "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn -r tsconfig-paths/register server.ts",
-    "build": "tsc && tsc-alias",
-    "lint:check": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "vercel-build": "tsup --config tsup.vercel.config.ts",
-    "test": "jest --detectOpenHandles --forceExit --passWithNoTests",
-    "typeorm": "ts-node ./node_modules/typeorm/cli",
-    "typeorm:migrate": "npm run typeorm migration:run -- -d ./src/shared/libs/typeorm/index.ts",
-    "typeorm:generate": "npm run typeorm -- -d src/shared/libs/typeorm/index.ts migration:generate ./migrations/$npm_config_name",
-    "typeorm:revert": "npm run typeorm -- -d ./src/shared/libs/typeorm/index.ts migration:revert"
+    "start:prod": "NODE_ENV=production node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "clean": "rm -rf dist",
+    "rebuild": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
@@ -98,6 +96,7 @@
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",
     "tsup": "^8.4.0",
+    "tsx": "^4.21.0",
     "twilio": "^5.5.2",
     "typeorm": "^0.3.29",
     "uuid": "^11.1.0",
@@ -108,8 +107,5 @@
   "keywords": [],
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
-  },
-  "_moduleAliases": {
-    "@": "./dist"
   }
 }

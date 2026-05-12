@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const EnvSchema = z.object({
   // ── Core ────────────────────────────────────────────────────────────────────

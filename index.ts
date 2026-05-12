@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
 import { errorHandler } from "@/modules_express/common/error-handler.middleware";
@@ -13,8 +12,6 @@ import { SystemDataSource } from "@/modules/db/db.system";
 import { env } from "@/modules/env";
 
 import proxyRouter from "@/router";
-
-dotenv.config();
 
 const app = express();
 
