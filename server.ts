@@ -1,6 +1,6 @@
 import app from "./index";
-import { AppDataSource } from "@/libs/typeorm";
-import { env } from "@/libs/env";
+import { AppDataSource } from "@/modules_express/db";
+import { env } from "@/modules_express/env";
 
 const port = env.PORT;
 

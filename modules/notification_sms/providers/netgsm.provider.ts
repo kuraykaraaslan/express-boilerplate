@@ -1,8 +1,8 @@
-import { env } from '@/libs/env';
+import { env } from '@/modules/env';
 import BaseProvider from "./base.provider";
 import axios, { AxiosInstance } from "axios";
 import FormData from "form-data";
-import Logger from "@/libs/logger";
+import Logger from "@/modules/logger";
 
 export default class NetGSMProvider extends BaseProvider {
   private static readonly NETGSM_USER_CODE = env.NETGSM_USER_CODE!;

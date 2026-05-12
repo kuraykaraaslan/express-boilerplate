@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/libs/env', () => ({
+vi.mock('@/modules/env', () => ({
   env: {
     SYSTEM_DATABASE_URL: 'postgresql://test',
     TENANT_DATABASE_URL: 'postgresql://test',
@@ -11,14 +11,14 @@ vi.mock('@/libs/env', () => ({
   },
 }));
 
-vi.mock('@/libs/typeorm', () => ({
+vi.mock('@/modules/db', () => ({
   getSystemDataSource: vi.fn(),
 }));
 
-vi.mock('@/libs/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
-vi.mock('@/libs/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/modules/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
+vi.mock('@/modules/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
-import { getSystemDataSource } from '@/libs/typeorm';
+import { getSystemDataSource } from '@/modules/db';
 import UserPreferencesService from './user_preferences.service';
 
 const mockPrefsEntity = {
@@ -36,7 +36,7 @@ const mockPrefsEntity = {
 };
 
 function buildRepoMock(overrides: Record<string, any> = {}) {
-  const findOne = vi.fn(async () => null);
+  const findOne = vi.fn(async () => null as typeof mockPrefsEntity | null);
   const save = vi.fn(async (data: any) => ({ ...mockPrefsEntity, ...data }));
   const create = vi.fn((data: any) => ({ ...mockPrefsEntity, ...data }));
   const update = vi.fn(async () => ({ affected: 1 }));

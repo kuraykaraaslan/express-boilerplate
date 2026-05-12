@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/libs/env', () => ({
+vi.mock('@/modules/env', () => ({
   env: {
     SYSTEM_DATABASE_URL: 'postgresql://test',
     TENANT_DATABASE_URL: 'postgresql://test',
@@ -11,34 +11,34 @@ vi.mock('@/libs/env', () => ({
   },
 }));
 
-vi.mock('@/libs/typeorm', () => ({
+vi.mock('@/modules/db', () => ({
   getSystemDataSource: vi.fn(),
 }));
 
-vi.mock('@/libs/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
-vi.mock('@/libs/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/modules/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
+vi.mock('@/modules/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
-import { getSystemDataSource } from '@/libs/typeorm';
+import { getSystemDataSource } from '@/modules/db';
 import UserSecurityService from './user_security.service';
 
 const now = new Date();
 
 const mockSecurityEntity = {
   userId: 'user-1',
-  otpMethods: [],
-  otpSecret: null,
-  otpBackupCodes: [],
-  lastLoginAt: null,
-  lastLoginIp: null,
-  lastLoginDevice: null,
+  otpMethods: [] as string[],
+  otpSecret: null as string | null,
+  otpBackupCodes: [] as string[],
+  lastLoginAt: null as Date | null,
+  lastLoginIp: null as string | null,
+  lastLoginDevice: null as string | null,
   failedLoginAttempts: 0,
-  lockedUntil: null,
+  lockedUntil: null as Date | null,
   passkeyEnabled: false,
-  passkeys: [],
+  passkeys: [] as any[],
 };
 
 function buildRepoMock(overrides: Record<string, any> = {}) {
-  const findOne = vi.fn(async () => null);
+  const findOne = vi.fn(async () => null as typeof mockSecurityEntity | null);
   const save = vi.fn(async (data: any) => ({ ...mockSecurityEntity, ...data }));
   const create = vi.fn((data: any) => ({ ...mockSecurityEntity, ...data }));
   const update = vi.fn(async () => ({ affected: 1 }));
@@ -218,7 +218,7 @@ describe('UserSecurityService.recordLoginAttempt', () => {
 
     await UserSecurityService.recordLoginAttempt('user-1', false);
 
-    const updateCall = repo.update.mock.calls[0][1];
+    const updateCall = (repo.update.mock.calls as any[][])[0]![1];
     expect(updateCall.failedLoginAttempts).toBe(5);
     expect(updateCall.lockedUntil).toBeInstanceOf(Date);
     expect(updateCall.lockedUntil.getTime()).toBeGreaterThan(Date.now());
@@ -230,7 +230,7 @@ describe('UserSecurityService.recordLoginAttempt', () => {
 
     await UserSecurityService.recordLoginAttempt('user-1', false);
 
-    const updateCall = repo.update.mock.calls[0][1];
+    const updateCall = (repo.update.mock.calls as any[][])[0]![1];
     expect(updateCall.lockedUntil).toBeUndefined();
   });
 });

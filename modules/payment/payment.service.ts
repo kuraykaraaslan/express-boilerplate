@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 import { Between, IsNull, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { env } from '@/libs/env';
-import { getDefaultTenantDataSource, tenantDataSourceFor } from '@/libs/typeorm';
+import { env } from '@/modules/env';
+import { getDefaultTenantDataSource, tenantDataSourceFor } from '@/modules/db';
 import { Payment as PaymentEntity } from './entities/payment.entity';
 import { PaymentTransaction as PaymentTransactionEntity } from './entities/payment_transaction.entity';
-import Logger from '@/libs/logger';
+import Logger from '@/modules/logger';
 import BasePaymentProvider, { CheckoutSessionParams, CheckoutSessionResult } from './providers/base.provider';
 import StripeProvider from './providers/stripe.provider';
 import PaypalProvider from './providers/paypal.provider';

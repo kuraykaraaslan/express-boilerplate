@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/libs/env', () => ({
+vi.mock('@/modules/env', () => ({
   env: {
     SYSTEM_DATABASE_URL: 'postgresql://test',
     TENANT_DATABASE_URL: 'postgresql://test',
@@ -11,17 +11,17 @@ vi.mock('@/libs/env', () => ({
   },
 }));
 
-vi.mock('@/libs/typeorm', () => ({
+vi.mock('@/modules/db', () => ({
   getSystemDataSource: vi.fn(),
   SystemDataSource: { isInitialized: false, initialize: vi.fn(), getRepository: vi.fn() },
   tenantDataSourceFor: vi.fn(),
 }));
 
-vi.mock('@/libs/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
-vi.mock('@/libs/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/modules/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
+vi.mock('@/modules/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
 import CouponService from './coupon.service';
-import { getSystemDataSource, tenantDataSourceFor } from '@/libs/typeorm';
+import { getSystemDataSource, tenantDataSourceFor } from '@/modules/db';
 import { COUPON_MESSAGES } from './coupon.messages';
 
 const COUPON_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -36,15 +36,15 @@ const mockCoupon = {
   discountType: 'PERCENTAGE' as const,
   discountValue: 20,
   currency: null,
-  applicablePlanIds: null,
+  applicablePlanIds: null as string[] | null,
   applicableProviders: null,
-  maxUses: null,
-  maxUsesPerTenant: null,
+  maxUses: null as number | null,
+  maxUsesPerTenant: null as number | null,
   usedCount: 0,
-  minimumAmount: null,
-  status: 'ACTIVE' as const,
-  startsAt: null,
-  expiresAt: null,
+  minimumAmount: null as number | null,
+  status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+  startsAt: null as Date | null,
+  expiresAt: null as Date | null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 };

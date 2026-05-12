@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import crypto from 'crypto';
 import { Queue, Worker, Job } from 'bullmq';
-import { getBullMQConnection } from '@/libs/redis/bullmq';
-import { tenantDataSourceFor } from '@/libs/typeorm';
+import { getBullMQConnection } from '@/modules/redis/redis.bullmq';
+import { tenantDataSourceFor } from '@/modules/db';
 import { Webhook as WebhookEntity } from './entities/webhook.entity';
 import { WebhookDelivery as WebhookDeliveryEntity } from './entities/webhook_delivery.entity';
 import { SafeWebhookSchema, WebhookDeliverySchema } from './webhook.types';
@@ -10,7 +10,7 @@ import type { SafeWebhook, WebhookDelivery } from './webhook.types';
 import type { CreateWebhookInput, UpdateWebhookInput, ListWebhooksInput, ListDeliveriesInput } from './webhook.dto';
 import type { WebhookEvent } from './webhook.enums';
 import WebhookMessages from './webhook.messages';
-import Logger from '@/libs/logger';
+import Logger from '@/modules/logger';
 
 interface DeliveryJobData {
   deliveryId: string;

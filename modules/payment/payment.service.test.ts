@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/libs/env', () => ({
+vi.mock('@/modules/env', () => ({
   env: {
     SYSTEM_DATABASE_URL: 'postgresql://test',
     TENANT_DATABASE_URL: 'postgresql://test',
@@ -19,18 +19,18 @@ vi.mock('@/libs/env', () => ({
   },
 }));
 
-vi.mock('@/libs/typeorm', () => ({
+vi.mock('@/modules/db', () => ({
   getSystemDataSource: vi.fn(),
   tenantDataSourceFor: vi.fn(),
   getDefaultTenantDataSource: vi.fn(),
   SystemDataSource: { isInitialized: false, initialize: vi.fn(), getRepository: vi.fn() },
 }));
 
-vi.mock('@/libs/redis', () => ({
+vi.mock('@/modules/redis', () => ({
   default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() },
 }));
 
-vi.mock('@/libs/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/modules/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
 vi.mock('stripe', () => ({
   default: vi.fn(() => ({
@@ -44,7 +44,7 @@ vi.mock('./providers/stripe.provider', () => ({
   default: class MockStripeProvider {
     async getPaymentStatus() { return { status: 'succeeded' }; }
     async createCheckoutSession() {
-      return { sessionId: 'cs_test_123', url: 'https://checkout.stripe.com/pay/cs_test_123' };
+      return { sessionId: 'cs_test_123', checkoutUrl: 'https://checkout.stripe.com/pay/cs_test_123' };
     }
   },
 }));
@@ -53,7 +53,7 @@ vi.mock('./providers/paypal.provider', () => ({
   default: class MockPaypalProvider {
     async getPaymentStatus() { return { status: 'COMPLETED' }; }
     async createCheckoutSession() {
-      return { sessionId: 'pp_order_123', url: 'https://paypal.com/pay/pp_order_123' };
+      return { sessionId: 'pp_order_123', checkoutUrl: 'https://paypal.com/pay/pp_order_123' };
     }
   },
 }));
@@ -62,13 +62,13 @@ vi.mock('./providers/iyzico.provider', () => ({
   default: class MockIyzicoProvider {
     async getPaymentStatus() { return { status: 'SUCCESS' }; }
     async createCheckoutSession() {
-      return { sessionId: 'iyzico_123', url: 'https://sandbox-api.iyzipay.com/pay' };
+      return { sessionId: 'iyzico_123', checkoutUrl: 'https://sandbox-api.iyzipay.com/pay' };
     }
   },
 }));
 
 import PaymentService from './payment.service';
-import { getDefaultTenantDataSource, tenantDataSourceFor } from '@/libs/typeorm';
+import { getDefaultTenantDataSource, tenantDataSourceFor } from '@/modules/db';
 import { PAYMENT_MESSAGES } from './payment.messages';
 
 const validUuid = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
@@ -334,11 +334,12 @@ describe('PaymentService.createCheckoutSession', () => {
     const result = await PaymentService.createCheckoutSession({
       amount: 100,
       currency: 'USD',
+      description: 'Test payment',
       successUrl: 'https://example.com/success',
       cancelUrl: 'https://example.com/cancel',
     });
     expect(result.sessionId).toBe('cs_test_123');
-    expect(result.url).toContain('stripe.com');
+    expect(result.checkoutUrl).toContain('stripe.com');
   });
 
   it('delegates to PayPal provider when specified', async () => {
@@ -346,6 +347,7 @@ describe('PaymentService.createCheckoutSession', () => {
       {
         amount: 100,
         currency: 'USD',
+        description: 'Test payment',
         successUrl: 'https://example.com/success',
         cancelUrl: 'https://example.com/cancel',
       },
@@ -357,7 +359,7 @@ describe('PaymentService.createCheckoutSession', () => {
   it('throws when provider name is invalid', async () => {
     await expect(
       PaymentService.createCheckoutSession(
-        { amount: 100, currency: 'USD', successUrl: '', cancelUrl: '' },
+        { amount: 100, currency: 'USD', description: 'Test', successUrl: '', cancelUrl: '' },
         'UNKNOWN' as any
       )
     ).rejects.toThrow(PAYMENT_MESSAGES.PROVIDER_NOT_FOUND);

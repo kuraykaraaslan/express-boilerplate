@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { ILike } from 'typeorm';
-import { getSystemDataSource, tenantDataSourceFor } from '@/libs/typeorm';
+import { getSystemDataSource, tenantDataSourceFor } from '@/modules/db';
 import { AuditLog as AuditLogEntity } from './entities/audit_log.entity';
 import { TenantAuditLog as TenantAuditLogEntity } from './entities/audit_log_tenant.entity';
-import Logger from '@/libs/logger';
+import Logger from '@/modules/logger';
 import { AuditLogSchema, type AuditLog } from './audit_log.types';
 import { CreateAuditLogDTO, GetAuditLogsDTO, type CreateAuditLogInput, type GetAuditLogsInput } from './audit_log.dto';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/libs/env', () => ({
+vi.mock('@/modules/env', () => ({
   env: {
     SYSTEM_DATABASE_URL: 'postgresql://test',
     TENANT_DATABASE_URL: 'postgresql://test',
@@ -11,18 +11,18 @@ vi.mock('@/libs/env', () => ({
   },
 }));
 
-vi.mock('@/libs/typeorm', () => ({
+vi.mock('@/modules/db', () => ({
   getSystemDataSource: vi.fn(),
   SystemDataSource: { isInitialized: false, initialize: vi.fn(), getRepository: vi.fn() },
   tenantDataSourceFor: vi.fn(),
   getDefaultTenantDataSource: vi.fn(),
 }));
 
-vi.mock('@/libs/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
-vi.mock('@/libs/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/modules/redis', () => ({ default: { get: vi.fn(), set: vi.fn(), del: vi.fn(), ping: vi.fn() } }));
+vi.mock('@/modules/logger', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
 import ApiKeyService from './api_key.service';
-import { tenantDataSourceFor, getDefaultTenantDataSource } from '@/libs/typeorm';
+import { tenantDataSourceFor, getDefaultTenantDataSource } from '@/modules/db';
 import ApiKeyMessages from './api_key.messages';
 
 const TENANT_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -37,10 +37,10 @@ const mockApiKey = {
   description: null,
   keyHash: 'abc123hash',
   keyPrefix: 'sk_live_abcd1234_5',
-  scopes: ['read'] as const,
+  scopes: ['read'] as ('read' | 'write' | 'admin')[],
   isActive: true,
   lastUsedAt: null,
-  expiresAt: null,
+  expiresAt: null as Date | null,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 };

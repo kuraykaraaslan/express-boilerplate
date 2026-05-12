@@ -1,2 +1,2 @@
-// Deprecated: use @/libs/app-error instead
-export { AppError, ErrorCode } from "@/libs/app-error";
+// Deprecated: use @/modules_express/common/app-error instead
+export { AppError, ErrorCode } from "@/modules_express/common/app-error";

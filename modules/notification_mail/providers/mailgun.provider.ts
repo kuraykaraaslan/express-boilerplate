@@ -1,7 +1,7 @@
-import { env } from '@/libs/env';
+import { env } from '@/modules/env';
 import axios, { AxiosInstance } from "axios";
 import FormData from "form-data";
-import Logger from "@/libs/logger";
+import Logger from "@/modules/logger";
 import BaseMailProvider, { MailOptions, MailResult } from "./base.provider";
 
 export default class MailgunProvider extends BaseMailProvider {

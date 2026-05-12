@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 import { IsNull, ILike } from 'typeorm';
-import { tenantDataSourceFor, getDefaultTenantDataSource } from '@/libs/typeorm';
+import { tenantDataSourceFor, getDefaultTenantDataSource } from '@/modules/db';
 import { Tenant as TenantEntity } from './entities/tenant.entity';
 import { SafeTenant, SafeTenantSchema } from './tenant.types';
 import { CreateTenantInput, UpdateTenantInput, GetTenantsInput } from './tenant.dto';
 import TenantMessages from './tenant.messages';
 import TenantMemberService from '../tenant_member/tenant_member.service';
-import Logger from '@/libs/logger';
+import Logger from '@/modules/logger';
 
 export default class TenantService {
 
