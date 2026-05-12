@@ -9,7 +9,7 @@
     "build": "tsc && tsc-alias",
     "lint:check": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "vercel-build": "npm run build",
+    "vercel-build": "tsup --config tsup.vercel.config.ts",
     "test": "jest --detectOpenHandles --forceExit --passWithNoTests",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm:migrate": "npm run typeorm migration:run -- -d ./src/shared/libs/typeorm/index.ts",
