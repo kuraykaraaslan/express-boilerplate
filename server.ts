@@ -12,3 +12,6 @@ SystemDataSource.initialize()
     });
   })
   .catch((error: any) => console.error('TypeORM connection error:', error));
+
+  export default app;
+  module.exports = app;

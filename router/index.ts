@@ -4,6 +4,7 @@ import SettingService from "@/modules/setting/setting.service";
 import TenantDomainService from "@/modules/tenant_domain/tenant_domain.service";
 import systemRouter from "@/router/system";
 import tenantScopedRouter from "@/router/tenant";
+import { Logger } from "@/modules_express/logger/logger.service.express";
 
 const isDev = process.env.NODE_ENV !== "production";
 const DEFAULT_SUBDOMAIN = process.env.TENANT_DEFAULT_SUBDOMAIN || "express-boilerplate";
@@ -11,11 +12,9 @@ const WILDCARD_DOMAIN = process.env.TENANT_WILDCARD_DOMAIN || "kuray.dev";
 const TENANCY_MODE = (process.env.TENANCY_MODE || "domain") as "domain" | "path";
 const TENANT_PATH_PREFIX = process.env.TENANT_PATH_PREFIX || "t";
 
-function log(...args: unknown[]) {
-    if (isDev) console.log("[PROXY]", ...args);
-}
 
 function isLocalhost(host: string): boolean {
+    Logger.debug(`[isLocalhost] Checking if host is localhost: ${host}`);
     return (
         host === "localhost" ||
         host.startsWith("localhost:") ||
@@ -29,12 +28,12 @@ async function checkMaintenance(req: Request, res: Response, pathname: string): 
     try {
         const setting = await SettingService.getByKey("maintenanceMode");
         if (setting?.value === "true") {
-            log("maintenance mode active → 503");
+            Logger.debug("maintenance mode active → 503");
             res.status(503).json({ message: "Service temporarily unavailable." });
             return true;
         }
     } catch {
-        log("Maintenance check failed");
+        Logger.debug("Maintenance check failed");
     }
     return false;
 }
@@ -53,19 +52,19 @@ async function handleDomainMode(req: Request, _res: Response, next: NextFunction
             const domainInfo = await TenantDomainService.getByDomain(host);
             if (domainInfo) tenantId = domainInfo.tenantId;
         } catch {
-            log("Tenant lookup failed");
+            Logger.debug("Tenant lookup failed");
         }
     }
 
     if (tenantId) {
         req.url = `/tenant/${tenantId}/api${pathname}`;
-        log(`[domain] Rewriting to tenant: ${tenantId}`);
+        Logger.debug(`[domain] Rewriting to tenant: ${tenantId}`);
         return next();
     }
 
     if (isSystemDomain) {
         req.url = `/system/api${pathname}`;
-        log("[domain] Rewriting to system");
+        Logger.debug("[domain] Rewriting to system");
         return next();
     }
 
@@ -84,17 +83,17 @@ function handlePathMode(req: Request, _res: Response, next: NextFunction): void 
 
         if (!tenantId) {
             req.url = `/system/api${pathname}`;
-            log("[path] No tenantId → rewriting to system");
+            Logger.debug("[path] No tenantId → rewriting to system");
             return next();
         }
 
         req.url = `/tenant/${tenantId}/api${rest || "/"}`;
-        log(`[path] Rewriting to tenant: ${tenantId}`);
+        Logger.debug(`[path] Rewriting to tenant: ${tenantId}`);
         return next();
     }
 
     req.url = `/system/api${pathname}`;
-    log("[path] Rewriting to system");
+    Logger.debug("[path] Rewriting to system");
     next();
 }
 
@@ -105,14 +104,14 @@ const router = Router();
 router.use((req, _res, next) => {
     if (req.path.startsWith("/api/v1/system/") || req.path === "/api/v1/system") {
         req.url = `/system/api${req.path.slice("/api/v1/system".length) || "/"}`;
-        log(`[api-v1] system → ${req.url}`);
+        Logger.debug(`[api-v1] system → ${req.url}`);
     } else if (req.path.startsWith("/api/v1/tenant/")) {
         const withoutPrefix = req.path.slice("/api/v1/tenant/".length);
         const slashIndex = withoutPrefix.indexOf("/");
         const tenantId = slashIndex === -1 ? withoutPrefix : withoutPrefix.slice(0, slashIndex);
         const rest = slashIndex === -1 ? "/" : withoutPrefix.slice(slashIndex);
         req.url = `/tenant/${tenantId}/api${rest}`;
-        log(`[api-v1] tenant(${tenantId}) → ${req.url}`);
+        Logger.debug(`[api-v1] tenant(${tenantId}) → ${req.url}`);
     }
     next();
 });
