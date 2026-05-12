@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import { SafeUser } from '@/modules/user/user.types';
 import TenantMemberService from '@/modules/tenant_member/tenant_member.service';
 import TenantMemberMessages from '@/modules/tenant_member/tenant_member.messages';

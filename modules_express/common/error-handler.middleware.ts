@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
-import { env } from '@/modules_express/env';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
+import { env } from '@/modules/env';
 
 export function errorHandler(
   error: unknown,
@@ -18,7 +18,7 @@ export function errorHandler(
     response.clearCookie('XSRF-TOKEN', { httpOnly: false, sameSite: 'strict', secure });
     response.clearCookie('_csrf',      { httpOnly: true,  sameSite: 'strict', secure });
 
-    response.status(403).json({ code: ErrorCode.INVALID_CSRF_TOKEN, message: 'Invalid CSRF token' });
+    response.status(403).json({ code: ErrorCode.INVALID_CREDENTIALS, message: 'Invalid CSRF token' });
     return;
   }
 

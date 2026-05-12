@@ -1,6 +1,6 @@
 import { rateLimit, RateLimitRequestHandler } from 'express-rate-limit';
 import { Request, Response } from 'express';
-import { env } from '@/modules_express/env';
+import { env } from '@/modules/env';
 
 const WINDOW_MS      = env.RATE_LIMIT_WINDOW_MS;
 const MAX            = Math.max(1, env.RATE_LIMIT_MAX);

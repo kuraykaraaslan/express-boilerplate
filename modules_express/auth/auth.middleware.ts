@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { AppError, ErrorCode } from '@/modules_express/common/app-error';
+import { AppError, ErrorCode } from '@/modules/common/app-error';
 import { SafeUser } from '@/modules/user/user.types';
 import AuthMessages from '@/modules/auth/auth.messages';
 import AuthService from '@/modules/auth/auth.service';
