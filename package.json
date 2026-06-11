@@ -5,13 +5,16 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch index.ts",
+    "prebuild": "npm run registry:snapshot",
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
     "start:prod": "NODE_ENV=production node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "registry:snapshot": "node scripts/build-registry-snapshot.mjs",
+    "mcp:server": "node scripts/mcp-server.mjs"
   },
   "repository": {
     "type": "git",
@@ -91,6 +94,7 @@
     "nodemon": "^3.1.10",
     "otplib": "^12.0.1",
     "pg": "^8.16.0",
+    "puppeteer": "^24.43.1",
     "redis": "^4.7.1",
     "reflect-metadata": "^0.2.2",
     "tsconfig-paths": "^4.2.0",

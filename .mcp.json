@@ -1,0 +1,10 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/v1/mcp.json",
+  "mcpServers": {
+    "express-boilerplate-registry": {
+      "command": "node",
+      "args": ["scripts/mcp-server.mjs"],
+      "description": "Exposes the express-boilerplate registry (modules, Express routes, TypeORM entities, modules_express/ middlewares, conventions) as MCP tools. Reads from public/registry/registry.json — rebuild via `npm run registry:snapshot`."
+    }
+  }
+}

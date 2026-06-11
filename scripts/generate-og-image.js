@@ -8,8 +8,8 @@ const puppeteer = require('puppeteer');
 
 const OUT_PATH = path.resolve(__dirname, '../public/og-image.png');
 
-const NAME     = 'KUIreact';
-const SUBTITLE = 'Composable UI System';
+const NAME     = 'Express Boilerplate';
+const SUBTITLE = 'minimal, flexible, and production-ready';
 const ACCENT   = '#3b82f6';
 
 function buildHtml() {
@@ -48,7 +48,7 @@ function buildHtml() {
     text-transform: uppercase;
   }
   .title {
-    font-size: 96px;
+    font-size: 72px;
     font-weight: 800;
     letter-spacing: -2px;
     line-height: 1;

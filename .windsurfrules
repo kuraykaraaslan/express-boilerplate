@@ -1,0 +1,89 @@
+# express-boilerplate — Windsurf rules
+
+Canonical source: AGENTS.md. When this file and AGENTS.md disagree, AGENTS.md wins. Same content is mirrored to `.cursor/rules/express-boilerplate.mdc`, `.cursorrules`, `.github/copilot-instructions.md`, and `.clinerules`.
+
+## Before writing code, fetch the catalog
+
+Static snapshots live under `public/` (rebuild with `npm run registry:snapshot`):
+
+1. `public/registry/registry.json` — full catalog: modules + routes + entities + middlewares + conventions.
+2. `public/registry/registry.index.json` — same shape, slimmer (no inlined READMEs).
+3. `public/registry/modules.json`, `routes.json`, `entities.json`, `components.json` — surface-by-surface.
+4. `public/modules/<id>.md` — per-module markdown chunk (README + dependency map + owned routes/entities/middleware).
+5. `public/modules/_index.json` — `{ id → { tier, hasExpressLayer, routeCount, … } }`.
+6. `public/schemas/registry-v1.json` — JSON Schema for validation / codegen.
+
+Or use the MCP server in `.mcp.json` (`scripts/mcp-server.mjs`). Tools: `list_modules`, `get_module`, `search_modules`, `list_routes`, `search_routes`, `list_entities`, `get_entity`, `list_middlewares`, `get_conventions`, `get_module_readme`, `read_file`.
+
+Recipe (offline):
+
+```ts
+import fs from 'node:fs/promises';
+const reg = JSON.parse(await fs.readFile('public/registry/registry.index.json', 'utf8'));
+const billing = reg.modules.filter(m => m.tier === 'billing');
+const apiKeyRoutes = reg.routes.filter(r => r.module === 'api_key');
+```
+
+## ⚠️ Catalog sync — REQUIRED
+
+**Any time you add, rename, or remove a module / router file / route handler / TypeORM entity / `modules_express/` middleware / service extension / provider / BullMQ job, run:**
+
+```bash
+npm run registry:snapshot
+```
+
+**before committing.** This regenerates `public/registry/*.json` + `public/modules/*.md` from filesystem state. The same script runs automatically via the `prebuild` npm hook before `npm run build`, but you must still commit the regenerated files so the catalog stays in lockstep with the code. A stale catalog misleads every AI agent that reads it — treat it as broken-build severity.
+
+## Hard rules
+
+1. **Two layers + router, one-way dependency.**
+   - `router/` → `modules_express/` → `modules/`.
+   - `modules/` **never** imports `express`, `Request`, `Response`, `next/*`, `react`, `modules_express/*`, or `router/*`.
+2. **Path alias.** Only one is configured: `@/* → ./*`.
+3. **File-naming convention.** `*.service.ts`, `*.dto.ts` (Zod), `*.types.ts`, `*.enums.ts`, `*.messages.ts`, `*.setting.keys.ts`, `*.entity.ts` (under `entities/`), `*.provider.ts`, `*.job.ts`, `*.middleware.ts` (modules_express/ only), `*.service.express.ts` (modules_express/ only), `*.test.ts` colocated.
+4. **Multi-tenant scope.** Two top-level URL scopes:
+   - System (`/system/...`) — super-admin, no tenant. Routers under `router/system/`.
+   - Tenant (`/tenant/:tenantId/...`) — per-tenant. Routers under `router/tenant/` using `Router({ mergeParams: true })`.
+   - Decision happens in `router/index.ts` based on `TENANCY_MODE`.
+5. **Auth.** JWT (httpOnly cookies + Bearer header), OTP, TOTP, SAML, OAuth via `modules/auth_sso`, WebAuthn/Passkeys via `modules/user_security`. Sessions: `modules/user_session`. Express middleware: `AuthMiddleware(role)` factory at `modules_express/auth/auth.middleware.ts`. Impersonation: `modules/auth_impersonation`, always audited.
+6. **Database access.** `SystemDataSource` or `tenantDataSourceFor(tenantId)` from `modules/db`. Never share a DataSource between scopes.
+7. **Settings & messages.** Per-module `*.setting.keys.ts` declares the key enum; `setting.service` is the read/write path. `*.messages.ts` enumerates i18n keys — never inline literal user-facing strings.
+8. **Validation.** Zod everywhere. DTOs in `*.dto.ts` are the contract — parse `req.body`/`req.params`/`req.query` with `DTO.safeParse` and throw `AppError(..., 400, ErrorCode.VALIDATION_ERROR)` on failure.
+9. **Error handling.** Throw `AppError(message, status, ErrorCode)` from `@/modules/common/app-error`. The `errorHandler` middleware in `modules_express/common/error-handler.middleware.ts` is the single funnel — don't catch-and-respond inline.
+10. **Logging.** `@/modules/logger` (Winston) in business logic. Request logging wired via `Logger.useLogger` in `index.ts`.
+11. **Tests.** Jest. Colocate as `*.test.ts` beside the file under test.
+
+## Where new code goes
+
+| What you're building | Where |
+| --- | --- |
+| Pure business logic / entity / DTO | `modules/<id>/` (+ `README.md`) |
+| TypeORM entity | `modules/<id>/entities/<x>.entity.ts` |
+| BullMQ processor | `modules/<id>/<x>.job.ts` |
+| Pluggable provider | `modules/<id>/providers/<x>.provider.ts` |
+| Express middleware for a module | `modules_express/<id>/<id>.middleware.ts` |
+| Express service extension | `modules_express/<id>/<id>.service.express.ts` |
+| Express router for a module | `router/<scope>/<id>.ts` + mount in `router/<scope>/index.ts` |
+| One-off CLI / build script | `scripts/<name>.{ts,mjs}` |
+
+## Adding a new module — required order
+
+1. Create `modules/<id>/` with `README.md`.
+2. Implement `*.service.ts`, `*.dto.ts`, `*.types.ts`, `*.enums.ts`, `*.messages.ts` as needed.
+3. Entities: `modules/<id>/entities/*.entity.ts`.
+4. Express bindings if needed: `modules_express/<id>/<id>.middleware.ts` / `<id>.service.express.ts`.
+5. Router: `router/<scope>/<id>.ts` + mount in `router/<scope>/index.ts`.
+6. Tests: `*.service.test.ts` colocated.
+7. Rebuild the AI catalog: `npm run registry:snapshot`.
+
+## Don't
+
+- Don't import `express`, `Request`, `Response`, or `next` from anywhere under `modules/`.
+- Don't import from `modules_express/*` or `router/*` from `modules/*` (one-way only).
+- Don't introduce new path aliases — `@/* → ./*` is the only one.
+- Don't hand-roll a DataSource — go through `modules/db`.
+- Don't inline user-facing strings in service code — add a message key.
+- Don't use `console.*` in service code — use `logger`.
+- Don't catch errors in handlers to send 4xx/5xx inline — throw `AppError` and let `errorHandler` respond.
+- Don't break tenant isolation — never reuse a system DataSource for tenant data.
+- Don't add a new auth strategy outside the `modules/auth*` family.

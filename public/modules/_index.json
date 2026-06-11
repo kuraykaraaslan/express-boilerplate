@@ -1,0 +1,412 @@
+{
+  "ai": {
+    "name": "ai",
+    "tier": "ai",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "ai.md"
+  },
+  "api_doc": {
+    "name": "api_doc",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "api_doc.md"
+  },
+  "api_key": {
+    "name": "api_key",
+    "tier": "platform",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 3,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "api_key.md"
+  },
+  "audit_log": {
+    "name": "audit_log",
+    "tier": "platform",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 2,
+    "componentCount": 0,
+    "file": "audit_log.md"
+  },
+  "auth": {
+    "name": "auth",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 15,
+    "entityCount": 0,
+    "componentCount": 1,
+    "file": "auth.md"
+  },
+  "auth_impersonation": {
+    "name": "auth_impersonation",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 3,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "auth_impersonation.md"
+  },
+  "auth_saml": {
+    "name": "auth_saml",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 6,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "auth_saml.md"
+  },
+  "auth_sso": {
+    "name": "auth_sso",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "auth_sso.md"
+  },
+  "common": {
+    "name": "common",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 1,
+    "file": "common.md"
+  },
+  "coupon": {
+    "name": "coupon",
+    "tier": "billing",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 2,
+    "componentCount": 0,
+    "file": "coupon.md"
+  },
+  "db": {
+    "name": "db",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "db.md"
+  },
+  "env": {
+    "name": "env",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "env.md"
+  },
+  "limiter": {
+    "name": "limiter",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 1,
+    "file": "limiter.md"
+  },
+  "logger": {
+    "name": "logger",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 1,
+    "file": "logger.md"
+  },
+  "notification_inapp": {
+    "name": "notification_inapp",
+    "tier": "notifications",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "notification_inapp.md"
+  },
+  "notification_mail": {
+    "name": "notification_mail",
+    "tier": "notifications",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "notification_mail.md"
+  },
+  "notification_push": {
+    "name": "notification_push",
+    "tier": "notifications",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "notification_push.md"
+  },
+  "notification_sms": {
+    "name": "notification_sms",
+    "tier": "notifications",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "notification_sms.md"
+  },
+  "payment": {
+    "name": "Payment Module",
+    "tier": "billing",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 4,
+    "componentCount": 0,
+    "file": "payment.md"
+  },
+  "redis": {
+    "name": "redis",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "redis.md"
+  },
+  "redis_idempotency": {
+    "name": "idempotency",
+    "tier": "infrastructure",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "redis_idempotency.md"
+  },
+  "setting": {
+    "name": "setting",
+    "tier": "platform",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "setting.md"
+  },
+  "storage": {
+    "name": "storage",
+    "tier": "platform",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 3,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "storage.md"
+  },
+  "tenant": {
+    "name": "tenant",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant.md"
+  },
+  "tenant_branding": {
+    "name": "tenant_branding",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 3,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "tenant_branding.md"
+  },
+  "tenant_domain": {
+    "name": "tenant_domain",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant_domain.md"
+  },
+  "tenant_export": {
+    "name": "tenant_export",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "tenant_export.md"
+  },
+  "tenant_invitation": {
+    "name": "tenant_invitation",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant_invitation.md"
+  },
+  "tenant_member": {
+    "name": "tenant_member",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 1,
+    "file": "tenant_member.md"
+  },
+  "tenant_session": {
+    "name": "tenant_session",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 3,
+    "entityCount": 0,
+    "componentCount": 1,
+    "file": "tenant_session.md"
+  },
+  "tenant_setting": {
+    "name": "tenant_setting",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant_setting.md"
+  },
+  "tenant_subscription": {
+    "name": "tenant_subscription",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 4,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant_subscription.md"
+  },
+  "tenant_usage": {
+    "name": "tenant_usage",
+    "tier": "tenancy",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "tenant_usage.md"
+  },
+  "user": {
+    "name": "user",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "user.md"
+  },
+  "user_agent": {
+    "name": "user_agent",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 0,
+    "entityCount": 0,
+    "componentCount": 0,
+    "file": "user_agent.md"
+  },
+  "user_preferences": {
+    "name": "user_preferences",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "user_preferences.md"
+  },
+  "user_profile": {
+    "name": "user_profile",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "user_profile.md"
+  },
+  "user_security": {
+    "name": "user_security",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 2,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "user_security.md"
+  },
+  "user_session": {
+    "name": "user_session",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": true,
+    "routeCount": 4,
+    "entityCount": 1,
+    "componentCount": 1,
+    "file": "user_session.md"
+  },
+  "user_social_account": {
+    "name": "user_social_account",
+    "tier": "identity",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 1,
+    "entityCount": 1,
+    "componentCount": 0,
+    "file": "user_social_account.md"
+  },
+  "webhook": {
+    "name": "Webhook Module",
+    "tier": "platform",
+    "tags": [],
+    "hasExpressLayer": false,
+    "routeCount": 5,
+    "entityCount": 4,
+    "componentCount": 0,
+    "file": "webhook.md"
+  }
+}

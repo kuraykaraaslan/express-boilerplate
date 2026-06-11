@@ -1,0 +1,3097 @@
+{
+  "$schema": "/schemas/registry-v1.json",
+  "name": "express-boilerplate",
+  "version": "1.0.6",
+  "registryVersion": "1.0",
+  "generatedAt": "2026-05-26T08:43:53.510Z",
+  "description": "Production-grade multi-tenant SaaS API boilerplate on Express 5 + TypeScript, mirroring the next-boilerplate module set.",
+  "layers": {
+    "router": "Express routing layer — one file per scope/module under router/. router/index.ts is the proxy router that rewrites /system/* and /tenant/:tenantId/*.",
+    "modules_express": "Express binding layer — middlewares (*.middleware.ts) and service extensions (*.service.express.ts) that touch Request / Response. Imports modules/* + Express.",
+    "modules": "Framework-agnostic business logic — services, DTOs, entities, types, enums, messages. No express, no Request/Response, no next/*, no react."
+  },
+  "conventions": {
+    "architecture": "Two layers (plus router/), strict one-way dependency: router/ -> modules_express/ -> modules/. modules/ NEVER imports modules_express/ or router/.",
+    "fileNaming": "*.service.ts (logic), *.dto.ts (Zod), *.types.ts, *.enums.ts, *.messages.ts (i18n keys), *.setting.keys.ts, *.entity.ts (TypeORM, under entities/), *.provider.ts (pluggable), *.job.ts (BullMQ), *.middleware.ts (modules_express/), *.service.express.ts (modules_express/), *.test.ts colocated.",
+    "scopes": "Two URL scopes: system (super-admin, no tenant) at /system/... and tenant (per-tenant) at /tenant/:tenantId/.... router/index.ts rewrites incoming URLs based on host (TENANCY_MODE=domain) or path prefix (TENANCY_MODE=path).",
+    "auth": "JWT (httpOnly cookies + Bearer header), OTP, TOTP, SAML, OAuth (via auth_sso), WebAuthn/Passkeys (user_security). Sessions: user_session. Impersonation: auth_impersonation, always audited. Middleware: modules_express/auth/auth.middleware.ts (factory: AuthMiddleware(role)).",
+    "testing": "Jest + supertest. Tests colocated as *.test.ts beside the file under test. Run `npm test` (see package.json).",
+    "security": "Read SECURITY.md for the full threat model. Path alias is the single `@/*` -> `./*`. Multi-tenant data isolation enforced by per-tenant TypeORM DataSource (modules/db). Tenant-scoped routers use Router({ mergeParams: true }) so req.params.tenantId is available downstream."
+  },
+  "modules": [
+    {
+      "id": "ai",
+      "name": "ai",
+      "version": "0.0.0",
+      "description": "Multi-provider AI service supporting OpenAI, Anthropic, and Google. Handles chat completions, embeddings, streaming, usage tracking, and rate limiting.",
+      "dir": "modules/ai",
+      "tags": [],
+      "priority": 100,
+      "tier": "ai",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "ai.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [
+          "ai.setting.keys.ts"
+        ],
+        "providers": [
+          "anthropic.provider.ts",
+          "base.provider.ts",
+          "google.provider.ts",
+          "openai.provider.ts"
+        ],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "api_doc",
+      "name": "api_doc",
+      "version": "0.0.0",
+      "description": "UI-only module for rendering interactive API documentation pages. Displays OpenAPI-style operation details, parameters, responses, and code samples. No backend service.",
+      "dir": "modules/api_doc",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "api_key",
+      "name": "api_key",
+      "version": "0.0.0",
+      "description": "Manages API keys for tenant authentication. Generates, validates, and hashes keys with scopes and expiration tracking.",
+      "dir": "modules/api_key",
+      "tags": [],
+      "priority": 100,
+      "tier": "platform",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "api_key.service.ts"
+        ],
+        "dtos": [
+          "api_key.dto.ts"
+        ],
+        "enums": [
+          "api_key.enums.ts"
+        ],
+        "messageKeys": [
+          "api_key.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "api_key.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "audit_log",
+      "name": "audit_log",
+      "version": "0.0.0",
+      "description": "Immutable event logging for system and tenant-level actions. Records actor, action, resource, metadata, IP, and user agent. Supports querying with pagination.",
+      "dir": "modules/audit_log",
+      "tags": [],
+      "priority": 100,
+      "tier": "platform",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "audit_log.service.ts"
+        ],
+        "dtos": [
+          "audit_log.dto.ts"
+        ],
+        "enums": [
+          "audit_log.enums.ts"
+        ],
+        "messageKeys": [
+          "audit_log.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "audit_log.entity.ts",
+          "audit_log_tenant.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "auth",
+      "name": "auth",
+      "version": "0.0.0",
+      "description": "Core authentication: login, registration, email verification, password management, OTP, and TOTP/2FA. Uses bcrypt and Redis for token TTLs.",
+      "dir": "modules/auth",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "auth.otp.service.ts",
+          "auth.password.service.ts",
+          "auth.service.ts",
+          "auth.totp.service.ts"
+        ],
+        "dtos": [
+          "auth.dto.ts"
+        ],
+        "enums": [],
+        "messageKeys": [
+          "auth.messages.ts"
+        ],
+        "settingKeys": [
+          "auth.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "auth_impersonation",
+      "name": "auth_impersonation",
+      "version": "0.0.0",
+      "description": "Enables admins and super-admins to impersonate other users for testing and support. Validates role hierarchy, creates tracked sessions, and logs all impersonation actions to the audit log.",
+      "dir": "modules/auth_impersonation",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "impersonation.service.ts"
+        ],
+        "dtos": [
+          "impersonation.dto.ts"
+        ],
+        "enums": [],
+        "messageKeys": [
+          "impersonation.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "auth_saml",
+      "name": "auth_saml",
+      "version": "0.0.0",
+      "description": "SAML 2.0 SSO per-tenant module.",
+      "dir": "modules/auth_saml",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "auth_saml.service.ts"
+        ],
+        "dtos": [
+          "auth_saml.dto.ts"
+        ],
+        "enums": [
+          "auth_saml.enums.ts"
+        ],
+        "messageKeys": [
+          "auth_saml.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "saml_config.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "auth_sso",
+      "name": "auth_sso",
+      "version": "0.0.0",
+      "description": "OAuth2 SSO integration with 11 providers. Handles auth URL generation, callback processing, token management, automatic user creation/linking, and account management.",
+      "dir": "modules/auth_sso",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "auth_sso.service.ts"
+        ],
+        "dtos": [
+          "auth_sso.dto.ts"
+        ],
+        "enums": [
+          "auth_sso.enums.ts"
+        ],
+        "messageKeys": [
+          "auth_sso.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [
+          "apple.provider.ts",
+          "autodesk.provider.ts",
+          "base.provider.ts",
+          "facebook.provider.ts",
+          "github.provider.ts",
+          "google.provider.ts",
+          "linkedin.provider.ts",
+          "microsoft.provider.ts",
+          "slack.provider.ts",
+          "tiktok.provider.ts",
+          "twitter.provider.ts",
+          "wechat.provider.ts"
+        ],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "common",
+      "name": "common",
+      "version": "0.0.0",
+      "description": "",
+      "dir": "modules/common",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": false,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "coupon",
+      "name": "coupon",
+      "version": "0.0.0",
+      "description": "Coupon / promo code system for subscription plans and payments.",
+      "dir": "modules/coupon",
+      "tags": [],
+      "priority": 100,
+      "tier": "billing",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "coupon.service.ts"
+        ],
+        "dtos": [
+          "coupon.dto.ts"
+        ],
+        "enums": [
+          "coupon.enums.ts"
+        ],
+        "messageKeys": [
+          "coupon.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [
+          "base.coupon.provider.ts",
+          "iyzico.coupon.provider.ts",
+          "paypal.coupon.provider.ts",
+          "stripe.coupon.provider.ts"
+        ],
+        "jobs": [],
+        "entities": [
+          "coupon.entity.ts",
+          "coupon_redemption.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "db",
+      "name": "db",
+      "version": "0.0.0",
+      "description": "",
+      "dir": "modules/db",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_database.entity.ts"
+        ]
+      },
+      "hasReadme": false,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "env",
+      "name": "env",
+      "version": "0.0.0",
+      "description": "",
+      "dir": "modules/env",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "env.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": false,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "limiter",
+      "name": "limiter",
+      "version": "0.0.0",
+      "description": "Framework-agnostic rate limiting servisleri.",
+      "dir": "modules/limiter",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "limiter.service.ts",
+          "limiter.tenant-plan.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "logger",
+      "name": "logger",
+      "version": "0.0.0",
+      "description": "Winston tabanlı framework-agnostic logger servisi.",
+      "dir": "modules/logger",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "logger.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "notification_inapp",
+      "name": "notification_inapp",
+      "version": "0.0.0",
+      "description": "Real-time in-app notifications using Redis pub/sub. Stores up to 50 notifications per user, tracks read/unread status, and streams updates via SSE. Auto-triggers push notifications.",
+      "dir": "modules/notification_inapp",
+      "tags": [],
+      "priority": 100,
+      "tier": "notifications",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "notification_inapp.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [
+          "notification_inapp.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "notification_mail",
+      "name": "notification_mail",
+      "version": "0.0.0",
+      "description": "Multi-provider email service with BullMQ queue and 15+ pre-built EJS templates. Supports direct and queued sending.",
+      "dir": "modules/notification_mail",
+      "tags": [],
+      "priority": 100,
+      "tier": "notifications",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "notification_mail.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [
+          "notification_mail.setting.keys.ts"
+        ],
+        "providers": [
+          "base.provider.ts",
+          "mailgun.provider.ts",
+          "postmark.provider.ts",
+          "resend.provider.ts",
+          "sendgrid.provider.ts",
+          "ses.provider.ts",
+          "smtp.provider.ts"
+        ],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "notification_push",
+      "name": "notification_push",
+      "version": "0.0.0",
+      "description": "Web Push notifications using the Web Push API with VAPID keys. Manages browser subscriptions and sends push messages to users or roles.",
+      "dir": "modules/notification_push",
+      "tags": [],
+      "priority": 100,
+      "tier": "notifications",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "notification_push.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [
+          "notification_push.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "push_subscription.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "notification_sms",
+      "name": "notification_sms",
+      "version": "0.0.0",
+      "description": "Multi-provider SMS with BullMQ queue, region-based provider routing, phone number validation (libphonenumber), rate limiting, and country allowlists.",
+      "dir": "modules/notification_sms",
+      "tags": [],
+      "priority": 100,
+      "tier": "notifications",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "notification_sms.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [
+          "notification_sms.setting.keys.ts"
+        ],
+        "providers": [
+          "base.provider.ts",
+          "clickatell.provider.ts",
+          "netgsm.provider.ts",
+          "nexmo.provider.ts",
+          "twilio.provider.ts"
+        ],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "payment",
+      "name": "Payment Module",
+      "version": "0.0.0",
+      "description": "A multi-provider payment gateway module supporting Stripe, PayPal, and Iyzico with full TypeScript support and Zod validation.",
+      "dir": "modules/payment",
+      "tags": [],
+      "priority": 100,
+      "tier": "billing",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "payment.service.ts",
+          "payment.webhook.service.ts"
+        ],
+        "dtos": [
+          "payment.dto.ts"
+        ],
+        "enums": [
+          "payment.enums.ts"
+        ],
+        "messageKeys": [
+          "payment.messages.ts"
+        ],
+        "settingKeys": [
+          "payment.setting.keys.ts"
+        ],
+        "providers": [
+          "base.provider.ts",
+          "iyzico.provider.ts",
+          "paypal.provider.ts",
+          "stripe.provider.ts"
+        ],
+        "jobs": [],
+        "entities": [
+          "payment.entity.ts",
+          "payment_transaction.entity.ts",
+          "plan_feature.entity.ts",
+          "subscription_plan.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "redis",
+      "name": "redis",
+      "version": "0.0.0",
+      "description": "",
+      "dir": "modules/redis",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "redis.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": false,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "redis_idempotency",
+      "name": "idempotency",
+      "version": "0.0.0",
+      "description": "Redis tabanlı idempotency key yönetimi.",
+      "dir": "modules/redis_idempotency",
+      "tags": [],
+      "priority": 100,
+      "tier": "infrastructure",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "redis_idempotency.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "setting",
+      "name": "setting",
+      "version": "0.0.0",
+      "description": "System-wide key-value settings with Redis caching (10-min TTL). Aggregates and re-exports setting keys from all other modules.",
+      "dir": "modules/setting",
+      "tags": [],
+      "priority": 100,
+      "tier": "platform",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "setting.service.ts"
+        ],
+        "dtos": [
+          "setting.dto.ts"
+        ],
+        "enums": [],
+        "messageKeys": [
+          "setting.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "setting.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "storage",
+      "name": "storage",
+      "version": "0.0.0",
+      "description": "Multi-provider cloud storage abstraction. Unified S3-compatible API for upload (multipart or from URL), delete, and URL generation. Provider is selected from system settings.",
+      "dir": "modules/storage",
+      "tags": [],
+      "priority": 100,
+      "tier": "platform",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "storage.service.ts"
+        ],
+        "dtos": [
+          "storage.dto.ts"
+        ],
+        "enums": [
+          "storage.enums.ts"
+        ],
+        "messageKeys": [
+          "storage.messages.ts"
+        ],
+        "settingKeys": [
+          "storage.setting.keys.ts"
+        ],
+        "providers": [
+          "aws-s3.provider.ts",
+          "base.provider.ts",
+          "cloudflare-r2.provider.ts",
+          "digitalocean-spaces.provider.ts",
+          "minio.provider.ts"
+        ],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant",
+      "name": "tenant",
+      "version": "0.0.0",
+      "description": "Multi-tenant organization management. Creates, updates, deletes tenants. Auto-provisions a personal tenant for every new user.",
+      "dir": "modules/tenant",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant.deletion.service.ts",
+          "tenant.service.ts"
+        ],
+        "dtos": [
+          "tenant.dto.ts"
+        ],
+        "enums": [
+          "tenant.enums.ts"
+        ],
+        "messageKeys": [
+          "tenant.messages.ts"
+        ],
+        "settingKeys": [
+          "tenant.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_branding",
+      "name": "tenant_branding",
+      "version": "0.0.0",
+      "description": "Per-tenant branding settings: colors, logos, favicon, custom CSS/JS, and auth wallpaper. Built on top of `tenant_setting`.",
+      "dir": "modules/tenant_branding",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_branding.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [
+          "tenant_branding.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_domain",
+      "name": "tenant_domain",
+      "version": "0.0.0",
+      "description": "Custom domain management with DNS verification (TXT or CNAME). Enforces domain limits, caches in Redis, supports primary domain designation and status tracking.",
+      "dir": "modules/tenant_domain",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "dns_verification.service.ts",
+          "tenant_domain.service.ts"
+        ],
+        "dtos": [
+          "tenant_domain.dto.ts"
+        ],
+        "enums": [
+          "tenant_domain.enums.ts"
+        ],
+        "messageKeys": [
+          "tenant_domain.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_domain.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_export",
+      "name": "tenant_export",
+      "version": "0.0.0",
+      "description": "GDPR Article 20 (data portability) — allows a tenant OWNER to download all tenant data as a structured JSON file.",
+      "dir": "modules/tenant_export",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_export.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_invitation",
+      "name": "tenant_invitation",
+      "version": "0.0.0",
+      "description": "Tenant membership invitations via email token. Auto-accepts pending invitations when a new user registers with a matching email. Tracks status and expiration.",
+      "dir": "modules/tenant_invitation",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_invitation.service.ts"
+        ],
+        "dtos": [
+          "tenant_invitation.dto.ts"
+        ],
+        "enums": [
+          "tenant_invitation.enums.ts"
+        ],
+        "messageKeys": [
+          "tenant_invitation.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_invitation.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_member",
+      "name": "tenant_member",
+      "version": "0.0.0",
+      "description": "Tenant membership management with role-based access control. Enforces role hierarchy, prevents demoting the last owner, supports search by email, and soft deletion.",
+      "dir": "modules/tenant_member",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_member.service.ts"
+        ],
+        "dtos": [
+          "tenant_member.dto.ts"
+        ],
+        "enums": [
+          "tenant_member.enums.ts"
+        ],
+        "messageKeys": [
+          "tenant_member.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_member.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "tenant_session",
+      "name": "tenant_session",
+      "version": "0.0.0",
+      "description": "Tenant authentication and authorization for API routes and server actions. Validates tenant status and membership, checks role permissions, caches membership for 5 minutes.",
+      "dir": "modules/tenant_session",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_session.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [
+          "tenant_session.messages.ts"
+        ],
+        "settingKeys": [
+          "tenant_session.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "tenant_setting",
+      "name": "tenant_setting",
+      "version": "0.0.0",
+      "description": "Per-tenant key-value settings mirroring the system settings structure. Redis-cached with 10-min TTL. Falls back to global system settings when a tenant-specific value is not set.",
+      "dir": "modules/tenant_setting",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_setting.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_setting.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_subscription",
+      "name": "tenant_subscription",
+      "version": "0.0.0",
+      "description": "Manages subscription plans, plan features, and feature enforcement for tenants.",
+      "dir": "modules/tenant_subscription",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_subscription.service.ts"
+        ],
+        "dtos": [
+          "tenant_subscription.dto.ts"
+        ],
+        "enums": [
+          "tenant_subscription.enums.ts"
+        ],
+        "messageKeys": [
+          "tenant_subscription.messages.ts"
+        ],
+        "settingKeys": [
+          "tenant_subscription.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [
+          "tenant_subscription.job.ts"
+        ],
+        "entities": [
+          "tenant_subscription.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "tenant_usage",
+      "name": "tenant_usage",
+      "version": "0.0.0",
+      "description": "Tracks per-tenant usage counters (API calls, AI tokens, storage bytes, email sends) by month. Counters are stored in Redis for low-latency O(1) increments and flushed to the `tenant_usage` PostgreSQL table by a background CRON job for durable reporting and plan-limit enforcement.",
+      "dir": "modules/tenant_usage",
+      "tags": [],
+      "priority": 100,
+      "tier": "tenancy",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "tenant_usage.service.ts"
+        ],
+        "dtos": [],
+        "enums": [],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "tenant_usage.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user",
+      "name": "user",
+      "version": "0.0.0",
+      "description": "System user management: CRUD operations, password hashing with bcrypt, role-based access, and soft deletion.",
+      "dir": "modules/user",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user.service.ts"
+        ],
+        "dtos": [
+          "user.dto.ts"
+        ],
+        "enums": [
+          "user.enums.ts"
+        ],
+        "messageKeys": [
+          "user.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user_agent",
+      "name": "user_agent",
+      "version": "0.0.0",
+      "description": "User-Agent string parsing and geo-location lookup. Detects OS, browser, device type via regex patterns. Uses ip-api.com for geo-location with local IP filtering.",
+      "dir": "modules/user_agent",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_agent.service.ts"
+        ],
+        "dtos": [],
+        "enums": [
+          "user_agent.enums.ts"
+        ],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": []
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user_preferences",
+      "name": "user_preferences",
+      "version": "0.0.0",
+      "description": "User UI/UX preferences: theme, language, timezone, date/time formats, notification channels, and week start day.",
+      "dir": "modules/user_preferences",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_preferences.service.ts"
+        ],
+        "dtos": [
+          "user_preferences.dto.ts"
+        ],
+        "enums": [
+          "user_preferences.enums.ts"
+        ],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user_preferences.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user_profile",
+      "name": "user_profile",
+      "version": "0.0.0",
+      "description": "User profile information: name, biography, profile picture, header image, and platform-based social links.",
+      "dir": "modules/user_profile",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_profile.service.ts"
+        ],
+        "dtos": [
+          "user_profile.dto.ts"
+        ],
+        "enums": [
+          "user_profile.enums.ts"
+        ],
+        "messageKeys": [],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user_profile.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user_security",
+      "name": "user_security",
+      "version": "0.0.0",
+      "description": "User security and MFA management. Tracks OTP methods, TOTP secret, backup codes, last login metadata, failed attempts with auto-lockout, and WebAuthn passkeys.",
+      "dir": "modules/user_security",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_security.passkey.service.ts",
+          "user_security.service.ts"
+        ],
+        "dtos": [],
+        "enums": [
+          "user_security.enums.ts"
+        ],
+        "messageKeys": [
+          "user_security.passkey.messages.ts"
+        ],
+        "settingKeys": [
+          "user_security.setting.keys.ts"
+        ],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user_security.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "user_session",
+      "name": "user_session",
+      "version": "0.0.0",
+      "description": "Session management with access/refresh token lifecycle. Supports device fingerprinting, multi-session tracking, impersonation metadata, and OTP verification flags.",
+      "dir": "modules/user_session",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_session.cache.service.ts",
+          "user_session.crud.service.ts",
+          "user_session.service.ts",
+          "user_session.token.service.ts"
+        ],
+        "dtos": [],
+        "enums": [
+          "user_session.enums.ts"
+        ],
+        "messageKeys": [
+          "user_session.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user_session.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": true
+    },
+    {
+      "id": "user_social_account",
+      "name": "user_social_account",
+      "version": "0.0.0",
+      "description": "External OAuth account linking. Links and unlinks social provider accounts, manages access/refresh tokens, and prevents duplicate account linking across users.",
+      "dir": "modules/user_social_account",
+      "tags": [],
+      "priority": 100,
+      "tier": "identity",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "user_social_account.service.ts"
+        ],
+        "dtos": [],
+        "enums": [
+          "user_social_account.enums.ts"
+        ],
+        "messageKeys": [
+          "user_social_account.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "user_social_account.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    },
+    {
+      "id": "webhook",
+      "name": "Webhook Module",
+      "version": "0.0.0",
+      "description": "Outgoing webhook system. Tenant admins configure HTTP endpoints and subscribe to events. When an event fires, the system signs and delivers a JSON payload to all matching endpoints.",
+      "dir": "modules/webhook",
+      "tags": [],
+      "priority": 100,
+      "tier": "platform",
+      "dependencies": {
+        "requires": [],
+        "optional": [],
+        "conflicts": []
+      },
+      "exports": {
+        "services": [
+          "webhook.service.ts",
+          "webhook.system.service.ts"
+        ],
+        "dtos": [
+          "webhook.dto.ts"
+        ],
+        "enums": [
+          "webhook.enums.ts"
+        ],
+        "messageKeys": [
+          "webhook.messages.ts"
+        ],
+        "settingKeys": [],
+        "providers": [],
+        "jobs": [],
+        "entities": [
+          "system_webhook.entity.ts",
+          "system_webhook_delivery.entity.ts",
+          "webhook.entity.ts",
+          "webhook_delivery.entity.ts"
+        ]
+      },
+      "hasReadme": true,
+      "hasModuleJson": false,
+      "hasExpressLayer": false
+    }
+  ],
+  "routes": [
+    {
+      "filePath": "router/system/index.ts",
+      "scope": "system",
+      "urlPath": "/system",
+      "method": "GET",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/ai.ts",
+      "scope": "system",
+      "urlPath": "/system/ai/chat",
+      "method": "POST",
+      "module": "ai",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/end",
+      "method": "DELETE",
+      "module": "auth_impersonation",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/system",
+      "method": "POST",
+      "module": "auth_impersonation",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/tenant/:tenantId",
+      "method": "POST",
+      "module": "auth_impersonation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth_sso.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-sso/authorize/:provider",
+      "method": "GET",
+      "module": "auth_sso",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth_sso.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-sso/callback/:provider",
+      "method": "GET",
+      "module": "auth_sso",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/email-verification/send",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/email-verification/verify",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/forgot-password",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/login",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/logout",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/otp/send",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/otp/verify",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/register",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/reset-password",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/disable",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/enable",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/setup",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/coupon.ts",
+      "scope": "system",
+      "urlPath": "/system/coupons/apply",
+      "method": "POST",
+      "module": "coupon",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/coupon.ts",
+      "scope": "system",
+      "urlPath": "/system/coupons/validate",
+      "method": "POST",
+      "module": "coupon",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/index.ts",
+      "scope": "system",
+      "urlPath": "/system/health",
+      "method": "GET",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_inapp.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-inapp",
+      "method": "GET",
+      "module": "notification_inapp",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_push.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-push",
+      "method": "GET",
+      "module": "notification_push",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_sms.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-sms",
+      "method": "GET",
+      "module": "notification_sms",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments",
+      "method": "GET",
+      "module": "payment",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/:paymentId",
+      "method": "GET",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/:paymentId/checkout",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/webhook/:provider",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting",
+      "method": "GET",
+      "module": "setting",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "DELETE",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "GET",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "PUT",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/bulk",
+      "method": "PATCH",
+      "module": "setting",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage",
+      "method": "DELETE",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage/download-url",
+      "method": "POST",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage/upload-url",
+      "method": "POST",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants",
+      "method": "GET",
+      "module": "tenant",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants",
+      "method": "POST",
+      "module": "tenant",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "DELETE",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "GET",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "PUT",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session",
+      "method": "DELETE",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session",
+      "method": "GET",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session/all",
+      "method": "DELETE",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session/refresh",
+      "method": "POST",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_social_account.ts",
+      "scope": "system",
+      "urlPath": "/system/user-social-account",
+      "method": "GET",
+      "module": "user_social_account",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users",
+      "method": "GET",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/:userId",
+      "method": "DELETE",
+      "module": "user",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/:userId",
+      "method": "GET",
+      "module": "user",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me",
+      "method": "GET",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me",
+      "method": "PUT",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_preferences.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/preferences/me",
+      "method": "GET",
+      "module": "user_preferences",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_preferences.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/preferences/me",
+      "method": "PUT",
+      "module": "user_preferences",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_profile.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/profile/me",
+      "method": "GET",
+      "module": "user_profile",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_profile.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/profile/me",
+      "method": "PUT",
+      "module": "user_profile",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_security.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/security",
+      "method": "GET",
+      "module": "user_security",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_security.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/security/otp-methods",
+      "method": "GET",
+      "module": "user_security",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys",
+      "method": "GET",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys",
+      "method": "POST",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys/:apiKeyId",
+      "method": "DELETE",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/authorize/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/callback/:tenantId",
+      "method": "POST",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "DELETE",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "PUT",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/metadata/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "DELETE",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "GET",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "PUT",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains",
+      "method": "GET",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains",
+      "method": "POST",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId",
+      "method": "DELETE",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId/primary",
+      "method": "PUT",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId/verify",
+      "method": "POST",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_export.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/export",
+      "method": "POST",
+      "module": "tenant_export",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations",
+      "method": "GET",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/:invitationId",
+      "method": "DELETE",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/accept",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/decline",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members",
+      "method": "GET",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members",
+      "method": "POST",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/:userId",
+      "method": "DELETE",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/:userId/role",
+      "method": "PUT",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/me",
+      "method": "GET",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/cache",
+      "method": "DELETE",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/me",
+      "method": "GET",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/tenants",
+      "method": "GET",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings",
+      "method": "PUT",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/:key",
+      "method": "DELETE",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/:key",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/public",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "DELETE",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "GET",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "POST",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription/plans",
+      "method": "GET",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_usage.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/usage",
+      "method": "GET",
+      "module": "tenant_usage",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_usage.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/usage/flush",
+      "method": "POST",
+      "module": "tenant_usage",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks",
+      "method": "GET",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks",
+      "method": "POST",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId",
+      "method": "DELETE",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId",
+      "method": "PUT",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId/deliveries",
+      "method": "GET",
+      "module": "webhook",
+      "dynamic": true
+    }
+  ],
+  "entities": [
+    {
+      "name": "ApiKey",
+      "filePath": "modules/api_key/entities/api_key.entity.ts",
+      "module": "api_key",
+      "schema": "tenant",
+      "tableName": "api_keys",
+      "columns": [
+        "apiKeyId",
+        "tenantId",
+        "createdByUserId",
+        "name",
+        "description",
+        "keyHash",
+        "keyPrefix",
+        "scopes",
+        "isActive",
+        "lastUsedAt",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "AuditLog",
+      "filePath": "modules/audit_log/entities/audit_log.entity.ts",
+      "module": "audit_log",
+      "schema": "tenant",
+      "tableName": "audit_logs",
+      "columns": [
+        "auditLogId",
+        "actorId",
+        "actorType",
+        "action",
+        "resourceType",
+        "resourceId",
+        "metadata",
+        "ipAddress",
+        "userAgent",
+        "createdAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "Coupon",
+      "filePath": "modules/coupon/entities/coupon.entity.ts",
+      "module": "coupon",
+      "schema": "system",
+      "tableName": "coupons",
+      "columns": [
+        "couponId",
+        "code",
+        "name",
+        "description",
+        "discountType",
+        "discountValue",
+        "currency",
+        "applicablePlanIds",
+        "applicableProviders",
+        "maxUses",
+        "maxUsesPerTenant",
+        "usedCount",
+        "minimumAmount",
+        "status",
+        "startsAt",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "CouponRedemption",
+      "filePath": "modules/coupon/entities/coupon_redemption.entity.ts",
+      "module": "coupon",
+      "schema": "system",
+      "tableName": "coupon_redemptions",
+      "columns": [
+        "redemptionId",
+        "couponId",
+        "couponCode",
+        "tenantId",
+        "paymentId",
+        "userId",
+        "discountAmount",
+        "currency",
+        "originalAmount",
+        "finalAmount",
+        "appliedAt"
+      ],
+      "relations": [
+        "tenant"
+      ]
+    },
+    {
+      "name": "Payment",
+      "filePath": "modules/payment/entities/payment.entity.ts",
+      "module": "payment",
+      "schema": "system",
+      "tableName": "payments",
+      "columns": [
+        "paymentId",
+        "userId",
+        "tenantId",
+        "provider",
+        "providerPaymentId",
+        "amount",
+        "currency",
+        "status",
+        "paymentMethod",
+        "description",
+        "metadata",
+        "customerEmail",
+        "customerName",
+        "customerPhone",
+        "billingAddress",
+        "refundedAmount",
+        "failureCode",
+        "failureMessage",
+        "paidAt",
+        "cancelledAt",
+        "refundedAt",
+        "expiresAt",
+        "createdAt",
+        "updatedAt",
+        "deletedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "PaymentTransaction",
+      "filePath": "modules/payment/entities/payment_transaction.entity.ts",
+      "module": "payment",
+      "schema": "system",
+      "tableName": "payment_transactions",
+      "columns": [
+        "transactionId",
+        "paymentId",
+        "provider",
+        "providerTransactionId",
+        "type",
+        "status",
+        "amount",
+        "currency",
+        "fee",
+        "net",
+        "providerResponse",
+        "errorCode",
+        "errorMessage",
+        "parentTransactionId",
+        "ipAddress",
+        "userAgent",
+        "processedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "PlanFeature",
+      "filePath": "modules/payment/entities/plan_feature.entity.ts",
+      "module": "payment",
+      "schema": "system",
+      "tableName": "plan_features",
+      "columns": [
+        "featureId",
+        "planId",
+        "key",
+        "label",
+        "type",
+        "value",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "PushSubscription",
+      "filePath": "modules/notification_push/entities/push_subscription.entity.ts",
+      "module": "notification_push",
+      "schema": "system",
+      "tableName": "push_subscriptions",
+      "columns": [
+        "id",
+        "userId",
+        "endpoint",
+        "p256dh",
+        "auth",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "SamlConfig",
+      "filePath": "modules/auth_saml/entities/saml_config.entity.ts",
+      "module": "auth_saml",
+      "schema": "system",
+      "tableName": "saml_configs",
+      "columns": [
+        "samlConfigId",
+        "tenantId",
+        "isEnabled",
+        "idpEntityId",
+        "idpSsoUrl",
+        "idpCertificate",
+        "spPrivateKey",
+        "spCertificate",
+        "emailAttribute",
+        "nameAttribute",
+        "allowIdpInitiated",
+        "signRequests",
+        "nameIdFormat",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "Setting",
+      "filePath": "modules/setting/entities/setting.entity.ts",
+      "module": "setting",
+      "schema": "system",
+      "tableName": "settings",
+      "columns": [
+        "key",
+        "value",
+        "group",
+        "type",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "SubscriptionPlan",
+      "filePath": "modules/payment/entities/subscription_plan.entity.ts",
+      "module": "payment",
+      "schema": "system",
+      "tableName": "subscription_plans",
+      "columns": [
+        "planId",
+        "name",
+        "description",
+        "monthlyPrice",
+        "yearlyPrice",
+        "currency",
+        "trialDays",
+        "sortOrder",
+        "isDefault",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "SystemWebhook",
+      "filePath": "modules/webhook/entities/system_webhook.entity.ts",
+      "module": "webhook",
+      "schema": "tenant",
+      "tableName": "system_webhooks",
+      "columns": [
+        "webhookId",
+        "createdByUserId",
+        "name",
+        "description",
+        "url",
+        "secret",
+        "events",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "SystemWebhookDelivery",
+      "filePath": "modules/webhook/entities/system_webhook_delivery.entity.ts",
+      "module": "webhook",
+      "schema": "tenant",
+      "tableName": "system_webhook_deliveries",
+      "columns": [
+        "deliveryId",
+        "webhookId",
+        "event",
+        "payload",
+        "status",
+        "attempts",
+        "maxAttempts",
+        "requestBody",
+        "responseStatus",
+        "responseBody",
+        "errorMessage",
+        "duration",
+        "nextRetryAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "Tenant",
+      "filePath": "modules/tenant/entities/tenant.entity.ts",
+      "module": "tenant",
+      "schema": "tenant",
+      "tableName": "tenants",
+      "columns": [
+        "tenantId",
+        "name",
+        "description",
+        "tenantStatus",
+        "createdAt",
+        "updatedAt",
+        "deletedAt",
+        "deletionRequestedAt",
+        "deleteAfter"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantAuditLog",
+      "filePath": "modules/audit_log/entities/audit_log_tenant.entity.ts",
+      "module": "audit_log",
+      "schema": "tenant",
+      "tableName": "audit_logs",
+      "columns": [
+        "auditLogId",
+        "tenantId",
+        "actorId",
+        "actorType",
+        "action",
+        "resourceType",
+        "resourceId",
+        "metadata",
+        "ipAddress",
+        "userAgent",
+        "createdAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantDatabase",
+      "filePath": "modules/db/entities/tenant_database.entity.ts",
+      "module": "db",
+      "schema": "system",
+      "tableName": "tenant_databases",
+      "columns": [
+        "tenantId",
+        "databaseUrl",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantDomain",
+      "filePath": "modules/tenant_domain/entities/tenant_domain.entity.ts",
+      "module": "tenant_domain",
+      "schema": "tenant",
+      "tableName": "tenant_domains",
+      "columns": [
+        "tenantDomainId",
+        "tenantId",
+        "domain",
+        "isPrimary",
+        "domainStatus",
+        "verificationToken",
+        "verifiedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantInvitation",
+      "filePath": "modules/tenant_invitation/entities/tenant_invitation.entity.ts",
+      "module": "tenant_invitation",
+      "schema": "tenant",
+      "tableName": "tenant_invitations",
+      "columns": [
+        "invitationId",
+        "tenantId",
+        "email",
+        "invitedByUserId",
+        "memberRole",
+        "token",
+        "status",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantMember",
+      "filePath": "modules/tenant_member/entities/tenant_member.entity.ts",
+      "module": "tenant_member",
+      "schema": "tenant",
+      "tableName": "tenant_members",
+      "columns": [
+        "tenantMemberId",
+        "tenantId",
+        "userId",
+        "memberRole",
+        "memberStatus",
+        "sessionVersion",
+        "createdAt",
+        "updatedAt",
+        "deletedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantSetting",
+      "filePath": "modules/tenant_setting/entities/tenant_setting.entity.ts",
+      "module": "tenant_setting",
+      "schema": "tenant",
+      "tableName": "tenant_settings",
+      "columns": [
+        "tenantId",
+        "key",
+        "value",
+        "group",
+        "type",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantSubscription",
+      "filePath": "modules/tenant_subscription/entities/tenant_subscription.entity.ts",
+      "module": "tenant_subscription",
+      "schema": "tenant",
+      "tableName": "tenant_subscriptions",
+      "columns": [
+        "subscriptionId",
+        "tenantId",
+        "planId",
+        "status",
+        "billingInterval",
+        "currentPeriodStart",
+        "currentPeriodEnd",
+        "trialEndsAt",
+        "cancelledAt",
+        "gracePeriodEndsAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "TenantUsage",
+      "filePath": "modules/tenant_usage/entities/tenant_usage.entity.ts",
+      "module": "tenant_usage",
+      "schema": "tenant",
+      "tableName": "tenant_usage",
+      "columns": [
+        "usageId",
+        "tenantId",
+        "month",
+        "apiCalls",
+        "aiTokens",
+        "storageBytes",
+        "emailSends",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "User",
+      "filePath": "modules/user/entities/user.entity.ts",
+      "module": "user",
+      "schema": "system",
+      "tableName": "users",
+      "columns": [
+        "userId",
+        "email",
+        "phone",
+        "password",
+        "userStatus",
+        "userRole",
+        "emailVerifiedAt",
+        "createdAt",
+        "updatedAt",
+        "deletedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "UserPreferences",
+      "filePath": "modules/user_preferences/entities/user_preferences.entity.ts",
+      "module": "user_preferences",
+      "schema": "system",
+      "tableName": "user_preferences",
+      "columns": [
+        "userPreferencesId",
+        "userId",
+        "theme",
+        "language",
+        "emailNotifications",
+        "smsNotifications",
+        "pushNotifications",
+        "newsletter",
+        "timezone",
+        "dateFormat",
+        "timeFormat",
+        "firstDayOfWeek",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "UserProfile",
+      "filePath": "modules/user_profile/entities/user_profile.entity.ts",
+      "module": "user_profile",
+      "schema": "system",
+      "tableName": "user_profiles",
+      "columns": [
+        "userProfileId",
+        "userId",
+        "name",
+        "biography",
+        "profilePicture",
+        "headerImage",
+        "socialLinks",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "UserSecurity",
+      "filePath": "modules/user_security/entities/user_security.entity.ts",
+      "module": "user_security",
+      "schema": "system",
+      "tableName": "user_securities",
+      "columns": [
+        "userSecurityId",
+        "userId",
+        "otpMethods",
+        "otpSecret",
+        "otpBackupCodes",
+        "lastLoginAt",
+        "lastLoginIp",
+        "lastLoginDevice",
+        "failedLoginAttempts",
+        "lockedUntil",
+        "passkeyEnabled",
+        "passkeys",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "UserSession",
+      "filePath": "modules/user_session/entities/user_session.entity.ts",
+      "module": "user_session",
+      "schema": "system",
+      "tableName": "user_sessions",
+      "columns": [
+        "userSessionId",
+        "userId",
+        "accessToken",
+        "refreshToken",
+        "deviceFingerprint",
+        "userAgent",
+        "ipAddress",
+        "sessionStatus",
+        "otpVerifyNeeded",
+        "sessionExpiry",
+        "metadata",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "UserSocialAccount",
+      "filePath": "modules/user_social_account/entities/user_social_account.entity.ts",
+      "module": "user_social_account",
+      "schema": "system",
+      "tableName": "user_social_accounts",
+      "columns": [
+        "userSocialAccountId",
+        "userId",
+        "provider",
+        "providerId",
+        "accessToken",
+        "refreshToken",
+        "profilePicture",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "Webhook",
+      "filePath": "modules/webhook/entities/webhook.entity.ts",
+      "module": "webhook",
+      "schema": "tenant",
+      "tableName": "webhooks",
+      "columns": [
+        "webhookId",
+        "tenantId",
+        "createdByUserId",
+        "name",
+        "description",
+        "url",
+        "secret",
+        "events",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    },
+    {
+      "name": "WebhookDelivery",
+      "filePath": "modules/webhook/entities/webhook_delivery.entity.ts",
+      "module": "webhook",
+      "schema": "tenant",
+      "tableName": "webhook_deliveries",
+      "columns": [
+        "deliveryId",
+        "webhookId",
+        "tenantId",
+        "event",
+        "payload",
+        "status",
+        "attempts",
+        "maxAttempts",
+        "requestBody",
+        "responseStatus",
+        "responseBody",
+        "errorMessage",
+        "duration",
+        "nextRetryAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "relations": []
+    }
+  ],
+  "components": [
+    {
+      "id": "auth/auth.middleware",
+      "module": "auth",
+      "filePath": "modules_express/auth/auth.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "common/error-handler.middleware",
+      "module": "common",
+      "filePath": "modules_express/common/error-handler.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "errorHandler",
+        "default"
+      ]
+    },
+    {
+      "id": "limiter/limiter.service.express",
+      "module": "limiter",
+      "filePath": "modules_express/limiter/limiter.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "Limiter",
+        "default"
+      ]
+    },
+    {
+      "id": "logger/logger.service.express",
+      "module": "logger",
+      "filePath": "modules_express/logger/logger.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "Logger",
+        "default"
+      ]
+    },
+    {
+      "id": "tenant_member/tenant_member.middleware",
+      "module": "tenant_member",
+      "filePath": "modules_express/tenant_member/tenant_member.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "tenant_session/tenant_session.service.express",
+      "module": "tenant_session",
+      "filePath": "modules_express/tenant_session/tenant_session.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "user_session/user_session.service.express",
+      "module": "user_session",
+      "filePath": "modules_express/user_session/user_session.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "default"
+      ]
+    }
+  ]
+}

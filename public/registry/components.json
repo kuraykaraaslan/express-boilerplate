@@ -1,0 +1,73 @@
+{
+  "name": "express-boilerplate",
+  "registryVersion": "1.0",
+  "generatedAt": "2026-05-26T08:43:53.510Z",
+  "components": [
+    {
+      "id": "auth/auth.middleware",
+      "module": "auth",
+      "filePath": "modules_express/auth/auth.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "common/error-handler.middleware",
+      "module": "common",
+      "filePath": "modules_express/common/error-handler.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "errorHandler",
+        "default"
+      ]
+    },
+    {
+      "id": "limiter/limiter.service.express",
+      "module": "limiter",
+      "filePath": "modules_express/limiter/limiter.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "Limiter",
+        "default"
+      ]
+    },
+    {
+      "id": "logger/logger.service.express",
+      "module": "logger",
+      "filePath": "modules_express/logger/logger.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "Logger",
+        "default"
+      ]
+    },
+    {
+      "id": "tenant_member/tenant_member.middleware",
+      "module": "tenant_member",
+      "filePath": "modules_express/tenant_member/tenant_member.middleware.ts",
+      "kind": "middleware",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "tenant_session/tenant_session.service.express",
+      "module": "tenant_session",
+      "filePath": "modules_express/tenant_session/tenant_session.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "id": "user_session/user_session.service.express",
+      "module": "user_session",
+      "filePath": "modules_express/user_session/user_session.service.express.ts",
+      "kind": "service.express",
+      "exports": [
+        "default"
+      ]
+    }
+  ]
+}

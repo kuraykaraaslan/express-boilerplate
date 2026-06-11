@@ -1,0 +1,877 @@
+{
+  "name": "express-boilerplate",
+  "registryVersion": "1.0",
+  "generatedAt": "2026-05-26T08:43:53.510Z",
+  "routes": [
+    {
+      "filePath": "router/system/index.ts",
+      "scope": "system",
+      "urlPath": "/system",
+      "method": "GET",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/ai.ts",
+      "scope": "system",
+      "urlPath": "/system/ai/chat",
+      "method": "POST",
+      "module": "ai",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/end",
+      "method": "DELETE",
+      "module": "auth_impersonation",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/system",
+      "method": "POST",
+      "module": "auth_impersonation",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth_impersonation.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-impersonation/tenant/:tenantId",
+      "method": "POST",
+      "module": "auth_impersonation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth_sso.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-sso/authorize/:provider",
+      "method": "GET",
+      "module": "auth_sso",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth_sso.ts",
+      "scope": "system",
+      "urlPath": "/system/auth-sso/callback/:provider",
+      "method": "GET",
+      "module": "auth_sso",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/email-verification/send",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/email-verification/verify",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/env",
+      "method": "GET",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/forgot-password",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/login",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/logout",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/otp/send",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/otp/verify",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/register",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/reset-password",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/disable",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/enable",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/auth.ts",
+      "scope": "system",
+      "urlPath": "/system/auth/totp/setup",
+      "method": "POST",
+      "module": "auth",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/coupon.ts",
+      "scope": "system",
+      "urlPath": "/system/coupons/apply",
+      "method": "POST",
+      "module": "coupon",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/coupon.ts",
+      "scope": "system",
+      "urlPath": "/system/coupons/validate",
+      "method": "POST",
+      "module": "coupon",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/index.ts",
+      "scope": "system",
+      "urlPath": "/system/health",
+      "method": "GET",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_inapp.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-inapp",
+      "method": "GET",
+      "module": "notification_inapp",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_push.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-push",
+      "method": "GET",
+      "module": "notification_push",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/notification_sms.ts",
+      "scope": "system",
+      "urlPath": "/system/notification-sms",
+      "method": "GET",
+      "module": "notification_sms",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments",
+      "method": "GET",
+      "module": "payment",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/:paymentId",
+      "method": "GET",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/:paymentId/checkout",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/payment.ts",
+      "scope": "system",
+      "urlPath": "/system/payments/webhook/:provider",
+      "method": "POST",
+      "module": "payment",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting",
+      "method": "GET",
+      "module": "setting",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "DELETE",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "GET",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/:key",
+      "method": "PUT",
+      "module": "setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/setting.ts",
+      "scope": "system",
+      "urlPath": "/system/setting/bulk",
+      "method": "PATCH",
+      "module": "setting",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage",
+      "method": "DELETE",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage/download-url",
+      "method": "POST",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/storage.ts",
+      "scope": "system",
+      "urlPath": "/system/storage/upload-url",
+      "method": "POST",
+      "module": "storage",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants",
+      "method": "GET",
+      "module": "tenant",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants",
+      "method": "POST",
+      "module": "tenant",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "DELETE",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "GET",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/tenant.ts",
+      "scope": "system",
+      "urlPath": "/system/tenants/:tenantId",
+      "method": "PUT",
+      "module": "tenant",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session",
+      "method": "DELETE",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session",
+      "method": "GET",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session/all",
+      "method": "DELETE",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_session.ts",
+      "scope": "system",
+      "urlPath": "/system/user-session/refresh",
+      "method": "POST",
+      "module": "user_session",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_social_account.ts",
+      "scope": "system",
+      "urlPath": "/system/user-social-account",
+      "method": "GET",
+      "module": "user_social_account",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users",
+      "method": "GET",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/:userId",
+      "method": "DELETE",
+      "module": "user",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/:userId",
+      "method": "GET",
+      "module": "user",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me",
+      "method": "GET",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me",
+      "method": "PUT",
+      "module": "user",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_preferences.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/preferences/me",
+      "method": "GET",
+      "module": "user_preferences",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_preferences.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/preferences/me",
+      "method": "PUT",
+      "module": "user_preferences",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_profile.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/profile/me",
+      "method": "GET",
+      "module": "user_profile",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_profile.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/profile/me",
+      "method": "PUT",
+      "module": "user_profile",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_security.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/security",
+      "method": "GET",
+      "module": "user_security",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/system/user_security.ts",
+      "scope": "system",
+      "urlPath": "/system/users/me/security/otp-methods",
+      "method": "GET",
+      "module": "user_security",
+      "dynamic": false
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys",
+      "method": "GET",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys",
+      "method": "POST",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/api_key.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/api-keys/:apiKeyId",
+      "method": "DELETE",
+      "module": "api_key",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/authorize/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/callback/:tenantId",
+      "method": "POST",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "DELETE",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/config/:tenantId",
+      "method": "PUT",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/auth_saml.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/auth-saml/metadata/:tenantId",
+      "method": "GET",
+      "module": "auth_saml",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "DELETE",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "GET",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_branding.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/branding",
+      "method": "PUT",
+      "module": "tenant_branding",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains",
+      "method": "GET",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains",
+      "method": "POST",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId",
+      "method": "DELETE",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId/primary",
+      "method": "PUT",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_domain.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/domains/:tenantDomainId/verify",
+      "method": "POST",
+      "module": "tenant_domain",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_export.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/export",
+      "method": "POST",
+      "module": "tenant_export",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations",
+      "method": "GET",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/:invitationId",
+      "method": "DELETE",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/accept",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_invitation.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/invitations/decline",
+      "method": "POST",
+      "module": "tenant_invitation",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members",
+      "method": "GET",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members",
+      "method": "POST",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/:userId",
+      "method": "DELETE",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/:userId/role",
+      "method": "PUT",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_member.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/members/me",
+      "method": "GET",
+      "module": "tenant_member",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/cache",
+      "method": "DELETE",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/me",
+      "method": "GET",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_session.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/session/tenants",
+      "method": "GET",
+      "module": "tenant_session",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings",
+      "method": "PUT",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/:key",
+      "method": "DELETE",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/:key",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_setting.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/settings/public",
+      "method": "GET",
+      "module": "tenant_setting",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "DELETE",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "GET",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription",
+      "method": "POST",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_subscription.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/subscription/plans",
+      "method": "GET",
+      "module": "tenant_subscription",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_usage.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/usage",
+      "method": "GET",
+      "module": "tenant_usage",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/tenant_usage.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/usage/flush",
+      "method": "POST",
+      "module": "tenant_usage",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks",
+      "method": "GET",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks",
+      "method": "POST",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId",
+      "method": "DELETE",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId",
+      "method": "PUT",
+      "module": "webhook",
+      "dynamic": true
+    },
+    {
+      "filePath": "router/tenant/webhook.ts",
+      "scope": "tenant",
+      "urlPath": "/tenant/:tenantId/webhooks/:webhookId/deliveries",
+      "method": "GET",
+      "module": "webhook",
+      "dynamic": true
+    }
+  ]
+}

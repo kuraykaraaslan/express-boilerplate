@@ -4,6 +4,8 @@
 
 A production-ready, multi-tenant SaaS API boilerplate built with Express.js and TypeScript. Follows Domain-Driven Design (DDD) with a modular architecture that mirrors the [next-boilerplate](https://github.com/kuraykaraaslan/next-boilerplate) project.
 
+> **🤖 AI agents:** read [AGENTS.md](AGENTS.md) first — canonical orientation guide. Then pull the machine-readable catalog from `public/registry/` (modules, routes, entities, middlewares, conventions) or talk to the MCP server in [.mcp.json](.mcp.json). Editor-native rule mirrors: [.cursor/rules/express-boilerplate.mdc](.cursor/rules/express-boilerplate.mdc), [.cursorrules](.cursorrules), [.windsurfrules](.windsurfrules), [.github/copilot-instructions.md](.github/copilot-instructions.md), [.clinerules](.clinerules). Rebuild the catalog after any change: `npm run registry:snapshot`.
+
 ## Features
 
 - **Multi-tenancy**: Full tenant isolation with per-tenant settings, branding, domains, members, and subscriptions
