@@ -6,13 +6,18 @@
   "scripts": {
     "dev": "tsx watch index.ts",
     "prebuild": "npm run registry:snapshot",
-    "build": "tsc && tsc-alias",
+    "build": "npm run build:obfuscate",
+    "build:readable": "node scripts/release/build.mjs readable",
+    "build:obfuscate": "node scripts/release/build.mjs obfuscate",
+    "release:build:deb": "node scripts/release/build-deb.mjs",
+    "release:build:rpm": "node scripts/release/build-rpm.mjs",
+    "release:build:docker": "node scripts/release/build-docker.mjs",
     "start": "node dist/index.js",
     "start:prod": "NODE_ENV=production node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist .build",
     "registry:snapshot": "node scripts/build-registry-snapshot.mjs",
     "mcp:server": "node scripts/mcp-server.mjs"
   },
@@ -61,6 +66,8 @@
     "tsc-alias": "^1.8.17",
     "typeorm-ts-node-commonjs": "^0.3.20",
     "typescript": "^5.8.3",
+    "javascript-obfuscator": "^4.1.1",
+    "esbuild": "^0.25.9",
     "typescript-eslint": "^8.31.1"
   },
   "dependencies": {

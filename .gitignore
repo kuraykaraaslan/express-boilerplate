@@ -12,6 +12,7 @@ yarn-error.log
 # Build output
 /dist/
 /out/
+/.build/
 
 # Environment variables
 .env

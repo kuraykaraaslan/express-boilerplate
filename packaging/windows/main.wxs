@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="$(var.ProductName)" Manufacturer="$(var.Manufacturer)"
+           Version="$(var.ProductVersion)" UpgradeCode="{B0E8C1D4-6B4C-4B43-A4C6-7A0B1B1E4C21}">
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)" />
+    </StandardDirectory>
+    <Feature Id="MainFeature" Title="$(var.ProductName)" Level="1">
+      <Files Include="$(var.SourceDir)\**" />
+    </Feature>
+  </Package>
+</Wix>

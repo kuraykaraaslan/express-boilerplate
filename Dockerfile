@@ -1,29 +1,14 @@
-# Use Node.js 22
-FROM node:23-slim
-
-# Set the working directory
+FROM node:22-slim AS build
 WORKDIR /usr/src/app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy Prisma schema
-COPY prisma ./prisma
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Copy source code
+RUN npm ci
 COPY . .
+RUN npm run build:obfuscate
 
-# Build TypeScript code
-RUN npx tsc
-
-# Expose port
+FROM node:22-slim AS runner
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+COPY --from=build /usr/src/app/.build/obfuscate ./
+COPY --from=build /usr/src/app/prisma ./prisma
 EXPOSE 3000
-
-# Run migrations and start the app
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
