@@ -1,0 +1,640 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "auth",
+  "name": "Authentication",
+  "description": "Credential auth: login, register, password reset, email verify, OTP, TOTP. Coordinates user, user_session, user_security, notification_mail.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-shield-halved",
+  "tags": [
+    "identity",
+    "auth",
+    "core"
+  ],
+  "priority": 15,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "common",
+      "db",
+      "env",
+      "ip_subnet",
+      "notification",
+      "notification_mail",
+      "notification_sms",
+      "observability",
+      "redis",
+      "tenant",
+      "tenant_branding",
+      "tenant_invitation",
+      "tenant_setting",
+      "user",
+      "user_security",
+      "user_session",
+      "webhook"
+    ]
+  },
+  "settings": {
+    "keys": "AUTH_KEYS"
+  },
+  "settingKeys": [
+    "AUTH_KEYS",
+    "GENERAL_KEYS"
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/auth",
+  "license": "Proprietary",
+  "permissions": [
+    {
+      "id": "auth.session.login",
+      "name": "Log in (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.account.register",
+      "name": "Self-register (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.account.forgot_password",
+      "name": "Request password reset (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.account.reset_password",
+      "name": "Reset password with token (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.session.read",
+      "name": "Read own tenant session",
+      "group": "Account",
+      "minRole": "USER"
+    },
+    {
+      "id": "auth.session.step_up",
+      "name": "Prove a second factor for one sensitive request (step-up)",
+      "group": "Account",
+      "minRole": "USER"
+    },
+    {
+      "id": "auth.member_sessions.revoke",
+      "name": "Sign a member out of this workspace",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "auth.session.exchange",
+      "name": "Exchange session for another tenant membership (silent switch)",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.session.handoff",
+      "name": "Redeem a one-time tenant-switch handoff (public; the code is the proof)",
+      "group": "Account",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.registration.read",
+      "name": "See whether self-registration is open (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.account.verify_email",
+      "name": "Verify an email with the link and the account password (public)",
+      "group": "Authentication",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "auth.onboarding.read",
+      "name": "See whether one may open an organization, check an address",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.onboarding.create",
+      "name": "Open an organization of one's own (self-service onboarding)",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.account.change_password",
+      "name": "Change own password",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.profile.read",
+      "name": "Read own profile",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.profile.update",
+      "name": "Update own profile",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.preferences.read",
+      "name": "Read own preferences",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.preferences.update",
+      "name": "Update own preferences",
+      "group": "Account",
+      "minRole": "USER"
+    },
+    {
+      "id": "account.security.read",
+      "name": "Read own security settings",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.notifications.read",
+      "name": "Read own notifications",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.notifications.manage",
+      "name": "Manage own notifications",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.sessions.read",
+      "name": "Read own sessions",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.sessions.manage",
+      "name": "Manage own sessions",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.devices.read",
+      "name": "Read own device info",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.tenants.read",
+      "name": "Read own tenant memberships",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.social_accounts.read",
+      "name": "Read own social accounts",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.social_accounts.connect",
+      "name": "Connect a social account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.email.verify",
+      "name": "Send/verify own email verification",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.otp.send",
+      "name": "Send an OTP for own account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.otp.verify",
+      "name": "Verify an OTP for own account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.totp.setup",
+      "name": "Set up TOTP for own account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.totp.enable",
+      "name": "Enable TOTP for own account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.me.totp.disable",
+      "name": "Disable TOTP for own account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "auth.settings.read",
+      "name": "View authentication settings",
+      "group": "Authentication",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "auth.settings.update",
+      "name": "Change authentication settings",
+      "group": "Authentication",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "captcha:provider",
+      "kind": "provider",
+      "pattern": "select",
+      "onFailure": "fail-closed",
+      "fallback": "any",
+      "persists": true,
+      "external": true,
+      "inTree": false,
+      "description": "A CAPTCHA verification backend (reCAPTCHA / hCaptcha / Turnstile). Sandboxed community plugins (the captcha plugin family) contribute their token-verification here."
+    },
+    {
+      "id": "auth:consent_sink",
+      "kind": "provider",
+      "pattern": "first",
+      "description": "Where 'this person agreed to this' is written. Default export: (event) => Promise<boolean> — return true when the event was recorded, false to let auth fall back. Events are either DOCUMENT (terms/privacy accepted at a named version — a registration consent has no content hash, and the ledger must not pretend otherwise) or PURPOSE (marketing/analytics granted or withdrawn). The point exists because terms_consent is the surviving ledger (DUP-03) but auth CANNOT hard-require it: a deployment that sells no agreements still has to register users (AGENTS.md §10). With no contributor, auth writes its own lightweight user_consents row exactly as before; with terms_consent installed, registration and JIT-SSO consents land in the same table as checkout acceptances instead of a parallel one nothing joins to. Best-effort by contract — a consent write must never block a signup."
+    },
+    {
+      "id": "auth:login_method",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "auth.login.methods",
+      "description": "An alternative sign-in method on the login page (passkey, e-signature, ...). Implemented through the CLIENT slot 'auth.login.methods': a contributor declares slots[] = { slot: 'auth.login.methods', component, order, scope: 'tenant' } and the page resolves it through the generated client component map. Props received: { tenantId, onSuccess(message) } — the contribution supplies its own success wording, because the module owning the method is the one that knows what it is called. Declared so `auth` never imports an authentication satellite: auth is PROTECTED and always installed, so a static import forced every optional method module on with it, and auth_e_signature requires auth back (MIS-01, audit 2026-08)."
+    },
+    {
+      "id": "auth:session_extension",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "timeoutMs": 2000,
+      "description": "Extra named sections a satellite adds to the 'who am I' answer (GET /auth/session and the device login body). Default export: ({ tenantId, userId }) => Promise<Record<string, unknown> | null>; each key of the returned object becomes a top-level field. Reserved fields (user, tenant, tenantMember, userSecurity, tokens) cannot be overwritten. Best-effort by contract: a failing contribution is skipped. Exists so auth never imports a satellite — terms_consent contributes `compliance.pendingAgreements` (required agreements not yet accepted at their current version) without auth knowing it exists (AGENTS.md §10)."
+    },
+    {
+      "id": "auth:step_up_method",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "default",
+      "description": "A second-factor method for the request-bound step-up (P9-19, auth.step-up.ts), selected by key; auth_passkey contributes `webauthn`. Default export: { available({ userId }), begin({ userId }) => { options, state }, verify({ userId, state, response }) => boolean }: `begin` answers the authenticator options and an opaque state (the challenge) auth keeps with its own single-use challenge; `verify` must answer true only for an assertion by a credential of that user, made with user verification, over that state. A method that is not installed, switched off or failing is simply not offered (TOTP, built into auth, is the fallback); one that disappears between options and verify fails the step-up closed (503). Exists so auth never imports auth_passkey, which requires auth (AGENTS.md §9.2)."
+    },
+    {
+      "id": "auth:local_credentials_policy",
+      "kind": "provider",
+      "pattern": "guard",
+      "timeoutMs": 2000,
+      "description": "Whether PEOPLE may hold and use credentials of this deployment (password login, registration, password reset and change, magic link, TOTP setup, passkey login and registration, and the node-local external identity providers: social SSO, tenant SAML, national identity and e-signature login, their JIT registration and Connected Accounts linking). Default export: () => Promise<{ allowed: boolean; reason?: string }>. Every contribution is asked; any refusal, and any contribution that throws, times out or is paused, blocks local credentials (fail closed: the guard only exists where people log in elsewhere). No contribution = allowed, as before. auth answers 403 LOCAL_CREDENTIALS_DISABLED. Exists so auth never imports the fleet: fleet_agent answers it on a node whose region requires Fleet ID (FID-07, decision F15). Break-glass shadow operators do not pass through it."
+    },
+    {
+      "id": "auth:signup_zone",
+      "kind": "provider",
+      "pattern": "guard",
+      "timeoutMs": 2000,
+      "description": "Whether a sign-up that the fleet instance's zone chooser sent here (`/auth/onboarding?fleet=1&zone=<id>`) may open a workspace on THIS deployment, and the language it starts with (docs/phases/02-fleet/14-zones-and-central-signup.md, F41). Default export: (zoneId: string) => Promise<{ ok: true; zoneId; domain; defaultLocale } | { ok: false; reason; chooserUrl }>. Asked only on a fleet node; no contribution = the zone means nothing here. Any refusal, and any contribution that throws, times out or is paused, refuses the sign-up (fail closed). Exists so auth never imports the fleet: fleet_agent answers it from the installed trust bundle."
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/auth/settings",
+      "component": "auth/ui/auth-settings.page",
+      "permissions": ["auth.settings.read", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/auth/callback",
+      "component": "auth/ui/callback.page"
+    },
+    {
+      "path": "/auth/change-password",
+      "component": "auth/ui/change-password.page"
+    },
+    {
+      "path": "/auth/complete-profile",
+      "component": "auth/ui/complete-profile.page"
+    },
+    {
+      "path": "/auth/create-tenant",
+      "component": "auth/ui/create-tenant.page"
+    },
+    {
+      "path": "/auth/onboarding",
+      "component": "auth/ui/onboarding.page"
+    },
+    {
+      "path": "/auth/forgot-password",
+      "component": "auth/ui/forgot-password.page"
+    },
+    {
+      "path": "/auth/login",
+      "component": "auth/ui/login.page"
+    },
+    {
+      "path": "/auth/logout",
+      "component": "auth/ui/logout.page"
+    },
+    {
+      "path": "/auth/register",
+      "component": "auth/ui/register.page"
+    },
+    {
+      "path": "/auth/reset-password",
+      "component": "auth/ui/reset-password.page"
+    },
+    {
+      "path": "/auth/select-tenant",
+      "component": "auth/ui/select-tenant.page"
+    },
+    {
+      "path": "/auth/verify-email",
+      "component": "auth/ui/verify-email.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/members/[memberId]/sessions",
+      "handler": "auth/server/members-member-id-sessions.route"
+    },
+    {
+      "path": "/api/auth/callback",
+      "handler": "auth/server/auth-callback.route"
+    },
+    {
+      "path": "/api/auth/change-password",
+      "handler": "auth/server/auth-change-password.route"
+    },
+    {
+      "path": "/api/auth/csrf",
+      "handler": "auth/server/auth-csrf.route"
+    },
+    {
+      "path": "/api/auth/forgot-password",
+      "handler": "auth/server/auth-forgot-password.route"
+    },
+    {
+      "path": "/api/auth/login",
+      "handler": "auth/server/auth-login.route"
+    },
+    {
+      "path": "/api/auth/device/login",
+      "handler": "auth/server/auth-device-login.route"
+    },
+    {
+      "path": "/api/auth/device/refresh",
+      "handler": "auth/server/auth-device-refresh.route"
+    },
+    {
+      "path": "/api/auth/magic-link",
+      "handler": "auth/server/auth-magic-link.route"
+    },
+    {
+      "path": "/api/auth/magic-link/consume",
+      "handler": "auth/server/auth-magic-link-consume.route"
+    },
+    {
+      "path": "/api/auth/logout",
+      "handler": "auth/server/auth-logout.route"
+    },
+    {
+      "path": "/api/auth/openapi",
+      "handler": "auth/server/auth-openapi.route"
+    },
+    {
+      "path": "/api/auth/otp/send",
+      "handler": "auth/server/auth-otp-send.route"
+    },
+    {
+      "path": "/api/auth/otp/verify",
+      "handler": "auth/server/auth-otp-verify.route"
+    },
+    {
+      "path": "/api/auth/refresh",
+      "handler": "auth/server/auth-refresh.route"
+    },
+    {
+      "path": "/api/auth/register",
+      "handler": "auth/server/auth-register.route"
+    },
+    {
+      "path": "/api/auth/reset-password",
+      "handler": "auth/server/auth-reset-password.route"
+    },
+    {
+      "path": "/api/auth",
+      "handler": "auth/server/auth.route"
+    },
+    {
+      "path": "/api/auth/session",
+      "handler": "auth/server/auth-session.route"
+    },
+    {
+      "path": "/api/auth/session/exchange",
+      "handler": "auth/server/auth-session-exchange.route"
+    },
+    {
+      "path": "/api/auth/session/handoff",
+      "handler": "auth/server/auth-session-handoff.route"
+    },
+    {
+      "path": "/api/auth/registration",
+      "handler": "auth/server/auth-registration-status.route"
+    },
+    {
+      "path": "/api/auth/onboarding",
+      "handler": "auth/server/auth-onboarding.route"
+    },
+    {
+      "path": "/api/auth/onboarding/slug",
+      "handler": "auth/server/auth-onboarding-slug.route"
+    },
+    {
+      "path": "/api/auth/step-up/options",
+      "handler": "auth/server/auth-step-up-options.route"
+    },
+    {
+      "path": "/api/auth/step-up/verify",
+      "handler": "auth/server/auth-step-up-verify.route"
+    },
+    {
+      "path": "/api/auth/totp/disable",
+      "handler": "auth/server/auth-totp-disable.route"
+    },
+    {
+      "path": "/api/auth/totp/enable",
+      "handler": "auth/server/auth-totp-enable.route"
+    },
+    {
+      "path": "/api/auth/totp/setup",
+      "handler": "auth/server/auth-totp-setup.route"
+    },
+    {
+      "path": "/api/auth/verify-email/send",
+      "handler": "auth/server/auth-verify-email-send.route"
+    },
+    {
+      "path": "/api/auth/verify-email/verify",
+      "handler": "auth/server/auth-verify-email-verify.route"
+    },
+    {
+      "path": "/api/cron/dormant-sweep",
+      "handler": "auth/server/cron-dormant-sweep.route"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "app_shell.banners",
+      "component": "auth/ui/session-step-up.banner",
+      "order": 2,
+      "scope": "both"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "dormant_sweep",
+      "export": "auth/server/auth.dormant.job",
+      "order": 2120,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleDormantSweepJob",
+        "name": "dormant-sweep"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "auth.account_locked",
+      "export": "auth/server/auth.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Security",
+        "label": "Account locked",
+        "description": "A user account was locked after too many failed login attempts."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "auth/server/auth.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "auth: sign-ins, passwords, second factors, magic links, session hand-offs; refused callbacks and refreshes, codes and verification mails sent, authenticator setups, blocked sign-ups (phase 55 01.6, 02.6)",
+        "ids": [
+          "auth.login",
+          "auth.login_failed",
+          "auth.account_disabled",
+          "auth.register",
+          "auth.password_changed",
+          "auth.password_reset",
+          "auth.forgot_password",
+          "auth.email_verified",
+          "auth.otp_verified",
+          "auth.dormant_disabled",
+          "auth.second_factor_failed",
+          "auth.second_factor_blocked",
+          "auth.second_factor_unblocked",
+          "auth.recovery_code_used",
+          "auth.magic_link.requested",
+          "auth.magic_link.consumed",
+          "user_session.exchange",
+          "user_session.handoff",
+          "tenant.self_service_created",
+          "auth.callback_refused",
+          "auth.refresh_refused",
+          "auth.otp_sent",
+          "auth.verify_email_sent",
+          "auth.totp_setup_started",
+          "auth.signup_blocked"
+        ],
+        "routes": [
+          "/api/auth/login",
+          "/api/auth/device/login",
+          "/api/auth/register",
+          "/api/auth/change-password",
+          "/api/auth/forgot-password",
+          "/api/auth/reset-password",
+          "/api/auth/verify-email/verify",
+          "/api/auth/otp/verify",
+          "/api/auth/step-up/verify",
+          "/api/auth/totp/disable",
+          "/api/auth/totp/enable",
+          "/api/auth/magic-link",
+          "/api/auth/magic-link/consume",
+          "/api/auth/session/exchange",
+          "/api/auth/session/handoff",
+          "/api/auth/onboarding",
+          "/api/auth/callback",
+          "/api/auth/refresh",
+          "/api/auth/device/refresh",
+          "/api/auth/otp/send",
+          "/api/auth/verify-email/send",
+          "/api/auth/totp/setup"
+        ],
+        "records": [
+          "user_session.login",
+          "auth.account_locked",
+          "security.mfa_enabled",
+          "security.mfa_disabled",
+          "user_session.step_up_cleared"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "auth/server/auth.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "auth: ask a live session for a step-up; sign-up protection: hold a new account until its e-mail is verified, ask a CAPTCHA before an address's next sign-up, hard-block an address's sign-ups where the tenant opted in (phase 55 01.6, 02.6)",
+        "ids": [
+          "auth.session_step_up",
+          "auth.signup_hold",
+          "auth.signup_captcha",
+          "auth.signup_block"
+        ]
+      }
+    }
+  ]
+}

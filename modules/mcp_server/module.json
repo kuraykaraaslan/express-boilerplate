@@ -1,0 +1,251 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "mcp_server",
+  "name": "MCP server",
+  "description": "The platform's MCP (Model Context Protocol) host (docs/phases/57-mcp-server, ADR-0022): one stateless MCP server per contributing module at /api/mcp/<moduleId>, built per request from the tools modules register through mcp_server:tool. Each tool names a permission of its own module and runs only for a credential whose person holds it now (the phase 48 ceiling); tools a caller cannot use are not listed. Authenticated today by an API key of the tenant holding mcp_server.connect (MCP keys are API keys, made on the API keys page); OAuth for hosted connectors follows in 57.3. Every call is rate limited per credential, audited and seen by the AI firewall; tenant text in results is fenced as untrusted.",
+  "version": "0.2.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-plug",
+  "tags": [
+    "ai",
+    "platform",
+    "integration",
+    "security"
+  ],
+  "priority": 101,
+  "dependencies": {
+    "requires": [
+      "api_key",
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "i18n",
+      "ip_subnet",
+      "limiter",
+      "logger",
+      "redis",
+      "tenant",
+      "tenant_session",
+      "tenant_setting"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/mcp_server",
+  "license": "Proprietary",
+  "settingKeys": [
+    "MCP_SERVER_KEYS"
+  ],
+  "menu": [
+    {
+      "id": "mcp-connected-apps",
+      "label": "Connected apps",
+      "href": "/admin/mcp/connected-apps",
+      "icon": "fas fa-plug",
+      "group": "Developer",
+      "workspace": "developer",
+      "order": 12,
+      "scope": "tenant",
+      "permissions": [
+        "mcp_server.connect"
+      ]
+    }
+  ],
+  "permissions": [
+    {
+      "id": "mcp_server.connect",
+      "name": "Connect MCP clients",
+      "group": "MCP",
+      "minRole": "USER",
+      "description": "Lets an API key (or, later, a connected AI app) reach the workspace's MCP servers. Each tool still needs its own module permission, held by the key and by its holder."
+    },
+    {
+      "id": "mcp_server.settings.manage",
+      "name": "Manage MCP settings",
+      "group": "MCP",
+      "minRole": "ADMIN",
+      "description": "Switch MCP access for the workspace on or off and switch single tools off (Settings → MCP)."
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/mcp",
+      "handler": "mcp_server/server/mcp-index.route"
+    },
+    {
+      "path": "/api/mcp/[moduleId]",
+      "handler": "mcp_server/server/mcp-server.route"
+    },
+    {
+      "path": "/api/mcp/oauth/.well-known/oauth-authorization-server",
+      "handler": "mcp_server/server/mcp-oauth-metadata.route"
+    },
+    {
+      "path": "/api/mcp/oauth/.well-known/openid-configuration",
+      "handler": "mcp_server/server/mcp-oauth-metadata.route"
+    },
+    {
+      "path": "/api/mcp/oauth/protected-resource/[moduleId]",
+      "handler": "mcp_server/server/mcp-oauth-protected-resource.route"
+    },
+    {
+      "path": "/api/mcp/oauth/authorize",
+      "handler": "mcp_server/server/mcp-oauth-authorize.route"
+    },
+    {
+      "path": "/api/mcp/oauth/token",
+      "handler": "mcp_server/server/mcp-oauth-token.route"
+    },
+    {
+      "path": "/api/mcp/oauth/revoke",
+      "handler": "mcp_server/server/mcp-oauth-revoke.route"
+    },
+    {
+      "path": "/api/mcp/grants",
+      "handler": "mcp_server/server/mcp-grants.route"
+    },
+    {
+      "path": "/api/mcp/grants/all",
+      "handler": "mcp_server/server/mcp-grants-all.route"
+    },
+    {
+      "path": "/api/mcp/grants/[grantId]",
+      "handler": "mcp_server/server/mcp-grants-grant-id.route"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/mcp",
+      "component": "mcp_server/ui/mcp-settings.page",
+      "permissions": [
+        "mcp_server.settings.manage",
+        "tenant_setting.config.read"
+      ]
+    },
+    {
+      "path": "/admin/mcp/authorize",
+      "component": "mcp_server/ui/mcp-authorize.page",
+      "permissions": [
+        "mcp_server.connect"
+      ]
+    },
+    {
+      "path": "/admin/mcp/connected-apps",
+      "component": "mcp_server/ui/mcp-connected-apps.page",
+      "permissions": [
+        "mcp_server.connect"
+      ]
+    }
+  ],
+  "slots": [
+    {
+      "slot": "tenant_setting.settings.links",
+      "component": "mcp_server/ui/mcp-settings-link.component",
+      "order": 66,
+      "scope": "tenant",
+      "permissions": [
+        "mcp_server.settings.manage",
+        "tenant_setting.config.read"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "mcp_server:tool",
+      "kind": "provider",
+      "pattern": "catalog",
+      "lazyContributors": true,
+      "metadataSchema": {
+        "label": "string",
+        "ids": "string[]"
+      },
+      "contract": "common/server/common.mcp-contracts#McpToolContribution",
+      "description": "The MCP tools a module offers on its own MCP server (/api/mcp/<moduleId>; docs/phases/57-mcp-server D57-4). Default export: one defineMcpTool({ name, title, description, kind, permission, input, output, annotations, idempotency?, run }) or an array of them, imported from common/server/common.mcp-contracts, never from mcp_server or the MCP SDK. `permission` is a permission of the contributing module that an API key may hold (phase 48 D48-3), exactly as its own routes check it; `run` receives the verified caller (tenant, the person it acts as, the credential), validated input and an abort signal, and returns mcpOk(summary, data, foreign?) or mcpFail(code, message). The host owns authentication, the permission check, limits, audit, timeouts, the size cap, the error envelope and the fencing of foreign text. metadata: { label, ids: the tool names it exports (exactly those) }. The boot guard mcp-tools refuses the boot on a malformed tool: name ({verb}_{noun}, an approved verb, at most 48 characters), description (one sentence plus Precondition:, Output:, Errors:, at most 600 characters), annotations, schemas, idempotency for the keyed verbs, a permission that is not the contributor's or not key-grantable, a duplicate name, ids that differ from the export, and (until 57.6) any write tool. Loaded in a system context, process-wide, by the boot guard and on first use; never while a module evaluates (lazyContributors). Contributing is not depending: any module contributes from its own folder and mcp_server imports none of them."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "mcp_server_tools",
+      "export": "mcp_server/server/registry/mcp_server.registry",
+      "order": 112,
+      "scope": "system",
+      "description": "Phase 57.1: the boot guard of the MCP tool registry (mcp_server:tool). Loads every contribution in a system context and refuses the boot on a tool with a malformed name, description, annotations or schema, a keyed verb without an idempotency key, a permission that is not its module's or that no API key may hold, a duplicate name, manifest ids that differ from the export, a write tool before 57.6, or a contribution that cannot be loaded.",
+      "metadata": {
+        "phase": "guard",
+        "fn": "assertMcpToolRegistry",
+        "name": "mcp-tools"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "mcp_server/server/mcp_server.firewall-signals",
+      "scope": "system",
+      "description": "Phase 57: the signal kinds this module emits: audit rows of MCP tool calls (an OAuth grant's call weighed against the grant, systemRowActor) and of its OAuth grants, the token endpoint's refusals (tallied) and touches of the decoy access token (critical). Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "mcp_server: MCP tool calls (ran or refused), OAuth grants (created, revoked, refresh reused, suspended, resumed), token endpoint refusals, decoy token touches (phase 57)",
+        "ids": [
+          "mcp_server.tool.called",
+          "mcp_server.tool.refused",
+          "mcp_server.grant.created",
+          "mcp_server.grant.revoked",
+          "mcp_server.grant.refresh_reused",
+          "mcp_server.grant.suspended",
+          "mcp_server.grant.resumed",
+          "mcp_server.token.refused",
+          "mcp_server.decoy_token_touched"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "mcp_server/server/mcp_server.firewall-actions",
+      "scope": "system",
+      "description": "Phase 57.3: suspend one OAuth grant (an AI app's connection of one person) for at most 7 days, undo resumes it; lane machine-mcp, per grant (FWA-6). Revoking for good stays a person's act on Connected apps. Observe on install; the responder owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "mcp_server: suspend an MCP OAuth grant (phase 57.3)",
+        "ids": [
+          "mcp_server.suspend_grant"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:honeytoken",
+      "key": "firewall_honeytokens",
+      "export": "mcp_server/server/mcp_server.firewall-honeytokens",
+      "scope": "system",
+      "description": "Phase 57.3: the decoy MCP access token of each workspace (derived from the server's decoy key, never stored or issued; refused like any unknown token); any touch is a critical signal.",
+      "metadata": {
+        "label": "mcp_server: the decoy MCP access token (phase 57.3)",
+        "ids": [
+          "mcp_server.decoy_token"
+        ]
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "mcp_server",
+      "export": "mcp_server/server/mcp_server.tenant-purge",
+      "order": 74,
+      "scope": "both",
+      "description": "A purged tenant keeps no MCP OAuth grant (its tokens expire in Redis within ten minutes and answer nothing without the grant).",
+      "metadata": {
+        "label": "Delete the purged tenant's MCP OAuth grants"
+      }
+    },
+    {
+      "point": "privacy:erasure",
+      "key": "mcp_server",
+      "export": "mcp_server/server/mcp_server.privacy-erasure",
+      "order": 96,
+      "scope": "tenant",
+      "metadata": {
+        "label": "MCP connected apps"
+      }
+    }
+  ]
+}

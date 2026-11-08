@@ -1,0 +1,5 @@
+-- DOWN for 006_tenant_domain_base_domains.sql: the managed base domains.
+--
+-- NEVER auto-run; manual rollback only (the migration runner ignores `.sql.down`). Without the table the platform reads
+-- TENANT_WILDCARD_DOMAIN again (one base domain); tenants under any other base domain stop resolving as platform subdomains.
+DROP TABLE IF EXISTS "tenant_domain_base_domains";

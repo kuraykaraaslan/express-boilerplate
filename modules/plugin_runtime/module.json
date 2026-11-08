@@ -1,0 +1,135 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "plugin_runtime",
+  "name": "Plugin Runtime",
+  "description": "Sandboxed execution runtime for untrusted community plugins (V8 isolates, brokered capabilities, no direct DB access).",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-microchip",
+  "tags": [
+    "platform",
+    "marketplace",
+    "security"
+  ],
+  "priority": 7,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "common",
+      "db",
+      "env",
+      "process_host",
+      "storage",
+      "tenant_setting",
+      "webhook"
+    ],
+    "optional": [
+      "e_signature",
+      "observability"
+    ]
+  },
+  "extensionPoints": [
+    {
+      "id": "plugin_runtime:xml_signer",
+      "kind": "provider",
+      "pattern": "first",
+      "description": "Signs XML with a tenant's seal for a sandboxed plugin (broker capability crypto.signXml). Default export: an object with signXml(tenantId, xml, { keyKey, certKey, xpath?, prefix? }) returning { xml, signed }. The first contribution enabled for the tenant is used; with none (the e_signature module absent or switched off), the XML is returned unsigned, as when no seal is configured. A point rather than an import so that the plugin runtime (Core) never imports e_signature (Pro): docs/adr/0008."
+    }
+  ],
+  "sidecars": [
+    {
+      "id": "plugin-host",
+      "entry": "server/index.ts",
+      "env": {
+        "NODE_OPTIONS": "--no-node-snapshot"
+      },
+      "autostart": false
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/plugin_runtime",
+  "license": "Proprietary",
+  "permissions": [
+    {
+      "id": "plugin_runtime.settings.read",
+      "name": "View the plugin sandbox limits",
+      "description": "Root tenant only. The installation's caps on what a sandboxed plugin may ask the broker for.",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "plugin_runtime.settings.update",
+      "name": "Change the plugin sandbox limits",
+      "description": "Root tenant only. Each limit can only be lowered below the built-in ceiling.",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/plugins/settings",
+      "placement": "root",
+      "component": "plugin_runtime/ui/plugin-runtime-settings.page",
+      "permissions": ["plugin_runtime.settings.read", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/admin/plugins/[listingId]",
+      "component": "plugin_runtime/ui/plugin-host.page",
+      "permissions": ["marketplace.plugins.invoke"]
+    }
+  ],
+  "extensions": [
+    {
+      "point": "dashboard:listing_activity",
+      "key": "plugin_runtime",
+      "export": "plugin_runtime/server/dashboard.listing-activity",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Plugin install state"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "plugin_runtime/server/plugin_runtime.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "plugin_runtime: plugin runs stopped at a sandbox bound (phase 55 01.6)",
+        "ids": [
+          "plugin.sandbox_violation"
+        ]
+      }
+    }
+  ],
+  "slots": [
+    {
+      "slot": "tenant_setting.settings.links",
+      "component": "plugin_runtime/ui/plugin-runtime-settings-link.component",
+      "order": 63,
+      "scope": "tenant",
+      "permissions": ["plugin_runtime.settings.read", "tenant_setting.config.read"]
+    },
+    {
+      "slot": "dashboard.plugin_frame",
+      "component": "plugin_runtime/ui/plugin-frame-slot.component",
+      "order": 10,
+      "scope": "tenant"
+    }
+  ],
+  "appRoutes": [
+    {
+      "path": "internal/api/plugin-broker/route",
+      "export": "plugin_runtime/server/plugin-broker.app-route",
+      "names": [
+        "POST"
+      ],
+      "config": {
+        "dynamic": "force-dynamic"
+      }
+    }
+  ]
+}

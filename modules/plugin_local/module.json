@@ -1,0 +1,211 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "plugin_local",
+  "name": "Local Plugins",
+  "description": "The Core source of sandboxed plugins (OD-139): the platform operator uploads a plugin bundle, approves its sandbox grant and installs it for tenants, without the marketplace. Installed plugins contribute to external: true points (e.g. payment:gateway) through external:contributions.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "tenant",
+  "icon": "fas fa-puzzle-piece",
+  "tags": [
+    "platform",
+    "plugins",
+    "security"
+  ],
+  "priority": 8,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "limiter",
+      "module_lifecycle",
+      "plugin_runtime",
+      "storage",
+      "tenant",
+      "tenant_setting",
+      "webhook"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/plugin_local",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "plugin-local-operator",
+      "label": "Uploaded plugins",
+      "href": "/admin/platform/local-plugins",
+      "placement": "root",
+      "icon": "fas fa-puzzle-piece",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 40,
+      "scope": "system",
+      "permissions": [
+        "plugin_local.plugins.manage"
+      ]
+    },
+    {
+      "id": "plugin-local-tenant",
+      "label": "Uploaded plugins",
+      "href": "/admin/local-plugins",
+      "icon": "fas fa-puzzle-piece",
+      "group": "Configuration",
+      "workspace": "system",
+      "scope": "tenant",
+      "order": 5,
+      "permissions": [
+        "plugin_local.config.read"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/local-plugins",
+      "placement": "root",
+      "component": "plugin_local/ui/plugin-local-operator.page"
+    },
+    {
+      "path": "/admin/local-plugins",
+      "component": "plugin_local/ui/plugin-local-tenant.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/plugin_local/plugins",
+      "placement": "root",
+      "handler": "plugin_local/server/plugins.route"
+    },
+    {
+      "path": "/api/plugin_local/plugins/[pluginId]",
+      "placement": "root",
+      "handler": "plugin_local/server/plugins-item.route"
+    },
+    {
+      "path": "/api/plugin_local/plugins/[pluginId]/installs",
+      "placement": "root",
+      "handler": "plugin_local/server/plugin-installs.route"
+    },
+    {
+      "path": "/api/plugin_local/versions/[versionId]",
+      "placement": "root",
+      "handler": "plugin_local/server/versions-item.route"
+    },
+    {
+      "path": "/api/plugin_local/trust",
+      "placement": "root",
+      "handler": "plugin_local/server/trust.route"
+    },
+    {
+      "path": "/api/plugin_local/installed",
+      "handler": "plugin_local/server/installed.route"
+    },
+    {
+      "path": "/api/plugin_local/installed/[pluginId]/config",
+      "handler": "plugin_local/server/installed-config.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "plugin_local.plugins.manage",
+      "name": "Upload, approve, yank and install local plugins (platform operator)",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "plugin_local.config.read",
+      "name": "View the settings of installed local plugins",
+      "group": "Plugins",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "plugin_local.config.write",
+      "name": "Change the settings and secrets of installed local plugins",
+      "group": "Plugins",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "external:contributions",
+      "export": "plugin_local/server/plugin_local.source",
+      "metadata": {
+        "label": "Local plugins"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "plugin.installed",
+      "export": "plugin_local/server/plugin_local.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Marketplace",
+        "label": "Plugin installed",
+        "description": "A community marketplace plugin was installed for this tenant."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "plugin.uninstalled",
+      "export": "plugin_local/server/plugin_local.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Marketplace",
+        "label": "Plugin uninstalled",
+        "description": "A community marketplace plugin was uninstalled for this tenant."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "plugin.activated",
+      "export": "plugin_local/server/plugin_local.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Marketplace",
+        "label": "Plugin activated",
+        "description": "An installed community marketplace plugin was activated."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "plugin.deactivated",
+      "export": "plugin_local/server/plugin_local.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Marketplace",
+        "label": "Plugin deactivated",
+        "description": "An installed community marketplace plugin was deactivated."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "plugin_local/server/plugin_local.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: local plugin versions uploaded, approved and yanked, plugins disabled and enabled for the platform, the trust policy, installs, activation, removal and configuration in a workspace), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "plugin_local: local plugin versions, the trust policy, installs and configuration (phase 55 coverage)",
+        "ids": [
+          "plugin_local.version.upload",
+          "plugin_local.version.approve",
+          "plugin_local.version.yank",
+          "plugin_local.plugin.disable",
+          "plugin_local.plugin.enable",
+          "plugin_local.trust.update",
+          "plugin_local.install",
+          "plugin_local.activate",
+          "plugin_local.deactivate",
+          "plugin_local.uninstall",
+          "plugin_local.configure"
+        ]
+      }
+    }
+  ],
+  "settingKeys": [
+    "pluginLocalTrustedKeys",
+    "pluginLocalRequireSigned",
+    "pluginLocalMaxLimits"
+  ]
+}

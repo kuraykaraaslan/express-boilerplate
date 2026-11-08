@@ -1,0 +1,117 @@
+{
+  "name": "recurrence",
+  "description": "The same alert group failed a week ago and was a database failover",
+  "now": "2026-10-18T12:10:00Z",
+  "sources": {
+    "incident": {
+      "incidentId": "33333333-3333-4333-8333-333333333333",
+      "title": "Checkout API is down",
+      "severity": "MAJOR",
+      "status": "OPEN",
+      "startedAt": "2026-10-18T12:00:00Z",
+      "reason": null,
+      "monitorId": null,
+      "alertGroupKey": "g1"
+    },
+    "alerts": [
+      {
+        "alertId": "44444444-4444-4444-8444-444444444444",
+        "title": "HighErrorRate",
+        "severity": "CRITICAL",
+        "status": "FIRING",
+        "count": 4,
+        "startsAt": "2026-10-18T12:00:30Z",
+        "labels": {
+          "service": "checkout"
+        },
+        "annotations": {
+          "summary": "5xx above 5%"
+        }
+      }
+    ],
+    "changes": [],
+    "telemetry": {
+      "logs": [
+        {
+          "timeNs": "1792324805000000000",
+          "severity": "ERROR",
+          "body": "connection refused to payments:5432",
+          "attributes": {},
+          "resource": {
+            "service.name": "checkout"
+          },
+          "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "traces": [
+        {
+          "traceId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "rootService": "checkout",
+          "rootName": "POST /pay",
+          "startMs": 1792324802000,
+          "durationMs": 3000,
+          "errorCount": 2
+        }
+      ],
+      "metrics": [
+        {
+          "metric": "http_errors_total",
+          "labels": {
+            "service": "checkout"
+          },
+          "points": [
+            [
+              1792324800000,
+              1
+            ],
+            [
+              1792324860000,
+              90
+            ]
+          ]
+        }
+      ]
+    },
+    "slos": [
+      {
+        "sloId": "66666666-6666-4666-8666-666666666666",
+        "name": "checkout availability",
+        "state": "LOW",
+        "currentBurn": 3.2,
+        "remainingFraction": 0.12
+      }
+    ],
+    "similar": [
+      {
+        "incidentId": "55555555-5555-4555-8555-555555555555",
+        "title": "Checkout API is down",
+        "severity": "MAJOR",
+        "startedAt": "2026-10-11T10:00:00Z",
+        "durationMinutes": 42,
+        "reason": "payments db failover",
+        "via": "same_group"
+      }
+    ]
+  },
+  "expect": {
+    "bundleKinds": [
+      "incident",
+      "alert",
+      "log",
+      "trace",
+      "metric",
+      "slo",
+      "similar_incident"
+    ],
+    "unavailable": [],
+    "findings": [
+      {
+        "title": "earlier incident",
+        "citesKinds": [
+          "similar_incident"
+        ]
+      }
+    ],
+    "minSummary": 1
+  }
+}

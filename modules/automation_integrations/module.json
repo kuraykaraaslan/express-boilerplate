@@ -1,0 +1,24 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "automation_integrations",
+  "name": "Automation integrations",
+  "description": "The types an automation integration is written against: nodes, choice lists and flow templates (`NodeContribution`, `NodeContext`, `ChoicesContribution`, `FlowTemplate` and what they reference). A module that adds to the automation engine keeps that code in its own folder and imports these types from here with `import type`, so it does not depend on the engine itself. Generated from the engine by scripts/gen-automation-contract.mjs; carries no code.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-puzzle-piece",
+  "tags": [
+    "automation",
+    "contract",
+    "types",
+    "sdk"
+  ],
+  "priority": 44,
+  "dependencies": {
+    "requires": []
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan-labs/next-boilerplate/tree/main/modules/automation_integrations",
+  "license": "Proprietary"
+}

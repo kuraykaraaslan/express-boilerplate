@@ -1,0 +1,44 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "process_host",
+  "name": "Process Host",
+  "description": "Leaf helper every non-Next sidecar process starts through: /healthz, /metrics, a Redis heartbeat into the process registry (proc:nodes:<kind>) and SIGTERM drain; the per-kind supervisor that forks and scales child processes by load within the cgroup budget (proc:sup:<kind>:<nodeId>); and the Redis leader lock for single-owner work (proc:leader:<kind>:<job>). Zero tables, no next/* imports; observability reads from it, never the other way round.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-server",
+  "tags": [
+    "infrastructure",
+    "core",
+    "sidecar",
+    "health"
+  ],
+  "priority": 3,
+  "dependencies": {
+    "requires": [
+      "env",
+      "logger",
+      "redis"
+    ]
+  },
+  "exports": {
+    "startProcessHost": "process-host.ts",
+    "processRegistry": "process-registry.ts",
+    "startSupervisor": "supervisor/supervisor.service.ts",
+    "runAsChild": "supervisor/supervisor.child.ts",
+    "supervisorTypes": "supervisor/supervisor.types.ts",
+    "withLeader": "leader-lock.ts",
+    "runProcessKind": "supervisor/supervisor.process-kind.ts",
+    "startLocalSupervisor": "supervisor/supervisor.local.ts",
+    "runLocalChild": "supervisor/supervisor.local-child.ts",
+    "createDrainSequence": "supervisor/supervisor.drain.ts",
+    "spawnChildren": "supervisor/supervisor.cluster.ts",
+    "startSupervisorRelay": "supervisor/supervisor.relay.ts",
+    "localSupervisorPorts": "supervisor/supervisor.local-ports.ts"
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/process_host",
+  "license": "Proprietary"
+}

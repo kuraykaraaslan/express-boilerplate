@@ -1,0 +1,12 @@
+-- kind: expand; reversible: true
+-- webhook 071: the claim a delivery row's queued job belongs to (docs/phases/41-ui-fixes/12-webhook.md 1.5).
+--
+--   webhook_deliveries.claimId  uuid NULL. A fresh id written on every enqueue and every redeliver / replay claim, and
+--                               carried in the job's data (`claimId`; never a secret). The worker sends only when the
+--                               job's id matches the row's, so a stale job of an earlier claim (a retry or a deferred job
+--                               still in the queue) does nothing once the row is PENDING again under a new claim, and a
+--                               failed hand-off fails only the row of its own claim.
+--   No row is updated: an older row keeps NULL and matches only a job of an older build, which carries no id either.
+--   Idempotent; the column matches the entity, so `synchronize` and this file agree. DOWN: the .down file next to this one.
+--
+ALTER TABLE "webhook_deliveries" ADD COLUMN IF NOT EXISTS "claimId" uuid;

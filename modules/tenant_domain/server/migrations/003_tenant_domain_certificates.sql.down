@@ -1,0 +1,6 @@
+-- DOWN for 003_tenant_domain_certificates.sql: the platform-held certificates and their keys.
+--
+-- NEVER auto-run; manual rollback only. The migration runner loads `*.sql` files only, so this `.sql.down` file is ignored by
+-- `db:deploy`, the release manifest and the schema version. Dropping the table deletes every held certificate and private key: the hosts
+-- fall back to whatever the reverse proxy holds itself, and the next sweep of a release that has the table orders them again.
+DROP TABLE IF EXISTS "tenant_domain_certificates";

@@ -1,0 +1,22 @@
+{
+  "tour.drawer.noneHere": "This page has no tour yet.",
+  "tour.drawer.onThisPage": "On this page",
+  "tour.drawer.others": "Other tours",
+  "tour.drawer.restart": "Start again",
+  "tour.drawer.start": "Start",
+  "tour.drawer.steps": "{{count}} steps",
+  "tour.drawer.title": "Guided tours",
+  "tour.offer.later": "Not now",
+  "tour.offer.start": "Start the tour",
+  "tour.offer.text": "{{title}} · {{count}} steps",
+  "tour.offer.title": "Take a quick tour?",
+  "tour.runner.close": "Close the tour",
+  "tour.runner.done": "Done",
+  "tour.runner.next": "Next",
+  "tour.runner.previous": "Previous",
+  "tour.runner.progress": "{current} of {total}",
+  "tour.status.dismissed": "Skipped",
+  "tour.status.done": "Done",
+  "tour.status.new": "New",
+  "tour.topbar.button": "Guided tours"
+}

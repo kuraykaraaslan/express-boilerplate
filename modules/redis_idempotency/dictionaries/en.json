@@ -1,0 +1,17 @@
+{
+  "redis_idempotency.permission.redis_idempotency_settings_read.description": "Root tenant only. How long the installation keeps Idempotency-Key claims.",
+  "redis_idempotency.permission.redis_idempotency_settings_read.name": "View how long retried requests are remembered",
+  "redis_idempotency.permission.redis_idempotency_settings_update.description": "Root tenant only. Each time can only be made longer than the built-in one.",
+  "redis_idempotency.permission.redis_idempotency_settings_update.name": "Change how long retried requests are remembered",
+  "redis_idempotency.permissionGroup.platform": "Platform",
+  "redis_idempotency.settings.group.retried_requests": "Retried requests",
+  "redis_idempotency.settings.idempotencyPendingMinutes.description": "How long a request still running holds its Idempotency-Key, so a retry is refused instead of running twice: 10 (the built-in time) to 60 minutes. A request whose server stopped also holds its key this long.",
+  "redis_idempotency.settings.idempotencyPendingMinutes.label": "Hold a running request (minutes)",
+  "redis_idempotency.settings.idempotencyPendingMinutes.placeholder": "10",
+  "redis_idempotency.settings.idempotencyReplayHours.description": "How long a request sent with an Idempotency-Key is remembered once it succeeded: a retry with the same key gets the first answer instead of running again. 24 (the built-in time) to 168 hours; longer suits apps that send queued changes after days offline.",
+  "redis_idempotency.settings.idempotencyReplayHours.label": "Remember a finished request (hours)",
+  "redis_idempotency.settings.idempotencyReplayHours.placeholder": "24",
+  "redis_idempotency.settings.settingsCrumb": "Settings",
+  "redis_idempotency.settings.subtitle": "How long the whole installation remembers requests sent with an Idempotency-Key; each time can only be made longer",
+  "redis_idempotency.settings.title": "Retried Requests"
+}

@@ -1,0 +1,412 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant",
+  "name": "Tenant",
+  "description": "Tenant CRUD, lifecycle (active/suspended/deleted), soft-deletion service, and maintenance mode (planned downtime windows: scheduled/gradual/read-only, branded 503 page, status-page bridge). Foundation of multi-tenancy.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-building",
+  "tags": [
+    "tenant",
+    "core",
+    "maintenance",
+    "downtime"
+  ],
+  "priority": 20,
+  "dependencies": {
+    "requires": [
+      "api_key",
+      "common",
+      "db",
+      "env",
+      "feature_gate",
+      "ip_subnet",
+      "logger",
+      "notification",
+      "session_end",
+      "storage",
+      "tenant_setting"
+    ]
+  },
+  "settings": {
+    "keys": "TENANT_KEYS"
+  },
+  "settingKeys": [
+    "TENANT_KEYS"
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "tenant_purge",
+      "export": "tenant/server/tenant.deletion.job",
+      "order": 2170,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleTenantPurgeJob",
+        "name": "tenant-purge"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_maintenance",
+      "export": "tenant/server/maintenance.scheduler.job",
+      "order": 2180,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleMaintenanceTickJob",
+        "name": "tenant-maintenance"
+      }
+    },
+    {
+      "point": "feature_gate:deployment_usage",
+      "key": "tenant",
+      "export": "tenant/server/tenant.deployment-usage",
+      "order": 50,
+      "scope": "system",
+      "metadata": {
+        "label": "Customer tenants of this deployment (the license tenants cap)"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant.updated",
+      "export": "tenant/server/tenant.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant",
+        "label": "Tenant updated",
+        "description": "The tenant profile or settings changed."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant.created",
+      "export": "tenant/server/tenant.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Tenants",
+        "label": "Tenant created",
+        "description": "A new tenant was provisioned."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant.deleted",
+      "export": "tenant/server/tenant.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Tenants",
+        "label": "Tenant deleted",
+        "description": "A tenant was deleted."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant.suspended",
+      "export": "tenant/server/tenant.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Tenants",
+        "label": "Tenant suspended",
+        "description": "A tenant was suspended."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant/server/tenant.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: a tenant created, updated, suspended, deleted or discarded and its country changed, its maintenance windows, its legal hold, its data keys destroyed at purge), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant: tenants created, changed, suspended and deleted, maintenance windows, legal holds, data keys destroyed (phase 55 coverage)",
+        "ids": [
+          "tenant.created",
+          "tenant.discarded",
+          "tenant.updated",
+          "tenant.country.changed",
+          "tenant.suspended",
+          "tenant.deleted",
+          "tenant.maintenance.scheduled",
+          "tenant.maintenance.updated",
+          "tenant.maintenance.started",
+          "tenant.maintenance.cancelled",
+          "tenant.maintenance.ended",
+          "tenant.legal_hold.set",
+          "tenant.legal_hold.cleared",
+          "tenant.legal_hold.expired",
+          "tenant.keys_destroyed",
+          "tenant.keys_destroy_failed"
+        ]
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant.tenants.create",
+      "name": "Create tenant",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.tenants.read",
+      "name": "Read tenant",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.tenants.update",
+      "name": "Update tenant",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.tenants.delete",
+      "name": "Delete tenant",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.subscriptions.manage",
+      "name": "Manage tenant subscription",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.deletion.request",
+      "name": "Request tenant deletion",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant.maintenance.manage",
+      "name": "Manage maintenance windows",
+      "description": "Schedule, force-start and force-end maintenance windows. High impact: an active window serves 503 to everyone outside its allowRoles.",
+      "group": "Tenant",
+      "minRole": "ADMIN"
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "platform-tenants",
+      "permissions": ["tenant.tenants.read"],
+      "label": "Tenants",
+      "href": "/admin/tenants",
+      "placement": "root",
+      "icon": "fas fa-building",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 10,
+      "scope": "system"
+    },
+    {
+      "id": "tenant-maintenance",
+      "label": "Maintenance",
+      "href": "/admin/maintenance",
+      "icon": "fas fa-triangle-exclamation",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 17,
+      "permissions": [
+        "tenant.maintenance.manage"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/tenants/[targetTenantId]",
+      "placement": "root",
+      "component": "tenant/ui/tenants-target-tenant-id.page"
+    },
+    {
+      "path": "/admin/tenants",
+      "placement": "root",
+      "component": "tenant/ui/tenants.page"
+    },
+    {
+      "path": "/admin/maintenance/settings",
+      "component": "tenant/ui/maintenance-settings.page",
+      "permissions": ["tenant.maintenance.manage", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/admin/maintenance",
+      "component": "tenant/ui/maintenance.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/tenants/[targetTenantId]/deletion-request",
+      "handler": "tenant/server/tenants-target-tenant-id-deletion-request.route"
+    },
+    {
+      "path": "/api/tenants/[targetTenantId]",
+      "placement": "root",
+      "handler": "tenant/server/tenants-target-tenant-id.route"
+    },
+    {
+      "path": "/api/tenants/create",
+      "placement": "root",
+      "handler": "tenant/server/tenants-create.route"
+    },
+    {
+      "path": "/api/tenants",
+      "placement": "root",
+      "handler": "tenant/server/tenants.route"
+    },
+    {
+      "path": "/api/tenant/profile",
+      "handler": "tenant/server/tenant-profile.route"
+    },
+    {
+      "path": "/api/cron/purge-expired-tenants",
+      "handler": "tenant/server/cron-purge-expired-tenants.route"
+    },
+    {
+      "path": "/api/cron/maintenance-tick",
+      "handler": "tenant/server/cron-maintenance-tick.route"
+    },
+    {
+      "path": "/api/maintenance-windows",
+      "handler": "tenant/server/maintenance-windows.route"
+    },
+    {
+      "path": "/api/maintenance-windows/preview",
+      "handler": "tenant/server/maintenance-preview.route"
+    },
+    {
+      "path": "/api/maintenance-windows/active",
+      "handler": "tenant/server/maintenance-windows-active.route"
+    },
+    {
+      "path": "/api/maintenance-windows/[windowId]",
+      "handler": "tenant/server/maintenance-windows-window-id.route"
+    },
+    {
+      "path": "/api/maintenance-windows/[windowId]/start",
+      "handler": "tenant/server/maintenance-windows-window-id-start.route"
+    },
+    {
+      "path": "/api/maintenance-windows/[windowId]/end",
+      "handler": "tenant/server/maintenance-windows-window-id-end.route"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "tenant:detail_drawer",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "tenant.detail.drawers",
+      "description": "A header button of a tenant's page under Tenants (/admin/tenants/[targetTenantId], root tenant only) that opens another module's panel in a right-side drawer, the Devices page's pattern (no tab row, owner 2026-10-27): \"Setting levels\" (tenant_setting, docs/phases/53-setting-levels: where this tenant gets each module's accounts and settings from, set for this tenant alone). Implemented through the CLIENT slot 'tenant.detail.drawers': a contributor declares slots[] = { slot: 'tenant.detail.drawers', component, order, scope, permissions, props: { drawerId, label, labelKey } }; the component default-exports a function of { tenantId, targetTenantId, open, onCount, onClose } (common/ui/slot-drawers.component). It stays mounted while its drawer is shut and draws its panel only while open. The page shows a button only when its module is on and the viewer holds its permissions, isolates each in an error boundary, and opens the drawer whose drawerId is in `?panel=` on arrival. tenant imports none of the contributors (EXT-14)."
+    },
+    {
+      "id": "tenant:maintenance_drawer",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "tenant.maintenance.drawers",
+      "description": "A header button of the Maintenance page (/admin/maintenance) that opens another module's panel in a right-side drawer, the Devices page's pattern (no tab row, owner 2026-10-27): \"Announcements\" (announcement, docs/phases/47-announcements: compose, schedule, preview, test send and withdraw announcements, and the window's own maintenance notices). Implemented through the CLIENT slot 'tenant.maintenance.drawers': a contributor declares slots[] = { slot: 'tenant.maintenance.drawers', component, order, scope, permissions, props: { drawerId, label, labelKey } }; the component default-exports a function of { tenantId, open, onCount, onClose } (common/ui/slot-drawers.component). It stays mounted while its drawer is shut and draws its panel only while open. The page shows a button only when its module is on and the viewer holds its permissions, isolates each in an error boundary, and opens the drawer whose drawerId is in `?panel=` on arrival. tenant imports none of the contributors (EXT-14)."
+    },
+    {
+      "id": "tenant:detail_panel",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "tenant.detail.panels",
+      "description": "A panel on the platform operator's tenant page (/admin/tenants/[targetTenantId], root tenant only), in the side column under the actions: what another module knows about that tenant (tenant_subscription: its plan, with the operator's plan change). Implemented through the CLIENT slot 'tenant.detail.panels': a contributor declares slots[] = { slot: 'tenant.detail.panels', component, order, scope }. Props received: { tenantId, targetTenantId } — tenantId is the root tenant the operator is on (build URLs with tenantPath(tenantId, ...) to the contributor's own GLOBAL operator routes), targetTenantId the tenant shown. A contribution shows its own load error rather than an empty state. The page imports none of them (EXT-14): a core module never calls a higher edition's route, the higher edition contributes here (41-ui-fixes/09 decision d)."
+    },
+    {
+      "id": "tenant:deletion_guard",
+      "kind": "hook",
+      "pattern": "guard",
+      "gate": "data",
+      "description": "(tenantId) => Promise<void>. Called BEFORE a tenant is deleted or a deletion is requested; a guard with an objection THROWS (409 recommended) and the deletion stops. Unlike almost every other point here it fails CLOSED: a guard that cannot be loaded, or is malformed, refuses the deletion with 503 — 'I cannot answer' is NOT 'no objection', because a silently skipped guard permits a write that cannot be undone. Guards run in order and the first objection stops the rest. Asked again right before the purge (the sweep and the fleet's purge-now): an objection that appeared during the grace period, or a guard that cannot answer, leaves the tenant PENDING_DELETION (the sweep asks again on its next run; purge-now answers BLOCKED, or fails on a 503). Zero contributions = no constraint. Declared so a tenancy primitive never imports the domains built on top of it: 'documents under legal hold' / 'payments still in flight' are the same question from other modules, each answered through this seam instead of a direct call into `tenant`. Which modules object, and which deliberately do not (debts, the tenant's own customer obligations, statutory retention): docs/phases/37-extensions/11-guards-that-object.md.",
+      "contract": "tenant/server/tenant.deletion-guard#TenantDeletionGuard"
+    },
+    {
+      "id": "tenant:default_plan",
+      "kind": "provider",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Gives a newly created tenant its default plan. Default export: { assignDefaultPlan(tenantId) => Promise<void> } (TenantDefaultPlanProvider in server/tenant.extension-points.ts). Called while a tenant's defaults are seeded, unless the caller asked to skip plan or subscription seeding; an error is recorded in the seeding report and never fails the creation. With no contribution, new tenants have no plan."
+    },
+    {
+      "id": "tenant:default_modules",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "Installs the platform's default modules into a newly created tenant (docs/phases/25-marketplace/03-module-governance/01). Default export: { applyDefaultModules(tenantId) => Promise<{ installed: string[], skipped: { moduleId, error }[] }> } (TenantDefaultModulesProvider in server/tenant.extension-points.ts). Called while a tenant's defaults are seeded, AFTER the default plan (so a plan check sees the new plan), unless the caller asked to skip modules; every skipped module and any thrown error is recorded in the seeding report and never fails the creation. With no contribution, new tenants get only the code-level defaults."
+    },
+    {
+      "id": "tenant:seed_step",
+      "kind": "provider",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "A step of a new tenant's seeding that belongs to another module, such as tenant_domain minting the tenant's <slug>.<wildcard> subdomain so it routes at once. Default export: { seed(tenantId) => Promise<void> } (TenantSeedStep in server/tenant.extension-points.ts). Run one after another in order, after the default plan, the default modules and the default settings. Platform gate: a brand-new tenant has no module activation seeded yet, so a behaviour gate would skip every step; only a module the platform banned, retired or does not have is left out. Best-effort: a step that throws is recorded in the seeding report as '<module>: <message>' and never fails the creation."
+    },
+    {
+      "id": "tenant:slug_changed",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Told that a tenant's slug changed, for a module that keeps something named after it (tenant_domain renames the tenant's free <slug>.<wildcard> subdomain, so a rename keeps exactly one). Default export: TenantSlugChangeListener { slugChanged(event: { tenantId, previousSlug, slug }) => Promise<void> } (server/tenant.extension-points.ts). Called after the update committed, one listener after another. Best-effort: a listener that throws is logged and the rename stands, so a listener keeps its own periodic reconcile as the safety net. Platform gate: the subdomain is the platform's routing of the tenant, not a feature the tenant switched on.",
+      "contract": "tenant/server/tenant.extension-points#TenantSlugChangeListener"
+    },
+    {
+      "id": "tenant:suspension",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Told that a tenant entered or left SUSPENDED, for a module that gives the suspension its immediate effect beyond the request path (docs/phases/02-fleet/05 section 7 stage 7): tenant_session revokes the tenant's sessions, websocket_session fences the tenant's websocket handshakes and drops its live sockets. Default export: TenantSuspensionListener { suspensionChanged(event: { tenantId, suspended: boolean }) => Promise<void> } (server/tenant.extension-points.ts). Called after the status update committed, one listener after another: suspended=true when the status moved into SUSPENDED from any other status, false when it moved out of it. Best-effort: a listener that throws is logged and the status change stands (the request path refuses a suspended tenant on its own). Platform gate: ending a suspended tenant's sessions and sockets is a security action, owed whatever the tenant switched on.",
+      "contract": "tenant/server/tenant.extension-points#TenantSuspensionListener"
+    },
+    {
+      "id": "tenant:onboarding_check",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "One item of a tenant's onboarding checklist that another module owns (tenant_domain: dns_configured, a verified custom domain). The contribution's `key` is the step id. Default export: { done(tenantId) => Promise<boolean> } (TenantOnboardingCheck in server/tenant.extension-points.ts). Behaviour gate: a module that is off for the tenant has no step in its checklist. A check that fails or times out is listed as not done."
+    },
+    {
+      "id": "tenant:purge_step",
+      "kind": "provider",
+      "pattern": "fanout",
+      "gate": "data",
+      "description": "A teardown step of the tenant purge cascade that belongs to another module, such as cancelling the tenant's subscription with the payment provider. Default export: { purge(tenantId) => Promise<void> } (TenantPurgeStep). Best-effort: a step that throws is logged under its module's id and the cascade continues."
+    },
+    {
+      "id": "tenant:purge_retention",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "data",
+      "onFailure": "fail-closed",
+      "timeoutMs": 30000,
+      "description": "The stored files a module must still KEEP when the tenant is purged, because a law or a hold requires them for longer (issued invoices: Turkish Commercial Code art. 82, ten years; documents with an unexpired retention or under legal hold). Default export: (tenantId) => Promise<Array<{ storageKey, retainUntil: Date, reason } | { storageKeyPrefix, retainUntil: Date, reason }>> (TenantPurgeRetention in server/tenant.purge-retention.ts); the prefix form keeps every object under one key prefix without listing millions of keys. Answer only what is still retained (retainUntil in the future); an empty list keeps nothing. The purge's file step deletes every object of the tenant except the retained ones, which are marked on their uploaded_files rows and deleted by the daily sweep once retainUntil has passed; the sweep asks again first, so a hold that still stands keeps the file. Data gate (EXT-1): retention is a duty, so a module switched off for the tenant still answers. Fails CLOSED like tenant:deletion_guard: a contributor that does not load, throws, times out or answers something else defers the file step (no file of the tenant is deleted on that run and the sweep asks again on the next); the rest of the purge goes ahead. Who contributes and why: docs/phases/37-extensions/11-guards-that-object.md.",
+      "contract": "tenant/server/tenant.purge-retention#TenantPurgeRetention"
+    },
+    {
+      "id": "tenant:subscription_health",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "The subscription health of tenants for the platform console's tenant list. Default export: { healthOf(tenantIds) => Promise<Record<tenantId, 'trialing' | 'active' | 'grace_period' | 'past_due' | 'expired'>> } (SubscriptionHealthProvider); a tenant with no subscription is absent from the answer. The list adds suspended and pending-deletion itself; with no contribution every other tenant reads no_subscription."
+    },
+    {
+      "id": "tenant:lifecycle_sink",
+      "kind": "provider",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Told what happened to a tenant, for a module that must report it elsewhere (the fleet agent's signed lifecycle receipts, docs/phases/02-fleet/05 section 7). Default export: { record(event: { tenantId, type: 'PROVISIONED' | 'SUSPENDED' | 'RESUMED' | 'DELETION_REQUESTED' | 'RESTORED' | 'PURGED' | 'LEGAL_HOLD_SET' | 'LEGAL_HOLD_CLEARED', occurredAt: Date, payload?: { commandJti?, counts?, hashes? } }) => Promise<void> } (TenantLifecycleSink in server/tenant.extension-points.ts). Called after the change is committed: a tenant was created, its status moved from ACTIVE to SUSPENDED or back, a deletion grace period started, a deletion was cancelled within it, the tenant was purged, or a legal hold was placed, extended, lifted or ran out (payload: G only, the hold's end in unix seconds and the sha256 of its reason). Best-effort: a sink that throws is logged and never fails the change. With no contribution, nothing is reported."
+    }
+  ],
+  "slots": [
+    {
+      "slot": "app_shell.banners",
+      "component": "tenant/ui/maintenance-banner.component",
+      "order": 0,
+      "scope": "both"
+    }
+  ]
+}

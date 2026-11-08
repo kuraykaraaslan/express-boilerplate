@@ -1,0 +1,81 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "session_end",
+  "name": "Session-ending orders",
+  "description": "The transactional outbox of every \"end this session\" order (docs/audits/2026-11-03-redis-outage.md): a device kick for the MQTT gateway's iot:kicks stream, a websocket control order for the realtime gateway's ws:control:stream. An order is written in the same database transaction as the change that causes it (a device deleted, a credential revoked, a session revoked, a member removed, a tenant suspended), delivered right after the commit, and otherwise relayed every 5 s, oldest first, until Redis takes it; each carries a stable id so a reader acts on it once. A pending order older than a minute raises an alert and a metric; one the relay gives up on is kept as a dead letter for an operator. The hosts that end a person's access (user_session, tenant_member, tenant) record the orders of modules they cannot depend on (websocket_session's socket drops) through its point session_end:order_source, inside their own transaction (D249). A library and a relay: no UI, no tenant-facing route.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "placement": "core",
+  "edition": "core",
+  "roles": [
+    "single",
+    "node",
+    "fleet"
+  ],
+  "icon": "fas fa-power-off",
+  "tags": [
+    "infrastructure",
+    "security",
+    "session",
+    "outbox"
+  ],
+  "priority": 14,
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "env",
+      "logger",
+      "redis"
+    ],
+    "optional": [
+      "observability"
+    ]
+  },
+  "apiRoutes": [
+    {
+      "path": "/api/cron/session-end-relay",
+      "handler": "session_end/server/cron-session-end-relay.route"
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/session_end",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "session_end:order_source",
+      "kind": "hook",
+      "pattern": "aggregate",
+      "gate": "data",
+      "timeoutMs": 2000,
+      "contract": "session_end/server/session_end.contract#SessionEndOrderSource",
+      "description": "The session-ending orders a change that ends access must carry in its own transaction (D249): the host (user_session revoking sessions, tenant_member ending or changing a membership, tenant suspending, deleting or purging a tenant) calls recordSessionEndInTx(qr, cause) before its commit, and each contribution answers the orders the cause needs (ordersFor(cause) => SessionEndOrderInput[]; pure: no database, no Redis, never the host's transaction; every order names the cause's tenant). session_end records them in the host's transaction and delivers them after the commit. A contribution that fails or answers something invalid never blocks the change: it is logged, counted and left to its after-commit hook. Gate data, as the hosts' own hooks."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "session_end_relay",
+      "export": "session_end/server/session_end.relay",
+      "order": 2124,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startSessionEndRelay",
+        "name": "session-end-relay",
+        "parallel": true
+      }
+    },
+    {
+      "point": "observability:alert-source",
+      "key": "session-end-orders",
+      "export": "session_end/server/session_end.alert-source",
+      "order": 100,
+      "scope": "tenant",
+      "description": "The session-ending outbox, platform-wide, listed for the ROOT tenant only: an order older than a minute not yet in Redis (MAJOR, opens an incident) and dead-lettered orders (CRITICAL). One alert per condition, never per tenant.",
+      "metadata": {
+        "label": "Session-ending orders (outbox behind, dead letters)"
+      }
+    }
+  ]
+}

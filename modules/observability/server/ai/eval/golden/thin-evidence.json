@@ -1,0 +1,32 @@
+{
+  "name": "thin-evidence",
+  "description": "Only the incident exists: nothing may be sent to the model",
+  "now": "2026-10-18T12:00:30Z",
+  "sources": {
+    "incident": {
+      "incidentId": "33333333-3333-4333-8333-333333333333",
+      "title": "Checkout API is down",
+      "severity": "MAJOR",
+      "status": "OPEN",
+      "startedAt": "2026-10-18T12:00:00Z",
+      "reason": null,
+      "monitorId": null,
+      "alertGroupKey": "g1"
+    },
+    "alerts": [],
+    "changes": [],
+    "telemetry": null,
+    "slos": [],
+    "similar": []
+  },
+  "expect": {
+    "bundleKinds": [
+      "incident"
+    ],
+    "unavailable": [
+      "telemetry"
+    ],
+    "status": "EMPTY",
+    "noModelCall": true
+  }
+}

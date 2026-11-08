@@ -1,0 +1,742 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "dashboard",
+  "name": "Dashboard",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "description": "The admin home screen and the widget platform behind it. A composition surface every workspace consumes and none owns -- sibling of app_shell rather than a business domain. Today it owns the /admin board and resolves which contributed widgets a caller may actually see; boards, widget definitions and the data-source seam arrive in later phases. Plan: docs/phases/07-dashboard/.",
+  "version": "1.0.0",
+  "icon": "fas fa-gauge",
+  "tags": [
+    "platform",
+    "dashboard",
+    "widget"
+  ],
+  "priority": 6,
+  "dependencies": {
+    "requires": [
+      "app_shell",
+      "auth_abac",
+      "common",
+      "db",
+      "feature_gate",
+      "ip_subnet",
+      "limiter",
+      "tenant",
+      "tenant_member",
+      "tenant_session",
+      "tenant_setting",
+      "websocket"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/dashboard",
+  "license": "Proprietary",
+  "settings": {
+    "keys": "DASHBOARD_KEYS"
+  },
+  "routes": [
+    {
+      "path": "/admin",
+      "component": "dashboard/ui/dashboard.page",
+      "permissions": ["dashboard.home.view"]
+    },
+    {
+      "path": "/admin/dashboards/widgets",
+      "component": "dashboard/ui/widget-library.page"
+    },
+    {
+      "path": "/admin/dashboards/settings",
+      "component": "dashboard/ui/dashboard-settings.page",
+      "permissions": ["dashboard.settings.read", "tenant_setting.config.update"]
+    },
+    {
+      "path": "/admin/dashboards/widgets/[widgetId]",
+      "component": "dashboard/ui/widget-editor.page"
+    },
+    {
+      "path": "/admin/dashboards",
+      "component": "dashboard/ui/dashboards-hub.page"
+    },
+    {
+      "path": "/admin/dashboards/[boardId]",
+      "component": "dashboard/ui/board-detail.page"
+    },
+    {
+      "path": "/admin/dashboards/module/[moduleId]",
+      "component": "dashboard/ui/module-board.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/dashboard/boards/templates/[templateKey]/apply",
+      "handler": "dashboard/server/dashboard-boards-templates-template-key-apply.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/instances",
+      "handler": "dashboard/server/dashboard-boards-board-id-instances.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/layout",
+      "handler": "dashboard/server/dashboard-boards-board-id-layout.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/snapshots",
+      "handler": "dashboard/server/dashboard-boards-board-id-snapshots.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/snapshots/[snapshotId]",
+      "handler": "dashboard/server/dashboard-boards-board-id-snapshots-snapshot-id.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/restore",
+      "handler": "dashboard/server/dashboard-boards-board-id-restore.route"
+    },
+    {
+      "path": "/api/dashboard/widgets/transfer",
+      "handler": "dashboard/server/dashboard-widgets-transfer.route"
+    },
+    {
+      "path": "/api/dashboard/widgets/[widgetId]/transition",
+      "handler": "dashboard/server/dashboard-widgets-widget-id-transition.route"
+    },
+    {
+      "path": "/api/dashboard/widgets/[widgetId]/favorite",
+      "handler": "dashboard/server/dashboard-widgets-widget-id-favorite.route"
+    },
+    {
+      "path": "/api/dashboard/workspaces/[workspace]/board",
+      "handler": "dashboard/server/dashboard-workspaces-workspace-board.route"
+    },
+    {
+      "path": "/api/dashboard/instances/[instanceId]",
+      "handler": "dashboard/server/dashboard-instances-instance-id.route"
+    },
+    {
+      "path": "/api/dashboard/widgets/resolve",
+      "handler": "dashboard/server/dashboard-widgets-resolve.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]",
+      "handler": "dashboard/server/dashboard-boards-board-id.route"
+    },
+    {
+      "path": "/api/dashboard/widgets/[widgetId]",
+      "handler": "dashboard/server/dashboard-widgets-widget-id.route"
+    },
+    {
+      "path": "/api/dashboard/boards",
+      "handler": "dashboard/server/dashboard-boards.route"
+    },
+    {
+      "path": "/api/dashboard/widgets",
+      "handler": "dashboard/server/dashboard-widgets.route"
+    },
+    {
+      "path": "/api/dashboard/query",
+      "handler": "dashboard/server/dashboard-query.route"
+    },
+    {
+      "path": "/api/dashboard/sources",
+      "handler": "dashboard/server/dashboard-sources.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/duplicate",
+      "handler": "dashboard/server/dashboard-boards-board-id-duplicate.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/export",
+      "handler": "dashboard/server/dashboard-boards-board-id-export.route"
+    },
+    {
+      "path": "/api/dashboard/boards/import",
+      "handler": "dashboard/server/dashboard-boards-import.route"
+    },
+    {
+      "path": "/api/dashboard/landing",
+      "handler": "dashboard/server/dashboard-landing.route"
+    },
+    {
+      "path": "/api/dashboard/home",
+      "handler": "dashboard/server/dashboard-home.route"
+    },
+    {
+      "path": "/api/dashboard/frame",
+      "handler": "dashboard/server/dashboard-frame.route"
+    },
+    {
+      "path": "/api/dashboard/compute-frame",
+      "handler": "dashboard/server/dashboard-compute-frame.route"
+    },
+    {
+      "path": "/api/dashboard/embed-hosts",
+      "handler": "dashboard/server/dashboard-embed-hosts.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/instances/[instanceId]/query",
+      "handler": "dashboard/server/dashboard-boards-board-id-instances-instance-id-query.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/query-batch",
+      "handler": "dashboard/server/dashboard-boards-board-id-query-batch.route"
+    },
+    {
+      "path": "/api/dashboard/workspaces/[workspace]/board/personal",
+      "handler": "dashboard/server/dashboard-workspaces-workspace-board-personal.route"
+    },
+    {
+      "path": "/api/dashboard/modules/[moduleId]/board",
+      "handler": "dashboard/server/dashboard-modules-module-id-board.route"
+    },
+    {
+      "path": "/api/dashboard/modules/[moduleId]/board/personal",
+      "handler": "dashboard/server/dashboard-modules-module-id-board-personal.route"
+    },
+    {
+      "path": "/api/dashboard/modules/[moduleId]/widgets/resolve",
+      "handler": "dashboard/server/dashboard-modules-module-id-widgets-resolve.route"
+    },
+    {
+      "path": "/api/dashboard/live-ticket",
+      "handler": "dashboard/server/dashboard-live-ticket.route"
+    },
+    {
+      "path": "/api/dashboard/commands",
+      "handler": "dashboard/server/dashboard-commands.route"
+    },
+    {
+      "path": "/api/dashboard/commands/[commandKey]",
+      "handler": "dashboard/server/dashboard-commands-command-key.route"
+    },
+    {
+      "path": "/api/dashboard/boards/templates",
+      "handler": "dashboard/server/dashboard-boards-templates.route"
+    },
+    {
+      "path": "/api/dashboard/boards/templates/[templateKey]",
+      "handler": "dashboard/server/dashboard-boards-templates-template-key.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/display-links",
+      "handler": "dashboard/server/dashboard-boards-board-id-display-links.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/display-links/[linkId]",
+      "handler": "dashboard/server/dashboard-boards-board-id-display-links-link-id.route"
+    },
+    {
+      "path": "/api/dashboard/display-links",
+      "handler": "dashboard/server/dashboard-display-links.route"
+    },
+    {
+      "path": "/api/dashboard/activity",
+      "handler": "dashboard/server/dashboard-activity.route"
+    },
+    {
+      "path": "/api/dashboard/display-links/[linkId]",
+      "handler": "dashboard/server/dashboard-display-links-link-id.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/documents",
+      "handler": "dashboard/server/dashboard-scene-bindings-documents.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/document-keys",
+      "handler": "dashboard/server/dashboard-scene-bindings-document-keys.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/document-binding",
+      "handler": "dashboard/server/dashboard-scene-bindings-document-binding.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/slots",
+      "handler": "dashboard/server/dashboard-scene-bindings-slots.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/bulk",
+      "handler": "dashboard/server/dashboard-scene-bindings-bulk.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/resolve",
+      "handler": "dashboard/server/dashboard-scene-bindings-resolve.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings/placements",
+      "handler": "dashboard/server/dashboard-scene-bindings-placements.route"
+    },
+    {
+      "path": "/api/dashboard/scene-bindings",
+      "handler": "dashboard/server/dashboard-scene-bindings.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/overlays",
+      "handler": "dashboard/server/dashboard-boards-board-id-overlays.route"
+    },
+    {
+      "path": "/api/dashboard/instances/[instanceId]/overlays",
+      "handler": "dashboard/server/dashboard-instances-instance-id-overlays.route"
+    },
+    {
+      "path": "/api/dashboard/display/board",
+      "handler": "dashboard/server/dashboard-display-board.route"
+    },
+    {
+      "path": "/api/dashboard/display/query-batch",
+      "handler": "dashboard/server/dashboard-display-query-batch.route"
+    },
+    {
+      "path": "/api/dashboard/display/frame",
+      "handler": "dashboard/server/dashboard-display-frame.route"
+    },
+    {
+      "path": "/api/dashboard/display/compute-frame",
+      "handler": "dashboard/server/dashboard-display-compute-frame.route"
+    },
+    {
+      "path": "/api/dashboard/entity-types",
+      "handler": "dashboard/server/dashboard-entity-types.route"
+    },
+    {
+      "path": "/api/dashboard/entity-types/[key]/subtypes",
+      "handler": "dashboard/server/dashboard-entity-types-key-subtypes.route"
+    },
+    {
+      "path": "/api/dashboard/entity-types/[key]/entities",
+      "handler": "dashboard/server/dashboard-entity-types-key-entities.route"
+    },
+    {
+      "path": "/api/dashboard/aliases/preview",
+      "handler": "dashboard/server/dashboard-aliases-preview.route"
+    },
+    {
+      "path": "/api/dashboard/boards/[boardId]/aliases/[aliasKey]/entities",
+      "handler": "dashboard/server/dashboard-boards-board-id-aliases-alias-key-entities.route"
+    },
+    {
+      "path": "/api/dashboard/entity-types/[key]/keys",
+      "handler": "dashboard/server/dashboard-entity-types-key-keys.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "dashboard.home.view",
+      "name": "Open the home page",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.boards.read",
+      "name": "View dashboards",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.boards.write",
+      "name": "Create and arrange your own dashboards",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.boards.manage",
+      "name": "Manage shared dashboards",
+      "group": "Dashboard",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "dashboard.widgets.author_private",
+      "name": "Create and edit your own private widgets",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.widgets.author",
+      "name": "Create and edit widgets",
+      "group": "Dashboard",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "dashboard.widgets.publish",
+      "name": "Publish widget versions",
+      "group": "Dashboard",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "dashboard.query.execute",
+      "name": "Run widget data queries",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.commands.execute",
+      "name": "Run widget commands",
+      "group": "Dashboard",
+      "minRole": "USER"
+    },
+    {
+      "id": "dashboard.display.view",
+      "name": "Open a dashboard through a display link",
+      "group": "Dashboard",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "dashboard.settings.read",
+      "name": "View dashboard settings",
+      "group": "Dashboard",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "dashboard.settings.update",
+      "name": "Change dashboard settings",
+      "group": "Dashboard",
+      "minRole": "ADMIN"
+    }
+  ],
+  "menu": [
+    {
+      "id": "dashboard-settings",
+      "label": "Dashboard Settings",
+      "href": "/admin/dashboards/settings",
+      "icon": "fas fa-sliders",
+      "group": "Configuration",
+      "workspace": "system",
+      "order": 59,
+      "scope": "tenant",
+      "permissions": ["dashboard.settings.read", "tenant_setting.config.update"]
+    },
+    {
+      "id": "dashboard-widgets",
+      "label": "Widgets",
+      "href": "/admin/dashboards/widgets",
+      "icon": "fas fa-shapes",
+      "group": "Configuration",
+      "workspace": "system",
+      "order": 58,
+      "scope": "tenant",
+      "permissions": [
+        "dashboard.boards.read"
+      ]
+    },
+    {
+      "id": "dashboards-hub",
+      "label": "Dashboards",
+      "href": "/admin/dashboards",
+      "icon": "fas fa-table-columns",
+      "group": "Overview",
+      "order": 5,
+      "scope": "tenant",
+      "permissions": [
+        "dashboard.boards.read"
+      ]
+    }
+  ],
+  "widgets": [
+    {
+      "id": "workspace-overview",
+      "name": "In this workspace",
+      "component": "dashboard/ui/workspace-overview-widget.component",
+      "workspace": "*",
+      "scope": "tenant",
+      "size": "full",
+      "order": 1,
+      "permissions": [
+        "dashboard.boards.read"
+      ]
+    },
+    {
+      "id": "entity-counts",
+      "name": "At a glance",
+      "component": "dashboard/ui/entity-counts-widget.component",
+      "workspace": "*",
+      "scope": "tenant",
+      "size": "full",
+      "order": 5,
+      "permissions": [
+        "dashboard.boards.read"
+      ]
+    }
+  ],
+  "extensions": [
+    {
+      "point": "shell_menu:link_target",
+      "key": "dashboard_board_link",
+      "export": "dashboard/server/dashboard.menu-link",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Dashboard board (by slug)"
+      }
+    },
+    {
+      "point": "dashboard:data_source",
+      "key": "entity_count",
+      "export": "dashboard/server/entity-count.source",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Entity counts"
+      }
+    },
+    {
+      "point": "dashboard:data_source",
+      "key": "sample",
+      "export": "dashboard/server/sample.source",
+      "order": 90,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Sample data"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "dashboard",
+      "export": "dashboard/server/dashboard.export-collection",
+      "order": 60,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Dashboards"
+      }
+    },
+    {
+      "point": "websocket:namespace",
+      "key": "dashboard",
+      "export": "dashboard/server/realtime-namespace",
+      "order": 40,
+      "scope": "tenant",
+      "metadata": {
+        "path": "/dashboard"
+      }
+    },
+    {
+      "point": "db:post_deploy",
+      "key": "builtin_widgets",
+      "export": "dashboard/server/dashboard.post-deploy",
+      "order": 50,
+      "scope": "system",
+      "description": "Publishes the builtin data widgets into the root tenant on every deploy (owner decision 22): the idempotent publishBuiltinWidgets upsert, so no installation needs npm run dashboard:publish-widgets."
+    },
+    {
+      "point": "db:post_deploy",
+      "key": "board_params_v41",
+      "export": "dashboard/server/dashboard.post-deploy.params",
+      "order": 51,
+      "scope": "system",
+      "description": "Phase 41 (D41-7): rewrites the stored boards into one parameter list, once: old entity aliases become entity parameters, an old remote-select of a known entity list the entity parameter it is, and the cards' { $alias } references the { $param } of the parameter. Idempotent, batched, guarded on the value read, counts only. Also runs on every dedicated tenant database of the deploy fan-out (metadata.tenantDatabases).",
+      "metadata": {
+        "tenantDatabases": true
+      }
+    },
+    {
+      "point": "module_lifecycle:reference_holder",
+      "key": "dashboard",
+      "export": "dashboard/server/dashboard.reference-holder",
+      "scope": "both",
+      "description": "Board placements of the module's widgets (its own `widgets[]` and its `dashboard:widget` contributions). At purge those placements are removed."
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "dashboard/server/dashboard.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: boards, placements, widgets, card overlays, scene bindings, display links and what screens did through them), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "dashboard: boards, widgets, scene bindings, display links (phase 55 coverage)",
+        "ids": [
+          "dashboard.board.create",
+          "dashboard.board.update",
+          "dashboard.board.share",
+          "dashboard.board.delete",
+          "dashboard.board.duplicate",
+          "dashboard.board.export",
+          "dashboard.board.import",
+          "dashboard.board.layout",
+          "dashboard.board.restore",
+          "dashboard.board.template_apply",
+          "dashboard.placement.create",
+          "dashboard.placement.update",
+          "dashboard.placement.delete",
+          "dashboard.widget.create",
+          "dashboard.widget.update",
+          "dashboard.widget.delete",
+          "dashboard.widget.publish",
+          "dashboard.widget.transition",
+          "dashboard.widget.import",
+          "dashboard.display_link.create",
+          "dashboard.display_link.revoke",
+          "dashboard.display.open",
+          "dashboard.display.read",
+          "dashboard.display.denied",
+          "dashboard.card_overlay.set",
+          "dashboard.card_overlay.reset",
+          "dashboard.scene_binding.set",
+          "dashboard.scene_binding.reset",
+          "dashboard.scene_binding.bulk"
+        ]
+      }
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "dashboard:data_source",
+      "kind": "provider",
+      "pattern": "catalog",
+      "persists": true,
+      "description": "A server module answering named, parameterised queries for widgets (phase 4b). Contribution `key` = the source key a binding names. THERE IS NO URL IN THIS MODEL — a widget names (sourceKey, queryKey, params) and the runner closes all three: the key must resolve in the build-time map, the query must appear in describe(), params validate against the query's FieldSchema with unknown keys rejected. Every query declares its own requiredPermission (enforced by the runner BEFORE execute()) and an explicit cacheScope ('tenant' | 'user' — required; the wrong one leaks one member's data to another)."
+    },
+    {
+      "id": "dashboard:countable",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "One stat-card-worthy count. A module default-exports an ARRAY of DashboardCountable ({ key, label, requiredPermission, count(tenantId) }); the first-party entity_count data source turns each into a permission-gated scalar query named <moduleId>.<key>. Counts arrive by contribution, never by URL or table name."
+    },
+    {
+      "id": "dashboard:widget",
+      "kind": "component",
+      "pattern": "component",
+      "persists": true,
+      "componentType": "dashboard/ui/widget.types#WidgetDefinition",
+      "description": "A satellite module contributes a dashboard widget by default-exporting a WidgetDefinition (see ui/widget.types.ts). The COMPONENT travels through the generated client map modules/common/ui/generated/module-dashboard-widget.ts; the catalog metadata (workspace, size, order, permissions) travels in the contribution's `metadata`, because widget-catalog.service.ts is server code and that map is client code with static React imports. Use this only when contributing into a dashboard your module does not own — a module placing its OWN widget should use the simpler module.json `widgets[]` array. Contract: docs/marketplace-widget-seam.md is the third-party path; this is the in-tree one."
+    },
+    {
+      "id": "dashboard:widget_category",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A module contributes a widget category (docs/phases/07-dashboard/14, decision D1) -- the second source of the category registry next to the four core ones (Charts, Data, Content, Controls). Default export: ONE { key, label, icon?, order? } or an ARRAY of them; key is the value stored in dashboard_widgets.category (letters, digits, space, & _ -; max 64), icon is a Font Awesome class, order is 100-999 (core occupies 10-40). Contributions appear only while the contributing module is enabled; an invalid one, or one reusing a taken key (core wins, then lower order), is logged and skipped. The registry orders the picker tabs and is the write-time allow-list for a widget's category; a stored value outside it stays readable and shows under Other. The dashboard knows no device or telemetry concept -- an IoT module contributes its own categories here."
+    },
+    {
+      "id": "dashboard:command",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A command a widget can fire (docs/phases/07-dashboard/12 §12.7, OD-80). Default export: { label, paramsSchema (FieldSchema map), requiredPermission, confirm?: 'none'|'confirm'|'typed', confirmText?, execute(ctx: { tenantId, userId, locale }, params) => Promise<{ ok: true, value? } | void> }. Resolved by the contribution `key` and run ONLY through POST /api/dashboard/commands/[key] for a placement configured with a `command` action: the runner enforces the placement, the command's own permission BEFORE execute(), the confirmation policy, params validation (unknown keys rejected), a once-only `requestId` (replay guard) and writes an audit row per attempt (ok / error / denied / rejected). A command that takes a resource id must authorise that resource itself in execute(); a `command` action can only be saved by someone holding the command's permission. The dashboard module knows no domain concept; a command throws AppError to refuse."
+    },
+    {
+      "id": "dashboard:board_template",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A module contributes board templates (docs/phases/07-dashboard/13). Default export: one BoardTemplate or an array. BoardTemplate = { key, title, description?, anchor: { workspace } | { moduleId }, sections?: [{ title, countableKeys }] | placements?: [{ widgetRef, x, y, w, h, title?, settings?, dataBinding? (DataBindingSchema, `{ $param }` allowed), refreshSeconds?, actions?, pageKey?, fallback? }], timeWindow?, params? (value and entity parameters, phase 41), pages?, mainPage?, titleKey?, descriptionKey?, ask? } — a template has sections OR placements. Every placement is validated by the same schemas a manual placement passes and re-resolved for the applying caller; one the caller cannot see is replaced by its `fallback` card (phase 49b: another widget on the same cells and page) when the caller can place that one, else skipped and reported by name. `ask` (phase 49b) is the one question a person answers when the New dashboard dialog makes a board of its own from the template (`apply` with `asNew`): which entities one of its entity parameters of many holds (`all` as declared, `subtype` one subtype of its type, `under` the entities under one entity of the type through a relations provider); the answer is stored as that parameter's choice. `titleKey`, `descriptionKey` and each question text's `labelKey` name the contributor's dictionary keys, so the gallery and the dialog say them in the viewer's language. A template that asks is never placed onto another board. A template of a disabled module disappears from the gallery; an invalid one, or one reusing a key, is logged and skipped, built-ins win collisions. The dashboard never names a contributor."
+    },
+    {
+      "id": "dashboard:listing_activity",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "Which marketplace listings may show for a tenant, so a board drops the widgets of a paused or revoked plugin. Each provider vouches for its own part: plugin_runtime for switched on, marketplace for not revoked (taken down, version withdrawn or yanked, publisher suspended, unpaid, blocked by policy). A listing shows only when every provider includes it; with no provider, or one that fails, none does. Default export: { activeListingIds(tenantId, listingIds) => Promise<Set<string>> } (ListingActivityProvider in server/dashboard.listing-activity.ts)."
+    },
+    {
+      "id": "dashboard:plugin_frame",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "dashboard.plugin_frame",
+      "description": "Renders the sandboxed iframe of a community plugin's widget on a board. Implemented through the CLIENT slot 'dashboard.plugin_frame': a contributor declares slots[] = { slot: 'dashboard.plugin_frame', component, order, scope: 'tenant' }. Props received: { tenantId, listingId }. The board renders it only for a widget of render tier `iframe`; with no contribution that widget shows nothing."
+    },
+    {
+      "id": "dashboard:widget_kinds",
+      "kind": "provider",
+      "pattern": "catalog",
+      "persists": true,
+      "contract": "dashboard/server/widget-kind-group.types#WidgetKindGroup",
+      "metadataSchema": {
+        "types": "string[]",
+        "category": "string",
+        "sceneType": "string",
+        "sceneKind": "string",
+        "sceneDocumentSetting": "string",
+        "sceneOwnedSettings": "string[]"
+      },
+      "description": "Which module sells a product GROUP of the builtin widget KINDS (docs/phases/07-dashboard/28, tasks 28.1 and 28.3). The widget kit tags a builtin kind with an optional `group` (BuiltinKindSpec.group; scada.symbol and scada.scene carry `scada`); a module that sells the group contributes with `key` = the group id. `metadata` is documentation only: { category (the picker category the kinds are filed under), types? (the kind types, for a reader) }; nothing decides by `types`. One part is read, while the group is active (phase 42.5): the scene a kind of the group draws, as `sceneType` (the kind), `sceneKind`, `sceneDocumentSetting` and `sceneOwnedSettings`, the keys an `ext:` widget declares it with; the board open resolves such a card's scene and the overlay write path refuses its owned settings. A grouped kind is available to a tenant only while a contributor of its group is ACTIVE for it: with no contributor at all (the module is not in the build) or only an inactive one (switched off, not licensed), the catalogue read (picker, library) leaves it out, a placement create or update, a preset of it and its publish are refused with 422 WIDGET_KIND_UNAVAILABLE, and a stored placement stays intact and renders an inert 'not available' card. A kind without a group is never gated. The default export is the same record (WidgetKindGroup). Read from the contributions' static records only (no code is loaded); an unreadable module state blocks nothing."
+    },
+    {
+      "id": "dashboard:placement_editor",
+      "kind": "component",
+      "pattern": "component",
+      "persists": true,
+      "componentType": "dashboard/ui/placement-editor.types#PlacementEditorDefinition",
+      "metadataSchema": {
+        "widgetType": "string",
+        "label": "string"
+      },
+      "description": "A widget kind's own full-screen editor (the process diagram's canvas), contributed by the module that owns the kind (docs/phases/07-dashboard/28, task 28.1). CLIENT contribution: `metadata` = { widgetType, label (English default) }; the default export is a PlacementEditorDefinition { widgetType, label(t), icon?, Component, elementSources?, elementDocument?, runtime? } resolved through the generated client map (common/ui/generated/module-dashboard-placement-editor.ts). The settings drawer and the board's customise mode (toolbar, right-click menu, narrow list) offer an action labelled `label` on a card of that type and open `Component` over the page with PlacementEditorProps { tenantId, placementId, title, settings, binding, boardParams, drafts (the editor edits its own copy), columns?, onApply(settings, drafts) -> { ok: true } | { ok: false, message? }, onClose }. `elementSources(t, settings, document?)` are the element-gesture sources the drawer edits for the type; `elementDocument` { setting, read(tenantId, id) } names the setting that holds a stored document the card draws (the process diagram's own drawing) and the kind's own reader of it: the drawer reads it while the setting holds an id and hands it to `elementSources`, so the gestures name that document's elements (phase 52.5.4); `runtime` is a hook (PlacementRuntimeHook) BuiltinPlacement calls for every card of the type: it returns the data the card draws (e.g. pending / failed rows overlaid), an action-context patch (runEntryCommand), the view's extra props (elementActions) and a dialog. A definition of a module that is not active for the tenant is not offered; with none, nothing changes for the type."
+    },
+    {
+      "id": "dashboard:kit_runtime",
+      "kind": "component",
+      "pattern": "component",
+      "componentType": "dashboard/ui/kit-runtime.types#KitRuntimeDefinition",
+      "description": "Code the widget kit loads on demand, and the lock state of the kit's options, contributed by a module that adds content to a builtin kind (docs/phases/07-dashboard/31, contract C3). CLIENT contribution; the default export is a KitRuntimeDefinition { loaders: { <the kit's key>: () => import(...) }, useOptionLocks?({ tenantId, enabled }) -> { <option value>: { locked: true, offer? } } | null }, resolved through the generated client map (common/ui/generated/module-dashboard-kit-runtime.ts). Every kit host (`useKitHost`: a board's cards, a display screen, the settings editor) installs into the kit (common/ui/kui/widget-kit/kit-runtime.ts) the definitions of the modules active for the tenant and removes the others' (`kit-runtime.registry.ts`, the `_MODULES` + useExtensionActive pattern of dashboard:placement_editor), so a tenant without the module never has its loaders and never downloads that code. The kit calls a loader the first time it needs that code. A locked option is shown and kept but not newly added; no contribution, or null locks, means every option is open. A lock may carry `title` (why, in the viewer's language), `offer` (what opens it, with a link) and `picture` (the kit key of a loader that resolves to static pictures by option value, drawn instead of the option's own drawing, so a locked option loads none of its code). A kit part that shows locks says so (`wantKitOptionLocks`), so a contribution can wait for that before working them out. Outside any scope every definition is installed."
+    },
+    {
+      "id": "dashboard:placement_guard",
+      "kind": "hook",
+      "pattern": "guard",
+      "contract": "dashboard/server/placement-guard.types#PlacementGuard",
+      "metadataSchema": {
+        "types": "string[]"
+      },
+      "timeoutMs": 5000,
+      "description": "What a placement of a builtin widget kind may hold for a tenant, judged by the module that limits it (docs/phases/07-dashboard/31, contract C4). `metadata.types` lists the builtin kind types a contribution guards; the default export is a PlacementGuard ({ tenantId, widgetType, settings, previous }) => Promise<void> (server/placement-guard.types.ts). The dashboard asks the guards of the kind after template validation on every write that stores its settings: a placement create and update, a template apply and a board import (createMany), the cards a board is laid out with (materialize), a board copy (each card a new placement), a preset's create, an edit of its defaults and its publish. `settings` and `previous` are the kind's EFFECTIVE settings (template defaults, a preset's defaults, the stored object, upgraded); `previous` is null when nothing is stored to compare with. A guard refuses by throwing an AppError below 500: the write is answered 422 with `details.reason` = `placement_guard_refused` (the guard's own reason in `details.guardReason`), which a board copy and an import rethrow instead of swallowing. Anything else a guard throws, a guard that cannot be loaded or answer in time: 503 `placement_guard_unavailable`, nothing stored (fails closed). Guards run in order and the first refusal stops the rest. Only contributions of modules active for the tenant run; a type no contribution lists loads nothing. The dashboard names no contributor and no kind."
+    },
+    {
+      "id": "dashboard:element_actions",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "persists": true,
+      "contract": "dashboard/server/element-actions.types#ElementActionsProvider",
+      "metadataSchema": {
+        "widgetType": "string"
+      },
+      "description": "The commands a widget kind lets its ELEMENTS run (docs/phases/07-dashboard/28, task 28.1). The element gestures (elementClick, elementDoubleClick, elementContextClick) are part of the dashboard's action model; what an element is (a symbol of a process diagram) belongs to the widget. `key` = a manifest key, `metadata.widgetType` = the widget type served (a key cannot hold a dot); the default export is an ElementActionsProvider { allowsCommands(settings), validateEntries(settings, entries), keepsEntries(settings, stored), hasElement(settings, elementKey), confirmFloor(entry), auditFields(entry) }, all pure. The DTO checks the SHAPE of a command entry on an element gesture; instance create/update (422) and the run route (404) ask the provider of the placement's widget type. No provider for the type, or its module off for the tenant: commands on the widget's elements are refused. The generic command gates (permission, rate limit, replay, the audit row) stay in the dashboard; `confirmFloor` is added to the command's own confirmation policy and `auditFields` to the audit row."
+    },
+    {
+      "id": "dashboard:entity_type",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "persists": true,
+      "contract": "dashboard/server/entity-alias.types#DashboardEntityType",
+      "description": "An entity kind board aliases can select (docs/phases/07-dashboard/36, E36-2). Contribution `key` = the entity type an alias names (`iot_device`). The default export is a DashboardEntityType { key, labels(locale), requiredPermission, subtypes?(ctx, q), byIds(ctx, ids), find(ctx, { subtypes?, namePrefix?, search?, limit }) }: the dashboard keeps the generic filter types (single, list, name, type, state, subtype) and asks the module for the entities, never reading its tables. The resolver asks the viewer for `requiredPermission` before any call; the module reads in the tenant's RLS transaction with an explicit tenant predicate, so another tenant's id is an unknown id. Persists: a board stores the key in its aliases."
+    },
+    {
+      "id": "dashboard:scene_kind",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "persists": true,
+      "contract": "dashboard/server/scene-binding.types#DashboardSceneKind",
+      "description": "A kind of document a scene binding can name (docs/phases/07-dashboard/42, D42-3): `design` (a 3D design, from dashboard_viewer), `diagram` (a 2D process diagram, from dashboard_scada). Contribution `key` = the kind a binding stores. The default export is a DashboardSceneKind { key, list(ctx, { search?, limit }), byIds(ctx, ids) -> [{ id, name, hash }], keysOf(ctx, id) -> [{ key, label, kind }], readPermission, writePermission }: the dashboard keeps the binding table, the routes and the resolver and asks the module for the documents, never reading its tables. A binding is written with the kind's `writePermission`, listed and used (\"who uses this document\") with its `readPermission`, both asked for the caller before any call. The module reads in the tenant's RLS transaction with an explicit tenant predicate, so another tenant's id is an unknown id. Persists: a binding stores the key."
+    },
+    {
+      "id": "dashboard:entity_relations",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "persists": true,
+      "contract": "dashboard/server/entity-alias.types#DashboardEntityRelations",
+      "description": "A relation graph board aliases can walk (docs/phases/07-dashboard/36, the relations query and the entity search query). Contribution `key` = the provider an alias names (`iot_asset`). Default export: DashboardEntityRelations { key, label(locale), requiredPermission, relationTypes(ctx), query(ctx, { root, direction, maxLevel 1..10, lastLevelOnly, filters, limit }), holds? } returning typed entity refs; the dashboard names them through the contributed entity types (so each type's read permission still applies) and caps the set at 500. `holds` (optional, phase 49b): entity type -> the entity types it holds through CONTAINS in this graph; a card slot handed an entity of another kind (D112) walks only the graphs that say that kind holds one of the slot's types, and the card's picker offers such a parameter only then (a graph that declares nothing may hold anything)."
+    }
+  ],
+  "appRoutes": [
+    {
+      "path": "tenant/[tenantId]/display/page",
+      "export": "dashboard/ui/display-fragment.app-page",
+      "names": [
+        "default",
+        "generateMetadata"
+      ],
+      "config": {
+        "dynamic": "force-dynamic"
+      }
+    },
+    {
+      "path": "tenant/[tenantId]/display/[token]/page",
+      "export": "dashboard/ui/display.app-page",
+      "names": [
+        "default",
+        "generateMetadata"
+      ],
+      "config": {
+        "dynamic": "force-dynamic"
+      }
+    }
+  ]
+}

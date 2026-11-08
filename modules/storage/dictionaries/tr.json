@@ -1,0 +1,9 @@
+{
+  "storage.firewallSignal.file_infected": "Yüklenen bir dosyada kötü amaçlı yazılım bulundu",
+  "storage.firewallSignal.storage_bucket_cors_applied": "Depolama alanının yükleme CORS kuralı uygulandı",
+  "storage.firewallSignal.storage_link_fetched": "Bir dosya indirme bağlantısıyla indirildi",
+  "storage.permission.storage_files_upload.name": "Depolamaya dosya yükle",
+  "storage.permission.storage_settings_read.name": "Depolama ayarlarını görüntüle",
+  "storage.permission.storage_settings_update.name": "Depolama ayarlarını değiştir",
+  "storage.permissionGroup.storage": "Depolama"
+}

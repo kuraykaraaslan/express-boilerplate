@@ -1,0 +1,151 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user_session",
+  "name": "User Session",
+  "description": "JWT access/refresh issuance + revocation, Redis-backed session cache, CRUD on UserSession rows.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-id-badge",
+  "tags": [
+    "identity",
+    "auth",
+    "core"
+  ],
+  "priority": 12,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "db",
+      "env",
+      "ip_subnet",
+      "redis",
+      "session_end",
+      "tenant_setting",
+      "user",
+      "user_security"
+    ]
+  },
+  "exports": {
+    "UserSessionService": "user_session.service.ts",
+    "UserSessionTokenService": "user_session.token.service.ts",
+    "UserSessionCacheService": "user_session.cache.service.ts",
+    "UserSessionCrudService": "user_session.crud.service.ts"
+  },
+  "permissions": [
+    {
+      "id": "user_session.settings.read",
+      "name": "View geo-IP settings",
+      "group": "Security",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user_session.settings.update",
+      "name": "Change geo-IP settings",
+      "group": "Security",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/geo-ip",
+      "component": "user_session/ui/geo-ip-settings.page",
+      "placement": "root",
+      "permissions": ["user_session.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user_session",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "user_session:session_revoked",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "data",
+      "timeoutMs": 2000,
+      "description": "Told after sessions are deleted (logout, sign out other devices, log out everywhere, password change, account deletion), with [{ userSessionId, userId, tenantId, sessionEndOrderedBy? }]; sessionEndOrderedBy (D249) names the modules whose session_end:order_source orders for that session were already recorded in the revoking transaction, whose hooks skip it. Default export: (revoked) => Promise<void>. For data bound to a session that must not outlive it — notification_push removes a native app's push token, which otherwise keeps delivering the account's notifications to a phone nobody is signed in on. Best-effort by contract: a hook that throws is logged and skipped, revoking a session must never fail because a satellite's cleanup had trouble. Sessions that merely expire are not announced."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "session_revocation_outbox",
+      "export": "user_session/server/user_session.revocation.job",
+      "order": 2125,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleRevocationOutboxDrain",
+        "name": "session-revocation-outbox"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "session_prune",
+      "export": "user_session/server/user_session.prune.job",
+      "order": 2126,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleSessionPrune",
+        "name": "session-prune"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "security.login_anomaly",
+      "export": "user_session/server/user_session.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Security",
+        "label": "Login anomaly",
+        "description": "Sent once per sign-in that looked unusual (impossible travel, Tor, a proxy or VPN, a new country, address or device), with the reasons and a severity."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "user_session/server/user_session.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "user_session: every sign-in and sign-out, session ends, the login-anomaly assessment, the admin actuators (phase 55 01.6), refresh-token reuse (02 §2.3)",
+        "ids": [
+          "user_session.login",
+          "auth.logout",
+          "user_session.revoked",
+          "user_session.revoked_others",
+          "user_session.revoked_all",
+          "auth.login_anomaly",
+          "user_session.revoked_by_admin",
+          "user_session.step_up_forced",
+          "user_session.step_up_cleared",
+          "user_session.refresh_reused"
+        ],
+        "routes": [
+          "/api/auth/logout",
+          "/api/auth/me/sessions",
+          "/api/auth/me/sessions/[sessionId]"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "user_session/server/user_session.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "user_session: end a session, end every session of a person, force a password change (phase 55 01.6)",
+        "ids": [
+          "user_session.end_session",
+          "user_session.end_all_sessions",
+          "user_session.force_password_change"
+        ]
+      }
+    }
+  ]
+}

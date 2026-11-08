@@ -1,0 +1,13 @@
+{
+  "notification_inapp.permission.notification_inapp_stream_read.name": "Kendi bildirimlerini canlı akışla al",
+  "notification_inapp.permissionGroup.notifications": "Bildirimler",
+  "notification_inapp.permission.notification_inapp_settings_read.name": "Uygulama içi bildirim ayarlarını görüntüle",
+  "notification_inapp.permission.notification_inapp_settings_update.name": "Uygulama içi bildirim ayarlarını değiştir",
+  "notification_inapp.settings.group.feed": "Akış",
+  "notification_inapp.settings.inAppRetentionDays.description": "Bir üyenin üst çubuktaki akışı, son yeni ögesinden bu kadar gün sonra temizlenir. 1 ile 365 arası. En yeni 50 öge her durumda tutulur.",
+  "notification_inapp.settings.inAppRetentionDays.label": "Bildirim akışını sakla (gün)",
+  "notification_inapp.settings.inAppRetentionDays.placeholder": "7",
+  "notification_inapp.settings.notificationsCrumb": "Bildirimler",
+  "notification_inapp.settings.subtitle": "Üst çubuktaki bildirim akışının ne kadar süre tutulduğu",
+  "notification_inapp.settings.title": "Uygulama İçi Bildirim Ayarları"
+}

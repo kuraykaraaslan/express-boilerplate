@@ -1,0 +1,62 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "app_shell",
+  "name": "Admin Shell",
+  "description": "Persistent admin chrome: sidebar, top bar, workspace switcher, notification bell. Composes header-widget content from notification_inapp/tenant_branding/user — extracted from common (MIS-02) so the dependency-free primitives leaf no longer transitively carries those modules into every bundle.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-window-maximize",
+  "tags": [
+    "infrastructure",
+    "shell",
+    "ui"
+  ],
+  "priority": 2,
+  "dependencies": {
+    "requires": [
+      "common",
+      "tenant_branding",
+      "user"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/app_shell",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "app_shell:banner",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "app_shell.banners",
+      "description": "A strip above every admin page: something the person working here must know about the workspace or their own presence in it (maintenance in progress, a delegate's 'you are working here on behalf of…', fleet alerts). Implemented through the CLIENT slot 'app_shell.banners': a contributor declares slots[] = { slot: 'app_shell.banners', component, order, scope }; the maintenance strip (tenant, 0) comes first. Props received: { tenantId }. A contribution renders nothing when it has nothing to say, and must not fetch more than once per mount, because it sits on every admin page. The shell imports none of them (EXT-14)."
+    },
+    {
+      "id": "app_shell:provider",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "app_shell.providers",
+      "description": "A React context provider that the whole admin area must sit inside, mounted by the shell because the shell lives in a layout and so outlives navigation (the softphone: a call must survive moving between screens). Implemented through the CLIENT slot 'app_shell.providers': a contributor declares slots[] = { slot: 'app_shell.providers', component, order, scope: 'tenant' }; the component default-exports a function of { tenantId, children } that renders its children inside what it provides. Contributions nest in order, the first outermost; with none, the content renders unwrapped."
+    },
+    {
+      "id": "app_shell:topbar",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "app_shell.topbar",
+      "description": "A control in the admin top bar, between the shell's own theme toggle and the user menu. Contributions sort by `order`: the call widget (telephony, 10) first, because a ringing telephone outranks a notification, then the unread-messages badge (messaging, 20) and the notification bell (notification_inapp, 30). Implemented through the CLIENT slot 'app_shell.topbar': a contributor declares slots[] = { slot: 'app_shell.topbar', component, order, scope }. Props received: { tenantId }. A contribution renders nothing when it has nothing to show, since it is on every admin page. The shell imports none of them (EXT-14)."
+    }
+  ],
+  "appRoutes": [
+    {
+      "path": "tenant/[tenantId]/[[...slug]]/page",
+      "export": "app_shell/ui/site.fallback-page",
+      "names": [
+        "default",
+        "generateMetadata"
+      ],
+      "whenDisabled": "dynamic_page"
+    }
+  ]
+}

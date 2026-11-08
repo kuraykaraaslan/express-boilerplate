@@ -1,0 +1,22 @@
+{
+  "tour.drawer.noneHere": "Bu sayfanın henüz bir turu yok.",
+  "tour.drawer.onThisPage": "Bu sayfada",
+  "tour.drawer.others": "Diğer turlar",
+  "tour.drawer.restart": "Yeniden başlat",
+  "tour.drawer.start": "Başlat",
+  "tour.drawer.steps": "{{count}} adım",
+  "tour.drawer.title": "Rehberli turlar",
+  "tour.offer.later": "Şimdi değil",
+  "tour.offer.start": "Turu başlat",
+  "tour.offer.text": "{{title}} · {{count}} adım",
+  "tour.offer.title": "Kısa bir tur ister misiniz?",
+  "tour.runner.close": "Turu kapat",
+  "tour.runner.done": "Bitir",
+  "tour.runner.next": "İleri",
+  "tour.runner.previous": "Geri",
+  "tour.runner.progress": "{current} / {total}",
+  "tour.status.dismissed": "Atlandı",
+  "tour.status.done": "Tamamlandı",
+  "tour.status.new": "Yeni",
+  "tour.topbar.button": "Rehberli turlar"
+}

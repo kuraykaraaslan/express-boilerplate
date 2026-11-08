@@ -1,0 +1,5 @@
+{
+  "notification_mail.permission.notification_mail_settings_read.name": "View email settings",
+  "notification_mail.permission.notification_mail_settings_update.name": "Change email settings",
+  "notification_mail.permissionGroup.email": "Email"
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user_preferences",
+  "name": "User Preferences",
+  "description": "Per-user preferences: theme, language, timezone, notification opt-ins.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-sliders",
+  "tags": [
+    "identity",
+    "ux"
+  ],
+  "priority": 11,
+  "dependencies": {
+    "requires": [
+      "db",
+      "tenant_setting",
+      "user"
+    ]
+  },
+  "permissions": [
+    {
+      "id": "user_preferences.settings.read",
+      "name": "View member preference defaults",
+      "group": "Configuration",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user_preferences.settings.update",
+      "name": "Change member preference defaults",
+      "group": "Configuration",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/member-preferences",
+      "component": "user_preferences/ui/member-preferences-settings.page",
+      "permissions": ["user_preferences.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user_preferences",
+  "license": "Proprietary",
+  "extensions": [
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "user_preferences/server/user_preferences.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kind this module emits (the audit action it owns: a person's preferences changed). Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "user_preferences: preferences changed (phase 55 coverage)",
+        "ids": [
+          "user_preferences.updated"
+        ]
+      }
+    }
+  ]
+}

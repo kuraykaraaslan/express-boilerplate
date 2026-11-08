@@ -1,0 +1,235 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "organization",
+  "name": "Organisation",
+  "description": "The shape of the tenant itself: its legal entities, the sites it operates from and the cost centers it slices itself by. The base every other business domain references — `tenant` is the SaaS account, `contact.Company` is an external counterparty, `organization` is the internal structure of that account.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "tenant",
+  "icon": "fas fa-sitemap",
+  "tags": [
+    "organization",
+    "company",
+    "erp"
+  ],
+  "priority": 40,
+  "dependencies": {
+    "requires": [],
+    "optional": [
+      "accounting"
+    ]
+  },
+  "extensionPoints": [
+    {
+      "id": "organization:gl_account_lookup",
+      "kind": "provider",
+      "pattern": "first",
+      "onFailure": "fail-closed",
+      "description": "Answers whether a GL account of the tenant's ledger exists and is active, for a cost center's glAccountId (organization.06). Default export: (tenantId, accountId) => Promise<{ isActive: boolean } | null>; null = no such account. With no contributor (accounting not installed or switched off) there is no ledger to point at and a glAccountId is refused. Fails closed: a contributor that throws refuses the write. Declared so organization (Core) never imports accounting (Pro): the higher edition contributes, as the edition guard requires."
+    },
+    {
+      "id": "organization:reference_check",
+      "kind": "hook",
+      "pattern": "guard",
+      "gate": "data",
+      "description": "Asked before a legal entity, site or cost center is retired whether the contributing module still holds rows pointing at it. Default export: (tenantId, { kind, id }) => Promise<{ moduleId, count, label } | null>; a non-zero count turns the delete into a 409 naming the module. Declared so organization never imports hr (or accounting, inventory, procurement…) — organization is the BASE of the ERP graph and every consumer requires it, so the arrow can only point inward. Kinds: LEGAL_ENTITY | SITE | COST_CENTER."
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/organization",
+  "license": "Proprietary",
+  "settingKeys": [
+    "organizationLegalEntityCodePrefix",
+    "organizationSiteCodePrefix",
+    "organizationCostCenterCodePrefix",
+    "organizationProjectLegalEntityToSettings"
+  ],
+  "menu": [
+    {
+      "id": "organization",
+      "permissions": ["organization.legal_entities.read"],
+      "label": "Organisation",
+      "href": "/admin/organization/legal-entities",
+      "icon": "fas fa-building",
+      "group": "Organisation",
+      "workspace": "erp",
+      "order": 5,
+      "scope": "tenant"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/organization/legal-entities",
+      "handler": "organization/server/organization-legal-entities.route"
+    },
+    {
+      "path": "/api/organization/legal-entities/[legalEntityId]",
+      "handler": "organization/server/organization-legal-entities-legal-entity-id.route"
+    },
+    {
+      "path": "/api/organization/sites",
+      "handler": "organization/server/organization-sites.route"
+    },
+    {
+      "path": "/api/organization/sites/[siteId]",
+      "handler": "organization/server/organization-sites-site-id.route"
+    },
+    {
+      "path": "/api/organization/cost-centers",
+      "handler": "organization/server/organization-cost-centers.route"
+    },
+    {
+      "path": "/api/organization/cost-centers/[costCenterId]",
+      "handler": "organization/server/organization-cost-centers-cost-center-id.route"
+    },
+    {
+      "path": "/api/organization/cost-centers/[costCenterId]/subtree",
+      "handler": "organization/server/organization-cost-centers-cost-center-id-subtree.route"
+    },
+    {
+      "path": "/api/organization/lookup/options",
+      "handler": "organization/server/organization-lookup-options.route"
+    },
+    {
+      "path": "/api/organization/lookup/labels",
+      "handler": "organization/server/organization-lookup-labels.route"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/organization/legal-entities",
+      "component": "organization/ui/organization-legal-entities.page"
+    },
+    {
+      "path": "/admin/organization/sites",
+      "component": "organization/ui/organization-sites.page",
+      "permissions": ["organization.sites.read"]
+    },
+    {
+      "path": "/admin/organization/cost-centers",
+      "component": "organization/ui/organization-cost-centers.page",
+      "permissions": ["organization.cost_centers.read"]
+    },
+    {
+      "path": "/admin/organization/settings",
+      "component": "organization/ui/organization-settings.page",
+      "permissions": ["organization.legal_entities.read", "tenant_setting.config.read"]
+    }
+  ],
+  "permissions": [
+    {
+      "id": "organization.legal_entities.read",
+      "name": "View legal entities",
+      "group": "Legal Entities",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.legal_entities.create",
+      "name": "Create legal entities",
+      "group": "Legal Entities",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.legal_entities.update",
+      "name": "Update legal entities",
+      "group": "Legal Entities",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.legal_entities.delete",
+      "name": "Delete legal entities",
+      "group": "Legal Entities",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.sites.read",
+      "name": "View sites",
+      "group": "Sites",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.sites.create",
+      "name": "Create sites",
+      "group": "Sites",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.sites.update",
+      "name": "Update sites",
+      "group": "Sites",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.sites.delete",
+      "name": "Delete sites",
+      "group": "Sites",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.cost_centers.read",
+      "name": "View cost centers",
+      "group": "Cost Centers",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.cost_centers.create",
+      "name": "Create cost centers",
+      "group": "Cost Centers",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.cost_centers.update",
+      "name": "Update cost centers",
+      "group": "Cost Centers",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.cost_centers.delete",
+      "name": "Delete cost centers",
+      "group": "Cost Centers",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "organization.lookup.read",
+      "name": "Resolve organisation labels and pickers",
+      "group": "Organisation",
+      "minRole": "USER"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "organization/server/organization.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: sites, teams and team memberships), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "organization: sites, teams and team members (phase 55 coverage)",
+        "ids": [
+          "organization.site.created",
+          "organization.site.updated",
+          "organization.site.deleted",
+          "organization.team.created",
+          "organization.team.updated",
+          "organization.team.deleted",
+          "organization.team.member_added",
+          "organization.team.member_removed"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "organization/server/organization.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55: the action the firewall's responder may take through this module (take a person out of their teams for a while; the undo reopens the same membership rows). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "organization: take a person out of their teams for a while (phase 55 coverage)",
+        "ids": [
+          "organization.remove_from_teams"
+        ]
+      }
+    }
+  ]
+}

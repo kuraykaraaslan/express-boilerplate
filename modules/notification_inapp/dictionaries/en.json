@@ -1,0 +1,13 @@
+{
+  "notification_inapp.permission.notification_inapp_settings_read.name": "View in-app notification settings",
+  "notification_inapp.permission.notification_inapp_settings_update.name": "Change in-app notification settings",
+  "notification_inapp.permission.notification_inapp_stream_read.name": "Stream own notifications",
+  "notification_inapp.permissionGroup.notifications": "Notifications",
+  "notification_inapp.settings.group.feed": "Feed",
+  "notification_inapp.settings.inAppRetentionDays.description": "A member's feed in the top bar is kept this many days after its last new item, then cleared. 1 to 365. The newest 50 items are kept either way.",
+  "notification_inapp.settings.inAppRetentionDays.label": "Keep the notification feed (days)",
+  "notification_inapp.settings.inAppRetentionDays.placeholder": "7",
+  "notification_inapp.settings.notificationsCrumb": "Notifications",
+  "notification_inapp.settings.subtitle": "How long the notification feed in the top bar is kept",
+  "notification_inapp.settings.title": "In-app Notification Settings"
+}

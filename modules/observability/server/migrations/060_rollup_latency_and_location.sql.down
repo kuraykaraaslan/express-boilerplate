@@ -1,0 +1,28 @@
+-- DOWN for 060_rollup_latency_and_location.sql: latency aggregates and the location dimension of the daily rollups.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of `monitor_check_daily_location` (the per-location daily counters) and the latency counters of `monitor_check_daily`
+-- (latencyCount, latencySumMs, latencyBuckets); the up/down/degraded counters of the monitor-level rollup are kept.
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 060_rollup_latency_and_location.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 1. The table (its indexes go with it; no CASCADE).
+DROP TABLE IF EXISTS "monitor_check_daily_location";
+
+-- 2. Columns added to the pre-existing `monitor_check_daily` table.
+ALTER TABLE IF EXISTS "monitor_check_daily" DROP COLUMN IF EXISTS "latencyBuckets";
+ALTER TABLE IF EXISTS "monitor_check_daily" DROP COLUMN IF EXISTS "latencySumMs";
+ALTER TABLE IF EXISTS "monitor_check_daily" DROP COLUMN IF EXISTS "latencyCount";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:060_rollup_latency_and_location.sql';
+  END IF;
+END $$;

@@ -1,0 +1,3 @@
+-- DOWN for 071_webhook_delivery_claim_id.sql: drops the column (queued jobs keep their id; with no column to match, the
+-- worker of the reverted build ignores it and sends any PENDING row, as before 071).
+ALTER TABLE "webhook_deliveries" DROP COLUMN IF EXISTS "claimId";

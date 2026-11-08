@@ -1,0 +1,42 @@
+-- DOWN for 090_browser_checks.sql: browser checks.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of `monitor_check_details` (per-step timings, web vitals and failure screenshots), the browser scripts of monitors
+-- (`monitors.browser`), the capabilities of probe runners (`probe_runners.capabilities`) and the browser switch of probe locations
+-- (`probe_locations.browserEnabled`). A BROWSER monitor cannot run without them, so the down STOPS while one exists (delete or convert them first:
+-- `DELETE FROM monitors WHERE "type" = 'BROWSER';`) and changes nothing.
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 090_browser_checks.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 0. Refuse while a BROWSER monitor exists (its definition lives in the column dropped below).
+DO $$
+DECLARE browser_monitors bigint;
+BEGIN
+  IF to_regclass('monitors') IS NOT NULL THEN
+    SELECT count(*) INTO browser_monitors FROM "monitors" WHERE "type" = 'BROWSER';
+    IF browser_monitors > 0 THEN
+      RAISE EXCEPTION 'cannot drop the browser-check columns: % BROWSER monitor(s) exist. Delete or convert them first.', browser_monitors;
+    END IF;
+  END IF;
+END $$;
+
+-- 1. The table (its indexes go with it; no CASCADE).
+DROP TABLE IF EXISTS "monitor_check_details";
+
+-- 2. Columns added to pre-existing tables.
+ALTER TABLE IF EXISTS "probe_locations" DROP COLUMN IF EXISTS "browserEnabled";
+ALTER TABLE IF EXISTS "probe_runners" DROP COLUMN IF EXISTS "capabilities";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "browser";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:090_browser_checks.sql';
+  END IF;
+END $$;

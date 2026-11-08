@@ -1,0 +1,300 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user",
+  "name": "User",
+  "description": "Core user CRUD: create, find, update, deactivate. Foundation for every auth and tenancy flow.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-user",
+  "tags": [
+    "identity",
+    "core"
+  ],
+  "priority": 10,
+  "permissions": [
+    {
+      "id": "user.users.read",
+      "name": "Read users",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.create",
+      "name": "Create user",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.update",
+      "name": "Update user",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.delete",
+      "name": "Delete user",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.tenants_read",
+      "name": "Read user tenants",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.unlock",
+      "name": "Unlock user account",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.reset_2fa",
+      "name": "Reset user second factor",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.security_lock",
+      "name": "Lock or unlock a user account for security",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.sessions_read",
+      "name": "Read a user's sessions",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.sessions_revoke",
+      "name": "Sign out a user's sessions",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.sessions_step_up",
+      "name": "Require a step-up on a user's session",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.trusted_devices_read",
+      "name": "Read a user's trusted devices",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.trusted_devices_revoke",
+      "name": "Revoke a user's trusted devices",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.users.force_password_change",
+      "name": "Require a user to change their password",
+      "group": "Users",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user.impersonation.read",
+      "name": "Read impersonation sessions",
+      "group": "Users",
+      "minRole": "ADMIN"
+    }
+  ],
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "env",
+      "i18n",
+      "localization",
+      "logger"
+    ],
+    "optional": [
+      "notification",
+      "user_security"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "platform-users",
+      "permissions": ["user.users.read"],
+      "label": "Users",
+      "href": "/admin/users",
+      "placement": "root",
+      "icon": "fas fa-users",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 10,
+      "scope": "system"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/users/[userId]",
+      "placement": "root",
+      "component": "user/ui/users-user-id.page"
+    },
+    {
+      "path": "/admin/users",
+      "placement": "root",
+      "component": "user/ui/users.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/users/[userId]/impersonation-sessions",
+      "placement": "root",
+      "handler": "user/server/users-user-id-impersonation-sessions.route"
+    },
+    {
+      "path": "/api/users/[userId]",
+      "placement": "root",
+      "handler": "user/server/users-user-id.route"
+    },
+    {
+      "path": "/api/users/[userId]/unlock",
+      "placement": "root",
+      "handler": "user/server/users-user-id-unlock.route"
+    },
+    {
+      "path": "/api/users/[userId]/reset-2fa",
+      "placement": "root",
+      "handler": "user/server/users-user-id-reset-2fa.route"
+    },
+    {
+      "path": "/api/users/[userId]/security-lock",
+      "placement": "root",
+      "handler": "user/server/users-user-id-security-lock.route"
+    },
+    {
+      "path": "/api/users/[userId]/sessions/[sessionId]/step-up",
+      "placement": "root",
+      "handler": "user/server/users-user-id-sessions-session-id-step-up.route"
+    },
+    {
+      "path": "/api/users/[userId]/sessions/[sessionId]",
+      "placement": "root",
+      "handler": "user/server/users-user-id-sessions-session-id.route"
+    },
+    {
+      "path": "/api/users/[userId]/sessions",
+      "placement": "root",
+      "handler": "user/server/users-user-id-sessions.route"
+    },
+    {
+      "path": "/api/users/[userId]/trusted-devices/[deviceId]",
+      "placement": "root",
+      "handler": "user/server/users-user-id-trusted-devices-device-id.route"
+    },
+    {
+      "path": "/api/users/[userId]/trusted-devices",
+      "placement": "root",
+      "handler": "user/server/users-user-id-trusted-devices.route"
+    },
+    {
+      "path": "/api/users/[userId]/must-change-password",
+      "placement": "root",
+      "handler": "user/server/users-user-id-must-change-password.route"
+    },
+    {
+      "path": "/api/users/[userId]/tenants",
+      "placement": "root",
+      "handler": "user/server/users-user-id-tenants.route"
+    },
+    {
+      "path": "/api/users",
+      "placement": "root",
+      "handler": "user/server/users.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "webhook:event_type",
+      "key": "user.created",
+      "export": "user/server/user.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "User created",
+        "description": "A new user account was registered."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "user.updated",
+      "export": "user/server/user.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "User updated",
+        "description": "A user profile changed."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "user.deleted",
+      "export": "user/server/user.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "User deleted",
+        "description": "A user account was deleted."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "user.suspended",
+      "export": "user/server/user.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "User suspended",
+        "description": "A user account was suspended."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "user.erased",
+      "export": "user/server/user.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "User erased",
+        "description": "A user account was anonymized under GDPR right-to-erasure."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "user/server/user.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "user: platform roles and admins, e-mail and phone changes, support unlocks and second-factor resets, forced password changes (phase 55 01.6)",
+        "ids": [
+          "user.role_changed",
+          "user.platform_admin_granted",
+          "user.email_changed",
+          "user.phone_changed",
+          "auth.account_unlocked_by_admin",
+          "auth.two_factor_reset_by_admin",
+          "auth.password_change_forced",
+          "auth.password_change_unforced",
+          "user.created",
+          "user.merged",
+          "user.erased",
+          "user.keys_destroyed_live_only"
+        ]
+      }
+    }
+  ]
+}

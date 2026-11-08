@@ -1,0 +1,711 @@
+{
+  "modules": {
+    "account": [
+      "en",
+      "tr"
+    ],
+    "accounting": [
+      "en",
+      "tr"
+    ],
+    "activity": [
+      "en",
+      "tr"
+    ],
+    "ai": [
+      "en",
+      "tr"
+    ],
+    "ai_agent": [
+      "en",
+      "tr"
+    ],
+    "ai_chat": [
+      "en",
+      "tr"
+    ],
+    "ai_firewall": [
+      "en",
+      "tr"
+    ],
+    "analytics": [
+      "en",
+      "tr"
+    ],
+    "announcement": [
+      "en",
+      "tr"
+    ],
+    "api_doc": [
+      "en",
+      "tr"
+    ],
+    "api_key": [
+      "en",
+      "tr"
+    ],
+    "app_shell": [
+      "en",
+      "tr"
+    ],
+    "approval": [
+      "en",
+      "tr"
+    ],
+    "asset": [
+      "en",
+      "tr"
+    ],
+    "audit_log": [
+      "en",
+      "tr"
+    ],
+    "auth": [
+      "en",
+      "tr"
+    ],
+    "auth_abac": [
+      "en",
+      "tr"
+    ],
+    "auth_e_signature": [
+      "en",
+      "tr"
+    ],
+    "auth_impersonation": [
+      "en",
+      "tr"
+    ],
+    "auth_national_id": [
+      "en",
+      "tr"
+    ],
+    "auth_oidc_provider": [
+      "en",
+      "tr"
+    ],
+    "auth_passkey": [
+      "en",
+      "tr"
+    ],
+    "auth_saml": [
+      "en",
+      "tr"
+    ],
+    "auth_sso": [
+      "en",
+      "tr"
+    ],
+    "automation": [
+      "en",
+      "tr"
+    ],
+    "bank": [
+      "en",
+      "tr"
+    ],
+    "blog": [
+      "en",
+      "tr"
+    ],
+    "bookings": [
+      "en",
+      "tr"
+    ],
+    "calendar": [
+      "en",
+      "tr"
+    ],
+    "commerce_cart": [
+      "en",
+      "tr"
+    ],
+    "commerce_catalog": [
+      "en",
+      "tr"
+    ],
+    "commerce_fulfillment": [
+      "en",
+      "tr"
+    ],
+    "commerce_order": [
+      "en",
+      "tr"
+    ],
+    "commerce_return": [
+      "en",
+      "tr"
+    ],
+    "commerce_review": [
+      "en",
+      "tr"
+    ],
+    "commerce_shipping": [
+      "en",
+      "tr"
+    ],
+    "commerce_storefront": [
+      "en",
+      "tr"
+    ],
+    "commerce_wishlist": [
+      "en",
+      "tr"
+    ],
+    "common": [
+      "en",
+      "tr"
+    ],
+    "consent_registry_iys": [
+      "en",
+      "tr"
+    ],
+    "contact": [
+      "en",
+      "tr"
+    ],
+    "contract": [
+      "en",
+      "tr"
+    ],
+    "coupon": [
+      "en",
+      "tr"
+    ],
+    "crm_assignment": [
+      "en",
+      "tr"
+    ],
+    "crm_lead": [
+      "en",
+      "tr"
+    ],
+    "crm_lead_finder": [
+      "en",
+      "tr"
+    ],
+    "crm_opportunity": [
+      "en",
+      "tr"
+    ],
+    "dashboard": [
+      "en",
+      "tr"
+    ],
+    "dashboard_scada": [
+      "en",
+      "tr"
+    ],
+    "dashboard_viewer": [
+      "en",
+      "tr"
+    ],
+    "data_import": [
+      "en",
+      "tr"
+    ],
+    "document": [
+      "en",
+      "tr"
+    ],
+    "drive": [
+      "en",
+      "tr"
+    ],
+    "dynamic_page": [
+      "en",
+      "tr"
+    ],
+    "e_signature": [
+      "en",
+      "tr"
+    ],
+    "enrichment": [
+      "en",
+      "tr"
+    ],
+    "enrichment_clay": [
+      "en",
+      "tr"
+    ],
+    "events": [
+      "en",
+      "tr"
+    ],
+    "feature_flags": [
+      "en",
+      "tr"
+    ],
+    "feature_gate": [
+      "en",
+      "tr"
+    ],
+    "field_service": [
+      "en",
+      "tr"
+    ],
+    "fleet": [
+      "en",
+      "tr"
+    ],
+    "fleet_agent": [
+      "en",
+      "tr"
+    ],
+    "fleet_compliance": [
+      "en",
+      "tr"
+    ],
+    "fleet_directory": [
+      "en",
+      "tr"
+    ],
+    "fleet_license": [
+      "en",
+      "tr"
+    ],
+    "fleet_release": [
+      "en",
+      "tr"
+    ],
+    "form_builder": [
+      "en",
+      "tr"
+    ],
+    "fx": [
+      "en",
+      "tr"
+    ],
+    "gift_card": [
+      "en",
+      "tr"
+    ],
+    "hr": [
+      "en",
+      "tr"
+    ],
+    "hr_asset": [
+      "en",
+      "tr"
+    ],
+    "hr_attendance": [
+      "en",
+      "tr"
+    ],
+    "hr_contract": [
+      "en",
+      "tr"
+    ],
+    "hr_document": [
+      "en",
+      "tr"
+    ],
+    "hr_leave": [
+      "en",
+      "tr"
+    ],
+    "hr_payroll": [
+      "en",
+      "tr"
+    ],
+    "hr_payroll_tr": [
+      "en",
+      "tr"
+    ],
+    "hr_recruitment": [
+      "en",
+      "tr"
+    ],
+    "hr_schedule": [
+      "en",
+      "tr"
+    ],
+    "hr_shift": [
+      "en",
+      "tr"
+    ],
+    "hr_timesheet": [
+      "en",
+      "tr"
+    ],
+    "integrations_hub": [
+      "en",
+      "tr"
+    ],
+    "inventory": [
+      "en",
+      "tr"
+    ],
+    "invoice": [
+      "en",
+      "tr"
+    ],
+    "iot_alarm": [
+      "en",
+      "tr"
+    ],
+    "iot_asset": [
+      "en",
+      "tr"
+    ],
+    "iot_camera": [
+      "en",
+      "tr"
+    ],
+    "iot_device": [
+      "en",
+      "tr"
+    ],
+    "iot_device_profile": [
+      "en",
+      "tr"
+    ],
+    "iot_device_settings": [
+      "en",
+      "tr"
+    ],
+    "iot_esim": [
+      "en",
+      "tr"
+    ],
+    "iot_gateway": [
+      "en",
+      "tr"
+    ],
+    "iot_gateway_isapi": [
+      "en",
+      "tr"
+    ],
+    "iot_lorawan": [
+      "en",
+      "tr"
+    ],
+    "iot_lorawan_codecs": [
+      "en",
+      "tr"
+    ],
+    "iot_ota": [
+      "en",
+      "tr"
+    ],
+    "iot_pki": [
+      "en",
+      "tr"
+    ],
+    "iot_provisioning": [
+      "en",
+      "tr"
+    ],
+    "iot_remote_access": [
+      "en",
+      "tr"
+    ],
+    "iot_rpc": [
+      "en",
+      "tr"
+    ],
+    "iot_rules": [
+      "en",
+      "tr"
+    ],
+    "iot_telemetry": [
+      "en",
+      "tr"
+    ],
+    "legal_tr": [
+      "en",
+      "tr"
+    ],
+    "limiter": [
+      "en",
+      "tr"
+    ],
+    "localization": [
+      "de",
+      "en",
+      "ru",
+      "tr",
+      "zh"
+    ],
+    "loyalty": [
+      "en",
+      "tr"
+    ],
+    "mail_inbound": [
+      "en",
+      "tr"
+    ],
+    "manufacturing": [
+      "en",
+      "tr"
+    ],
+    "marketing": [
+      "en",
+      "tr"
+    ],
+    "marketplace": [
+      "en",
+      "tr"
+    ],
+    "marketplace_developer": [
+      "en",
+      "tr"
+    ],
+    "marketplace_review": [
+      "en",
+      "tr"
+    ],
+    "mcp_server": [
+      "en",
+      "tr"
+    ],
+    "media_gallery": [
+      "en",
+      "tr"
+    ],
+    "messaging": [
+      "en",
+      "tr"
+    ],
+    "metering": [
+      "en",
+      "tr"
+    ],
+    "module_lifecycle": [
+      "en",
+      "tr"
+    ],
+    "navigation": [
+      "en",
+      "tr"
+    ],
+    "notification": [
+      "en",
+      "tr"
+    ],
+    "notification_external": [
+      "en",
+      "tr"
+    ],
+    "notification_inapp": [
+      "en",
+      "tr"
+    ],
+    "notification_log": [
+      "en",
+      "tr"
+    ],
+    "notification_mail": [
+      "en",
+      "tr"
+    ],
+    "notification_push": [
+      "en",
+      "tr"
+    ],
+    "notification_sms": [
+      "en",
+      "tr"
+    ],
+    "observability": [
+      "en",
+      "tr"
+    ],
+    "on_call": [
+      "en",
+      "tr"
+    ],
+    "organization": [
+      "en",
+      "tr"
+    ],
+    "payment": [
+      "en",
+      "tr"
+    ],
+    "payment_subscription": [
+      "en",
+      "tr"
+    ],
+    "pipeline": [
+      "en",
+      "tr"
+    ],
+    "plugin_local": [
+      "en",
+      "tr"
+    ],
+    "plugin_runtime": [
+      "en",
+      "tr"
+    ],
+    "pos": [
+      "en",
+      "tr"
+    ],
+    "pricing": [
+      "en",
+      "tr"
+    ],
+    "privacy": [
+      "en",
+      "tr"
+    ],
+    "procurement": [
+      "en",
+      "tr"
+    ],
+    "project": [
+      "en",
+      "tr"
+    ],
+    "quote": [
+      "en",
+      "tr"
+    ],
+    "redirect": [
+      "en",
+      "tr"
+    ],
+    "redis_idempotency": [
+      "en",
+      "tr"
+    ],
+    "scim": [
+      "en",
+      "tr"
+    ],
+    "search": [
+      "en",
+      "tr"
+    ],
+    "seo": [
+      "en",
+      "tr"
+    ],
+    "shell_menu": [
+      "en",
+      "tr"
+    ],
+    "storage": [
+      "en",
+      "tr"
+    ],
+    "support": [
+      "en",
+      "tr"
+    ],
+    "tags": [
+      "en",
+      "tr"
+    ],
+    "tasks": [
+      "en",
+      "tr"
+    ],
+    "tax": [
+      "en",
+      "tr"
+    ],
+    "telemetry": [
+      "en",
+      "tr"
+    ],
+    "telephony": [
+      "en",
+      "tr"
+    ],
+    "tenant": [
+      "en",
+      "tr"
+    ],
+    "tenant_branding": [
+      "en",
+      "tr"
+    ],
+    "tenant_domain": [
+      "en",
+      "tr"
+    ],
+    "tenant_export": [
+      "en",
+      "tr"
+    ],
+    "tenant_invitation": [
+      "en",
+      "tr"
+    ],
+    "tenant_member": [
+      "en",
+      "tr"
+    ],
+    "tenant_session": [
+      "en",
+      "tr"
+    ],
+    "tenant_setting": [
+      "en",
+      "tr"
+    ],
+    "tenant_subscription": [
+      "en",
+      "tr"
+    ],
+    "tenant_usage": [
+      "en",
+      "tr"
+    ],
+    "terms_consent": [
+      "en",
+      "tr"
+    ],
+    "tour": [
+      "en",
+      "tr"
+    ],
+    "translation": [
+      "en",
+      "tr"
+    ],
+    "user": [
+      "en",
+      "tr"
+    ],
+    "user_preferences": [
+      "en",
+      "tr"
+    ],
+    "user_profile": [
+      "en",
+      "tr"
+    ],
+    "user_security": [
+      "en",
+      "tr"
+    ],
+    "user_session": [
+      "en",
+      "tr"
+    ],
+    "user_social_account": [
+      "en",
+      "tr"
+    ],
+    "utm": [
+      "en",
+      "tr"
+    ],
+    "wallet": [
+      "en",
+      "tr"
+    ],
+    "warehouse": [
+      "en",
+      "tr"
+    ],
+    "webhook": [
+      "en",
+      "tr"
+    ]
+  }
+}

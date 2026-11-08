@@ -1,0 +1,225 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "account",
+  "name": "Account",
+  "description": "The signed-in person’s own account surface: the /me API and the \"My Account\" page. Owns no tables — it composes the user_* satellites, sessions, memberships and notifications behind one gateway so `auth` does not have to.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-circle-user",
+  "tags": [
+    "account",
+    "identity",
+    "self-service",
+    "me"
+  ],
+  "priority": 18,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "ip_subnet",
+      "notification_inapp",
+      "tenant",
+      "tenant_domain",
+      "tenant_invitation",
+      "tenant_member",
+      "user",
+      "user_preferences",
+      "user_profile",
+      "user_security",
+      "user_session",
+      "user_social_account"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/account",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "account:profile_tab",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "user.profile.tabs",
+      "description": "A tab on the signed-in person's own profile page (/me): something about the person that another module owns, such as billing details, passkeys, signing certificates or connected messaging channels. Implemented through the CLIENT slot 'user.profile.tabs': a contributor declares slots[] = { slot: 'user.profile.tabs', component, order, scope, props: { label } }. Props received: { tenantId, label }. The label is the tab title and the contribution id is the tab id; a contribution that has nothing to show for this person renders an empty state, not nothing, because the tab is already visible."
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/auth/me/device-info",
+      "handler": "account/server/me-device-info.route"
+    },
+    {
+      "path": "/api/auth/me/notifications/[notificationId]",
+      "handler": "account/server/me-notifications-notification-id.route"
+    },
+    {
+      "path": "/api/auth/me/notifications/read-all",
+      "handler": "account/server/me-notifications-read-all.route"
+    },
+    {
+      "path": "/api/auth/me/notifications",
+      "handler": "account/server/me-notifications.route"
+    },
+    {
+      "path": "/api/auth/me/preferences",
+      "handler": "account/server/me-preferences.route"
+    },
+    {
+      "path": "/api/auth/me/profile",
+      "handler": "account/server/me-profile.route"
+    },
+    {
+      "path": "/api/auth/me/security",
+      "handler": "account/server/me-security.route"
+    },
+    {
+      "path": "/api/auth/me/sign-ins",
+      "handler": "account/server/me-sign-ins.route"
+    },
+    {
+      "path": "/api/auth/me/sessions/[sessionId]",
+      "handler": "account/server/me-sessions-session-id.route"
+    },
+    {
+      "path": "/api/auth/me/sessions",
+      "handler": "account/server/me-sessions.route"
+    },
+    {
+      "path": "/api/auth/me/social-accounts",
+      "handler": "account/server/me-social-accounts.route"
+    },
+    {
+      "path": "/api/auth/me/trusted-devices/[deviceId]",
+      "handler": "account/server/me-trusted-devices-device-id.route"
+    },
+    {
+      "path": "/api/auth/me/trusted-devices",
+      "handler": "account/server/me-trusted-devices.route"
+    },
+    {
+      "path": "/api/auth/me/tenants",
+      "handler": "account/server/me-tenants.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "account.profile.read",
+      "name": "Read own profile",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.profile.update",
+      "name": "Update own profile",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.preferences.read",
+      "name": "Read own preferences",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.preferences.update",
+      "name": "Update own preferences",
+      "group": "Account",
+      "minRole": "USER"
+    },
+    {
+      "id": "account.security.read",
+      "name": "Read own security settings",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.notifications.read",
+      "name": "Read own notifications",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.notifications.manage",
+      "name": "Manage own notifications",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.sign_ins.read",
+      "name": "Read own recent sign-ins",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.sessions.read",
+      "name": "Read own sessions",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.sessions.manage",
+      "name": "Manage own sessions",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.trusted_devices.read",
+      "name": "Read own trusted devices",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.trusted_devices.manage",
+      "name": "Revoke own trusted devices",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.devices.read",
+      "name": "Read own device info",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.tenants.read",
+      "name": "Read own tenant memberships",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.social_accounts.read",
+      "name": "Read own social accounts",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "account.social_accounts.connect",
+      "name": "Connect a social account",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/me",
+      "component": "account/ui/me.page",
+      "permissions": ["account.profile.read"]
+    }
+  ]
+}

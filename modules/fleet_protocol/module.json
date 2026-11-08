@@ -1,0 +1,19 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "fleet_protocol",
+  "name": "Fleet Protocol",
+  "description": "Leaf contract package for the fleet federation (docs/phases/02-fleet): canonical JSON, Ed25519 signing/verification of the message envelope, sealed boxes for PII-capable payload fields, and protocol version negotiation. Pure functions, no I/O, no database.",
+  "version": "0.1.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "roles": ["single", "node", "fleet"],
+  "placement": "core",
+  "icon": "fas fa-signature",
+  "tags": ["fleet", "protocol", "crypto", "leaf"],
+  "priority": 2,
+  "dependencies": {
+    "requires": ["common"]
+  },
+  "author": "Kuray Karaaslan",
+  "license": "Proprietary"
+}

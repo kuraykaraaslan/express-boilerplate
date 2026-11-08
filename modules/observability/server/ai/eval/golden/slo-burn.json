@@ -1,0 +1,74 @@
+{
+  "name": "slo-burn",
+  "description": "A budget-burn alert on the checkout SLO with a recent configuration change",
+  "now": "2026-10-18T12:10:00Z",
+  "sources": {
+    "incident": {
+      "incidentId": "33333333-3333-4333-8333-333333333333",
+      "title": "Checkout availability budget burning",
+      "severity": "MAJOR",
+      "status": "OPEN",
+      "startedAt": "2026-10-18T12:00:00Z",
+      "reason": null,
+      "monitorId": null,
+      "alertGroupKey": "g1"
+    },
+    "alerts": [
+      {
+        "alertId": "44444444-4444-4444-8444-444444444445",
+        "title": "SLOBurnRate",
+        "severity": "CRITICAL",
+        "status": "FIRING",
+        "count": 4,
+        "startsAt": "2026-10-18T12:00:30Z",
+        "labels": {
+          "service": "checkout"
+        },
+        "annotations": {
+          "summary": "5xx above 5%"
+        }
+      }
+    ],
+    "changes": [
+      {
+        "at": "2026-10-18T11:50:00Z",
+        "kind": "config",
+        "title": "feature flag checkout.v2 enabled",
+        "actor": "ci",
+        "ref": null,
+        "source": "audit_log"
+      }
+    ],
+    "telemetry": null,
+    "slos": [
+      {
+        "sloId": "66666666-6666-4666-8666-666666666666",
+        "name": "checkout availability",
+        "state": "LOW",
+        "currentBurn": 3.2,
+        "remainingFraction": 0.12
+      }
+    ],
+    "similar": []
+  },
+  "expect": {
+    "bundleKinds": [
+      "incident",
+      "alert",
+      "change",
+      "slo"
+    ],
+    "unavailable": [
+      "telemetry"
+    ],
+    "findings": [
+      {
+        "title": "recent change",
+        "citesKinds": [
+          "change"
+        ]
+      }
+    ],
+    "minSummary": 1
+  }
+}

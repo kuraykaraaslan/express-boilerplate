@@ -1,0 +1,256 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_invitation",
+  "name": "Tenant Invitation",
+  "description": "Email invitation flow: create / accept / decline / revoke. Bound to tenant_member on acceptance.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-envelope-open",
+  "tags": [
+    "tenant",
+    "onboarding"
+  ],
+  "priority": 22,
+  "dependencies": {
+    "requires": [
+      "db",
+      "env",
+      "feature_gate",
+      "logger",
+      "notification",
+      "notification_mail",
+      "tenant",
+      "tenant_branding",
+      "tenant_member",
+      "tenant_setting",
+      "user"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_invitation",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/invitations",
+      "component": "tenant_invitation/ui/invitations.page",
+      "permissions": ["tenant_invitation.invitations.read"],
+      "navHref": "/admin/members",
+      "title": "Invitations",
+      "titleKey": "tenant_invitation.menu.invitations"
+    },
+    {
+      "path": "/admin/invitations/reports",
+      "component": "tenant_invitation/ui/invitations-report.page",
+      "permissions": ["tenant_invitation.invitations.read"],
+      "navHref": "/admin/members",
+      "title": "Invitations",
+      "titleKey": "tenant_invitation.menu.invitations"
+    },
+    {
+      "path": "/admin/invitations/settings",
+      "component": "tenant_invitation/ui/invitations-settings.page",
+      "permissions": ["tenant_invitation.invitations.read", "tenant_setting.config.read"],
+      "navHref": "/admin/members",
+      "title": "Invitations",
+      "titleKey": "tenant_invitation.menu.invitations"
+    },
+    {
+      "path": "/admin/invitations/[invitationId]",
+      "component": "tenant_invitation/ui/invitations-invitation-id.page",
+      "permissions": ["tenant_invitation.invitations.read"],
+      "navHref": "/admin/members",
+      "title": "Invitations",
+      "titleKey": "tenant_invitation.menu.invitations"
+    },
+    {
+      "path": "/auth/invitation/accept",
+      "component": "tenant_invitation/ui/invitation-decision.page"
+    },
+    {
+      "path": "/auth/invitation/decline",
+      "component": "tenant_invitation/ui/invitation-decision.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/invitations/report",
+      "handler": "tenant_invitation/server/invitations-report.route"
+    },
+    {
+      "path": "/api/invitations/accept",
+      "handler": "tenant_invitation/server/invitations-accept.route"
+    },
+    {
+      "path": "/api/invitations/decline",
+      "handler": "tenant_invitation/server/invitations-decline.route"
+    },
+    {
+      "path": "/api/invitations",
+      "handler": "tenant_invitation/server/invitations.route"
+    },
+    {
+      "path": "/api/invitations/[invitationId]/remind",
+      "handler": "tenant_invitation/server/invitations-invitation-id-remind.route"
+    },
+    {
+      "path": "/api/invitations/[invitationId]/resend",
+      "handler": "tenant_invitation/server/invitations-invitation-id-resend.route"
+    },
+    {
+      "path": "/api/invitations/[invitationId]",
+      "handler": "tenant_invitation/server/invitations-invitation-id.route"
+    },
+    {
+      "path": "/api/invitations/[invitationId]/accept",
+      "handler": "tenant_invitation/server/invitations-invitation-id-accept.route"
+    },
+    {
+      "path": "/api/invitations/[invitationId]/decline",
+      "handler": "tenant_invitation/server/invitations-invitation-id-decline.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant_invitation.invitations.read",
+      "name": "View invitations",
+      "group": "Invitations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_invitation.invitations.invite",
+      "name": "Send invitations",
+      "group": "Invitations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_invitation.invitations.revoke",
+      "name": "Revoke invitations",
+      "group": "Invitations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_invitation.invitations.resend",
+      "name": "Resend invitations",
+      "group": "Invitations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_invitation.invitations.reports",
+      "name": "View invitation reports",
+      "group": "Invitations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_invitation.invitations.accept",
+      "name": "Accept invitations",
+      "group": "Invitations",
+      "minRole": "USER"
+    },
+    {
+      "id": "tenant_invitation.invitations.decline",
+      "name": "Decline invitations",
+      "group": "Invitations",
+      "minRole": "USER"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "tenant_member.members.drawers",
+      "component": "tenant_invitation/ui/invitations.drawer",
+      "order": 10,
+      "scope": "tenant",
+      "permissions": ["tenant_invitation.invitations.read"],
+      "props": {
+        "drawerId": "invitations",
+        "label": "Invitations",
+        "labelKey": "tenant_invitation.drawer.invitations"
+      }
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_member:seat_reservation",
+      "key": "pending-invitations",
+      "export": "tenant_invitation/server/tenant_invitation.seat-reservation",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Pending invitations"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "invitation.sent",
+      "export": "tenant_invitation/server/tenant_invitation.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Invitations",
+        "label": "Invitation sent",
+        "description": "An invitation was sent to an email."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "invitation.accepted",
+      "export": "tenant_invitation/server/tenant_invitation.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Invitations",
+        "label": "Invitation accepted",
+        "description": "An invitation was accepted and a member created."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "invitation.declined",
+      "export": "tenant_invitation/server/tenant_invitation.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Invitations",
+        "label": "Invitation declined",
+        "description": "An invitation was declined."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "invitation.revoked",
+      "export": "tenant_invitation/server/tenant_invitation.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Invitations",
+        "label": "Invitation revoked",
+        "description": "A pending invitation was revoked by an admin."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_invitation/server/tenant_invitation.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 02.6: the invitation path of a sign-up as signal kinds: an invitation accepted (by token, by id or automatically at registration) and an unknown invitation token refused (tallied). Emitted by this module (it writes no audit row); read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_invitation: invitations accepted, unknown invitation tokens (phase 55 02.6)",
+        "ids": [
+          "tenant_invitation.accepted",
+          "tenant_invitation.token_refused"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "tenant_invitation/server/tenant_invitation.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55: the action the firewall's responder may take through this module (revoke the pending invitations a person sent; Suggest-only, not reversible). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "tenant_invitation: revoke the pending invitations a person sent (phase 55 coverage)",
+        "ids": [
+          "tenant_invitation.revoke_sent"
+        ]
+      }
+    }
+  ]
+}

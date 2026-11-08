@@ -1,0 +1,260 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "module_lifecycle",
+  "name": "Module Lifecycle",
+  "description": "The single door for installing, activating, deactivating and purging a built-in module for a tenant: the install ledger, the one requires-closure, dependency guards, lifecycle hooks and the data purge. The marketplace storefront, plan changes and tenant provisioning all call it; none of them re-implements it. Whether a tenant may have a module is asked through `module_lifecycle:entitlement`, so this module never imports a billing rail.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-power-off",
+  "tags": [
+    "platform",
+    "modules",
+    "lifecycle"
+  ],
+  "priority": 6,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "common",
+      "db",
+      "feature_gate",
+      "logger",
+      "tenant_setting"
+    ],
+    "optional": [
+      "notification"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/module_lifecycle",
+  "license": "Proprietary",
+  "settings": {
+    "keys": "MODULE_LIFECYCLE_KEYS"
+  },
+  "settingKeys": [
+    "MODULE_LIFECYCLE_KEYS"
+  ],
+  "menu": [
+    {
+      "id": "platform-modules",
+      "label": "Modules",
+      "href": "/admin/platform/modules",
+      "placement": "root",
+      "icon": "fas fa-cubes",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 32,
+      "scope": "system",
+      "permissions": [
+        "module_lifecycle.platform.manage"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/modules/settings",
+      "placement": "root",
+      "component": "module_lifecycle/ui/module-lifecycle-settings.page",
+      "permissions": ["module_lifecycle.platform.manage", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/admin/platform/modules",
+      "placement": "root",
+      "component": "module_lifecycle/ui/platform-modules.page"
+    },
+    {
+      "path": "/admin/tenants/[targetTenantId]/modules",
+      "placement": "root",
+      "component": "module_lifecycle/ui/tenant-modules.page",
+      "permissions": ["module_lifecycle.tenant_modules.read"]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/marketplace/[moduleId]",
+      "handler": "module_lifecycle/server/module-lifecycle-item.route"
+    },
+    {
+      "path": "/api/marketplace/[moduleId]/install",
+      "handler": "module_lifecycle/server/module-lifecycle-install.route"
+    },
+    {
+      "path": "/api/module-lifecycle/availability",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-availability.route"
+    },
+    {
+      "path": "/api/module-lifecycle/availability/[moduleId]",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-availability-module-id.route"
+    },
+    {
+      "path": "/api/module-lifecycle/default-modules",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-default-modules.route"
+    },
+    {
+      "path": "/api/module-lifecycle/tenants/[targetTenantId]/modules",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-tenants-target-tenant-id-modules.route"
+    },
+    {
+      "path": "/api/module-lifecycle/tenants/[targetTenantId]/default-modules",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-tenants-target-tenant-id-default-modules.route"
+    },
+    {
+      "path": "/api/module-lifecycle/tenants/[targetTenantId]/modules/[moduleId]",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-tenants-target-tenant-id-modules-module-id.route"
+    },
+    {
+      "path": "/api/module-lifecycle/tenants/[targetTenantId]/modules/[moduleId]/policy",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-tenants-target-tenant-id-modules-module-id-policy.route"
+    },
+    {
+      "path": "/api/module-lifecycle/bans",
+      "placement": "root",
+      "handler": "module_lifecycle/server/module-lifecycle-bans.route"
+    },
+    {
+      "path": "/api/marketplace/references",
+      "handler": "module_lifecycle/server/module-lifecycle-references.route"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "module_lifecycle:entitlement",
+      "kind": "hook",
+      "description": "Asked before a module is installed or re-activated for a tenant, and when a billing rail reconciles after an entitlement is taken away: may this tenant have this module? Default export: (tenantId, moduleId) => Promise<{ entitled: boolean, message?: string }>. A contributor returns entitled:true for anything it has no objection to, including every module while its own gate (monetization) is off; a contributor that only caps (source 'ceiling', the platform license edition of fleet_license) is left out when deciding whether the answer is 'plan'; the first objection wins and its message reaches the user as a 403. Declared so module_lifecycle never imports tenant_subscription — the rail needs this module back to close modules on a downgrade, so the arrow can only point inward. With ZERO contributors every module is allowed (standalone installability). FAILS CLOSED: a contributor that throws is 'cannot answer', not 'entitled', and denies with a 503. Contributions are NOT filtered by the tenant's enabled modules — a tenant that switches the billing rail off must not bypass it.",
+      "pattern": "guard",
+      "gate": "platform"
+    },
+    {
+      "id": "module_lifecycle:reference_holder",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "data",
+      "contract": "module_lifecycle/server/module-lifecycle.references#ReferenceHolder",
+      "description": "A host that stores keys of other modules' contributions in its own data (an automation flow's node types, a board's widgets, a page's blocks, a setting naming a provider) answers for them here (docs/phases/37-extensions/06). Default export: ReferenceHolder { listReferences(tenantId, moduleId) => { label, count, sample? }, sweep(tenantId, moduleId) => { removed } }. listReferences feeds the impact preview before a deactivation or uninstall and the orphan report; sweep runs only when the module's data is purged, never on disable. A data-gate point: a holder answers whatever its own state."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "announcement:audience_facet",
+      "key": "edition",
+      "export": "module_lifecycle/server/module-lifecycle.announcement-edition-facet",
+      "order": 20,
+      "scope": "system",
+      "metadata": {
+        "label": "Edition"
+      }
+    },
+    {
+      "point": "tenant:default_modules",
+      "key": "module_lifecycle",
+      "export": "module_lifecycle/server/module-lifecycle.tenant-default-modules",
+      "order": 50,
+      "scope": "both",
+      "metadata": {
+        "label": "Default modules"
+      }
+    },
+    {
+      "point": "common:contributor_state",
+      "key": "install_ledger",
+      "export": "module_lifecycle/server/module-lifecycle.contributor-state",
+      "scope": "both",
+      "description": "Modules uninstalled inside their restore window are `uninstalled`, with the date they can be restored until."
+    },
+    {
+      "point": "common:boot_task",
+      "key": "module_lifecycle_purge",
+      "export": "module_lifecycle/server/module-lifecycle.purge.job",
+      "order": 2175,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleModuleLifecyclePurgeJob",
+        "name": "module-lifecycle-purge"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "module_lifecycle/server/module_lifecycle.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it writes: modules installed, turned on and off, uninstalled, restored and deleted, a tenant's module policy, the platform's module availability and bans), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "module_lifecycle: module installs, activation, removal, policy, availability and bans (phase 55 coverage)",
+        "ids": [
+          "marketplace.install",
+          "marketplace.activate",
+          "marketplace.deactivate",
+          "marketplace.uninstall",
+          "marketplace.restore",
+          "marketplace.delete",
+          "module.policy.block",
+          "module.policy.unblock",
+          "module.availability.changed",
+          "module_lifecycle.module.banned",
+          "module_lifecycle.module.ban_lifted"
+        ]
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "id": "marketplace.modules.read",
+      "name": "Browse module catalog",
+      "group": "Marketplace",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "marketplace.modules.activate",
+      "name": "Activate / deactivate installed module",
+      "group": "Marketplace",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "marketplace.modules.install",
+      "name": "Install module into tenant",
+      "group": "Marketplace",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "marketplace.modules.uninstall",
+      "name": "Uninstall module and purge its data",
+      "group": "Marketplace",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "module_lifecycle.platform.manage",
+      "name": "Manage module availability and the default-module list",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "module_lifecycle.tenant_modules.read",
+      "name": "View a tenant's modules (operator console)",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "module_lifecycle.tenant_modules.manage",
+      "name": "Install, switch, uninstall and block modules for a tenant (operator console)",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "module_lifecycle.bans.manage",
+      "name": "Ban modules platform-wide",
+      "description": "Root tenant only: switch a built-in module off for every tenant at once (data kept), and lift the ban.",
+      "group": "Marketplace",
+      "minRole": "ADMIN"
+    }
+  ]
+}

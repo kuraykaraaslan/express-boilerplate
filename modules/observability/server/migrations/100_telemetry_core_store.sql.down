@@ -1,0 +1,23 @@
+-- DOWN for 100_telemetry_core_store.sql: observability on the Core telemetry store (docs/phases/42-telemetry/04).
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: the location of each browser sample (`monitor_check_details.locationKey`) and the OTel series catalogue (`otel_series`); the
+-- series' samples stay in the Core telemetry store's `otel` lane, but no longer resolve to a metric name. Run it by hand, inside one
+-- transaction, with the target schema ALONE on the search path, after a backup and with the observability workers stopped; undo the
+-- migrations newest first (docs/guides/observability/rollback.md).
+
+DROP INDEX IF EXISTS "idx_otel_series_tenant_seen";
+DROP INDEX IF EXISTS "idx_otel_series_tenant_metric";
+DROP TABLE IF EXISTS "otel_series";
+DROP INDEX IF EXISTS "idx_monitor_check_details_location";
+ALTER TABLE IF EXISTS "monitor_check_details" DROP COLUMN IF EXISTS "locationKey";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:100_telemetry_core_store.sql';
+  END IF;
+END $$;

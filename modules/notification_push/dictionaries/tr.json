@@ -1,0 +1,20 @@
+{
+  "notification_push.permission.notification_push_settings_read.name": "Anlık bildirim ayarlarını görüntüle",
+  "notification_push.permission.notification_push_settings_update.name": "Anlık bildirim ayarlarını değiştir",
+  "notification_push.permission.notification_push_subscription_subscribe.name": "Kendi cihazını anlık bildirimlere abone et",
+  "notification_push.permission.notification_push_subscription_unsubscribe.name": "Kendi cihazının anlık bildirim aboneliğini kaldır",
+  "notification_push.permissionGroup.notifications": "Bildirimler",
+  "notification_push.settings.group.delivery": "Teslimat",
+  "notification_push.settings.group.devices": "Cihazlar",
+  "notification_push.settings.notificationsCrumb": "Bildirimler",
+  "notification_push.settings.pushEnabled.description": "Bu çalışma alanının tarayıcılarına ve uygulama kurulumlarına anlık bildirim gönder. Kapalıyken hiçbir anlık bildirim gönderilmez; üyeler kayıtlı cihazlarını korur.",
+  "notification_push.settings.pushEnabled.label": "Anlık bildirimler",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.description": "Bir üyenin anlık bildirim için kaydedebileceği tarayıcı ve uygulama kurulumu sayısı. Sınırı aşan yeni bir cihaz reddedilir. 1 ile 100 arası.",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.label": "Üye başına cihaz",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.placeholder": "10",
+  "notification_push.settings.pushProvider.description": "Birden fazla kuruluysa tarayıcı bildirimlerinin gönderildiği anlık bildirim eklentisinin anahtarı. Kurulu değilse yapılandırılmış ilk eklenti kullanılır. Yerel uygulama bildirimleri eklenti kullanmaz.",
+  "notification_push.settings.pushProvider.label": "Tarayıcı anlık bildirim eklentisi",
+  "notification_push.settings.pushProvider.placeholder": "webpush",
+  "notification_push.settings.subtitle": "Bir üyenin kaç cihaz kaydedebileceği ve tarayıcı bildirimlerini hangi eklentinin gönderdiği",
+  "notification_push.settings.title": "Anlık Bildirim Ayarları"
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "localization",
+  "name": "Localization",
+  "description": "Locale reference DATA — ISO languages, countries and currencies with their relationships (country ↔ languages ↔ currency), timezones, date/time formats, flag artwork, and the flag-aware pickers over them. Single source of truth, entering through one swappable data seam (server/localization.source). The translation runtime is a separate module: `i18n`.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-globe",
+  "tags": [
+    "infrastructure",
+    "i18n",
+    "reference",
+    "data",
+    "leaf"
+  ],
+  "priority": 1,
+  "dependencies": {
+    "requires": [
+      "i18n"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/localization",
+  "license": "Proprietary"
+}

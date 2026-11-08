@@ -1,0 +1,157 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "common",
+  "name": "Common Primitives",
+  "description": "Dependency-free leaf module loaded by every other module: AppError + ErrorCode enum (with retryable flag, statusCodeFor/isRetryable helpers) plus shared locale, country, currency, timezone, Money, pagination and log-context primitives.",
+  "version": "1.1.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-cube",
+  "tags": [
+    "infrastructure",
+    "core",
+    "leaf",
+    "i18n"
+  ],
+  "priority": 1,
+  "dependencies": {
+    "requires": [
+      "tenant_branding"
+    ]
+  },
+  "extensionPoints": [
+    {
+      "id": "external:contributions",
+      "kind": "hook",
+      "pattern": "aggregate",
+      "description": "Runtime-discovered contribution sources (e.g. sandboxed community plugins). A contributor default-exports a source fn (tenantId, point) => ExternalContribution[]; hosts read it via listExternalContributions()."
+    },
+    {
+      "id": "common:price_resolver",
+      "kind": "provider",
+      "pattern": "first",
+      "description": "Prices a basket of references against price lists and rules, for modules that show prices without owning price lists (the shop catalog). Default export: an object with resolve(tenantId, { currency, customer?, lines }) returning [{ reference, unitPriceMinor, currency }] (the shape is PriceResolver in commerce_catalog/server/commerce_catalog.pricing.service.ts). The first contribution by order that is enabled for the tenant is used; with none, prices are the base prices. Hosted by `common` so that the module that shows prices and the one that resolves them can contribute to each other without a contribution cycle.",
+      "consumedBy": "commerce_catalog"
+    },
+    {
+      "id": "common:usage_meter",
+      "kind": "provider",
+      "pattern": "first",
+      "timeoutMs": 30000,
+      "contract": "common/server/common.usage-meter#UsageMeterSink",
+      "description": "Where a module records metered usage without owning the metering store. Default export: UsageMeterSink { ensureMeter(tenantId, { key, name, unit }), record(tenantId, { meterKey, quantity, idempotencyKey?, metadata? }) }. The first contribution by order that is enabled for the tenant is used; with none, usage is not recorded (the callers are best-effort by design). Read by common/server/common.usage-meter (loadUsageMeterSink) for observability's probe, alert, telemetry and query meters and on_call's page, SMS and voice meters. The 30 s budget covers the cold load of the metering service in a fresh process. Hosted by `common` so that metering (Enterprise) can serve Core callers with one contribution and no contribution cycle.",
+      "consumedBy": "observability"
+    },
+    {
+      "id": "common:holiday_lookup",
+      "kind": "provider",
+      "pattern": "first",
+      "contract": "common/server/common.holiday-lookup#HolidayLookup",
+      "description": "Which days are public holidays for a tenant, for modules that schedule around holidays without owning a calendar (on_call's holiday-aware rotation restrictions). Default export: HolidayLookup { datesBetween(tenantId, from, to) => 'YYYY-MM-DD'[] } (inclusive, calendar days in the tenant's holiday calendars). The first contribution by order that is enabled for the tenant is used; with none, no day is a holiday. Hosted by `common` so that calendar can serve on_call without a contribution cycle (on_call contributes to calendar:feed).",
+      "consumedBy": "on_call"
+    },
+    {
+      "id": "common:member_lookup",
+      "kind": "provider",
+      "pattern": "first",
+      "contract": "common/server/common.member-lookup#MemberLookup",
+      "description": "Who a bare user id is, for modules that store one without owning people (loyalty's accounts list: find a member by name or e-mail, show the member's name). Default export: MemberLookup { search(tenantId, text, { limit }) => MemberRef[]; resolve(tenantId, userIds) => MemberRef[] }, MemberRef = { userId, name | null, email | null }. Only the tenant's ACTIVE members, never another tenant's people; search answers at most 25, resolve takes at most 200 ids. Read through common/server/common.member-lookup (searchMembers, resolveMembers), which answer nobody when no contribution is active or it fails, so the consumer shows the bare id. tenant_member contributes it. Hosted by `common` so a consumer of any edition reads members without requiring tenant_member or user. The e-mail is shown only behind an admin-level permission."
+    },
+    {
+      "id": "common:scripted_call",
+      "kind": "provider",
+      "pattern": "first",
+      "timeoutMs": 15000,
+      "contract": "common/server/common.scripted-call#ScriptedCallApi",
+      "description": "An automated phone call that reads a text aloud and waits for a key press, for modules that page people by voice without owning a telephony stack. Default export: ScriptedCallApi { available(tenantId), place({ tenantId, to, text, handler: { key, token }, party: { type, id }, idempotencyKey? }) } (telephony's scripted-call service). The first contribution by order that is enabled for the tenant is used; with none, the voice channel is unavailable. Hosted by `common` so that telephony can serve on_call without a contribution cycle (on_call contributes to telephony:scripted_call_handler).",
+      "consumedBy": "on_call"
+    },
+    {
+      "id": "common:tenant_origin",
+      "kind": "provider",
+      "pattern": "first",
+      "gate": "platform",
+      "description": "The tenant's own origin (https://acme.example.com) for links that leave the app: mails, push payloads, webhook bodies. Default export: TenantOriginSource { origin(tenantId) => string | null }, null when the tenant has no origin that serves (path mode, no live domain). Read by common/server/tenant-url (absoluteTenantUrl, tenantOrigin), which falls back to the platform host's /tenant/{id} form (platformTenantUrl). Platform gate (since 2026-10-17, was behaviour): every tenant keeps a free <slug>.<wildcard> subdomain, which is the platform's routing of the tenant and not a feature it switches on, so tenant_domain answers for every tenant whose module is in the build and not banned or retired. Which domain it answers (a custom domain only while it is ACTIVE and the plan includes custom domains, otherwise the free subdomain) is tenant_domain's decision, not the gate's. Hosted by `common` so every module that mails a link builds it without importing tenant_domain, which requires most of them back.",
+      "contract": "common/server/tenant-url#TenantOriginSource"
+    },
+    {
+      "id": "common:provider_scope",
+      "kind": "provider",
+      "pattern": "first",
+      "gate": "platform",
+      "description": "Whose installed plugin providers serve a tenant at a host point (docs/phases/53-setting-levels, 53.4): 'own' (the tenant's installs and secrets), 'root' (the root tenant's installs, run in the tenant's scope with the root tenant's secrets and plugin config) or 'own_then_root' (the tenant's own when one is configured, else the root tenant's). Default export: ProviderScopeSource { scope(tenantId, point) => ProviderScope | null }, null for a point no setting level covers. Read by common/server/external-extensions (listExternalContributions) only for points a module's setting level lists; no answer or a failing one is 'own', which never hands out the root tenant's secrets. Platform gate: the level is the operator's choice, not a feature the tenant switches. Hosted by `common` because the level lives in tenant_setting, which imports `common`.",
+      "contract": "common/server/external-extensions#ProviderScopeSource"
+    },
+    {
+      "id": "common:boot_task",
+      "kind": "provider",
+      "pattern": "fanout",
+      "description": "A step a process runs at boot: registering an in-process hook or an approval decision handler, or scheduling a recurring job and starting its queue consumer. Contribute with `key` (the task name with underscores), `export` (the file that holds the function), `order` (the sequence across modules), and `metadata`: `phase` ('guard' runs first in every process and is a precondition of serving: a guard that throws stops the process before anything else starts; 'runtime' always runs, right after the guards, for in-process hooks such as the server-message overlay; 'approval' always runs; 'consumer' starts a delivery queue consumer and always runs; 'scheduler' runs only where ENABLE_BACKGROUND_JOBS=true), `fn` (the exported function to call, with no arguments), `name` (the name used in boot logs) and, for a scheduler, optionally `parallel: true`: by default a scheduler task is single-owner work and runs in exactly one process of the cluster (the holder of the `proc:leader:<kind>:schedulers` lock, docs/phases/14-docker/07 task 2) when the process passes a leader runner; `parallel` tasks (a queue consumer, a host that shares its work through leases) run in every process. Each task runs in its own try, so a task that throws is logged and the rest still start. Read by common/server/boot-tasks.ts; there is no list of modules anywhere in the boot path."
+    },
+    {
+      "id": "common:contributor_state",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "Why a contributing module may not run for a tenant (docs/phases/37-extensions/02). Default export: ContributorStateSource { states(tenantId) => Promise<StateVerdict[]> }, listing only the modules the source objects to, each with a state (disabled, uninstalled, unentitled, blocked, retired, banned, quarantined, missing) and a reason an admin can read. Read by common/server/extensions with no gating of its own; the most severe state per module wins. A failing source falls back to its last good answer, else it is ignored and logged.",
+      "contract": "common/server/extensions/contributor-state#ContributorStateSource"
+    },
+    {
+      "id": "common:entity_panel",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "common.entity.panels",
+      "description": "A panel on a record's page that another module adds: the activity log, tags, tasks, a gallery, SEO. Implemented through the CLIENT slot 'common.entity.panels': a contributor declares slots[] = { slot: 'common.entity.panels', component, order, props: { panelId, region: 'main' | 'side' | 'tab', entityTypes: ['*'] or the subject types it serves, title, titleKey } }. The record's page renders <EntityPanels region> and useEntityPanelTabs() (common/ui/entity-panels.component) and may exclude a panel id or pass it page props; a panel receives { tenantId, entityType, entityId } plus those. The page imports and requires none of the contributors (EXT-14), and a panel whose module is off leaves no frame."
+    }
+  ],
+  "exports": {
+    "AppError": "app-error.ts",
+    "ErrorCode": "app-error.ts",
+    "toErrorResponse": "app-error.ts",
+    "statusCodeFor": "app-error.ts",
+    "isRetryable": "app-error.ts",
+    "LocaleCodeEnum": "common.locale.ts",
+    "LocaleCode": "common.locale.ts",
+    "DEFAULT_LOCALE": "common.locale.ts",
+    "DEFAULT_LANGUAGE": "common.locale.ts",
+    "LanguageCodeEnum": "common.locale.ts",
+    "LanguageCode": "common.locale.ts",
+    "LANGUAGES": "common.locale.ts",
+    "isLanguageCode": "common.locale.ts",
+    "LOCALES": "common.locale.ts",
+    "isLocaleCode": "common.locale.ts",
+    "parseLocale": "common.locale.ts",
+    "CountryCodeEnum": "common.country.ts",
+    "CountryCode": "common.country.ts",
+    "CountryCodeInput": "common.country.ts",
+    "COUNTRIES": "common.country.ts",
+    "isCountryCode": "common.country.ts",
+    "CurrencyCodeEnum": "common.currency.ts",
+    "CurrencyCode": "common.currency.ts",
+    "CurrencyCodeInput": "common.currency.ts",
+    "DEFAULT_CURRENCY": "common.currency.ts",
+    "isCurrencyCode": "common.currency.ts",
+    "TIMEZONES": "common.timezone.ts",
+    "isTimezone": "common.timezone.ts",
+    "TimezoneSchema": "common.timezone.ts",
+    "Timezone": "common.timezone.ts",
+    "DEFAULT_TIMEZONE": "common.timezone.ts",
+    "MoneySchema": "common.money.ts",
+    "Money": "common.money.ts",
+    "money": "common.money.ts",
+    "formatMoney": "common.money.ts",
+    "addMoney": "common.money.ts",
+    "subtractMoney": "common.money.ts",
+    "multiplyMoney": "common.money.ts",
+    "PaginatedResult": "common.pagination.ts",
+    "CursorPage": "common.pagination.ts",
+    "PaginationDTO": "common.pagination.ts",
+    "PaginationInput": "common.pagination.ts",
+    "paginate": "common.pagination.ts",
+    "LogContext": "common.log-context.ts"
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/common",
+  "license": "Proprietary"
+}

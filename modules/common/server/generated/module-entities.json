@@ -1,0 +1,3467 @@
+{
+  "generatedAt": "2026-11-08T08:36:11.008Z",
+  "modules": {
+    "auth_abac": [
+      {
+        "tableName": "abac_policies",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "abac_scope_versions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "privacy": [
+      {
+        "tableName": "account_deletions",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "privacy_requests",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "privacy_request_actions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "privacy_retention_policies",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "loyalty": [
+      {
+        "tableName": "gamification_achievement_rules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gamification_badges",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gamification_leaderboards",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gamification_leaderboard_optins",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gamification_leaderboard_snapshots",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "loyalty_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "loyalty_tiers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "loyalty_transactions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gamification_user_badges",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "activity": [
+      {
+        "tableName": "activities",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "terms_consent": [
+      {
+        "tableName": "agreements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "agreement_acceptances",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "agreement_versions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "consent_records",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "ai_agent": [
+      {
+        "tableName": "ai_agent_action_settings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_agent_runs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "ai_firewall": [
+      {
+        "tableName": "ai_firewall_actions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_firewall_baselines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_firewall_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_firewall_incidents",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_firewall_labels",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ai_firewall_model_states",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "ai": [
+      {
+        "tableName": "ai_usage_logs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "observability": [
+      {
+        "tableName": "alerts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "alert_dependencies",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "alert_integrations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "alert_routes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "alert_silences",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "alert_silence_templates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "chat_destinations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incidents",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_ai_notes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_embeddings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_participants",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_postmortems",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_updates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "incident_update_templates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "monitors",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "monitor_checks",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "monitor_check_daily",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "monitor_check_daily_location",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "monitor_check_details",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "observability_reconciliations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "otel_series",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "probe_enrolments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "probe_leases",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "probe_locations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "probe_runners",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "slos",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_automations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_components",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_component_groups",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_component_monitors",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_pages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_subscribers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "status_translations",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "analytics": [
+      {
+        "tableName": "analytics_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "analytics_event_categories",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "announcement": [
+      {
+        "tableName": "announcements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "announcement_receipts",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "api_key": [
+      {
+        "tableName": "api_keys",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "api_key_scope_definitions",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "bookings": [
+      {
+        "tableName": "appointments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "appointment_types",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "bookable_resources",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "approval": [
+      {
+        "tableName": "approval_chain_heads",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "approval_chain_steps",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "approval_queue_items",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "asset": [
+      {
+        "tableName": "assets",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_categories",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_maintenance_records",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_meter_definitions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_meter_marks",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "asset_usage_rules",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_attendance": [
+      {
+        "tableName": "hr_attendance_corrections",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_attendance_records",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_overtime_consents",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_overtime_rules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_work_entries",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "audit_log": [
+      {
+        "tableName": "audit_actor_identities",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_chain_anchors",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_chain_checkpoints",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_chain_imports",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_chain_policy",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_chain_verify_runs",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "audit_legacy_chain_heads",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "audit_logs",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "automation": [
+      {
+        "tableName": "automation_configs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "automation_flows",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "automation_flow_versions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "automation_root_bindings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "automation_tenant_state",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "bank": [
+      {
+        "tableName": "bank_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "bank_statements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "bank_transactions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "blog": [
+      {
+        "tableName": "blog_categories",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "blog_posts",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_branding": [
+      {
+        "tableName": "branding_presets",
+        "schema": "tenant",
+        "hasTenantId": false
+      }
+    ],
+    "calendar": [
+      {
+        "tableName": "calendar_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_reservations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_holiday_calendars",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_public_holidays",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_schedule_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_schedules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "calendar_schedule_days",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_recruitment": [
+      {
+        "tableName": "candidates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "interviews",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "job_applications",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "job_postings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "job_requisitions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_shipping": [
+      {
+        "tableName": "fulfillment_carriers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "shipping_methods",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "shipping_rates",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_cart": [
+      {
+        "tableName": "carts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "cart_items",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "comments": [
+      {
+        "tableName": "comments",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "marketplace_developer": [
+      {
+        "tableName": "marketplace_community_installs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_community_reports",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_community_reviews",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_listing_testers",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_listing_transfers",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_purchases",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_categories",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_listings",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_listing_versions",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_publishers",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_publisher_payout_profiles",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_review_appeals",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_vendor_statements",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "marketplace": [
+      {
+        "tableName": "marketplace_community_review_votes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_community_wishlist",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketplace_feed_releases",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "marketplace_upstream_feeds",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "contact": [
+      {
+        "tableName": "contact_companies",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_contacts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_addresses",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_identities",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_merges",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_outbound_messages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contact_suppressions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "integrations_hub": [
+      {
+        "tableName": "connected_apps",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "connectors",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "integration_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "integration_oauth_tokens",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "contract": [
+      {
+        "tableName": "contracts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "contract_amendments",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "messaging": [
+      {
+        "tableName": "conversations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "conversation_participants",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "messages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "message_reports",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "organization": [
+      {
+        "tableName": "organization_cost_centers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "organization_legal_entities",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "organization_teams",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "organization_team_members",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "organization_sites",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "coupon": [
+      {
+        "tableName": "coupons",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "coupon_redemptions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "crm_assignment": [
+      {
+        "tableName": "crm_assignment_capacities",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_assignment_rules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_assignment_runs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "crm_lead": [
+      {
+        "tableName": "crm_leads",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_merges",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_targets",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "crm_opportunity": [
+      {
+        "tableName": "crm_opportunities",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "dashboard": [
+      {
+        "tableName": "dashboard_boards",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_board_snapshots",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_card_overlays",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_display_links",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_scene_bindings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_user_homes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_widgets",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_widget_favorites",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_widget_instances",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dashboard_widget_versions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "dashboard_scada": [
+      {
+        "tableName": "dashboard_scada_diagrams",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "dashboard_viewer": [
+      {
+        "tableName": "dashboard_viewer_designs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr": [
+      {
+        "tableName": "departments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "employees",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_bank_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_change_requests",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_education",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_family_members",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_imports",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "employee_movements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employee_personal",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_employment_types",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_job_grades",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_job_positions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "document": [
+      {
+        "tableName": "document_requirements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "document_shares",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "document_types",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "document_versions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "documents",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "drive": [
+      {
+        "tableName": "drive_files",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "drive_public_links",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "drive_shares",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "dynamic_page": [
+      {
+        "tableName": "dynamic_collections",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_collection_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_pages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_page_blocks",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_page_collection_bindings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_page_status_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_page_translations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_page_versions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_sites",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_symbols",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "dynamic_themes",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "enrichment": [
+      {
+        "tableName": "enrichment_lookups",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "e_signature": [
+      {
+        "tableName": "esignature_archives",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "trust_list_entries",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "events": [
+      {
+        "tableName": "events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "event_registrations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "event_ticket_types",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "feature_flags": [
+      {
+        "tableName": "experiments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "experiment_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "experiment_variants",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "feature_flags",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "feature_flag_overrides",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "field_service": [
+      {
+        "tableName": "field_service_orders",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "accounting": [
+      {
+        "tableName": "fiscal_periods",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "journals",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "journal_entries",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "journal_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "ledger_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "fleet_release": [
+      {
+        "tableName": "fleet_agent_compat",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_deployments",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_releases",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_release_keys",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_rollout_plans",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "fleet": [
+      {
+        "tableName": "fleet_alerts",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_certificates",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_commands",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_command_approvals",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cosign_endorsements",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cosign_keys",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cosign_root_endorsements",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_desired_config",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_desired_flags",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_enrollment_tokens",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_nodes",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_plan_catalogs",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_policies",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_regions",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_trust_bundles",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_zones",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "fleet_compliance": [
+      {
+        "tableName": "fleet_attestations",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_compliance_checks",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_compliance_results",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_compliance_status",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cp_attestation_acks",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cp_audit_roots",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_root_witnesses",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_subprocessors",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "fleet_agent": [
+      {
+        "tableName": "fleet_attestation_acks",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_attestation_leaves",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_attestation_roots",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_breakglass_grants",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_command_receipts",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_cp_root",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_lifecycle_outbox",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_local_check_results",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_migration_bundles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_migration_chunks",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_migration_members",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_migration_objects",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_node_backup_facts",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_node_residency_facts",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_node_trust",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_rp_keys",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "fleet_subscription_echo_state",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "fleet_directory": [
+      {
+        "tableName": "fleet_tenant_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_tenant_directory",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_tenant_lifecycle_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_tenant_migrations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_tenant_status_changes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_tenant_subscriptions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "form_builder": [
+      {
+        "tableName": "forms",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "form_fields",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "form_submissions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_fulfillment": [
+      {
+        "tableName": "fulfillments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fulfillment_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fulfillment_items",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "fx": [
+      {
+        "tableName": "fx_rate_snapshots",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "gift_card": [
+      {
+        "tableName": "gift_cards",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "gift_card_transactions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "procurement": [
+      {
+        "tableName": "goods_receipts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "goods_receipt_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "purchase_orders",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "purchase_order_lines",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_contract": [
+      {
+        "tableName": "hr_employment_terms",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_salary_revisions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "redis_idempotency": [
+      {
+        "tableName": "idempotency_claims",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "auth_oidc_provider": [
+      {
+        "tableName": "identity_links",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_authorizations",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_clients",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_client_assertions",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_logout_deliveries",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_reauth_markers",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "oidc_sessions",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "data_import": [
+      {
+        "tableName": "import_dedupe_decisions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "import_jobs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "import_mappings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "import_rows",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "module_lifecycle": [
+      {
+        "tableName": "installs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "module_availability",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "module_policies",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "inventory": [
+      {
+        "tableName": "inventory_counts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_count_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_locations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_lots",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_movements",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_reservations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_serials",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_stock_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "inventory_movement_reasons",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "uoms",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "invoice": [
+      {
+        "tableName": "invoices",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "invoice_lines",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_alarm": [
+      {
+        "tableName": "iot_alarms",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_alarm_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_alarm_mutes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_alarm_rules",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_asset": [
+      {
+        "tableName": "iot_assets",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_relations",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_device": [
+      {
+        "tableName": "iot_attributes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_devices",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_connection_log",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_credentials",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_directory",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_secret_handoffs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_reading_bindings",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_camera": [
+      {
+        "tableName": "iot_cameras",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_camera_clips",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_camera_media_objects",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_camera_minute_charges",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_camera_storage_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_device_profile": [
+      {
+        "tableName": "iot_device_profiles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_profile_provision_keys",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_profile_admission",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_device_settings": [
+      {
+        "tableName": "iot_device_settings_baselines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_changes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_jobs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_job_targets",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_leases",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_manifests",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_device_settings_sections",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_esim": [
+      {
+        "tableName": "iot_esim_operations",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_provisioning": [
+      {
+        "tableName": "iot_factory_batches",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_factory_units",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_gateway": [
+      {
+        "tableName": "iot_gateway_endpoints",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_gateway_endpoint_devices",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_lorawan_codecs": [
+      {
+        "tableName": "iot_lorawan_codecs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_codec_library",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_codec_revisions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_tenant_codecs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_tenant_codec_index",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_tenant_codec_revisions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_lorawan": [
+      {
+        "tableName": "iot_lorawan_devices",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_device_directory",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_gateways",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_gateway_directory",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_profile_settings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_lorawan_sessions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_ota": [
+      {
+        "tableName": "iot_ota_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_device_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_device_states",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_packages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_rollouts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_settings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_ota_signing_keys",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_pki": [
+      {
+        "tableName": "iot_pki_cas",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_pki_certificates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_pki_recoveries",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_pki_sign_requests",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_remote_access": [
+      {
+        "tableName": "iot_remote_access_sessions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_rpc": [
+      {
+        "tableName": "iot_rpc_commands",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_rpc_requests",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "iot_rules": [
+      {
+        "tableName": "iot_rules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "iot_rule_modes",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "fleet_license": [
+      {
+        "tableName": "fleet_license_licenses",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_license_activations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_license_products",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "fleet_license_product_keys",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "crm_lead_finder": [
+      {
+        "tableName": "crm_lead_finder_offerings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_finder_people",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_finder_results",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_finder_runs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_finder_searches",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "crm_lead_finder_segments",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_leave": [
+      {
+        "tableName": "leave_accrual_runs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_allocations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_blackout_periods",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_mandatory_days",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_requests",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_request_days",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "leave_types",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "plugin_local": [
+      {
+        "tableName": "plugin_local_plugins",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "plugin_local_versions",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "pipeline": [
+      {
+        "tableName": "lost_reasons",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "pipelines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "pipeline_stages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "stage_transitions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "mail_inbound": [
+      {
+        "tableName": "mail_aliases",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "mail_bounces",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "mail_inbound_messages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "mail_message_links",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tenant": [
+      {
+        "tableName": "maintenance_windows",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenants",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_slug_tombstones",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "manufacturing": [
+      {
+        "tableName": "manufacturing_boms",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "manufacturing_bom_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "manufacturing_downtime_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "manufacturing_operations",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "manufacturing_work_centers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "manufacturing_work_orders",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "mrp_runs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "mrp_supply_suggestions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "marketing": [
+      {
+        "tableName": "marketing_campaigns",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketing_campaign_sends",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketing_campaign_steps",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketing_journey_enrollments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "marketing_segments",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "mcp_server": [
+      {
+        "tableName": "mcp_oauth_grants",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "media_gallery": [
+      {
+        "tableName": "media_galleries",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "media_gallery_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "media_gallery_tags",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "metering": [
+      {
+        "tableName": "meter_definitions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "metered_billing_runs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "metered_usage_events",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_subscription": [
+      {
+        "tableName": "catalog_meter_rates",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "monetization_daily_snapshots",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "catalog_payment_options",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "catalog_products",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "catalog_product_prices",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "tenant_entitlements",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_legacy_grant_runs",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_subscriptions",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "project": [
+      {
+        "tableName": "project_milestones",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "project_projects",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "project_tasks",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "navigation": [
+      {
+        "tableName": "navigation_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "navigation_menus",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "notification_external": [
+      {
+        "tableName": "notification_external_links",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "notification_log": [
+      {
+        "tableName": "notification_logs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "notification_sms": [
+      {
+        "tableName": "notification_sms_optouts",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "on_call": [
+      {
+        "tableName": "on_call_contact_methods",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_layers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_link_tokens",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_overrides",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_pages",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_page_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_policies",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "on_call_schedules",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_order": [
+      {
+        "tableName": "orders",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "order_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "order_status_events",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "auth_passkey": [
+      {
+        "tableName": "passkey_credentials",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "payment": [
+      {
+        "tableName": "payments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "payment_methods",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "payment_transactions",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "plan_features",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "subscription_plans",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_payroll": [
+      {
+        "tableName": "payroll_runs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "payslips",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "payslip_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "salary_components",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "salary_rules",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "salary_structures",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "plugin_runtime": [
+      {
+        "tableName": "plugin_kv",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "pos": [
+      {
+        "tableName": "pos_registers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "pos_register_sessions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "pos_sales",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "pricing": [
+      {
+        "tableName": "price_lists",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "price_list_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "price_list_items",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_review": [
+      {
+        "tableName": "product_reviews",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "product_review_reports",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "product_review_votes",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "notification_push": [
+      {
+        "tableName": "push_subscriptions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "quote": [
+      {
+        "tableName": "quotes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "quote_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "quote_options",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "quote_templates",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "quote_template_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "quote_versions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "redirect": [
+      {
+        "tableName": "redirect_rules",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_return": [
+      {
+        "tableName": "return_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "return_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "return_reasons",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "return_requests",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "marketplace_review": [
+      {
+        "tableName": "marketplace_review_notes",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "auth_saml": [
+      {
+        "tableName": "saml_configs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "search": [
+      {
+        "tableName": "saved_searches",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "search_documents",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "search_query_logs",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "scim": [
+      {
+        "tableName": "scim_groups",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "scim_group_members",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "limiter": [
+      {
+        "tableName": "security_ip_bans",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "seo": [
+      {
+        "tableName": "seo_meta",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "seo_templates",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "session_end": [
+      {
+        "tableName": "session_end_orders",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "user_session": [
+      {
+        "tableName": "session_revocation_outbox",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "user_sessions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_setting": [
+      {
+        "tableName": "settings",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "setting_history",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "shell_menu": [
+      {
+        "tableName": "shell_menus",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "shell_menu_revisions",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "hr_shift": [
+      {
+        "tableName": "hr_shift_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_shift_roles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_shift_rosters",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_shift_swap_requests",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "hr_shift_templates",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "auth_e_signature": [
+      {
+        "tableName": "signing_certificates",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "commerce_catalog": [
+      {
+        "tableName": "store_bundles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_bundle_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_categories",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_category_specs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_products",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_product_spec_values",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_product_variants",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_variant_groups",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_variant_group_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_variation_options",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "store_variation_types",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "payment_subscription": [
+      {
+        "tableName": "subscriptions",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "subscription_events",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "support": [
+      {
+        "tableName": "support_articles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "support_categories",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "support_macros",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "support_tickets",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "support_ticket_messages",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tags": [
+      {
+        "tableName": "tags",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tag_assignments",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tasks": [
+      {
+        "tableName": "tasks",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "task_event_outbox",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "task_watchers",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "tax": [
+      {
+        "tableName": "tax_classes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tax_rates",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "telemetry": [
+      {
+        "tableName": "telemetry_1m_dirty",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_1m_r1095",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_1m_r30",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_1m_r365",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_1m_r7",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_1m_r90",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_1m_state",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_class_bindings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_keys",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_kinds",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_latest",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_msg_r1095",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_msg_r30",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_msg_r365",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_msg_r7",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_msg_r90",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_dirty",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_otel_1m_r1095",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_r30",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_r365",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_r7",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_r90",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_1m_state",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_otel_latest",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telemetry_otel_msg_r1095",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_msg_r30",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_msg_r365",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_msg_r7",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "telemetry_otel_msg_r90",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "telephony": [
+      {
+        "tableName": "telephony_agents",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_calls",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_call_events",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_call_legs",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_flows",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_numbers",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_prompts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_recordings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_sip_credentials",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_sip_lines",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "telephony_voicemails",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "db": [
+      {
+        "tableName": "tenant_databases",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_keys",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "user_keys",
+        "schema": "system",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "user_key_erasures",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "tenant_domain": [
+      {
+        "tableName": "tenant_domains",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_domain_acme_accounts",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "tenant_domain_base_domains",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "tenant_domain_base_domain_certificates",
+        "schema": "tenant",
+        "hasTenantId": false
+      },
+      {
+        "tableName": "tenant_domain_certificates",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_domain_host_moves",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_export": [
+      {
+        "tableName": "tenant_export_jobs",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_invitation": [
+      {
+        "tableName": "tenant_invitations",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_member": [
+      {
+        "tableName": "tenant_members",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_roles",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "tenant_usage": [
+      {
+        "tableName": "tenant_usage",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_usage_metrics",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tenant_usage_unbilled",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "time_entry": [
+      {
+        "tableName": "time_entries",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "hr_timesheet": [
+      {
+        "tableName": "hr_timesheets",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "translation": [
+      {
+        "tableName": "translations",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "legal_tr": [
+      {
+        "tableName": "tr_legal_codes",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tr_legal_parameters",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "tr_legal_parameter_sets",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "storage": [
+      {
+        "tableName": "uploaded_files",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "user": [
+      {
+        "tableName": "users",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "auth": [
+      {
+        "tableName": "user_consents",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "user_preferences": [
+      {
+        "tableName": "user_preferences",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "user_profile": [
+      {
+        "tableName": "user_profiles",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "user_security": [
+      {
+        "tableName": "user_securities",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "user_social_account": [
+      {
+        "tableName": "user_social_accounts",
+        "schema": "system",
+        "hasTenantId": false
+      }
+    ],
+    "utm": [
+      {
+        "tableName": "utm_campaigns",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "utm_mediums",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "utm_sources",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "utm_touches",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "wallet": [
+      {
+        "tableName": "wallet_accounts",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "wallet_postings",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "wallet_transactions",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "warehouse": [
+      {
+        "tableName": "warehouse_location_profiles",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "warehouse_tasks",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ],
+    "webhook": [
+      {
+        "tableName": "webhooks",
+        "schema": "tenant",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "webhook_deliveries",
+        "schema": "tenant",
+        "hasTenantId": true
+      }
+    ],
+    "commerce_wishlist": [
+      {
+        "tableName": "wishlists",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "wishlist_items",
+        "schema": "system",
+        "hasTenantId": true
+      },
+      {
+        "tableName": "wishlist_price_points",
+        "schema": "system",
+        "hasTenantId": true
+      }
+    ]
+  }
+}

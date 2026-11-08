@@ -1,0 +1,144 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_branding",
+  "name": "Tenant Branding",
+  "description": "White-label branding: logo, favicon, colors, font, custom CSS \u2014 read by the proxy/shell to render per-tenant chrome.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-palette",
+  "tags": [
+    "tenant",
+    "branding",
+    "white-label"
+  ],
+  "priority": 23,
+  "dependencies": {
+    "requires": [
+      "db",
+      "storage",
+      "tenant_setting"
+    ]
+  },
+  "settingKeys": [
+    "BRANDING_KEYS"
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_branding",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "branding",
+      "permissions": ["tenant_branding.branding.read"],
+      "label": "Branding",
+      "href": "/admin/settings/branding",
+      "icon": "fas fa-shield-halved",
+      "group": "Settings",
+      "workspace": "organisation",
+      "order": 10,
+      "scope": "tenant"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/branding",
+      "component": "tenant_branding/ui/settings-branding.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/settings/branding/presets/[presetId]",
+      "handler": "tenant_branding/server/settings-branding-presets-preset-id.route"
+    },
+    {
+      "path": "/api/settings/branding/presets",
+      "handler": "tenant_branding/server/settings-branding-presets.route"
+    },
+    {
+      "path": "/api/settings/branding/asset",
+      "handler": "tenant_branding/server/settings-branding-asset.route"
+    },
+    {
+      "path": "/api/settings/branding",
+      "handler": "tenant_branding/server/settings-branding.route"
+    },
+    {
+      "path": "/api/settings/public",
+      "handler": "tenant_branding/server/settings-public.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant_branding.branding.read",
+      "name": "View branding settings",
+      "group": "Branding",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_branding.branding.update",
+      "name": "Update branding settings",
+      "group": "Branding",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_branding.branding.reset",
+      "name": "Reset branding to defaults",
+      "group": "Branding",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_branding.public.read",
+      "name": "Read public branding settings",
+      "group": "Branding",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "tenant_branding.presets.read",
+      "name": "View branding presets",
+      "group": "Branding",
+      "minRole": "USER"
+    },
+    {
+      "id": "tenant_branding.presets.manage",
+      "name": "Create presets and apply them to a workspace",
+      "group": "Branding",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "notification_mail:brand_source",
+      "key": "tenant_branding",
+      "export": "tenant_branding/server/tenant_branding.mail-brand",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Tenant branding",
+        "fields": [
+          "name",
+          "logoLight",
+          "logoDark",
+          "primaryColor"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_branding/server/tenant_branding.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: branding presets created, updated, deleted and applied to a workspace), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_branding: branding presets created, changed, deleted and applied (phase 55 coverage)",
+        "ids": [
+          "tenant_branding.preset_created",
+          "tenant_branding.preset_updated",
+          "tenant_branding.preset_deleted",
+          "tenant_branding.preset_applied"
+        ]
+      }
+    }
+  ]
+}

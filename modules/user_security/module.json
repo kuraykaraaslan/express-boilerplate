@@ -1,0 +1,124 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user_security",
+  "name": "User Security",
+  "description": "Password hashing, account lock, TOTP secret, trusted devices, and the passkeyEnabled MFA-posture flag (passkey credentials live in auth_passkey).",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-lock",
+  "tags": [
+    "identity",
+    "security"
+  ],
+  "priority": 11,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "db",
+      "env",
+      "notification",
+      "notification_mail",
+      "tenant",
+      "tenant_setting",
+      "user"
+    ]
+  },
+  "permissions": [
+    {
+      "id": "user_security.settings.read",
+      "name": "View trusted device settings",
+      "group": "Security",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user_security.settings.update",
+      "name": "Change trusted device settings",
+      "group": "Security",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/trusted-devices",
+      "component": "user_security/ui/trusted-devices-settings.page",
+      "placement": "root",
+      "permissions": ["user_security.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user_security",
+  "license": "Proprietary",
+  "extensions": [
+    {
+      "point": "db:tenant_key_columns",
+      "key": "user_security",
+      "export": "user_security/server/user_security.tenant-key-columns",
+      "scope": "system",
+      "description": "The TOTP secret of the auth second factor, encrypted under the PER-USER data key (keyScope user, decision F27): it belongs to the person, not to a tenant."
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "security.mfa_enabled",
+      "export": "user_security/server/user_security.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Security",
+        "label": "MFA enabled",
+        "description": "A user enabled a second factor (authenticator app, e-mail or SMS code) on their account."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "security.mfa_disabled",
+      "export": "user_security/server/user_security.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Security",
+        "label": "MFA disabled",
+        "description": "A second factor was removed from a user's account (by the user, or an administrator's reset)."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "user_security/server/user_security.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "user_security: the guessing lock, the security lock, second factors added and removed, trusted devices (phase 55 01.6)",
+        "ids": [
+          "auth.account_locked",
+          "auth.account_unlocked",
+          "auth.account_security_locked",
+          "auth.account_security_unlocked",
+          "security.mfa_enabled",
+          "security.mfa_disabled",
+          "security.trusted_device_added",
+          "security.trusted_device_removed",
+          "security.trusted_device_revoked_by_admin"
+        ],
+        "routes": [
+          "/api/auth/me/trusted-devices",
+          "/api/auth/me/trusted-devices/[deviceId]"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "user_security/server/user_security.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "user_security: the security lock, revoke trusted devices (phase 55 01.6)",
+        "ids": [
+          "user_security.security_lock",
+          "user_security.revoke_trusted_devices"
+        ]
+      }
+    }
+  ]
+}

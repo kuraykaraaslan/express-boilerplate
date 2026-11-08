@@ -1,0 +1,174 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "auth_abac",
+  "name": "ABAC Authorization",
+  "description": "Runtime attribute-based access control: a per-tenant policy PDP/PEP that decides permit/deny from subject/resource/action/environment attributes. Deny-overrides combining, RBAC fallback, short-TTL decision cache, and a decision simulator. Enforcement is opt-in — routes call authorize() alongside the existing tenant-session guard.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-user-lock",
+  "tags": [
+    "identity",
+    "authz",
+    "abac",
+    "security"
+  ],
+  "priority": 17,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "common",
+      "db",
+      "env",
+      "ip_subnet",
+      "observability",
+      "redis",
+      "session_end",
+      "tenant",
+      "tenant_member",
+      "tenant_session",
+      "user_session"
+    ],
+    "optional": [
+      "user_profile",
+      "auth_saml",
+      "api_key",
+      "mcp_server"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/auth_abac",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/access-policies",
+      "component": "auth_abac/ui/policies.page",
+      "permissions": [
+        "auth_abac.policies.read"
+      ]
+    },
+    {
+      "path": "/admin/access-policies/simulator",
+      "component": "auth_abac/ui/simulator.page",
+      "permissions": [
+        "auth_abac.simulate"
+      ]
+    },
+    {
+      "path": "/admin/access-policies/settings",
+      "component": "auth_abac/ui/auth_abac-settings.page",
+      "permissions": [
+        "auth_abac.policies.write"
+      ]
+    },
+    {
+      "path": "/admin/access-policies/decisions",
+      "component": "auth_abac/ui/decisions.page",
+      "permissions": [
+        "auth_abac.decisions.read"
+      ]
+    },
+    {
+      "path": "/admin/access-policies/coverage",
+      "component": "auth_abac/ui/coverage.page",
+      "permissions": [
+        "auth_abac.policies.read"
+      ]
+    },
+    {
+      "path": "/admin/access-policies/[policyId]",
+      "component": "auth_abac/ui/policy-detail.page",
+      "permissions": [
+        "auth_abac.policies.read"
+      ]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/auth_abac/policies/[policyId]",
+      "handler": "auth_abac/server/auth_abac-policies-policy-id.route"
+    },
+    {
+      "path": "/api/auth_abac/policies",
+      "handler": "auth_abac/server/auth_abac-policies.route"
+    },
+    {
+      "path": "/api/auth_abac/simulate",
+      "handler": "auth_abac/server/auth_abac-simulate.route"
+    },
+    {
+      "path": "/api/auth_abac/decisions",
+      "handler": "auth_abac/server/auth_abac-decisions.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "auth_abac.policies.read",
+      "name": "View access policies",
+      "group": "Security",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "auth_abac.policies.write",
+      "name": "Create & edit access policies",
+      "group": "Security",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "auth_abac.simulate",
+      "name": "Run the access simulator",
+      "group": "Security",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "auth_abac.decisions.read",
+      "name": "View the decision log",
+      "group": "Security",
+      "minRole": "OWNER"
+    }
+  ],
+  "settingKeys": [
+    "AUTH_ABAC_KEYS"
+  ],
+  "settings": {
+    "keys": "AUTH_ABAC_KEYS"
+  },
+  "extensionPoints": [
+    {
+      "id": "auth_abac:attribute",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "platform",
+      "timeoutMs": 2000,
+      "description": "Modules contribute subject attribute resolvers (PIP): `(tenantId) => Promise<object>`, exposed to policies as `subject.<key>`. Loaded lazily by the PDP and ONLY when a loaded policy references the key; a failing or slow (2s) provider leaves the attribute absent (no opinion, never an accidental permit); a key that collides with a core subject attribute (id/role/roles/permissions/…) is refused."
+    },
+    {
+      "id": "auth_abac:record_scope",
+      "kind": "provider",
+      "pattern": "guard",
+      "timeoutMs": 250,
+      "description": "Modules contribute record-level scope resolvers: given a tenant, a user and a permission id, return how wide that user's read is (OWN | TEAM | ALL) and, for TEAM, the opaque id set the caller turns into a predicate. FAIL-CLOSED, unlike every other provider point here: a throwing or timing-out provider yields OWN, because the failure mode of a missing scope predicate is not less data but all of it."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "auth_abac/server/auth_abac.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "auth_abac: policy decisions, policy edits, the install configuration's grants (phase 55 01.6 and coverage)",
+        "ids": [
+          "abac.decision",
+          "abac.policy.created",
+          "abac.policy.updated",
+          "abac.policy.deleted",
+          "install_config.access.grants"
+        ]
+      }
+    }
+  ]
+}

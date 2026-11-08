@@ -1,0 +1,373 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_member",
+  "name": "Tenant Member",
+  "description": "Tenant-scoped membership join table with roles (owner/admin/member) and per-member permissions.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-users",
+  "tags": [
+    "tenant"
+  ],
+  "priority": 21,
+  "dependencies": {
+    "requires": [
+      "approval",
+      "audit_log",
+      "db",
+      "feature_gate",
+      "notification",
+      "session_end",
+      "tenant",
+      "tenant_setting",
+      "user"
+    ],
+    "optional": [
+      "user_profile"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_member",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "members",
+      "permissions": ["members.view"],
+      "label": "Members",
+      "href": "/admin/members",
+      "icon": "fas fa-people-group",
+      "group": "Members",
+      "workspace": "organisation",
+      "order": 10,
+      "scope": "tenant"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/members",
+      "component": "tenant_member/ui/members.page"
+    },
+    {
+      "path": "/admin/members/report",
+      "component": "tenant_member/ui/members-report.page"
+    },
+    {
+      "path": "/admin/members/settings",
+      "component": "tenant_member/ui/members-settings.page"
+    },
+    {
+      "path": "/admin/members/[memberId]",
+      "component": "tenant_member/ui/members-member-id.page"
+    },
+    {
+      "path": "/admin/settings/access-control",
+      "component": "tenant_member/ui/settings-access-control.page",
+      "permissions": ["members.settings"]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/access-control/matrix",
+      "handler": "tenant_member/server/access-control-matrix.route"
+    },
+    {
+      "path": "/api/access-control/roles/[roleKey]",
+      "handler": "tenant_member/server/access-control-roles-role-key.route"
+    },
+    {
+      "path": "/api/access-control/roles",
+      "handler": "tenant_member/server/access-control-roles.route"
+    },
+    {
+      "path": "/api/access-control/role-templates",
+      "handler": "tenant_member/server/access-control-role-templates.route"
+    },
+    {
+      "path": "/api/members/report",
+      "handler": "tenant_member/server/members-report.route"
+    },
+    {
+      "path": "/api/members/transfer-ownership",
+      "handler": "tenant_member/server/members-transfer-ownership.route"
+    },
+    {
+      "path": "/api/members/[memberId]/transition",
+      "handler": "tenant_member/server/members-member-id-transition.route"
+    },
+    {
+      "path": "/api/members/[memberId]/activity",
+      "handler": "tenant_member/server/members-member-id-activity.route"
+    },
+    {
+      "path": "/api/members/[memberId]",
+      "handler": "tenant_member/server/members-member-id.route"
+    },
+    {
+      "path": "/api/members",
+      "handler": "tenant_member/server/members.route"
+    },
+    {
+      "path": "/api/tenants/[targetTenantId]/members",
+      "handler": "tenant_member/server/tenants-target-tenant-id-members.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "members.view",
+      "name": "View members",
+      "group": "Members",
+      "minRole": "USER"
+    },
+    {
+      "id": "members.view_activity",
+      "name": "View member activity log",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.reports",
+      "name": "View membership reports",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.invite",
+      "name": "Invite members",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.edit_role",
+      "name": "Change member role / status",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.suspend",
+      "name": "Suspend / reactivate members",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.remove",
+      "name": "Remove members",
+      "group": "Members",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "members.manage_owner",
+      "name": "Modify / remove owners",
+      "group": "Members",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "members.transfer_ownership",
+      "name": "Transfer ownership",
+      "group": "Members",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "members.settings",
+      "name": "Manage membership settings",
+      "group": "Members",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:member_lookup",
+      "key": "tenant_member",
+      "export": "tenant_member/server/tenant_member.member-lookup",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Workspace members"
+      }
+    },
+    {
+      "point": "dashboard:countable",
+      "key": "tenant_member",
+      "export": "tenant_member/server/tenant_member.countables",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Members"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "tenant_member",
+      "export": "tenant_member/server/tenant_member.export-collection",
+      "order": 29,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Tenant members",
+        "collections": [
+          "members"
+        ]
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_member_approval",
+      "export": "tenant_member/server/tenant_member.approval",
+      "order": 1100,
+      "scope": "system",
+      "metadata": {
+        "phase": "approval",
+        "fn": "registerTenantMemberApprovalHandler",
+        "name": "tenant-member-approval"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "member.created",
+      "export": "tenant_member/server/tenant_member.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Members",
+        "label": "Member added",
+        "description": "A user joined the tenant."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "member.updated",
+      "export": "tenant_member/server/tenant_member.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Members",
+        "label": "Member updated",
+        "description": "A member's role or status changed."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "member.deleted",
+      "export": "tenant_member/server/tenant_member.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Members",
+        "label": "Member removed",
+        "description": "A member was removed from the tenant."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_member/server/tenant_member.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_member: memberships suspended, reactivated, removed; ownership moved; the canary member record asked for; new memberships held for review and released (phase 55 01.6, 02.5, 02.6)",
+        "ids": [
+          "tenant_member.suspended",
+          "tenant_member.reactivated",
+          "tenant_member.deleted",
+          "tenant_member.ownership_transferred",
+          "tenant_member.decoy_record_touched",
+          "tenant_member.review_held",
+          "tenant_member.review_released",
+          "tenant_member.created",
+          "tenant_member.updated",
+          "tenant_role.matrix_saved",
+          "tenant_role.created",
+          "tenant_role.updated",
+          "tenant_role.deleted"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "tenant_member/server/tenant_member.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "tenant_member: suspend a membership for a while; queue a new membership (a sign-up or an accepted invitation) for an administrator's review (phase 55 01.6, 02.6)",
+        "ids": [
+          "tenant_member.suspend",
+          "tenant_member.signup_review"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:honeytoken",
+      "key": "firewall_honeytokens",
+      "export": "tenant_member/server/tenant_member.firewall-honeytokens",
+      "scope": "system",
+      "description": "Phase 55 02.5: the canary member record of each tenant: an id no membership has and no list, report or export shows (derived from the server's field key, never stored). /api/members/<id> answers it as any missing member; asking for it is a critical signal about the signed-in caller.",
+      "metadata": {
+        "label": "tenant_member: the canary member record (phase 55 02.5)",
+        "ids": [
+          "tenant_member.decoy_record"
+        ]
+      }
+    }
+  ],
+  "widgets": [
+    {
+      "id": "members-by-role",
+      "name": "Members",
+      "component": "tenant_member/ui/members-by-role-widget.component",
+      "workspace": "organisation",
+      "scope": "tenant",
+      "size": "small",
+      "order": 30,
+      "permissions": [
+        "members.reports"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "tenant_member:members_drawer",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "tenant_member.members.drawers",
+      "description": "A header button of the Members page (/admin/members) that opens another module's panel in a right-side drawer, as the Devices page opens \"Awaiting approval (n)\": \"Invitations (n)\" (tenant_invitation, the pending invitations). The sidebar has no item for it (docs/phases/45-install-config, owner 2026-10-27). Implemented through the CLIENT slot 'tenant_member.members.drawers': a contributor declares slots[] = { slot: 'tenant_member.members.drawers', component, order, scope: 'tenant', permissions, props: { drawerId, label, labelKey } }; the component default-exports a function of { tenantId, open, onCount, onClose } (common/ui/slot-drawers.component). It stays mounted while its drawer is shut, draws its panel only while open, and may report the number its button shows through onCount. The page shows a button only when its module is on and the viewer holds its permissions, isolates each in an error boundary, and opens the drawer whose drawerId is in `?tab=` on arrival (the old tab's link, /admin/members?tab=invitations). tenant_member imports none of the contributors (EXT-14)."
+    },
+    {
+      "id": "tenant_member:seat_reservation",
+      "kind": "provider",
+      "pattern": "guard",
+      "failOpen": {
+        "reason": "A quota guard: an unavailable reservation source undercounts reserved seats, so an invite may pass a plan limit; refusing every invite because a contributor broke is the worse failure (EXT-3)."
+      },
+      "description": "A holder of seats that are spoken for but not yet ACTIVE members. Default export: { countReserved(tenantId) } implementing SeatReservationProvider. Consulted at ISSUE time — when a tenant adds a member or sends an invitation — so the plan's `max_members` ceiling counts unclaimed seats too; without it a tenant could issue unlimited invitations under the cap and let every acceptance walk in unchecked. A contributor that throws is treated as zero rather than refusing the operation: an unrelated module's outage must not look like a billing refusal. Declared so `tenant_member`, the primitive invitations are built on, never imports them back.",
+      "contract": "tenant_member/server/tenant_member.seats#SeatReservationProvider"
+    },
+    {
+      "id": "tenant_member:role_template",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A ready-made custom group a tenant can add in one click (Access control > Groups > From template). Default export: { key (lowercase role key), label, description?, permissions: string[] }. Contributions with the SAME key merge, and each module lists only its OWN permissions (e.g. commerce_order + commerce_fulfillment + commerce_return + commerce_review make store_operator). Offered permissions are filtered to the tenant's enabled modules, and a template left empty is not offered. Exists because lowering a permission's minRole to USER also grants it to every storefront shopper (sign-up makes them USER members); a group grants it only to the staff it is assigned to."
+    },
+    {
+      "id": "tenant_member:membership_ended",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "data",
+      "timeoutMs": 2000,
+      "description": "Told after a member stops being an ACTIVE member of a workspace (removed, suspended, deprovisioned), with { tenantId, userId, reason, sessionEndOrderedBy? } (D249: the modules whose session_end:order_source orders the membership's own transaction already recorded; their hooks skip it). Default export: (ended) => Promise<void>. For things addressed to the person because they were a member and that must stop the moment they are not — notification_push deletes their push registrations for the workspace, otherwise a removed member's phone keeps receiving the workspace's notifications. Best-effort by contract: a hook that throws is logged and skipped, removing someone must never fail because a satellite's cleanup had trouble."
+    },
+    {
+      "id": "tenant_member:access_changed",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "data",
+      "timeoutMs": 2000,
+      "description": "Told after an ACTIVE member's built-in role or custom roles changed, with { tenantId, userId, reason: 'role' | 'role_keys', sessionEndOrderedBy? } (D249, as membership_ended). Default export: (changed) => Promise<void>. For things granted once and kept that must follow the new rights: websocket_session drops the member's sockets in the workspace so they come back with tickets minted under the new role (websocket.08). Ending a membership is tenant_member:membership_ended. Best-effort by contract: a hook that throws is logged and skipped."
+    },
+    {
+      "id": "tenant_member:seat_allowance",
+      "kind": "provider",
+      "pattern": "guard",
+      "gate": "platform",
+      "description": "A ceiling on the number of members beyond the plan's `max_members` limit: the seats a tenant's entitlements include, with the admin override. Default export: { effectiveLimit(tenantId) => Promise<number | null> } implementing SeatAllowanceProvider; null states no ceiling. Consulted when a member is added, where the tightest ceiling of all contributors applies. Declared so `tenant_member`, the tenancy primitive, never imports the module that sells seats."
+    }
+  ]
+}

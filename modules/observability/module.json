@@ -1,0 +1,1755 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "observability",
+  "name": "Observability",
+  "description": "Sentry + Prometheus + OTel facade — plus ACTIVE uptime probing (SSRF-guarded HTTP monitors, debounced auto-incidents) and a public status/incident page (components, double-opt-in subscribers, live updates over the shared websocket gateway, maintenance read from tenant). Auto-tags every log/trace/metric with the active tenantId/userId/requestId via Logger AsyncLocalStorage context. Lazy-loaded — no-op when SENTRY_DSN / METRICS_ENABLED are off.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": [
+    "single",
+    "node",
+    "fleet"
+  ],
+  "icon": "fas fa-wave-square",
+  "tags": [
+    "observability",
+    "infra",
+    "core",
+    "monitoring",
+    "uptime",
+    "status",
+    "incident"
+  ],
+  "priority": 5,
+  "dependencies": {
+    "requires": [
+      "env",
+      "logger",
+      "notification",
+      "process_host",
+      "redis",
+      "telemetry"
+    ],
+    "optional": [
+      "api_key",
+      "approval",
+      "audit_log",
+      "document",
+      "comments",
+      "feature_gate",
+      "metering",
+      "notification_mail",
+      "tasks",
+      "tenant_branding",
+      "websocket",
+      "api_doc",
+      "notification_sms",
+      "storage",
+      "tenant_domain",
+      "webhook"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/observability",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/fleet",
+      "placement": "root",
+      "component": "observability/ui/fleet.page"
+    },
+    {
+      "path": "/admin/system/processes",
+      "placement": "root",
+      "component": "observability/ui/processes.page",
+      "permissions": ["observability.processes.read"]
+    },
+    {
+      "path": "/admin/system/observability-usage",
+      "placement": "root",
+      "component": "observability/ui/usage.page"
+    },
+    {
+      "path": "/admin/health",
+      "placement": "root",
+      "component": "observability/ui/health.page"
+    },
+    {
+      "path": "/admin/monitors",
+      "component": "observability/ui/monitors.page"
+    },
+    {
+      "path": "/admin/status",
+      "component": "observability/ui/status.page"
+    },
+    {
+      "path": "/admin/alerts",
+      "component": "observability/ui/alerts.page"
+    },
+    {
+      "path": "/admin/slos",
+      "component": "observability/ui/slos.page"
+    },
+    {
+      "path": "/admin/probe-locations",
+      "component": "observability/ui/probe-locations.page"
+    },
+    {
+      "path": "/admin/incidents",
+      "component": "observability/ui/incidents.page"
+    },
+    {
+      "path": "/admin/telemetry/logs",
+      "component": "observability/ui/telemetry/logs.page"
+    },
+    {
+      "path": "/admin/telemetry/traces",
+      "component": "observability/ui/telemetry/traces.page"
+    },
+    {
+      "path": "/admin/telemetry/metrics",
+      "component": "observability/ui/telemetry/metrics.page"
+    },
+    {
+      "path": "/admin/telemetry/releases",
+      "component": "observability/ui/telemetry/releases.page"
+    },
+    {
+      "path": "/admin/telemetry/llm",
+      "component": "observability/ui/telemetry/llm.page"
+    },
+    {
+      "path": "/admin/observability/ai",
+      "component": "observability/ui/ai.page"
+    },
+    {
+      "path": "/admin/observability-config",
+      "component": "observability/ui/config.page"
+    },
+    {
+      "path": "/admin/status-pages",
+      "component": "observability/ui/status-pages.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/health",
+      "handler": "observability/server/health.route"
+    },
+    {
+      "path": "/api/monitors",
+      "handler": "observability/server/monitors.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]",
+      "handler": "observability/server/monitors-monitor-id.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/check",
+      "handler": "observability/server/monitors-monitor-id-check.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/uptime",
+      "handler": "observability/server/monitors-monitor-id-uptime.route"
+    },
+    {
+      "path": "/api/incidents",
+      "handler": "observability/server/incidents.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/resolve",
+      "handler": "observability/server/incidents-incident-id-resolve.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/checks",
+      "handler": "observability/server/monitors-monitor-id-checks.route"
+    },
+    {
+      "path": "/api/status-components",
+      "handler": "observability/server/status-components.route"
+    },
+    {
+      "path": "/api/status-components/[componentId]",
+      "handler": "observability/server/status-components-component-id.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]",
+      "handler": "observability/server/incidents-incident-id.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/updates",
+      "handler": "observability/server/incidents-incident-id-updates.route"
+    },
+    {
+      "path": "/api/public/status",
+      "handler": "observability/server/public-status.route"
+    },
+    {
+      "path": "/api/public/status/subscribe",
+      "handler": "observability/server/public-status-subscribe.route"
+    },
+    {
+      "path": "/api/public/status/verify",
+      "handler": "observability/server/public-status-verify.route"
+    },
+    {
+      "path": "/api/public/status/unsubscribe",
+      "handler": "observability/server/public-status-unsubscribe.route"
+    },
+    {
+      "path": "/api/status-subscribers",
+      "handler": "observability/server/status-subscribers.route"
+    },
+    {
+      "path": "/api/cron/uptime-probe",
+      "handler": "observability/server/cron-uptime-probe.route"
+    },
+    {
+      "path": "/api/cron/uptime-retention",
+      "handler": "observability/server/cron-uptime-retention.route"
+    },
+    {
+      "path": "/api/processes",
+      "placement": "root",
+      "handler": "observability/server/processes.route"
+    },
+    {
+      "path": "/api/observability/usage",
+      "placement": "root",
+      "handler": "observability/server/observability-usage.route"
+    },
+    {
+      "path": "/api/cron/process-check",
+      "handler": "observability/server/cron-process-check.route"
+    },
+    {
+      "path": "/api/cron/watchdog",
+      "handler": "observability/server/cron-watchdog.route"
+    },
+    {
+      "path": "/api/slo",
+      "placement": "root",
+      "handler": "observability/server/slo.route"
+    },
+    {
+      "path": "/api/extensions/breakers",
+      "handler": "observability/server/extensions-breakers.route"
+    },
+    {
+      "path": "/api/extensions/client-errors",
+      "handler": "observability/server/extensions-client-errors.route"
+    },
+    {
+      "path": "/api/monitors/bulk",
+      "handler": "observability/server/monitors-bulk.route"
+    },
+    {
+      "path": "/api/monitors/import",
+      "handler": "observability/server/monitors-import.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/clone",
+      "handler": "observability/server/monitors-monitor-id-clone.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/heartbeat-token",
+      "handler": "observability/server/monitors-monitor-id-heartbeat-token.route"
+    },
+    {
+      "path": "/api/public/heartbeat/[token]",
+      "handler": "observability/server/public-heartbeat-token.route"
+    },
+    {
+      "path": "/api/public/heartbeat/[token]/start",
+      "handler": "observability/server/public-heartbeat-token-start.route"
+    },
+    {
+      "path": "/api/public/heartbeat/[token]/fail",
+      "handler": "observability/server/public-heartbeat-token-fail.route"
+    },
+    {
+      "path": "/api/alerts",
+      "handler": "observability/server/alerts.route"
+    },
+    {
+      "path": "/api/alerts/[alertId]",
+      "handler": "observability/server/alerts-alert-id.route"
+    },
+    {
+      "path": "/api/alerts/[alertId]/ack",
+      "handler": "observability/server/alerts-alert-id-ack.route"
+    },
+    {
+      "path": "/api/alerts/[alertId]/resolve",
+      "handler": "observability/server/alerts-alert-id-resolve.route"
+    },
+    {
+      "path": "/api/alerts/[alertId]/changes",
+      "handler": "observability/server/alerts-alert-id-changes.route"
+    },
+    {
+      "path": "/api/alert-integrations",
+      "handler": "observability/server/alert-integrations.route"
+    },
+    {
+      "path": "/api/alert-integrations/[integrationId]",
+      "handler": "observability/server/alert-integrations-integration-id.route"
+    },
+    {
+      "path": "/api/alert-integrations/[integrationId]/rotate",
+      "handler": "observability/server/alert-integrations-integration-id-rotate.route"
+    },
+    {
+      "path": "/api/alert-routes",
+      "handler": "observability/server/alert-routes.route"
+    },
+    {
+      "path": "/api/alert-routes/simulate",
+      "handler": "observability/server/alert-routes-simulate.route"
+    },
+    {
+      "path": "/api/alert-routes/[routeId]",
+      "handler": "observability/server/alert-routes-route-id.route"
+    },
+    {
+      "path": "/api/alert-silences",
+      "handler": "observability/server/alert-silences.route"
+    },
+    {
+      "path": "/api/alert-silences/[silenceId]",
+      "handler": "observability/server/alert-silences-silence-id.route"
+    },
+    {
+      "path": "/api/alert-dependencies",
+      "handler": "observability/server/alert-dependencies.route"
+    },
+    {
+      "path": "/api/alert-dependencies/[dependencyId]",
+      "handler": "observability/server/alert-dependencies-dependency-id.route"
+    },
+    {
+      "path": "/api/public/alerts/ingest/[key]",
+      "handler": "observability/server/public-alerts-ingest-key.route"
+    },
+    {
+      "path": "/api/cron/alert-dispatch",
+      "handler": "observability/server/cron-alert-dispatch.route"
+    },
+    {
+      "path": "/api/slos",
+      "handler": "observability/server/slos.route"
+    },
+    {
+      "path": "/api/slos/openslo",
+      "handler": "observability/server/slos-openslo.route"
+    },
+    {
+      "path": "/api/slos/[sloId]",
+      "handler": "observability/server/slos-slo-id.route"
+    },
+    {
+      "path": "/api/slos/[sloId]/burn",
+      "handler": "observability/server/slos-slo-id-burn.route"
+    },
+    {
+      "path": "/api/slos/[sloId]/sla-report",
+      "handler": "observability/server/slos-slo-id-sla-report.route"
+    },
+    {
+      "path": "/api/status-pages/[pageId]/sla-report",
+      "handler": "observability/server/status-pages-page-id-sla-report.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/events",
+      "handler": "observability/server/incidents-incident-id-events.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ack",
+      "handler": "observability/server/incidents-incident-id-ack.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/mitigate",
+      "handler": "observability/server/incidents-incident-id-mitigate.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/participants",
+      "handler": "observability/server/incidents-incident-id-participants.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/notes",
+      "handler": "observability/server/incidents-incident-id-notes.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/tasks",
+      "handler": "observability/server/incidents-incident-id-tasks.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/changes",
+      "handler": "observability/server/incidents-incident-id-changes.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/postmortem",
+      "handler": "observability/server/incidents-incident-id-postmortem.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/postmortem/review",
+      "handler": "observability/server/incidents-incident-id-postmortem-review.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/postmortem/publish",
+      "handler": "observability/server/incidents-incident-id-postmortem-publish.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/postmortem/withdraw",
+      "handler": "observability/server/incidents-incident-id-postmortem-withdraw.route"
+    },
+    {
+      "path": "/api/incident-templates",
+      "handler": "observability/server/incident-templates.route"
+    },
+    {
+      "path": "/api/incident-templates/render",
+      "handler": "observability/server/incident-templates-render.route"
+    },
+    {
+      "path": "/api/incident-templates/[templateId]",
+      "handler": "observability/server/incident-templates-template-id.route"
+    },
+    {
+      "path": "/api/incident-analytics",
+      "handler": "observability/server/incident-analytics.route"
+    },
+    {
+      "path": "/api/telemetry/otlp/v1/traces",
+      "handler": "observability/server/telemetry/otlp-traces.route"
+    },
+    {
+      "path": "/api/telemetry/otlp/v1/logs",
+      "handler": "observability/server/telemetry/otlp-logs.route"
+    },
+    {
+      "path": "/api/telemetry/otlp/v1/metrics",
+      "handler": "observability/server/telemetry/otlp-metrics.route"
+    },
+    {
+      "path": "/api/telemetry/query/logs",
+      "handler": "observability/server/telemetry/query-logs.route"
+    },
+    {
+      "path": "/api/telemetry/query/traces",
+      "handler": "observability/server/telemetry/query-traces.route"
+    },
+    {
+      "path": "/api/telemetry/query/traces/[traceId]",
+      "handler": "observability/server/telemetry/query-traces-trace-id.route"
+    },
+    {
+      "path": "/api/telemetry/query/metrics",
+      "handler": "observability/server/telemetry/query-metrics.route"
+    },
+    {
+      "path": "/api/telemetry/query/service-map",
+      "handler": "observability/server/telemetry/query-service-map.route"
+    },
+    {
+      "path": "/api/telemetry/query/compare",
+      "handler": "observability/server/telemetry/query-compare.route"
+    },
+    {
+      "path": "/api/telemetry/query/release-health",
+      "handler": "observability/server/telemetry/query-release-health.route"
+    },
+    {
+      "path": "/api/telemetry/compare/settings",
+      "handler": "observability/server/telemetry/compare-settings.route"
+    },
+    {
+      "path": "/api/telemetry/browser-keys",
+      "handler": "observability/server/telemetry/browser-keys.route"
+    },
+    {
+      "path": "/api/telemetry/web-vitals",
+      "handler": "observability/server/telemetry/web-vitals.route"
+    },
+    {
+      "path": "/api/telemetry/query/raw",
+      "placement": "root",
+      "handler": "observability/server/telemetry/query-raw.route"
+    },
+    {
+      "path": "/api/telemetry/correlate",
+      "handler": "observability/server/telemetry/correlate.route"
+    },
+    {
+      "path": "/api/telemetry/tail-ticket",
+      "handler": "observability/server/telemetry/tail-ticket.route"
+    },
+    {
+      "path": "/api/telemetry/saved-queries",
+      "handler": "observability/server/telemetry/saved-queries.route"
+    },
+    {
+      "path": "/api/telemetry/saved-queries/[queryId]",
+      "handler": "observability/server/telemetry/saved-queries-query-id.route"
+    },
+    {
+      "path": "/api/telemetry/saved-panels",
+      "handler": "observability/server/telemetry/saved-panels.route"
+    },
+    {
+      "path": "/api/telemetry/saved-panels/[panelId]",
+      "handler": "observability/server/telemetry/saved-panels-panel-id.route"
+    },
+    {
+      "path": "/api/telemetry/lifecycle",
+      "handler": "observability/server/telemetry/lifecycle.route"
+    },
+    {
+      "path": "/api/probe-locations",
+      "handler": "observability/server/probe-locations.route"
+    },
+    {
+      "path": "/api/probe-locations/[locationId]",
+      "handler": "observability/server/probe-locations-location-id.route"
+    },
+    {
+      "path": "/api/probe-locations/[locationId]/enrolments",
+      "handler": "observability/server/probe-locations-location-id-enrolments.route"
+    },
+    {
+      "path": "/api/probe-locations/[locationId]/runners",
+      "handler": "observability/server/probe-locations-location-id-runners.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/checks/[checkId]/screenshot",
+      "handler": "observability/server/monitors-monitor-id-checks-check-id-screenshot.route"
+    },
+    {
+      "path": "/api/probe-runners/[runnerId]",
+      "handler": "observability/server/probe-runners-runner-id.route"
+    },
+    {
+      "path": "/api/monitors/[monitorId]/locations",
+      "handler": "observability/server/monitors-monitor-id-locations.route"
+    },
+    {
+      "path": "/api/public/probe/enrol",
+      "handler": "observability/server/public-probe-enrol.route"
+    },
+    {
+      "path": "/api/public/probe/lease",
+      "handler": "observability/server/public-probe-lease.route"
+    },
+    {
+      "path": "/api/public/probe/results",
+      "handler": "observability/server/public-probe-results.route"
+    },
+    {
+      "path": "/api/public/probe/heartbeat",
+      "handler": "observability/server/public-probe-heartbeat.route"
+    },
+    {
+      "path": "/api/mcp/observability",
+      "handler": "observability/server/mcp-observability.route"
+    },
+    {
+      "path": "/api/observability/ai/settings",
+      "handler": "observability/server/ai-settings.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ai",
+      "handler": "observability/server/incidents-incident-id-ai.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ai/status-draft",
+      "handler": "observability/server/incidents-incident-id-ai-status-draft.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ai/postmortem-draft",
+      "handler": "observability/server/incidents-incident-id-ai-postmortem-draft.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ai/[noteId]/feedback",
+      "handler": "observability/server/incidents-incident-id-ai-note-id-feedback.route"
+    },
+    {
+      "path": "/api/observability/ai/noise",
+      "handler": "observability/server/ai-noise.route"
+    },
+    {
+      "path": "/api/observability/ai/query",
+      "handler": "observability/server/ai-nl-query.route"
+    },
+    {
+      "path": "/api/observability/ai/usage",
+      "handler": "observability/server/ai-usage.route"
+    },
+    {
+      "path": "/api/telemetry/genai",
+      "handler": "observability/server/telemetry-genai.route"
+    },
+    {
+      "path": "/api/telemetry/genai/conversations/[conversationId]",
+      "handler": "observability/server/telemetry-genai-conversation.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/ai/timeline",
+      "handler": "observability/server/incidents-incident-id-ai-timeline.route"
+    },
+    {
+      "path": "/api/observability/config",
+      "handler": "observability/server/observability-config.route"
+    },
+    {
+      "path": "/api/observability/config/plan",
+      "handler": "observability/server/observability-config-plan.route"
+    },
+    {
+      "path": "/api/observability/config/apply",
+      "handler": "observability/server/observability-config-apply.route"
+    },
+    {
+      "path": "/api/observability/config/managed",
+      "handler": "observability/server/observability-config-managed.route"
+    },
+    {
+      "path": "/api/observability/config/detach",
+      "handler": "observability/server/observability-config-detach.route"
+    },
+    {
+      "path": "/api/observability/openapi",
+      "handler": "observability/server/observability-openapi.route"
+    },
+    {
+      "path": "/api/alert-silence-templates",
+      "handler": "observability/server/alert-silence-templates.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]",
+      "handler": "observability/server/public-status-pages-slug.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/unlock",
+      "handler": "observability/server/public-status-pages-slug-unlock.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/incidents",
+      "handler": "observability/server/public-status-pages-slug-incidents.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/feed",
+      "handler": "observability/server/public-status-pages-slug-feed.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/calendar",
+      "handler": "observability/server/public-status-pages-slug-calendar.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/badge",
+      "handler": "observability/server/public-status-pages-slug-badge.route"
+    },
+    {
+      "path": "/api/public/status/pages/[slug]/widget",
+      "handler": "observability/server/public-status-pages-slug-widget.route"
+    },
+    {
+      "path": "/api/status-pages",
+      "handler": "observability/server/status-pages.route"
+    },
+    {
+      "path": "/api/status-pages/[pageId]",
+      "handler": "observability/server/status-pages-page-id.route"
+    },
+    {
+      "path": "/api/status-groups",
+      "handler": "observability/server/status-groups.route"
+    },
+    {
+      "path": "/api/status-groups/[groupId]",
+      "handler": "observability/server/status-groups-group-id.route"
+    },
+    {
+      "path": "/api/status-translations",
+      "handler": "observability/server/status-translations.route"
+    },
+    {
+      "path": "/api/status-subscribers/[subscriberId]",
+      "handler": "observability/server/status-subscribers-subscriber-id.route"
+    },
+    {
+      "path": "/api/chat-destinations",
+      "handler": "observability/server/chat-destinations.route"
+    },
+    {
+      "path": "/api/chat-destinations/[destinationId]",
+      "handler": "observability/server/chat-destinations-destination-id.route"
+    },
+    {
+      "path": "/api/chat-destinations/[destinationId]/test",
+      "handler": "observability/server/chat-destinations-destination-id-test.route"
+    },
+    {
+      "path": "/api/status-automations",
+      "handler": "observability/server/status-automations.route"
+    },
+    {
+      "path": "/api/status-automations/[automationId]",
+      "handler": "observability/server/status-automations-automation-id.route"
+    },
+    {
+      "path": "/api/cron/status-snapshot",
+      "handler": "observability/server/cron-status-snapshot.route"
+    },
+    {
+      "path": "/api/cron/ai-auto",
+      "handler": "observability/server/cron-ai-auto.route"
+    },
+    {
+      "path": "/api/status-pages/[pageId]/snapshot",
+      "handler": "observability/server/status-pages-page-id-snapshot.route"
+    },
+    {
+      "path": "/api/processes/scaling",
+      "placement": "root",
+      "handler": "observability/server/processes-scaling.route"
+    },
+    {
+      "path": "/api/cron/metering-reconcile",
+      "handler": "observability/server/cron-metering-reconcile.route"
+    },
+    {
+      "path": "/api/incidents/[incidentId]/legal-hold",
+      "handler": "observability/server/incidents-incident-id-legal-hold.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "observability.monitors.read",
+      "name": "View uptime monitors",
+      "group": "Observability",
+      "minRole": "USER"
+    },
+    {
+      "id": "observability.monitors.manage",
+      "name": "Manage uptime monitors",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.incidents.manage",
+      "name": "Manage incidents",
+      "description": "Resolve incidents and post progress updates. Publishing to the public page is NOT included — that is observability.status.publish.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.status.publish",
+      "name": "Publish to the public status page",
+      "description": "Flip an incident public/private. Separate and narrow on purpose: this is an outward-facing act that customers and subscribers see.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.usage.read",
+      "name": "View observability consumption",
+      "description": "Root tenant only: per-tenant consumption against the plan, top consumers, tenants near a limit and the probe sweep's shedding state.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.processes.read",
+      "name": "View sidecar processes",
+      "description": "Root tenant only: the platform process registry screen.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.slo.read",
+      "name": "View request SLIs",
+      "description": "Root tenant only: this process's request-latency percentiles and error ratio.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.extensions.read",
+      "name": "View paused extensions",
+      "description": "Which contributions the extension breaker has paused after repeated errors, why and until when. The root tenant can list every tenant's.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.extensions.manage",
+      "name": "Close or keep paused extensions",
+      "description": "Close a contribution the extension breaker paused so it runs again at once, or keep it paused until a time; a reason is required and audited. A workspace acts on its own contributions; the system scope, other tenants and community plugin versions are the platform operator's (root tenant, behind the admin gate).",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.extensions.report",
+      "name": "Report extension render errors",
+      "description": "Any signed-in member's browser reports a contributed component that failed to render, so it is counted with the contribution's other failures.",
+      "group": "Observability",
+      "minRole": "USER"
+    },
+    {
+      "id": "observability.alerts.read",
+      "name": "View alerts",
+      "description": "See alerts, routing rules, silences, ingest integrations and the dependency graph. ADMIN-floored on purpose: alert labels and annotations carry operational detail, and the monitors.read floor (MEMBER, S11) is a known defect this permission must not inherit.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.alerts.manage",
+      "name": "Manage alerts",
+      "description": "Acknowledge and resolve alerts, create silences, edit routing rules, integrations and dependencies. Announcing to the public status page stays observability.status.publish.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.slos.read",
+      "name": "View SLOs",
+      "description": "See SLOs, their error budgets, burn rates and OpenSLO exports.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.slos.manage",
+      "name": "Manage SLOs",
+      "description": "Create, change and delete SLOs and import OpenSLO documents.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.incidents.read",
+      "name": "View incident details",
+      "description": "Read an incident's timeline, roles, notes, follow-ups, changes and post-mortem, the update templates and the incident analytics.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.chat.manage",
+      "name": "Manage Slack and Teams destinations",
+      "description": "Connect, change, test and remove the Slack and Microsoft Teams channels that incident updates are posted to. The webhook URL is write-only: it is stored encrypted and is never shown again. Reading the list (hosts and settings only) needs observability.incidents.read.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.telemetry.read",
+      "name": "Explore telemetry",
+      "description": "Query this workspace's own logs, traces and metrics with structured queries (never raw backend syntax), view the service map, correlate signals and list saved queries.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.telemetry.manage",
+      "name": "Manage telemetry settings",
+      "description": "Save and delete explorer queries and request a per-workspace retention from the telemetry backend.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.telemetry.erase",
+      "name": "Erase telemetry",
+      "description": "Irreversibly erase this workspace's stored logs, traces and metrics (owner only; needs the workspace id typed back; audited).",
+      "group": "Observability",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "observability.telemetry.raw",
+      "name": "Raw telemetry queries",
+      "description": "Root tenant only: send raw LogQL, PromQL or TraceQL to the backend. Other workspaces never get this mode.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.locations.read",
+      "name": "View probe locations",
+      "description": "See the probe locations this workspace can use, their runners and their target allow-lists.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.locations.manage",
+      "name": "Manage probe locations",
+      "description": "Create private probe locations, set their target allow-lists, enrol and revoke runners. The ROOT tenant also publishes the public locations.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.screenshots.read",
+      "name": "View browser-check screenshots",
+      "description": "See the picture a browser check took at the step that failed. Its own permission and ADMIN-floored on purpose: the page under test can show anything (a signed-in account, a customer's data), and observability.monitors.read is the MEMBER-floored one.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.ai.use",
+      "name": "Use AI assistance",
+      "description": "Ask the investigator, draft status updates and post-mortems, ask questions of the telemetry in plain language, see the noise suggestions and the AI usage. Only works where the workspace has switched AI on; results are advisory and cite their evidence.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.ai.manage",
+      "name": "Manage AI settings",
+      "description": "Switch AI assistance on or off for this workspace, choose which providers may receive evidence, set the daily cap and the opt-in tracing of model calls.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.status.view",
+      "name": "View a status page",
+      "description": "Lets the status page gate ask the platform guard whether the caller is a signed-in member of the tenant (AUTHENTICATED audience). Grants nothing by itself.",
+      "group": "Observability",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "observability.status.read",
+      "name": "View status page settings",
+      "description": "Read the status pages, groups, translations, templates and subscribers of the tenant.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.status.manage",
+      "name": "Manage status pages",
+      "description": "Create and change status pages, groups, translations, automations and subscribers. Publishing something outward (public page, embed, host, auto-publish) also takes observability.status.publish.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "observability.incidents.hold",
+      "name": "Place incidents on legal hold",
+      "description": "Put an incident on, or release it from, a legal hold. A held incident, its post-mortem and its linked alerts are never removed by a retention sweep. Narrow on purpose: it overrides the workspace's retention.",
+      "group": "Observability",
+      "minRole": "ADMIN"
+    }
+  ],
+  "menu": [
+    {
+      "id": "platform-observability-usage",
+      "permissions": [
+        "observability.usage.read"
+      ],
+      "label": "Observability usage",
+      "href": "/admin/system/observability-usage",
+      "placement": "root",
+      "icon": "fas fa-gauge-high",
+      "group": "Platform health",
+      "workspace": "platform",
+      "scope": "system",
+      "order": 25
+    },
+    {
+      "id": "platform-health",
+      "permissions": [
+        "observability.extensions.read"
+      ],
+      "label": "Health",
+      "href": "/admin/health",
+      "placement": "root",
+      "icon": "fas fa-heart-pulse",
+      "group": "Platform health",
+      "workspace": "platform",
+      "scope": "system",
+      "order": 10
+    },
+    {
+      "id": "platform-fleet",
+      "permissions": [
+        "fleet.nodes.read"
+      ],
+      "label": "Fleet",
+      "href": "/admin/fleet",
+      "placement": "root",
+      "icon": "fas fa-server",
+      "group": "Platform health",
+      "workspace": "platform",
+      "scope": "system",
+      "order": 20
+    },
+    {
+      "id": "observability-monitors",
+      "permissions": [
+        "observability.monitors.read"
+      ],
+      "label": "Uptime",
+      "href": "/admin/monitors",
+      "icon": "fas fa-heart-pulse",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 15
+    },
+    {
+      "id": "observability-status",
+      "permissions": [
+        "observability.status.read"
+      ],
+      "label": "Status",
+      "href": "/admin/status",
+      "icon": "fas fa-shield-heart",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 16
+    },
+    {
+      "id": "observability-alerts",
+      "permissions": [
+        "observability.alerts.read"
+      ],
+      "label": "Alerts",
+      "href": "/admin/alerts",
+      "icon": "fas fa-bell",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 14
+    },
+    {
+      "id": "observability-probe-locations",
+      "permissions": [
+        "observability.locations.read"
+      ],
+      "label": "Check locations",
+      "href": "/admin/probe-locations",
+      "icon": "fas fa-location-dot",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 18
+    },
+    {
+      "id": "observability-slos",
+      "permissions": [
+        "observability.slos.read"
+      ],
+      "label": "Service targets (SLO)",
+      "href": "/admin/slos",
+      "icon": "fas fa-bullseye",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 17
+    },
+    {
+      "id": "observability-incidents",
+      "permissions": [
+        "observability.incidents.read"
+      ],
+      "label": "Incidents",
+      "href": "/admin/incidents",
+      "icon": "fas fa-fire-extinguisher",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 13
+    },
+    {
+      "id": "observability-telemetry-logs",
+      "permissions": [
+        "observability.telemetry.read"
+      ],
+      "label": "Logs",
+      "href": "/admin/telemetry/logs",
+      "icon": "fas fa-align-left",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 30
+    },
+    {
+      "id": "observability-telemetry-traces",
+      "permissions": [
+        "observability.telemetry.read"
+      ],
+      "label": "Traces",
+      "href": "/admin/telemetry/traces",
+      "icon": "fas fa-diagram-project",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 31
+    },
+    {
+      "id": "observability-telemetry-metrics",
+      "permissions": [
+        "observability.telemetry.read"
+      ],
+      "label": "Metrics",
+      "href": "/admin/telemetry/metrics",
+      "icon": "fas fa-chart-line",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 32
+    },
+    {
+      "id": "observability-telemetry-releases",
+      "permissions": [
+        "observability.telemetry.read"
+      ],
+      "label": "Release health",
+      "href": "/admin/telemetry/releases",
+      "icon": "fas fa-rocket",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 34
+    },
+    {
+      "id": "observability-telemetry-llm",
+      "permissions": [
+        "observability.telemetry.read"
+      ],
+      "label": "AI usage (LLM)",
+      "href": "/admin/telemetry/llm",
+      "icon": "fas fa-robot",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 33
+    },
+    {
+      "id": "observability-ai",
+      "permissions": [
+        "observability.ai.use"
+      ],
+      "label": "AI tools",
+      "href": "/admin/observability/ai",
+      "icon": "fas fa-wand-magic-sparkles",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 40
+    },
+    {
+      "id": "observability-config",
+      "permissions": [
+        "observability.monitors.manage"
+      ],
+      "label": "Configuration",
+      "href": "/admin/observability-config",
+      "icon": "fas fa-file-code",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 18
+    },
+    {
+      "id": "observability-status-pages",
+      "permissions": [
+        "observability.status.read"
+      ],
+      "label": "Status pages",
+      "href": "/admin/status-pages",
+      "icon": "fas fa-globe",
+      "group": "Observability",
+      "workspace": "monitoring",
+      "scope": "tenant",
+      "order": 18
+    }
+  ],
+  "widgets": [
+    {
+      "id": "open-incidents",
+      "name": "Open incidents",
+      "component": "observability/ui/open-incidents-widget.component",
+      "workspace": "*",
+      "scope": "tenant",
+      "size": "small",
+      "order": 20,
+      "permissions": [
+        "observability.monitors.read"
+      ]
+    },
+    {
+      "id": "slo-budgets",
+      "name": "Error budgets",
+      "component": "observability/ui/slo-widget.component",
+      "workspace": "*",
+      "scope": "tenant",
+      "size": "small",
+      "order": 21,
+      "permissions": [
+        "observability.slos.read"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "observability:ai-peer",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "default",
+      "contract": "observability/server/peers/peers.types#AiPeer",
+      "description": "The `ai` service as observability uses it: incident analysis and embeddings, the price table and usage log behind the GenAI cost views, and the one wrapper around every provider call that GenAI tracing installs. Default export: AiPeer { canComplete, chat, embed, calcCostUsd, usageLogEntity, setCallWrapper }. Contributed by `ai`; observability (Core) does not import it. With none, every ai-backed feature degrades as it does when `ai` is switched off (no analysis, no embedding, an unknown cost, no tracing wrapper)."
+    },
+    {
+      "id": "observability:search-peer",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "default",
+      "contract": "observability/server/peers/peers.types#SearchPeer",
+      "description": "The `search` service as observability uses it: incidents are indexed on open, edit and resolve, and similar incidents are found by full text. Default export: SearchPeer { index, remove, search }. Contributed by `search`; observability (Core) does not import it. With none, nothing is indexed and similar-incident lookup uses only the other signals."
+    },
+    {
+      "id": "observability:on-call-peer",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "default",
+      "contract": "observability/server/peers/peers.types#OnCallPeer",
+      "description": "The `on_call` service as observability uses it: paging and resolving by dedup key for alert targets, the on-call roster for the MCP view, and the watchdog's check that the paging self-test has not gone silent. Default export: OnCallPeer { page, resolveByDedupKey, listSchedules, silentSelfTests }. Contributed by `on_call`; observability (Core) does not import it. With none, alerts are not paged, the roster is empty and the watchdog reports ok."
+    },
+    {
+      "id": "observability:incident-notes",
+      "kind": "provider",
+      "pattern": "first",
+      "contract": "observability/server/incident.integration.types#IncidentNoteSink",
+      "description": "Where an incident's internal notes are kept (the response workflow's notes, and their removal when a resolved incident ages out). Default export: IncidentNoteSink { create(tenantId, { subjectType, subjectId, content, authorUserId?, authorName? }) => { commentId }, list(tenantId, { subjectType, subjectId }) => records, deleteForSubjects(tenantId, { subjectType, subjectIds }) }. The first contribution by order that is enabled for the tenant is used; with none, adding a note is a clear 409 (\"Notes need the comments module\"), listing returns nothing and retention has nothing to remove. Contributed by `comments`; observability (Core) does not import it."
+    },
+    {
+      "id": "observability:incident-tasks",
+      "kind": "provider",
+      "pattern": "first",
+      "contract": "observability/server/incident.integration.types#IncidentTaskSink",
+      "description": "Where an incident's follow-up tasks are kept. Default export: IncidentTaskSink { create(tenantId, { title, priority, assigneeUserId, dueAt, relatedType, relatedId }, actorUserId?) => { taskId }, list(tenantId, { relatedType, relatedId }) => records }. The first contribution by order that is enabled for the tenant is used; with none, adding a follow-up is a clear 409 (\"Follow-up tasks need the tasks module\") and listing returns nothing. Contributed by `tasks`; observability (Core) does not import it."
+    },
+    {
+      "id": "observability:document-publisher",
+      "kind": "provider",
+      "pattern": "first",
+      "timeoutMs": 15000,
+      "contract": "observability/server/incident.integration.types#DocumentPort",
+      "description": "Where a published post-mortem is filed as a versioned document. Default export: DocumentPort { publishVersion(tenantId, { documentId, incidentId, postmortemId, title, markdown, isPrivate, actorId, changeNote }) => { documentId, versionNo } | null }. The first contribution by order that is enabled for the tenant is used; with none, the post-mortem is published without a document (the row says so). Contributed by `document`; observability (Core) does not import it."
+    },
+    {
+      "id": "observability:probe-target",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "A module reports the external endpoints it depends on so they become uptime monitors (e.g. a configured national-id or e-signature provider). Default export: { listTargets(tenantId) } implementing ProbeTargetProvider; each target is { key, name, type, target, intervalSeconds?, timeoutMs?, expectedStatus?, degradedLatencyMs? } and becomes a monitor with sourceKey `<moduleId>:<key>`. The provider owns that monitor's identity, target and active flag: it is created on first sight, updated when the spec changes, and DEACTIVATED (never deleted) when the provider stops reporting it. A provider that throws leaves its monitors untouched; an operator opts a target out by deleting its monitor. Return [] for an unconfigured provider. Declared so provider health has ONE source (the uptime monitor) and contributing modules never import observability or grow their own health checker.",
+      "contract": "observability/server/uptime.probe-target.types#ProbeTargetProvider"
+    },
+    {
+      "id": "observability:alert-source",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "A module reports what is wrong right now so it enters the alert pipeline (routing, grouping, silences, the dependency graph) instead of growing its own notifier. Default export: { listFiring(tenantId) } implementing AlertSourceProvider; each spec is { key, title, severity?, labels?, annotations? } and becomes an alert whose identity is `<moduleId>:<key>`. State-based: the pipeline raises what is listed and resolves what the module raised before and no longer lists. A provider that throws leaves the alerts it raised untouched (failing to look is not recovery). `entity` and `monitorId` labels are ignored: the pipeline assigns `ext:<moduleId>:<key>` as the entity so a contribution cannot claim to be another system's parent. Used by device alarms, fleet node health, automation failures and payment provider outages.",
+      "contract": "observability/server/alert.source.types#AlertSourceProvider"
+    },
+    {
+      "id": "observability:change-event",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "A module reports the changes it knows of (deploys, configuration, module and flag switches) so an incident can show what changed in the hour before it started. Default export: { listChanges(tenantId, from, to) } implementing ChangeEventProvider; each spec is { at, kind, title, actor?, ref? }. A provider that throws is skipped, the other sources still answer. The audit log is read as a built-in source for module, flag, setting and release actions.",
+      "contract": "observability/server/incident.change.types#ChangeEventProvider"
+    },
+    {
+      "id": "observability:tenant_home",
+      "kind": "provider",
+      "pattern": "first",
+      "contract": "observability/server/observability.home.types#TenantHomeProvider",
+      "description": "Where a tenant lives, asked by the governance layer (phase 16.6 data region, phase 16.4 legal hold). Default export: { homeOf(tenantId) => { region: string | null, legalHold: boolean } | null } implementing TenantHomeProvider; null means this contributor knows nothing about the tenant. The first contributor that answers wins. The intended contributor is fleet_directory (the routing record's home region and its legal hold), declared as a point so observability never depends on the fleet modules. A contributor that throws or times out is skipped: the answer then falls back to the workspace setting (region) or to no hold, never to a refusal of a customer's data."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "announcement:mail_coverage",
+      "key": "status_subscribers",
+      "export": "observability/server/status.announcement-mail-coverage",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Status page subscribers"
+      }
+    },
+    {
+      "point": "websocket:namespace",
+      "key": "status",
+      "export": "observability/server/realtime-namespace",
+      "order": 30,
+      "scope": "tenant",
+      "metadata": {
+        "path": "/status"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "maintenance_status_bridge",
+      "export": "observability/server/status.maintenance.bridge",
+      "order": 1150,
+      "scope": "system",
+      "metadata": {
+        "phase": "approval",
+        "fn": "registerMaintenanceStatusBridge",
+        "name": "maintenance-status-bridge"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "postmortem_approval",
+      "export": "observability/server/incident.postmortem.integration",
+      "order": 1160,
+      "scope": "system",
+      "metadata": {
+        "phase": "approval",
+        "fn": "registerPostmortemApprovalHandler",
+        "name": "postmortem-approval"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_uptime_probe",
+      "export": "observability/server/uptime.probe.job",
+      "order": 3060,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleUptimeProbeJob",
+        "name": "observability-uptime-probe"
+      }
+    },
+    {
+      "point": "api_doc:openapi-source",
+      "key": "observability_openapi",
+      "export": "observability/server/observability.openapi-source",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Observability REST API (OpenAPI 3.1, generated from the DTOs)"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_ai_auto",
+      "export": "observability/server/ai/ai.auto.job",
+      "order": 3066,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleAiAutoJob",
+        "name": "observability-ai-auto"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_alert_dispatch",
+      "export": "observability/server/alert.dispatch.job",
+      "order": 3065,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleAlertDispatchJob",
+        "name": "observability-alert-dispatch"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_uptime_retention",
+      "export": "observability/server/uptime.retention.job",
+      "order": 3070,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleUptimeRetentionJob",
+        "name": "observability-uptime-retention"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_process_check",
+      "export": "observability/server/process.registry.job",
+      "order": 3080,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleProcessCheckJob",
+        "name": "observability-process-check"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "db_time_series_rollup",
+      "export": "observability/server/observability.time-series-boot",
+      "order": 2070,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startTimeSeriesRollup",
+        "name": "db-time-series-rollup"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "extension_health",
+      "export": "observability/server/observability.extension-health",
+      "order": 1160,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startExtensionHealth",
+        "name": "extension-health"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "telemetry_job_propagation",
+      "export": "observability/server/telemetry/telemetry.job-propagation",
+      "order": 1165,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startJobTracePropagation",
+        "name": "telemetry-job-propagation"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "telemetry_log_export",
+      "export": "observability/server/telemetry/telemetry.log-export",
+      "order": 3090,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startTelemetryLogExport",
+        "name": "telemetry-log-export"
+      }
+    },
+    {
+      "point": "observability:probe-target",
+      "key": "telemetry_stores",
+      "export": "observability/server/telemetry/telemetry.probe-targets",
+      "order": 40,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Readiness of the telemetry stores (ROOT tenant only)"
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "observability_telemetry",
+      "export": "observability/server/telemetry/telemetry.tenant-purge",
+      "order": 60,
+      "scope": "both",
+      "metadata": {
+        "label": "Erase the telemetry"
+      }
+    },
+    {
+      "point": "dashboard:data_source",
+      "key": "telemetry",
+      "export": "observability/server/telemetry/telemetry.dashboard-source",
+      "order": 30,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Telemetry"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "observability",
+      "export": "observability/server/observability.export-collection",
+      "order": 60,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Observability",
+        "collections": [
+          "observabilityMonitors",
+          "observabilityUptimeDaily",
+          "observabilityStatusComponents",
+          "observabilityStatusComponentMonitors",
+          "observabilityStatusSubscribers",
+          "observabilityAlertIntegrations",
+          "observabilityAlertRoutes",
+          "observabilityAlertSilences",
+          "observabilityAlertDependencies",
+          "observabilityAlerts",
+          "observabilitySlos",
+          "observabilityIncidents",
+          "observabilityIncidentEvents",
+          "observabilityIncidentParticipants",
+          "observabilityIncidentPostmortems",
+          "observabilityIncidentTemplates",
+          "observabilityProbeLocations",
+          "observabilityProbeRunners"
+        ]
+      }
+    },
+    {
+      "point": "privacy:erasure",
+      "key": "observability",
+      "export": "observability/server/observability.privacy-erasure",
+      "order": 60,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Observability"
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "observability_tables",
+      "export": "observability/server/observability.tenant-purge",
+      "order": 61,
+      "scope": "both",
+      "metadata": {
+        "label": "Erase the observability rows"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_watchdog",
+      "export": "observability/server/watchdog.job",
+      "order": 3066,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleWatchdogJob",
+        "name": "observability-watchdog"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_status_snapshot",
+      "export": "observability/server/status.snapshot.job",
+      "order": 3075,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleStatusSnapshotJob",
+        "name": "observability-status-snapshot"
+      }
+    },
+    {
+      "point": "websocket:namespace",
+      "key": "telemetry_tail",
+      "export": "observability/server/telemetry/telemetry.tail.namespace",
+      "order": 31,
+      "scope": "tenant",
+      "metadata": {
+        "path": "/telemetry-tail"
+      }
+    },
+    {
+      "point": "dashboard:board_template",
+      "key": "telemetry_boards",
+      "export": "observability/server/telemetry/telemetry.board-templates",
+      "order": 30,
+      "scope": "tenant",
+      "metadata": {
+        "label": "RED, USE and golden-signals boards"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "observability_reconcile",
+      "export": "observability/server/observability.reconcile.job",
+      "order": 3075,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleReconcileJob",
+        "name": "observability-reconcile"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "alert.firing",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Alerts firing",
+        "description": "A group of alerts was announced by a routing rule. The payload lists the alerts (title, severity, labels), the group key and the incident if one was opened."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "alert.resolved",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Alert resolved",
+        "description": "An alert that had been announced recovered."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "alert.acknowledged",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Alert acknowledged",
+        "description": "Somebody acknowledged an alert (the first acknowledgement only). The payload carries the alert, who acknowledged and when."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "slo.budget_low",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "SLO budget low",
+        "description": "An SLO has little error budget left (below its configured share). Fires once when it gets worse, not every minute; a flow can use it to slow releases."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "slo.budget_exhausted",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "SLO budget exhausted",
+        "description": "An SLO has spent its whole error budget for the window. Fires once when it happens."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "incident.opened",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Incident opened",
+        "description": "An incident was opened, automatically by the alert pipeline or declared by a person. The payload carries the title, severity and the monitor, if any."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "incident.updated",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Incident updated",
+        "description": "An incident was acknowledged, mitigated, re-rated, published or given a public progress update. The payload says which (`change`)."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "incident.resolved",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Incident resolved",
+        "description": "An incident was resolved, by a person, by a recovery, or with a final public update."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "incident.postmortem_published",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Post-mortem published",
+        "description": "A reviewed post-mortem of a resolved incident was published. The payload carries the incident and the time, never the write-up itself."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "status.component_changed",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Status component changed",
+        "description": "A status page component changed state, derived from its monitors or set by an operator (for example MAINTENANCE). The payload carries the component, its new and previous status and whether it is public."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "observability.config_applied",
+      "export": "observability/server/observability.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Observability",
+        "label": "Configuration applied",
+        "description": "A monitoring-as-code apply wrote changes. The payload carries counts per operation, the resource kinds touched and the plan hash, never resource contents."
+      }
+    },
+    {
+      "point": "telemetry:entity_kind",
+      "key": "observability.monitor",
+      "export": "observability/server/uptime.sample-store",
+      "order": 20,
+      "scope": "tenant",
+      "description": "Probe samples as readings of kind observability.monitor (entity = the monitor; per probe location: state, latency_ms, status_code, maintenance, error), class 90, readable for the tenant's own monitors, shown to dashboards; written beside monitor_checks in this release (42-telemetry/04 §4.1)."
+    },
+    {
+      "point": "telemetry:entity_kind",
+      "key": "observability.series",
+      "export": "observability/server/telemetry/telemetry.series-kind",
+      "order": 21,
+      "scope": "tenant",
+      "description": "OTel metric series as readings of kind observability.series in the otel lane (value, or count/sum/bucket.<i> for a histogram); the class follows the workspace's metrics retention; readable for series the tenant's catalogue knows; the telemetry metrics adapter writes it (42-telemetry/04 §4.2)."
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "observability/server/observability.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: chat destinations, configuration as code, incident legal holds, probe locations and runners, SLA exports, browser telemetry keys, telemetry retention and erasure), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "observability: chat destinations, probes, exports and telemetry lifecycle (phase 55 coverage)",
+        "ids": [
+          "observability.chat.destination_created",
+          "observability.chat.destination_updated",
+          "observability.chat.destination_deleted",
+          "observability.chat.destination_tested",
+          "observability.chat.destination_suspended",
+          "observability.config.applied",
+          "observability.config.detached",
+          "observability.incident.legal_hold_set",
+          "observability.incident.legal_hold_released",
+          "observability.probe.location_created",
+          "observability.probe.location_updated",
+          "observability.probe.location_deleted",
+          "observability.probe.location_exposure_changed",
+          "observability.probe.enrolment_created",
+          "observability.probe.runner_enrolled",
+          "observability.probe.runner_revoked",
+          "observability.sla_report.exported",
+          "observability.telemetry.browser_key_set",
+          "observability.telemetry.browser_key_removed",
+          "observability.telemetry.compare_set",
+          "observability.telemetry.retention_set",
+          "observability.telemetry.retention_clamped",
+          "observability.telemetry.erased"
+        ]
+      }
+    }
+  ],
+  "settings": {
+    "keys": "OBSERVABILITY_KEYS"
+  },
+  "settingKeys": [
+    "OBSERVABILITY_KEYS",
+    "TELEMETRY_SETTING_KEYS"
+  ],
+  "appRoutes": [
+    {
+      "path": "tenant/[tenantId]/status/page",
+      "export": "observability/ui/status.app-page",
+      "names": [
+        "default",
+        "generateMetadata"
+      ]
+    },
+    {
+      "path": "tenant/[tenantId]/status/p/[slug]/page",
+      "export": "observability/ui/status-slug.app-page",
+      "names": [
+        "default",
+        "generateMetadata"
+      ]
+    }
+  ]
+}

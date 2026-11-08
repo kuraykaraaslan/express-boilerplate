@@ -1,0 +1,5 @@
+{
+  "feature_gate.firewallSignal.feature_access_checked": "Bir plan özelliği denetlendi",
+  "feature_gate.firewallSignal.feature_gate_pack_ticket": "Korumalı bir içerik paketi için bilet verildi",
+  "feature_gate.firewallSignal.fleet_license_limit_blocked": "Bir lisans sınırı yeni bir oluşturmayı reddetti"
+}

@@ -1,0 +1,221 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "telemetry",
+  "name": "Telemetry",
+  "description": "Readings over time as a Core platform domain (docs/phases/42-telemetry): one row per message per retention class on db:time_series (TimescaleDB where present), the per-tenant key dictionary, the latest value per entity and key, 1-minute aggregates with hour and day rollups, retention per tenant and kind, the TelemetryWriter every kind writes through, the read service and API (latest, series by range: raw, minute, hour, day), a dashboard data source, a generic save node, the tenant purge and the plan-driven class switch. A module contributes an entity kind (telemetry:entity_kind) to store its readings; the IoT package registers iot_device on top of this store.",
+  "version": "1.1.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": [
+    "single",
+    "node",
+    "fleet"
+  ],
+  "icon": "fa-wave-square",
+  "tags": [
+    "telemetry",
+    "time_series",
+    "timescale",
+    "readings",
+    "core"
+  ],
+  "priority": 3,
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "logger",
+      "redis",
+      "tenant",
+      "tenant_setting"
+    ],
+    "optional": [
+      "automation",
+      "dashboard",
+      "feature_gate",
+      "tenant_member"
+    ]
+  },
+  "permissions": [
+    {
+      "id": "telemetry.read",
+      "name": "Read telemetry readings (each kind decides which entities)",
+      "group": "Telemetry",
+      "minRole": "USER"
+    },
+    {
+      "id": "telemetry.admin.read",
+      "name": "View the telemetry store (kinds, retention bindings, keys)",
+      "group": "Telemetry",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "telemetry.admin.manage",
+      "name": "Manage the telemetry store",
+      "group": "Telemetry",
+      "minRole": "ADMIN"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/telemetry/kinds",
+      "handler": "telemetry/server/telemetry-kinds.route"
+    },
+    {
+      "path": "/api/telemetry/latest",
+      "handler": "telemetry/server/telemetry-latest.route"
+    },
+    {
+      "path": "/api/telemetry/series",
+      "handler": "telemetry/server/telemetry-series.route"
+    },
+    {
+      "path": "/api/telemetry/admin/store",
+      "handler": "telemetry/server/telemetry-admin-store.route",
+      "placement": "root"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/telemetry/settings",
+      "component": "telemetry/ui/telemetry-settings.page",
+      "placement": "root",
+      "permissions": ["telemetry.admin.read", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/admin/telemetry/store",
+      "component": "telemetry/ui/store.page",
+      "placement": "root"
+    }
+  ],
+  "menu": [
+    {
+      "id": "telemetry-store",
+      "permissions": [
+        "telemetry.admin.read"
+      ],
+      "label": "Telemetry store",
+      "href": "/admin/telemetry/store",
+      "icon": "fas fa-wave-square",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 10,
+      "scope": "system",
+      "placement": "root"
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/telemetry",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "telemetry:entity_kind",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A module declares an entity kind whose readings the store keeps (telemetry.kinds.ts `TelemetryEntityKind`): the kind name (`iot_device`, `fx.currency`), its keys (declared, or open with its own key rule and cap), its retention (a fixed class, or a resolver for plan-driven classes), `canRead(ctx, entityIds)` (record-level read check, default deny), whether dashboards may list it, whether a flow or a binding may write it (`acceptsExternalWrites`, narrowed by `canWrite`), its lane (table family) and its per-tenant write budget. Default export is the kind. The writer refuses an unregistered kind; every read path asks the kind's canRead. The registry of kinds is loaded on first use through the generated loaders (lazyContributors), so any module may contribute a kind without a contribution-chain cycle (analytics does, while automation contributes to analytics and telemetry to automation).",
+      "lazyContributors": true
+    }
+  ],
+  "extensions": [
+    {
+      "point": "db:time_series",
+      "key": "telemetry",
+      "export": "telemetry/server/telemetry.timeseries",
+      "metadata": {
+        "label": "Telemetry: raw message tables and 1-minute aggregates per retention class, hour and day rollups"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "telemetry_minute_rollup",
+      "export": "telemetry/server/telemetry.minute-rollup.job",
+      "order": 2070,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleTelemetryMinuteRollupJob",
+        "name": "telemetry-minute-rollup"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "telemetry_entity_purge",
+      "export": "telemetry/server/telemetry.entity-purge.job",
+      "order": 2071,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleTelemetryEntityPurgeWorker",
+        "name": "telemetry-entity-purge"
+      }
+    },
+    {
+      "point": "db:seeder",
+      "key": "telemetry",
+      "export": "telemetry/server/telemetry.seeder",
+      "scope": "tenant",
+      "description": "Full-load lane only: two keys, raw messages, minute rows, latest values and job state for a synthetic entity of the inert kind telemetry.seed, so every telemetry table is filled in the guarded test database even without a module that owns a kind. The default seed leaves readings to their producers (exempt as runtime-state).",
+      "metadata": {
+        "fullLoad": true
+      }
+    },
+    {
+      "point": "dashboard:data_source",
+      "key": "telemetry_store",
+      "export": "telemetry/server/telemetry.dashboard-source",
+      "order": 20,
+      "scope": "tenant",
+      "description": "telemetry.latest (an entity's latest values as a record) and telemetry.series (keys over the board window, aggregated per bucket); only kinds that expose themselves, every execution through the kind's canRead for the viewer (cached per user).",
+      "metadata": {
+        "label": "Telemetry"
+      }
+    },
+    {
+      "point": "automation:node",
+      "key": "telemetry_nodes",
+      "export": "telemetry/server/telemetry.automation-nodes",
+      "order": 75,
+      "scope": "tenant",
+      "description": "action.save_reading on the generic host: a flow stores msg.payload as a reading of an entity of a kind that accepts flow writes; one writer call per wave.",
+      "metadata": {
+        "label": "Telemetry nodes",
+        "ids": [
+          "action.save_reading"
+        ]
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "telemetry",
+      "export": "telemetry/server/telemetry.tenant-purge",
+      "order": 60,
+      "scope": "both",
+      "description": "Deletes the tenant's rows from every lane's tables (raw, minute, hour and day rollups, latest, state, hints), its class bindings and its key dictionary, then its Redis key hash."
+    },
+    {
+      "point": "feature_gate:entitlement_changed",
+      "key": "telemetry",
+      "export": "telemetry/server/telemetry.entitlement-listener",
+      "order": 20,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Retention classes follow the plan"
+      }
+    },
+    {
+      "point": "mcp_server:tool",
+      "key": "mcp_tools",
+      "export": "telemetry/server/telemetry.mcp-tools",
+      "scope": "system",
+      "description": "Phase 57 wave 1: readings on the telemetry MCP server (/api/mcp/telemetry), read only: get_latest_readings and get_reading_series (at most 31 days, 10 keys, 500 points a key). Permission telemetry.read and the kind's own canRead, as on the read routes; device values reach the model fenced as untrusted. Imports only the contract from common.",
+      "metadata": {
+        "label": "telemetry: latest readings and bounded series of one entity (phase 57 wave 1)",
+        "ids": [
+          "get_latest_readings",
+          "get_reading_series"
+        ]
+      }
+    }
+  ]
+}

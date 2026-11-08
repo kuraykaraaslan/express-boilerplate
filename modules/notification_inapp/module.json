@@ -1,0 +1,94 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification_inapp",
+  "name": "In-App Notifications",
+  "description": "In-app notification feed with unread counts. Consumed by the notification menu in the app shell.",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-comment-dots",
+  "tags": [
+    "notifications",
+    "in-app"
+  ],
+  "priority": 30,
+  "dependencies": {
+    "requires": [
+      "db",
+      "notification_push",
+      "tenant_setting",
+      "user",
+      "user_preferences"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification_inapp",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/in-app-notifications",
+      "component": "notification_inapp/ui/inapp-settings.page",
+      "permissions": [
+        "notification_inapp.settings.read",
+        "tenant_setting.config.read"
+      ]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/auth/me/notifications/stream",
+      "handler": "notification_inapp/server/auth-me-notifications-stream.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "notification_inapp.stream.read",
+      "name": "Stream own notifications",
+      "group": "Notifications",
+      "minRole": "USER"
+    },
+    {
+      "id": "notification_inapp.settings.read",
+      "name": "View in-app notification settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_inapp.settings.update",
+      "name": "Change in-app notification settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "notification:channel",
+      "key": "inapp",
+      "export": "notification_inapp/server/notification_inapp.channel",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "In-app feed"
+      }
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "notification_inapp:bell",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "notification_inapp.bell",
+      "description": "Another source of the top bar's one bell (the IoT alarms), so it does not add a second bell. Implemented through the CLIENT slot 'notification_inapp.bell': a contributor declares slots[] = { slot: 'notification_inapp.bell', component, order, scope }. Props received: { tenantId, onItems(key, source), onCount(key, n) }. A source hands its items up with onItems under its own key (a NotificationSource of common's notification menu: label, items with their time, look, page and inline action, the unread count for the badge, a header action, its page; null when the viewer may not see it): they join the notifications in one list, newest first, with a filter per source (docs/phases/07-dashboard/40, D40-16). A contribution that draws a section above the list instead reports what still wants the viewer's attention through onCount and that joins the badge. Contributions stay mounted while the panel is closed (hidden), so a source keeps its items and counts live; it renders nothing when the viewer may not see it."
+    }
+  ],
+  "slots": [
+    {
+      "slot": "app_shell.topbar",
+      "component": "notification_inapp/ui/notification-topbar.component",
+      "order": 30,
+      "scope": "both"
+    }
+  ]
+}

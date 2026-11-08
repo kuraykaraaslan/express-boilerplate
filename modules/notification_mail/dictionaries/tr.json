@@ -1,0 +1,5 @@
+{
+  "notification_mail.permission.notification_mail_settings_read.name": "E-posta ayarlarını görüntüle",
+  "notification_mail.permission.notification_mail_settings_update.name": "E-posta ayarlarını değiştir",
+  "notification_mail.permissionGroup.email": "E-posta"
+}

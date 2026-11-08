@@ -1,0 +1,21 @@
+-- DOWN for 003_slos.sql: SLOs.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of `slos` (objectives, windows, last budget state). Migration 020 adds `managedBy`/`sourceKey` to this table: undo 020 first (the order below does).
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 003_slos.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+DROP TABLE IF EXISTS "slos";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:003_slos.sql';
+  END IF;
+END $$;

@@ -1,0 +1,37 @@
+-- DOWN for 020_config_managed.sql: monitoring-as-code marks.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: the `managedBy` marks on monitors, status_components, slos, alert_routes, alert_integrations, alert_dependencies and incident_update_templates, and the `sourceKey` columns this migration added to status_components, slos, alert_routes and alert_integrations (the repository keys of everything applied from code; the next apply from the repository re-creates the marks, but resources lose the link to their file until then). `monitors.sourceKey` is NOT dropped: it existed before observability migrations (baseline).
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 020_config_managed.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- Indexes first, then the columns they were built on, per table.
+DROP INDEX IF EXISTS "IDX_cfd6c48bd4836aa0adf384ef7b";
+DROP INDEX IF EXISTS "IDX_b7a236050e22eeeac799c26521";
+DROP INDEX IF EXISTS "IDX_bc9d7f978f48dfdbeb807ce051";
+DROP INDEX IF EXISTS "IDX_9ed69c267a088c145934ca88c2";
+
+ALTER TABLE IF EXISTS "incident_update_templates" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "alert_dependencies" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "alert_integrations" DROP COLUMN IF EXISTS "sourceKey";
+ALTER TABLE IF EXISTS "alert_integrations" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "alert_routes" DROP COLUMN IF EXISTS "sourceKey";
+ALTER TABLE IF EXISTS "alert_routes" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "slos" DROP COLUMN IF EXISTS "sourceKey";
+ALTER TABLE IF EXISTS "slos" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "sourceKey";
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "managedBy";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "managedBy";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:020_config_managed.sql';
+  END IF;
+END $$;

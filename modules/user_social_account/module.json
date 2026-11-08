@@ -1,0 +1,72 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user_social_account",
+  "name": "Linked Social Accounts",
+  "description": "Per-user linked OAuth provider accounts (provider id, external user id, tokens).",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-link",
+  "tags": [
+    "identity",
+    "auth"
+  ],
+  "priority": 12,
+  "dependencies": {
+    "requires": [
+      "db",
+      "notification",
+      "user"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user_social_account",
+  "license": "Proprietary",
+  "extensions": [
+    {
+      "point": "db:tenant_key_columns",
+      "key": "user_social_account",
+      "export": "user_social_account/server/user_social_account.tenant-key-columns",
+      "scope": "system",
+      "description": "The OAuth access and refresh tokens of a linked social identity, encrypted under the PER-USER data key (keyScope user, decision F27): they belong to the person, not to a tenant."
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "social_account.linked",
+      "export": "user_social_account/server/user_social_account.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "Social account linked",
+        "description": "A social login provider was linked to a user."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "social_account.unlinked",
+      "export": "user_social_account/server/user_social_account.webhook-events",
+      "metadata": {
+        "scope": "platform",
+        "group": "Users",
+        "label": "Social account unlinked",
+        "description": "A social login provider was unlinked from a user."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "user_social_account/server/user_social_account.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "user_social_account: outside identities linked, unlinked and merged (phase 55 01.6)",
+        "ids": [
+          "social_account.linked",
+          "social_account.unlinked",
+          "social_identity.merged"
+        ]
+      }
+    }
+  ]
+}

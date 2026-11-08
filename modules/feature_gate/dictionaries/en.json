@@ -1,0 +1,5 @@
+{
+  "feature_gate.firewallSignal.feature_access_checked": "A plan feature was checked",
+  "feature_gate.firewallSignal.feature_gate_pack_ticket": "A ticket for a protected content pack was issued",
+  "feature_gate.firewallSignal.fleet_license_limit_blocked": "A licence limit refused a new creation"
+}

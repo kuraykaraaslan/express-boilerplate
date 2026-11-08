@@ -1,0 +1,207 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_setting",
+  "name": "Tenant Settings",
+  "description": "Per-tenant key-value settings store — every method is tenant-scoped and rows carry tenantId. Modules declare their keys in *.setting.keys.ts; the service stores/reads them. Also hosts the admin settings console and per-tenant module enable/disable (module-activation).",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-gear",
+  "tags": [
+    "platform",
+    "configuration"
+  ],
+  "priority": 5,
+  "dependencies": {
+    "requires": [
+      "db",
+      "env",
+      "i18n",
+      "ip_subnet",
+      "localization"
+    ],
+    "optional": [
+      "session_end"
+    ]
+  },
+  "menu": [
+    {
+      "id": "settings",
+      "permissions": ["tenant_setting.config.read"],
+      "label": "Settings",
+      "href": "/admin/settings",
+      "icon": "fas fa-gear",
+      "group": "Settings",
+      "workspace": "organisation",
+      "order": 1,
+      "scope": "tenant"
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_setting",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/auth",
+      "component": "tenant_setting/ui/settings-auth.page"
+    },
+    {
+      "path": "/admin/settings/general",
+      "component": "tenant_setting/ui/settings-general.page"
+    },
+    {
+      "path": "/admin/settings/localization",
+      "component": "tenant_setting/ui/settings-localization.page"
+    },
+    {
+      "path": "/admin/settings",
+      "component": "tenant_setting/ui/settings.page"
+    },
+    {
+      "path": "/admin/settings/security",
+      "component": "tenant_setting/ui/settings-security.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/admin-settings",
+      "handler": "tenant_setting/server/admin-settings.route"
+    },
+    {
+      "path": "/api/admin-settings/pages",
+      "handler": "tenant_setting/server/admin-settings-pages.route"
+    },
+    {
+      "path": "/api/modules",
+      "handler": "tenant_setting/server/modules.route"
+    },
+    {
+      "path": "/api/settings",
+      "handler": "tenant_setting/server/settings.route"
+    },
+    {
+      "path": "/api/setting-levels",
+      "placement": "root",
+      "handler": "tenant_setting/server/setting-levels.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant_setting.config.read",
+      "name": "View tenant settings",
+      "group": "Settings",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_setting.config.update",
+      "name": "Update tenant settings",
+      "group": "Settings",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_setting.config.delete",
+      "name": "Delete a tenant setting",
+      "group": "Settings",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_setting.modules.read",
+      "name": "View module activation",
+      "group": "Modules",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_setting.levels.read",
+      "name": "View setting levels",
+      "group": "Settings",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_setting.levels.update",
+      "name": "Change setting levels",
+      "group": "Settings",
+      "minRole": "OWNER"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "tenant_setting:change_review",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "description": "Who reviews a setting change while the tenant's maker-checker is on (`tenantSettingMakerChecker`). Default export: SettingChangeReviewer { submit(tenantId, { key, value, encrypted, actorId }) => Promise<{ reviewId }> }; the value is stored encrypted for a secret key. The approval module contributes it (the shared approval queue) and, on a terminal decision, calls tenant_setting's applySettingChangeDecision from its own approval-phase boot task. The first active reviewer is used. Fails closed: with maker-checker on and no active reviewer (approval missing or off for the tenant) the write is refused with 409 before anything is saved, because maker-checker is a security control. Declared here so tenant_setting never imports approval, which requires it.",
+      "contract": "tenant_setting/server/tenant_setting.change-review#SettingChangeReviewer"
+    },
+    {
+      "id": "tenant_setting:settings_link",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "tenant_setting.settings.links",
+      "description": "An extra entry on the settings overview (/admin/settings), in the Access & Security grid. Implemented through the CLIENT slot 'tenant_setting.settings.links': a contributor declares slots[] = { slot: 'tenant_setting.settings.links', component, order, scope: 'tenant' }. Props received: { tenantId }. The contribution renders its own link card and decides itself whether it applies (it may render nothing, e.g. the fleet node's residency facts off a node). Declared so tenant_setting never imports the satellite that owns the page."
+    }
+  ],
+  "slots": [
+    {
+      "slot": "tenant.detail.drawers",
+      "component": "tenant_setting/ui/tenant-setting-levels.drawer",
+      "order": 10,
+      "scope": "tenant",
+      "permissions": ["tenant_setting.levels.read"],
+      "props": { "drawerId": "setting-levels", "label": "Setting levels", "labelKey": "tenant_setting.levels.drawer.label" }
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:contributor_state",
+      "key": "module_activation",
+      "export": "tenant_setting/server/tenant_setting.contributor-state",
+      "scope": "both",
+      "description": "Modules switched off for the tenant are `disabled`."
+    },
+    {
+      "point": "common:provider_scope",
+      "key": "setting_levels",
+      "export": "tenant_setting/server/tenant_setting.provider-scope",
+      "scope": "both",
+      "description": "Phase 53.4: the scope a module's setting level gives its plugin providers (platform -> root, tenant -> own, tenant_first -> own_then_root)."
+    },
+    {
+      "point": "db:tenant_key_columns",
+      "key": "tenant_setting",
+      "export": "tenant_setting/server/tenant_setting.tenant-key-columns",
+      "scope": "system",
+      "description": "The values of the SENSITIVE_KEYS settings and their history rows, encrypted under the tenant's data key (P7-TDEK, F16)."
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_setting.changed",
+      "export": "tenant_setting/server/tenant_setting.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Settings",
+        "label": "Setting changed",
+        "description": "A tenant setting value was created or updated."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_setting/server/tenant_setting.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: a setting created, updated, written in bulk or deleted, a parked setting change approved or rejected), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_setting: settings created, changed, deleted and parked changes decided (phase 55 coverage)",
+        "ids": [
+          "setting.created",
+          "setting.updated",
+          "setting.bulk_updated",
+          "setting.deleted",
+          "setting.approval_approved",
+          "setting.approval_rejected"
+        ]
+      }
+    }
+  ]
+}

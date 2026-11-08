@@ -1,0 +1,150 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "limiter",
+  "name": "Rate Limiter",
+  "description": "Sliding-window rate limiter + tenant-plan-based quota enforcement (seat/feature/usage limits).",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-gauge-high",
+  "tags": [
+    "infrastructure",
+    "security",
+    "billing"
+  ],
+  "priority": 5,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "db",
+      "env",
+      "feature_gate",
+      "ip_subnet",
+      "observability",
+      "redis",
+      "tenant_setting",
+      "tenant_usage",
+      "user_session"
+    ]
+  },
+  "exports": {
+    "LimiterService": "limiter.service.ts",
+    "TenantPlanLimiterService": "limiter.tenant-plan.service.ts"
+  },
+  "permissions": [
+    {
+      "id": "limiter.settings.read",
+      "name": "View the installation's rate limits and bans",
+      "description": "Root tenant only. The sign-in limits, address bans and anonymous API limit of the whole installation.",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "limiter.settings.update",
+      "name": "Change the installation's rate limits and bans",
+      "description": "Root tenant only. Each limit can only be made stricter than the built-in value.",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "limiter.ip_bans.manage",
+      "name": "Ban and unban addresses for the whole installation",
+      "description": "Root tenant only. Ban an address or CIDR block from every page and API of the installation for a while, with a reason, and lift a ban. Every ban and lift is audited.",
+      "group": "Platform",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/rate-limits/settings",
+      "placement": "root",
+      "component": "limiter/ui/limiter-settings.page",
+      "permissions": [
+        "limiter.settings.read",
+        "tenant_setting.config.read"
+      ]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/limiter/ip-bans",
+      "placement": "root",
+      "handler": "limiter/server/limiter-ip-bans.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "limiter_edge_sync",
+      "export": "limiter/server/limiter.edge-sync",
+      "order": 2263,
+      "scope": "system",
+      "description": "Phase 55 00 §0.7: every minute, publishes the standing long address bans for the node's edge (Redis edge:app-bans, which infra/compose/edge/fleet-edge-sync turns into CrowdSec local decisions) and reports the local CrowdSec decisions the host handed back as edge.decision rows.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleEdgeSync",
+        "name": "limiter-edge-sync"
+      }
+    },
+    {
+      "point": "user_session:session_revoked",
+      "key": "limiter",
+      "export": "limiter/server/limiter.session-revoked",
+      "order": 70,
+      "metadata": {
+        "label": "Stop counting a revoked session as its person"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "limiter/server/limiter.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "limiter: address bans, lifts, promotions, the edge decisions read back, trap route touches, its own refusals (tallied) and the misbehaviour divisor (phase 55 01.6, 02.5, 02.6)",
+        "ids": [
+          "security.ip_banned",
+          "security.ip_unbanned",
+          "security.ip_ban_promoted",
+          "edge.decision",
+          "limiter.trap_route_touched",
+          "limiter.rate_limited",
+          "limiter.address_divided"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "limiter/server/limiter.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "limiter: ban an address, throttle an address (phase 55 01.6)",
+        "ids": [
+          "limiter.ip_ban",
+          "limiter.throttle"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:honeytoken",
+      "key": "firewall_honeytokens",
+      "export": "limiter/server/limiter.firewall-honeytokens",
+      "scope": "system",
+      "description": "Phase 55 02.5: the trap routes: a few plausible old admin and backup API paths no module declares, so the dispatcher answers them with its own missing-route 404 and no sitemap or route listing can show them; the answer watcher reports a 404 on one as a critical signal (bounded per actor and per process).",
+      "metadata": {
+        "label": "limiter: trap routes (phase 55 02.5)",
+        "ids": [
+          "limiter.trap_routes"
+        ]
+      }
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/limiter",
+  "license": "Proprietary"
+}

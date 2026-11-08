@@ -1,0 +1,25 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "i18n",
+  "name": "I18n",
+  "description": "Application-UI translation RUNTIME — message resolution, {{var}} interpolation, the <I18nProvider>/useT client context, app-locale resolution and the app_locale cookie. Carries no reference data: language/country/currency catalogues and their pickers live in `localization`.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-language",
+  "tags": [
+    "infrastructure",
+    "i18n",
+    "runtime",
+    "leaf"
+  ],
+  "priority": 1,
+  "dependencies": {
+    "requires": []
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/i18n",
+  "license": "Proprietary"
+}

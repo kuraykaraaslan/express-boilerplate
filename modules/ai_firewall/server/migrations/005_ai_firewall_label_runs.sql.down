@@ -1,0 +1,14 @@
+-- DOWN for 005_ai_firewall_label_runs.sql: the run of a synthetic or benign-traffic label.
+--
+-- NEVER auto-run; manual rollback only. The synthetic and benign_traffic labels stay, without the run that made them (they can no
+-- longer be withdrawn or exported per run).
+DROP INDEX IF EXISTS "idx_ai_firewall_labels_run";
+ALTER TABLE "ai_firewall_labels" DROP COLUMN IF EXISTS "runId";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'ai_firewall:005_ai_firewall_label_runs.sql';
+  END IF;
+END $$;

@@ -1,0 +1,17 @@
+{
+  "redis_idempotency.permission.redis_idempotency_settings_read.description": "Yalnızca kök kiracı. Kurulumun Idempotency-Key kayıtlarını ne kadar süre tuttuğu.",
+  "redis_idempotency.permission.redis_idempotency_settings_read.name": "Yeniden denenen isteklerin ne kadar süre hatırlandığını görüntüle",
+  "redis_idempotency.permission.redis_idempotency_settings_update.description": "Yalnızca kök kiracı. Her süre yalnızca yerleşik süreden daha uzun yapılabilir.",
+  "redis_idempotency.permission.redis_idempotency_settings_update.name": "Yeniden denenen isteklerin ne kadar süre hatırlandığını değiştir",
+  "redis_idempotency.permissionGroup.platform": "Platform",
+  "redis_idempotency.settings.group.retried_requests": "Yeniden denenen istekler",
+  "redis_idempotency.settings.idempotencyPendingMinutes.description": "Hâlâ çalışan bir isteğin Idempotency-Key anahtarını ne kadar tuttuğu; böylece bir yeniden deneme iki kez çalışmak yerine reddedilir: 10 (yerleşik süre) ile 60 dakika arası. Sunucusu durmuş bir istek de anahtarını bu kadar tutar.",
+  "redis_idempotency.settings.idempotencyPendingMinutes.label": "Çalışan bir isteği tut (dakika)",
+  "redis_idempotency.settings.idempotencyPendingMinutes.placeholder": "10",
+  "redis_idempotency.settings.idempotencyReplayHours.description": "Idempotency-Key ile gönderilen bir isteğin başarılı olduktan sonra ne kadar süre hatırlandığı: aynı anahtarla yapılan yeniden deneme tekrar çalışmak yerine ilk yanıtı alır. 24 (yerleşik süre) ile 168 saat arası; daha uzun süre, günlerce çevrimdışı kaldıktan sonra sıradaki değişiklikleri gönderen uygulamalara uygundur.",
+  "redis_idempotency.settings.idempotencyReplayHours.label": "Tamamlanan bir isteği hatırla (saat)",
+  "redis_idempotency.settings.idempotencyReplayHours.placeholder": "24",
+  "redis_idempotency.settings.settingsCrumb": "Ayarlar",
+  "redis_idempotency.settings.subtitle": "Tüm kurulumun Idempotency-Key ile gönderilen istekleri ne kadar süre hatırladığı; her süre yalnızca daha uzun yapılabilir",
+  "redis_idempotency.settings.title": "Yeniden Denenen İstekler"
+}

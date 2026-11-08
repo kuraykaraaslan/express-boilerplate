@@ -1,0 +1,106 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification_log",
+  "name": "Notification Log",
+  "description": "Unified outbound notification audit log across mail, sms, push, inapp channels.",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-table-list",
+  "tags": [
+    "notifications",
+    "audit"
+  ],
+  "priority": 31,
+  "dependencies": {
+    "requires": [
+      "db",
+      "tenant"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification_log",
+  "license": "Proprietary",
+  "apiRoutes": [
+    {
+      "path": "/api/cron/notification-log-retention",
+      "handler": "notification_log/server/cron-notification-log-retention.route"
+    },
+    {
+      "path": "/api/cron/notification-log-failure-alert",
+      "handler": "notification_log/server/cron-notification-log-failure-alert.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_export:collection",
+      "key": "notification_log",
+      "export": "notification_log/server/notification_log.export-collection",
+      "order": 25,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Notification log",
+        "collections": [
+          "notificationLogs"
+        ]
+      }
+    },
+    {
+      "point": "db:tenant_key_columns",
+      "key": "notification_log",
+      "export": "notification_log/server/notification_log.tenant-key-columns",
+      "scope": "system",
+      "description": "The recipient of a delivery, encrypted under the tenant's data key, with its blind index (P7-TDEK, F16)."
+    },
+    {
+      "point": "common:boot_task",
+      "key": "notification_log_retention",
+      "export": "notification_log/server/notification_log.retention.job",
+      "order": 4640,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleNotificationLogRetentionJob",
+        "name": "notification-log-retention"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "notification_log_failure_alert",
+      "export": "notification_log/server/notification_log.alerts.job",
+      "order": 4645,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleNotificationLogFailureAlertJob",
+        "name": "notification-log-failure-alert"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "notification.failure_rate_high",
+      "export": "notification_log/server/notification_log.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Notifications",
+        "label": "Notification failure rate high",
+        "description": "Outbound notification failure rate exceeded the alert threshold."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "notification_log/server/notification_log.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kind this module emits (the audit action it owns: the retention sweep of old notification rows), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "notification_log: the retention sweep (phase 55 coverage)",
+        "ids": [
+          "notification_log.retention.pruned"
+        ]
+      }
+    }
+  ]
+}

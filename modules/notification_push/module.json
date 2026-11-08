@@ -1,0 +1,154 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification_push",
+  "name": "Web Push Notifications",
+  "description": "Push notifications — Web Push (VAPID) and Expo (native apps): subscription storage + send.",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-mobile-screen-button",
+  "tags": [
+    "notifications",
+    "push"
+  ],
+  "priority": 30,
+  "dependencies": {
+    "requires": [
+      "db",
+      "env",
+      "notification_log",
+      "redis_idempotency",
+      "tenant_setting",
+      "user_preferences"
+    ]
+  },
+  "settings": {
+    "level": {
+      "allowed": ["platform", "tenant", "tenant_first"],
+      "default": "platform",
+      "keys": ["pushProvider", "vapidPublicKey", "vapidPrivateKey", "vapidContactEmail"],
+      "points": ["push:provider"]
+    }
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification_push",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/push",
+      "component": "notification_push/ui/push-settings.page",
+      "permissions": [
+        "notification_push.settings.read",
+        "tenant_setting.config.read"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "push:provider",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "any",
+      "persists": true,
+      "external": true,
+      "inTree": false,
+      "description": "A Web Push delivery backend for browser subscriptions (VAPID). Sandboxed marketplace plugins (e.g. @webpush/push) contribute their send op here; the payload encryption and the VAPID key stay host-side via the webpush capability. Native-app (Expo) subscriptions do not use this point: notification_push sends them to Expo in-tree (notification_push.expo.ts)."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "notification:channel",
+      "key": "push",
+      "export": "notification_push/server/notification_push.channel",
+      "order": 30,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Web push"
+      }
+    },
+    {
+      "point": "privacy:erasure",
+      "key": "notification_push",
+      "export": "notification_push/server/notification_push.privacy-erasure",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Push registrations"
+      }
+    },
+    {
+      "point": "user_session:session_revoked",
+      "key": "notification_push",
+      "export": "notification_push/server/notification_push.session-revoked",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Native push tokens"
+      }
+    },
+    {
+      "point": "tenant_member:membership_ended",
+      "key": "notification_push",
+      "export": "notification_push/server/notification_push.membership-ended",
+      "order": 50,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Push registrations of an ended membership"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "expo_receipts",
+      "export": "notification_push/server/notification_push.expo-receipts.job",
+      "order": 2140,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleExpoReceiptsJob",
+        "name": "expo-receipts"
+      }
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/notifications/push/subscribe",
+      "handler": "notification_push/server/notifications-push-subscribe.route"
+    },
+    {
+      "path": "/api/notifications/push/tokens",
+      "handler": "notification_push/server/notifications-push-tokens.route"
+    },
+    {
+      "path": "/api/cron/expo-receipts",
+      "handler": "notification_push/server/cron-expo-receipts.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "notification_push.subscription.subscribe",
+      "name": "Subscribe own device to push",
+      "group": "Notifications",
+      "minRole": "USER"
+    },
+    {
+      "id": "notification_push.subscription.unsubscribe",
+      "name": "Unsubscribe own device from push",
+      "group": "Notifications",
+      "minRole": "USER"
+    },
+    {
+      "id": "notification_push.settings.read",
+      "name": "View push settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_push.settings.update",
+      "name": "Change push settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    }
+  ]
+}

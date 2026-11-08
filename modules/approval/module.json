@@ -1,0 +1,299 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "approval",
+  "name": "Approval Queue",
+  "description": "Generic, entity-agnostic moderation / approval queue. Any owning module can route an entity through human review via the queue (keyed by entityType + entityId) with a tamper-evident per-tenant decision hash chain and an in-memory decision-handler hook. Open items are PENDING / IN_REVIEW / ESCALATED; terminal items are APPROVED / REJECTED, with a partial unique index enforcing at most one open item per entity and SLA-by-priority due dates. Every decision is recorded in the append-only audit log; submitters are notified in-app and (on a terminal decision) by email, and webhooks fire on each lifecycle event.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-clipboard-check",
+  "tags": [
+    "approval",
+    "moderation",
+    "queue",
+    "review",
+    "back-office"
+  ],
+  "priority": 49,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "common",
+      "db",
+      "env",
+      "logger",
+      "notification",
+      "notification_inapp",
+      "tenant_setting",
+      "user",
+      "webhook"
+    ],
+    "optional": [
+      "automation"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/approval",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "approval:item_decision",
+      "kind": "component",
+      "pattern": "component",
+      "slot": "approval.item.decision",
+      "description": "The decision step of a queue item whose approval is more than a reviewer's click (a class 3 fleet command is approved by signing it with a security key). Implemented through the CLIENT slot 'approval.item.decision': a contributor declares slots[] = { slot: 'approval.item.decision', component, order, scope: 'tenant' }. Props received: { tenantId, item, onChanged } where item is the open queue item and onChanged reloads it. Every contribution renders nothing for an entityType that is not its own. The owner marks its items with metadata.decisionStep (a string); the queue then withholds its own Approve for them, and the owner registers a decision guard (ApprovalQueueService.registerDecisionGuard) so a bare APPROVE through the API is refused too."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_setting:change_review",
+      "key": "approval",
+      "export": "approval/server/approval.setting-change-reviewer",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Approval queue"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "approval_tenant_setting_change",
+      "export": "approval/server/approval.setting-change",
+      "order": 1110,
+      "scope": "system",
+      "metadata": {
+        "phase": "approval",
+        "fn": "registerSettingChangeHandler",
+        "name": "tenant-setting-approval"
+      }
+    },
+    {
+      "point": "automation:node",
+      "key": "automation",
+      "export": "approval/server/approval.automation-nodes",
+      "order": 85,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Approval requests",
+        "ids": [
+          "approval.request"
+        ]
+      }
+    },
+    {
+      "point": "automation:template",
+      "key": "request_and_decision",
+      "export": "approval/server/approval.automation-templates",
+      "order": 86,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Approval flow templates",
+        "ids": [
+          "approval-request-and-decision"
+        ]
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "approval.submitted",
+      "export": "approval/server/approval.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Approval",
+        "label": "Approval submitted",
+        "description": "An item was submitted to the moderation / approval queue."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "approval.approved",
+      "export": "approval/server/approval.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Approval",
+        "label": "Approval approved",
+        "description": "A queued item was approved by a reviewer."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "approval.rejected",
+      "export": "approval/server/approval.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Approval",
+        "label": "Approval rejected",
+        "description": "A queued item was rejected by a reviewer."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "approval.escalated",
+      "export": "approval/server/approval.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Approval",
+        "label": "Approval escalated",
+        "description": "A queued item was escalated by a reviewer."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "approval.withdrawn",
+      "export": "approval/server/approval.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Approval",
+        "label": "Approval withdrawn",
+        "description": "A queued item was closed by its owning module because the entity was settled another way (no reviewer decision)."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "approval/server/approval.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "approval: four-eyes decisions (phase 55 01.6)",
+        "ids": [
+          "approval.approve",
+          "approval.reject",
+          "approval.escalate",
+          "approval.withdrawn"
+        ]
+      }
+    }
+  ],
+  "settingKeys": [
+    "APPROVAL_KEYS"
+  ],
+  "menu": [
+    {
+      "id": "approvals",
+      "permissions": ["approval.approvals.read"],
+      "label": "Approvals",
+      "href": "/admin/approvals",
+      "icon": "fas fa-clipboard-check",
+      "group": "Operations",
+      "workspace": "operations",
+      "order": 10,
+      "scope": "tenant"
+    },
+    {
+      "id": "approvals-my-steps",
+      "label": "My approvals",
+      "href": "/admin/approvals/my-steps",
+      "icon": "fas fa-user-check",
+      "group": "My work",
+      "workspace": "home",
+      "order": 11,
+      "scope": "tenant",
+      "permissions": [
+        "approval.steps.decide"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/approvals",
+      "component": "approval/ui/approvals.page"
+    },
+    {
+      "path": "/admin/approvals/reports",
+      "component": "approval/ui/approval-reports.page"
+    },
+    {
+      "path": "/admin/approvals/settings",
+      "component": "approval/ui/approval-settings.page"
+    },
+    {
+      "path": "/admin/approvals/my-steps",
+      "component": "approval/ui/approval-my-steps.page"
+    },
+    {
+      "path": "/admin/approvals/[approvalItemId]",
+      "component": "approval/ui/approvals-approval-item-id.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/approvals/steps/mine",
+      "handler": "approval/server/approvals-steps-mine.route"
+    },
+    {
+      "path": "/api/approvals/steps/[stepId]/decide",
+      "handler": "approval/server/approvals-steps-step-id-decide.route"
+    },
+    {
+      "path": "/api/approvals/verify-chain",
+      "handler": "approval/server/approvals-verify-chain.route"
+    },
+    {
+      "path": "/api/approvals/reports",
+      "handler": "approval/server/approvals-reports.route"
+    },
+    {
+      "path": "/api/approvals/[approvalItemId]",
+      "handler": "approval/server/approvals-approval-item-id.route"
+    },
+    {
+      "path": "/api/approvals",
+      "handler": "approval/server/approvals.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "approval.approvals.read",
+      "name": "View approval queue",
+      "group": "Approvals",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "approval.approvals.submit",
+      "name": "Submit entity to approval queue",
+      "group": "Approvals",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "approval.approvals.decide",
+      "name": "Claim / approve / reject approval items",
+      "group": "Approvals",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "approval.steps.decide",
+      "name": "Decide approval-chain steps assigned to me by name (e.g. a manager approving a report's leave)",
+      "group": "Approvals",
+      "minRole": "USER"
+    },
+    {
+      "id": "approval.approvals.verify",
+      "name": "Verify approval decision hash chain",
+      "group": "Approvals",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "approval.reports.read",
+      "name": "View approval reports",
+      "group": "Approvals",
+      "minRole": "ADMIN"
+    }
+  ],
+  "widgets": [
+    {
+      "id": "approvals-pending",
+      "name": "Approvals",
+      "component": "approval/ui/approvals-pending-widget.component",
+      "workspace": "operations",
+      "scope": "tenant",
+      "size": "medium",
+      "order": 20,
+      "permissions": [
+        "approval.reports.read"
+      ]
+    }
+  ]
+}

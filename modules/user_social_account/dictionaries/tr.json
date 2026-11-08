@@ -1,0 +1,5 @@
+{
+  "user_social_account.firewallSignal.social_account_linked": "Bir sosyal hesap bağlandı",
+  "user_social_account.firewallSignal.social_account_unlinked": "Bir sosyal hesabın bağı kaldırıldı",
+  "user_social_account.firewallSignal.social_identity_merged": "Bir sosyal oturum açma bir hesapla birleştirildi"
+}

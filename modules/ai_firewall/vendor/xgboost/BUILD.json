@@ -1,0 +1,9 @@
+{
+  "library": "xgboost",
+  "version": "3.4.2",
+  "source": "https://github.com/dmlc/xgboost/releases/download/v3.4.2/xgboost-src-3.4.2.tar.gz",
+  "sourceSha256": "d7de76bdaf48e9e0bc84b27c0c42f15f3d831e624d102d6c019bab7027b3cabd",
+  "toolchain": "emscripten 6.0.13",
+  "output": "xgboost.mjs",
+  "outputSha256": "42b2015412f87e75c0defa79065595187a85ef2425b14de4906a421ab9a1ee85"
+}

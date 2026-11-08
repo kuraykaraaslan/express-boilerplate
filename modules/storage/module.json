@@ -1,0 +1,189 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "storage",
+  "name": "File Storage",
+  "description": "Pluggable S3-compatible file storage (AWS S3, Cloudflare R2, DigitalOcean Spaces, MinIO) with content-derived MIME validation and optional online virus scanning (VirusTotal).",
+  "version": "1.1.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-cloud-arrow-up",
+  "tags": [
+    "platform",
+    "storage",
+    "security"
+  ],
+  "priority": 10,
+  "dependencies": {
+    "requires": [
+      "env",
+      "feature_gate",
+      "ip_subnet",
+      "tenant_setting"
+    ],
+    "optional": [
+      "redis",
+      "tenant_subscription",
+      "tenant_usage",
+      "user_agent",
+      "audit_log",
+      "tenant_domain"
+    ]
+  },
+  "extensionPoints": [
+    {
+      "id": "storage:provider",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "persists": true,
+      "external": true,
+      "inTree": false,
+      "description": "A storage backend, chosen by the `storageProvider` setting. Backends come from sandboxed plugins only (e.g. @aws/s3, @minio/storage, and @local/storage for the key `local`: a directory on the server's own disk through the broker's `localfs` capability, for on-premise installs and for bootstrapping the plugin store); no in-tree module provides one, and the host reads plugins only."
+    }
+  ],
+  "settings": {
+    "keys": "STORAGE_KEYS",
+    "level": {
+      "allowed": ["platform", "tenant", "tenant_first"],
+      "default": "platform",
+      "keys": [
+        "storageProvider", "s3Bucket", "s3Region", "s3AccessKey",
+        "s3SecretKey", "s3Endpoint", "virusScanProvider", "virusScanApiKey"
+      ],
+      "caps": ["maxFileSizeMb"],
+      "points": ["storage:provider"]
+    }
+  },
+  "settingKeys": [
+    "STORAGE_KEYS",
+    "STORAGE_SCAN_KEYS",
+    "STORAGE_LOCAL_KEYS"
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/storage",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/storage",
+      "component": "storage/ui/settings-storage.page",
+      "permissions": ["storage.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/storage",
+      "handler": "storage/server/storage.route"
+    },
+    {
+      "path": "/api/storage/usage",
+      "handler": "storage/server/storage.usage.route"
+    },
+    {
+      "path": "/api/storage/uploads/presign",
+      "handler": "storage/server/storage-uploads-presign.route"
+    },
+    {
+      "path": "/api/storage/uploads/complete",
+      "handler": "storage/server/storage-uploads-complete.route"
+    },
+    {
+      "path": "/api/storage/bucket-cors",
+      "handler": "storage/server/storage-bucket-cors.route"
+    },
+    {
+      "path": "/api/storage/links/[token]",
+      "handler": "storage/server/storage-links-token.route"
+    },
+    {
+      "path": "/api/storage/local/object",
+      "handler": "storage/server/storage-local-object.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "storage.files.upload",
+      "name": "Upload files to storage",
+      "group": "Storage",
+      "minRole": "USER"
+    },
+    {
+      "id": "storage.settings.read",
+      "name": "View storage settings",
+      "group": "Storage",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "storage.settings.update",
+      "name": "Change storage settings",
+      "group": "Storage",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "audit_log:archive_exporter",
+      "key": "storage_audit_archive",
+      "export": "storage/server/storage.audit-archive.provider",
+      "order": 50,
+      "scope": "system",
+      "metadata": {
+        "label": "S3 Object Lock audit archive"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "storage",
+      "export": "storage/server/storage.export-collection",
+      "order": 23,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Uploaded files",
+        "collections": [
+          "uploadedFiles"
+        ]
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "storage_virus_scan",
+      "export": "storage/server/storage.scan.job",
+      "order": 2210,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "parallel": true,
+        "fn": "startVirusScanWorker",
+        "name": "storage-virus-scan"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "storage_upload_sweep",
+      "export": "storage/server/storage.upload-sweep.job",
+      "order": 2211,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleUploadSweepJob",
+        "name": "storage-upload-sweep"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "storage/server/storage.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "storage: malware found in an upload (phase 55 01.6); bucket CORS and download links (coverage)",
+        "ids": [
+          "file.infected",
+          "storage.bucket_cors.applied",
+          "storage.link.fetched"
+        ]
+      }
+    }
+  ]
+}

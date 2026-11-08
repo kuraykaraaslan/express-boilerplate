@@ -1,0 +1,113 @@
+{
+  "name": "bad-deploy",
+  "description": "A deploy ten minutes before the incident, errors in logs and traces",
+  "now": "2026-10-18T12:10:00Z",
+  "sources": {
+    "incident": {
+      "incidentId": "33333333-3333-4333-8333-333333333333",
+      "title": "Checkout API is down",
+      "severity": "MAJOR",
+      "status": "OPEN",
+      "startedAt": "2026-10-18T12:00:00Z",
+      "reason": null,
+      "monitorId": null,
+      "alertGroupKey": "g1"
+    },
+    "alerts": [
+      {
+        "alertId": "44444444-4444-4444-8444-444444444444",
+        "title": "HighErrorRate",
+        "severity": "CRITICAL",
+        "status": "FIRING",
+        "count": 4,
+        "startsAt": "2026-10-18T12:00:30Z",
+        "labels": {
+          "service": "checkout"
+        },
+        "annotations": {
+          "summary": "5xx above 5%"
+        }
+      }
+    ],
+    "changes": [
+      {
+        "at": "2026-10-18T11:50:00Z",
+        "kind": "deploy",
+        "title": "checkout v2.31.0 rolled out",
+        "actor": "ci",
+        "ref": "v2.31.0",
+        "source": "audit_log"
+      }
+    ],
+    "telemetry": {
+      "logs": [
+        {
+          "timeNs": "1792324805000000000",
+          "severity": "ERROR",
+          "body": "connection refused to payments:5432",
+          "attributes": {},
+          "resource": {
+            "service.name": "checkout"
+          },
+          "traceId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "traces": [
+        {
+          "traceId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "rootService": "checkout",
+          "rootName": "POST /pay",
+          "startMs": 1792324802000,
+          "durationMs": 3000,
+          "errorCount": 2
+        }
+      ],
+      "metrics": [
+        {
+          "metric": "http_errors_total",
+          "labels": {
+            "service": "checkout"
+          },
+          "points": [
+            [
+              1792324800000,
+              1
+            ],
+            [
+              1792324860000,
+              90
+            ]
+          ]
+        }
+      ]
+    },
+    "slos": [],
+    "similar": []
+  },
+  "expect": {
+    "bundleKinds": [
+      "incident",
+      "alert",
+      "change",
+      "log",
+      "trace",
+      "metric"
+    ],
+    "unavailable": [],
+    "findings": [
+      {
+        "title": "recent change",
+        "citesKinds": [
+          "change"
+        ]
+      },
+      {
+        "title": "reporting errors",
+        "citesKinds": [
+          "log"
+        ]
+      }
+    ],
+    "minSummary": 1
+  }
+}

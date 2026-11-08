@@ -1,0 +1,13 @@
+-- DOWN for 004_ai_firewall_labels.sql: the label store.
+--
+-- NEVER auto-run; manual rollback only. Drops every label (honeytoken touches, confirmed bans, people's verdicts on incidents): the
+-- training data of 04 is lost, and the per-detector counts start from zero. Export the labels first if they are still needed.
+DROP TABLE IF EXISTS "ai_firewall_labels";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'ai_firewall:004_ai_firewall_labels.sql';
+  END IF;
+END $$;

@@ -1,0 +1,9 @@
+{
+  "localization.currencySelector.label": "Para birimi",
+  "localization.currencySelector.noResults": "Sonuç yok",
+  "localization.currencySelector.searchPlaceholder": "Para birimi ara…",
+  "localization.phoneInput.country": "Ülke",
+  "localization.phoneInput.incomplete": "Bu numara henüz tamamlanmamış görünüyor.",
+  "localization.phoneInput.number": "Telefon numarası",
+  "localization.phoneInput.required": "(zorunlu)"
+}

@@ -1,0 +1,30 @@
+-- DOWN for 080_governance.sql: retention legal hold and the daily metering reconciliation.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of observability_reconciliations, and the legal-hold columns of `incidents` (legalHold, legalHoldReason, legalHoldAt, legalHoldBy): a hold
+-- is forgotten, so take the list of held incidents first (SELECT "incidentId" FROM incidents WHERE "legalHold") and re-apply it by other means.
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 080_governance.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 1. Index and columns added to the pre-existing `incidents` table.
+DROP INDEX IF EXISTS "idx_incidents_retention";
+ALTER TABLE IF EXISTS "incidents" DROP COLUMN IF EXISTS "legalHoldBy";
+ALTER TABLE IF EXISTS "incidents" DROP COLUMN IF EXISTS "legalHoldAt";
+ALTER TABLE IF EXISTS "incidents" DROP COLUMN IF EXISTS "legalHoldReason";
+ALTER TABLE IF EXISTS "incidents" DROP COLUMN IF EXISTS "legalHold";
+
+-- 2. The table (its indexes go with it; no CASCADE).
+DROP TABLE IF EXISTS "observability_reconciliations";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:080_governance.sql';
+  END IF;
+END $$;

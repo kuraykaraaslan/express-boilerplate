@@ -1,0 +1,7 @@
+{
+  "notification_sms.permission.notification_sms_messages_read.name": "View SMS providers",
+  "notification_sms.permission.notification_sms_messages_send.name": "Send SMS on behalf of the tenant",
+  "notification_sms.permission.notification_sms_settings_read.name": "View SMS settings",
+  "notification_sms.permission.notification_sms_settings_update.name": "Change SMS settings",
+  "notification_sms.permissionGroup.notifications": "Notifications"
+}

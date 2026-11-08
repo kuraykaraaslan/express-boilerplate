@@ -1,0 +1,20 @@
+{
+  "notification_push.permission.notification_push_settings_read.name": "View push settings",
+  "notification_push.permission.notification_push_settings_update.name": "Change push settings",
+  "notification_push.permission.notification_push_subscription_subscribe.name": "Subscribe own device to push",
+  "notification_push.permission.notification_push_subscription_unsubscribe.name": "Unsubscribe own device from push",
+  "notification_push.permissionGroup.notifications": "Notifications",
+  "notification_push.settings.group.delivery": "Delivery",
+  "notification_push.settings.group.devices": "Devices",
+  "notification_push.settings.notificationsCrumb": "Notifications",
+  "notification_push.settings.pushEnabled.description": "Send push notifications to this workspace's browsers and app installs. Off, no push is sent; members keep their registered devices.",
+  "notification_push.settings.pushEnabled.label": "Push notifications",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.description": "How many browsers and app installs one member may register for push. A new device past the limit is refused. 1 to 100.",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.label": "Devices per member",
+  "notification_push.settings.pushMaxSubscriptionsPerUser.placeholder": "10",
+  "notification_push.settings.pushProvider.description": "The key of the push plugin browser notifications are sent through when more than one is installed. If it is not installed, the first configured plugin is used. Native app notifications do not use a plugin.",
+  "notification_push.settings.pushProvider.label": "Browser push plugin",
+  "notification_push.settings.pushProvider.placeholder": "webpush",
+  "notification_push.settings.subtitle": "How many devices a member may register and which plugin sends browser push",
+  "notification_push.settings.title": "Push Settings"
+}

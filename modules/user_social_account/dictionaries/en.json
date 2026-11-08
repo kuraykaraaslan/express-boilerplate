@@ -1,0 +1,5 @@
+{
+  "user_social_account.firewallSignal.social_account_linked": "A social account was linked",
+  "user_social_account.firewallSignal.social_account_unlinked": "A social account was unlinked",
+  "user_social_account.firewallSignal.social_identity_merged": "A social sign-in was merged into an account"
+}

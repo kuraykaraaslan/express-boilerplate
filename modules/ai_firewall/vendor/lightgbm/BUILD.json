@@ -1,0 +1,10 @@
+{
+  "library": "lightgbm",
+  "version": "4.7.0",
+  "source": "https://github.com/lightgbm-org/LightGBM/releases/download/v4.7.0/LightGBM-complete_source_code_tar_gz.tar.gz",
+  "sourceSha256": "cfcad32ac96e4683240d736f328d17f1471aae3e5049a669ebec540d64706915",
+  "sourceCommit": "8f7036f03627054d5a54a6f965b13f4b9ff2cb63",
+  "toolchain": "emscripten 6.0.13",
+  "output": "lightgbm.mjs",
+  "outputSha256": "30b7ebc371be6bb592b5eecfa4cd24529489532f4c9cfb427f0cfeb7a03d1528"
+}

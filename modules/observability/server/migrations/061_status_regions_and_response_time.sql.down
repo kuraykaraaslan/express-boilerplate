@@ -1,0 +1,24 @@
+-- DOWN for 061_status_regions_and_response_time.sql: the region breakdown and the response-time chart of the status page.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: the public visibility and public label of every probe location (`probe_locations.publicVisible`, `publicLabel`) and the response-time
+-- switch of every status component (`status_components.showResponseTime`).
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 061_status_regions_and_response_time.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "showResponseTime";
+ALTER TABLE IF EXISTS "probe_locations" DROP COLUMN IF EXISTS "publicLabel";
+ALTER TABLE IF EXISTS "probe_locations" DROP COLUMN IF EXISTS "publicVisible";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:061_status_regions_and_response_time.sql';
+  END IF;
+END $$;

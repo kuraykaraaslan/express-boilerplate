@@ -1,0 +1,8 @@
+-- DOWN for 001_ai_firewall_store.sql: the firewall's store.
+--
+-- NEVER auto-run; manual rollback only. Drops every stored security event, incident and action proposal: an executed action whose undo
+-- data is dropped can no longer be undone from the firewall (undo it first, or through its owning module).
+DROP VIEW IF EXISTS "ai_firewall_events_v";
+DROP TABLE IF EXISTS "ai_firewall_actions";
+DROP TABLE IF EXISTS "ai_firewall_incidents";
+DROP TABLE IF EXISTS "ai_firewall_events";

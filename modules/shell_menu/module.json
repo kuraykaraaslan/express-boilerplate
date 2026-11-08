@@ -1,0 +1,169 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "shell_menu",
+  "name": "Menu",
+  "description": "The installation's admin sidebar, set by the sysadmin in Platform -> Menu instead of config/menu.ts: workspaces, groups, items and custom links per role and custom group, every label a translation key (English in the menu, other languages in the translation module's table), draft, preview, publish, revisions, export and import. One menu per installation (docs/phases/54-menu-editor).",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-bars",
+  "tags": [
+    "platform",
+    "shell",
+    "i18n"
+  ],
+  "priority": 5,
+  "dependencies": {
+    "requires": [
+      "app_shell",
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "i18n",
+      "limiter",
+      "localization",
+      "logger",
+      "redis",
+      "tenant_setting",
+      "translation"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/shell_menu",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "shell-menu",
+      "label": "Menu",
+      "href": "/admin/platform/menu",
+      "placement": "root",
+      "icon": "fas fa-bars",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 72,
+      "scope": "system",
+      "permissions": [
+        "shell_menu.layout.read"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/menu",
+      "placement": "root",
+      "component": "shell_menu/ui/shell-menu.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/shell-menu",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu.route"
+    },
+    {
+      "path": "/api/shell-menu/draft",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-draft.route"
+    },
+    {
+      "path": "/api/shell-menu/catalog",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-catalog.route"
+    },
+    {
+      "path": "/api/shell-menu/publish",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-publish.route"
+    },
+    {
+      "path": "/api/shell-menu/revisions",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-revisions.route"
+    },
+    {
+      "path": "/api/shell-menu/revisions/[revision]",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-revision.route"
+    },
+    {
+      "path": "/api/shell-menu/revisions/[revision]/restore",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-revision-restore.route"
+    },
+    {
+      "path": "/api/shell-menu/export",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-export.route"
+    },
+    {
+      "path": "/api/shell-menu/import",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-import.route"
+    },
+    {
+      "path": "/api/shell-menu/link-targets",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-link-targets.route"
+    },
+    {
+      "path": "/api/shell-menu/suggest",
+      "placement": "root",
+      "handler": "shell_menu/server/shell-menu-suggest.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "shell_menu.layout.read",
+      "name": "Read the installation's menu",
+      "description": "System-level: open Platform -> Menu, read the published menu, the draft, the history and the catalog. Root super-admin only (GLOBAL scope).",
+      "group": "Menu",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "shell_menu.layout.manage",
+      "name": "Edit the installation's menu",
+      "description": "System-level: edit the draft, publish, restore and import the sidebar every tenant sees. Root super-admin only (GLOBAL scope); audited.",
+      "group": "Menu",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "shell_menu:link_target",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A kind of custom menu link a module offers (the dashboard's 'board'): the sysadmin picks a target of that kind in Platform -> Menu and, at each admin page load, the contributor turns it into a tenant-relative /admin path the viewer may open in their tenant, or into nothing. Default export: LinkTargetProvider { kind, label, suggest(q), validate(target), resolve(viewer, targets) }; kind must not be 'page' or 'url'. The resolved page's guard still applies. A contributor that fails hides only its own links. shell_menu imports nothing of the contributing module.",
+      "contract": "shell_menu/server/shell_menu.link-targets.types#LinkTargetProvider"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "translation:source",
+      "key": "shell_menu_labels",
+      "export": "shell_menu/server/shell_menu.translation-source",
+      "order": 50,
+      "scope": "system",
+      "metadata": {
+        "label": "The labels of the installation's menu"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "shell_menu/server/shell_menu.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: the platform menu's draft discarded, published, a revision restored, a menu file imported), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "shell_menu: the platform menu published, restored, imported and its draft discarded (phase 55 coverage)",
+        "ids": [
+          "shell_menu.draft.discarded",
+          "shell_menu.published",
+          "shell_menu.restored",
+          "shell_menu.imported"
+        ]
+      }
+    }
+  ]
+}

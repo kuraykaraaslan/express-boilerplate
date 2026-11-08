@@ -1,0 +1,14 @@
+-- DOWN for 006_ai_firewall_label_vectors.sql: the labelled vectors.
+--
+-- NEVER auto-run; manual rollback only. The incidents and labels stay; the vectors kept for the dataset export (03 §3.5) are lost, and
+-- the labels made before cannot be exported any more.
+ALTER TABLE "ai_firewall_labels" DROP COLUMN IF EXISTS "vectors";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "peakVectors";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'ai_firewall:006_ai_firewall_label_vectors.sql';
+  END IF;
+END $$;

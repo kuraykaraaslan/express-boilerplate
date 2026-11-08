@@ -1,0 +1,54 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "user_profile",
+  "name": "User Profile",
+  "description": "Profile fields (avatar, bio, locale, timezone) — separated from the user entity for read scalability.",
+  "version": "1.0.0",
+  "tier": "identity",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-id-card",
+  "tags": [
+    "identity"
+  ],
+  "priority": 11,
+  "dependencies": {
+    "requires": [
+      "db",
+      "storage",
+      "tenant_setting",
+      "user"
+    ]
+  },
+  "permissions": [
+    {
+      "id": "user_profile.settings.read",
+      "name": "View profile settings",
+      "group": "Configuration",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "user_profile.settings.update",
+      "name": "Change profile settings",
+      "group": "Configuration",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/profiles",
+      "component": "user_profile/ui/profile-settings.page",
+      "permissions": ["user_profile.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "settings": {
+    "level": {
+      "allowed": ["platform", "tenant", "tenant_first"],
+      "default": "platform",
+      "keys": ["avatarModerationProvider", "avatarModerationUrl", "avatarModerationApiKey", "avatarModerationApiUser"]
+    }
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/user_profile",
+  "license": "Proprietary"
+}

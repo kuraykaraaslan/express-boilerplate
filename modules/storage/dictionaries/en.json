@@ -1,0 +1,9 @@
+{
+  "storage.firewallSignal.file_infected": "Malware was found in an upload",
+  "storage.firewallSignal.storage_bucket_cors_applied": "The storage bucket's upload CORS rule was applied",
+  "storage.firewallSignal.storage_link_fetched": "A file was downloaded through a download link",
+  "storage.permission.storage_files_upload.name": "Upload files to storage",
+  "storage.permission.storage_settings_read.name": "View storage settings",
+  "storage.permission.storage_settings_update.name": "Change storage settings",
+  "storage.permissionGroup.storage": "Storage"
+}

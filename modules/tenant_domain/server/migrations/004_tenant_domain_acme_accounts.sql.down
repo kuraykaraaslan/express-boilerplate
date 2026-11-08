@@ -1,0 +1,5 @@
+-- DOWN for 004_tenant_domain_acme_accounts.sql: the platform's ACME account keys.
+--
+-- NEVER auto-run; manual rollback only (the migration runner ignores `.sql.down`). Dropping the table loses the account keys: the next
+-- order registers a new account at the authority (certificates already issued stay valid, the rate limits count per account and per domain).
+DROP TABLE IF EXISTS "tenant_domain_acme_accounts";

@@ -1,0 +1,502 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "ai_firewall",
+  "name": "AI firewall",
+  "description": "One security brain over the existing controls (docs/phases/55-ai-firewall): signals from every security control, a two-stage tree cascade in the request path (LightGBM scores an actor's behaviour against its own baseline on every request; the suspicious share goes to XGBoost, which classifies the attack from endpoint and HTTP metadata and decides allow, challenge or block for that one request), and a responder that acts through the owning modules' registered actions. Both models are evaluated in TypeScript inside this module and ship with the release; the deterministic controls stay the floor.",
+  "version": "0.1.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-shield-halved",
+  "tags": [
+    "security",
+    "platform",
+    "ml"
+  ],
+  "priority": 45,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "i18n",
+      "ip_subnet",
+      "limiter",
+      "logger",
+      "observability",
+      "redis",
+      "tenant",
+      "tenant_setting",
+      "user_session",
+      "webhook"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/ai_firewall",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "ai-firewall",
+      "label": "AI firewall",
+      "href": "/admin/platform/ai-firewall",
+      "placement": "root",
+      "icon": "fas fa-shield-halved",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 73,
+      "scope": "system",
+      "permissions": [
+        "ai_firewall.activity.read"
+      ]
+    },
+    {
+      "id": "ai-firewall-actions",
+      "label": "AI firewall",
+      "href": "/admin/ai-firewall",
+      "icon": "fas fa-shield-halved",
+      "group": "Security",
+      "workspace": "system",
+      "order": 5,
+      "scope": "tenant",
+      "permissions": [
+        "ai_firewall.actions.manage"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/platform/ai-firewall",
+      "placement": "root",
+      "component": "ai_firewall/ui/ai-firewall.page"
+    },
+    {
+      "path": "/admin/settings/ai-firewall",
+      "component": "ai_firewall/ui/ai-firewall-settings.page",
+      "permissions": [
+        "ai_firewall.settings.manage",
+        "tenant_setting.config.read"
+      ]
+    },
+    {
+      "path": "/admin/ai-firewall",
+      "component": "ai_firewall/ui/ai-firewall-catalogue.page",
+      "permissions": [
+        "ai_firewall.actions.manage"
+      ]
+    },
+    {
+      "path": "/admin/ai-firewall/incidents",
+      "component": "ai_firewall/ui/ai-firewall-incidents.page",
+      "permissions": [
+        "ai_firewall.incidents.read"
+      ]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/ai-firewall/activity",
+      "placement": "root",
+      "handler": "ai_firewall/server/ai-firewall-activity.route"
+    },
+    {
+      "path": "/api/ai-firewall/actions",
+      "handler": "ai_firewall/server/ai-firewall-actions.route"
+    },
+    {
+      "path": "/api/ai-firewall/signals",
+      "handler": "ai_firewall/server/ai-firewall-signals.route"
+    },
+    {
+      "path": "/api/ai-firewall/incidents",
+      "handler": "ai_firewall/server/ai-firewall-incidents.route"
+    },
+    {
+      "path": "/api/ai-firewall/incidents/[incidentId]",
+      "handler": "ai_firewall/server/ai-firewall-incident.route"
+    },
+    {
+      "path": "/api/ai-firewall/incidents/[incidentId]/label",
+      "handler": "ai_firewall/server/ai-firewall-incident-label.route"
+    },
+    {
+      "path": "/api/ai-firewall/actors",
+      "handler": "ai_firewall/server/ai-firewall-actor.route"
+    },
+    {
+      "path": "/api/ai-firewall/honeytokens",
+      "handler": "ai_firewall/server/ai-firewall-honeytokens.route"
+    },
+    {
+      "path": "/api/ai-firewall/models",
+      "placement": "root",
+      "handler": "ai_firewall/server/ai-firewall-models.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "audit_log:record_sink",
+      "key": "ai_firewall_signals",
+      "export": "ai_firewall/server/intake/ai_firewall.audit-sink",
+      "order": 900,
+      "scope": "tenant",
+      "description": "Phase 55 01 §1.4a: every written audit row becomes a SecuritySignal in the fw:signals stream (no storage here; the fw:signals consumer stores, 01 §1.7). Detached and fail-open: the write never waits for it.",
+      "metadata": {
+        "label": "AI firewall: audit rows as security signals"
+      }
+    },
+    {
+      "point": "webhook:event_sink",
+      "key": "ai_firewall_signals",
+      "export": "ai_firewall/server/intake/ai_firewall.event-sink",
+      "order": 900,
+      "scope": "tenant",
+      "description": "Phase 55 01 §1.4b: every dispatched domain event (except audit.*, which the audit intake hears) becomes an event.<name> SecuritySignal in the fw:signals stream; only identifiers and codes of the payload travel.",
+      "metadata": {
+        "label": "AI firewall: domain events as security signals"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_intake_metrics",
+      "export": "ai_firewall/server/intake/ai_firewall.intake-metrics",
+      "order": 121,
+      "scope": "system",
+      "description": "Phase 55 01 §1.4c: the signal intake's ai_firewall_signals_* series (written, buffered, dropped by reason) on /metrics, in the web process through observability and in the worker through process_host.",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "registerSignalIntakeMetrics",
+        "name": "ai-firewall-intake-metrics"
+      }
+    },
+    {
+      "point": "db:time_series",
+      "key": "ai_firewall_events",
+      "export": "ai_firewall/server/ai_firewall.timeseries",
+      "metadata": {
+        "label": "AI firewall: stored security events, 1-day chunks, a 365-day backstop (each tenant's own retention is the ai-firewall-retention job)"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_signal_store",
+      "export": "ai_firewall/server/store/ai_firewall.signal-consumer",
+      "order": 3120,
+      "scope": "system",
+      "description": "Phase 55 01 §1.4/§1.7: the fw:signals consumer in the worker (consumer group ai-firewall-store, every worker process): normalises, deduplicates by signal id, stores in ai_firewall_events in batches per tenant and acknowledges; a malformed entry is acknowledged and counted, never retried. Then (03 §3.1) the stored decoy touches and the bans an operator placed or lifted become labels in ai_firewall_labels, idempotent per reference, a failure counted and dropped. Fail open.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startSignalConsumer",
+        "name": "ai-firewall-signal-store",
+        "parallel": true
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_retention",
+      "export": "ai_firewall/server/store/ai_firewall.retention.job",
+      "order": 3121,
+      "scope": "system",
+      "description": "Phase 55 01 §1.7: nightly per-tenant retention of the firewall's store (setting aiFirewallRetentionDays, default 90 days): events by time, closed incidents, ended action proposals, labels by when they were given (03 §3.1), stale baselines; batched, legal holds skipped.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleFirewallRetentionJob",
+        "name": "ai-firewall-retention"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_request_features",
+      "export": "ai_firewall/server/features/ai_firewall.request-fold",
+      "order": 122,
+      "scope": "system",
+      "description": "Phase 55 02 §2.1: the request half of the feature store. Registers the request observer (common/server/request-observer.ts) the proxy and the tenant API dispatcher call: each request is reduced in process to counts and classes (never a path, body or header value) and folded into per-actor counters, flushed to Redis every 5 s as one bounded pipeline; a failed flush is dropped and counted. No Redis call and no await on the request path (FWA-7).",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "startRequestFeatures",
+        "name": "ai-firewall-request-features"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_request_cascade",
+      "export": "ai_firewall/server/cascade/ai_firewall.request-cascade.runtime",
+      "order": 123,
+      "scope": "system",
+      "description": "Phase 55 04.8: the request cascade in the request path. With a shipped model loaded, registers the gate the limiter asks about every API request its own controls let through (common/server/request-gate.ts): LightGBM on the actor's behaviour, XGBoost on the suspicious share, cold start straight to stage 2, a 1 % stage-1 audit sample; synchronous, from an in-process actor cache refreshed off the path (no Redis call on the request path), stage budgets 0.5 ms and 1 ms, over budget allow and count. Enforcing only with both models promoted (FWD-12) and no kill switch; else shadow (every request allowed, the would-be outcome recorded). Machine and device lanes allow and signal; human lanes a session step-up or a progressive delay below the block threshold, a 403 with a support reference above it; the terminate threshold proposes ending the session and excluding the device in ai_firewall_actions for the responder. With no model loaded it registers nothing.",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "startRequestCascade",
+        "name": "ai-firewall-request-cascade"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_signal_features",
+      "export": "ai_firewall/server/features/ai_firewall.signal-fold",
+      "order": 3122,
+      "scope": "system",
+      "description": "Phase 55 02 §2.1: the signal half of the feature store in the worker: a consumer group of its own on fw:signals (ai-firewall-features, every worker process) folds each signal into the actor's and the address's rolling windows (1 min, 5 min, 1 h, 24 h) and the day profile; keyed hashes only, TTL on every key, failures counted and never retried.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startSignalFeatures",
+        "name": "ai-firewall-signal-features",
+        "parallel": true
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_baselines",
+      "export": "ai_firewall/server/features/ai_firewall.baseline.job",
+      "order": 3123,
+      "scope": "system",
+      "description": "Phase 55 02 §2.1: the daily baseline job (00:20 UTC, the leader only): folds yesterday's day profiles into each active person's and API key's baseline (EWMA of usual hours, countries, ASNs, devices, volume per route class, exports, subjects, admin writes, addresses) and each tenant's role priors (cold start) in ai_firewall_baselines.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleBaselineJob",
+        "name": "ai-firewall-baselines"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_detections",
+      "export": "ai_firewall/server/detect/ai_firewall.detection-evaluator",
+      "order": 3124,
+      "scope": "system",
+      "description": "Phase 55 02 §2.2-2.3: the periodic evaluator of the rule scorer and the detectors in the worker (every worker process): every 2 s at most 100 actors the feature group's consumer named are read (one bounded pipeline each), scored 0..100 with per-feature contributions and run through the detectors; a detection, or a score of 25 and more, goes to the incident grouping (2.4). Observe: nothing acts. Fail open, bounded per tick.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startDetectionEvaluator",
+        "name": "ai-firewall-detections",
+        "parallel": true
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_incidents",
+      "export": "ai_firewall/server/incidents/ai_firewall.incident-recorder",
+      "order": 3125,
+      "scope": "system",
+      "description": "Phase 55 02 §2.4: the incident grouping in the worker (every worker process): each scored detection of the evaluator joins its actor's open incident in ai_firewall_incidents or opens one (at most one open or acknowledged incident per actor, deduplicated by a partial unique index across workers); an incident quiet for 24 h or older than 7 days is over. Observe: nothing acts. Fail open: a write that fails is counted, never retried.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "startIncidentRecorder",
+        "name": "ai-firewall-incidents",
+        "parallel": true
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_promotion",
+      "export": "ai_firewall/server/promotion/ai_firewall.promotion.job",
+      "order": 3126,
+      "scope": "system",
+      "description": "Phase 55 04.7 (FWD-12): the automatic promotion gate of the two tree models (daily at 04:30 UTC and once at boot, the leader only): per model, the shipped file (sha256 verified, parsed), the trainer's record (not synthetic, thresholds met, independence ok, parity green), at least 14 days in shadow on this install, what shadow saw over the last 28 days across every tenant (false-positive rate of flagged active actors at most 0.1 %, precision on labelled incidents, per-class precision and recall on probe labels, benign false positives, no admin-confirmed false positive at step-up or above), the weekly drift check and no owner hold. All hold: promoted with no human step; a later failure demotes it back to shadow. Written to ai_firewall_model_states (ROOT) and audited.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "schedulePromotionGate",
+        "name": "ai-firewall-promotion"
+      }
+    },
+    {
+      "point": "observability:alert-source",
+      "key": "incidents",
+      "export": "ai_firewall/server/ai_firewall.alert-source",
+      "order": 110,
+      "scope": "tenant",
+      "description": "Phase 55 02 §2.7: the tenant's open AI firewall incidents whose peak score reached 60 enter the alert pipeline, labelled category=security (the seeded Security route of phase 55 00.4). State-based: an acknowledged, resolved or expired incident is no longer listed and its alert resolves. Titles and labels name the detector and the actor's kind, never the actor's id. The root tenant's sweep lists the platform's incidents.",
+      "metadata": {
+        "label": "AI firewall incidents (open, peak score 60 or more); on the root tenant also the tree models' demotions, drift and staleness (04.7, 04.9)"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "ai_firewall",
+      "export": "ai_firewall/server/ai_firewall.export-collection",
+      "order": 95,
+      "scope": "tenant",
+      "metadata": {
+        "label": "AI firewall",
+        "collections": [
+          "aiFirewallEvents",
+          "aiFirewallIncidents",
+          "aiFirewallActions",
+          "aiFirewallBaselines",
+          "aiFirewallLabels"
+        ]
+      }
+    },
+    {
+      "point": "privacy:erasure",
+      "key": "ai_firewall",
+      "export": "ai_firewall/server/ai_firewall.privacy-erasure",
+      "order": 95,
+      "scope": "tenant",
+      "metadata": {
+        "label": "AI firewall"
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "ai_firewall",
+      "export": "ai_firewall/server/ai_firewall.tenant-purge",
+      "order": 95,
+      "scope": "both",
+      "description": "Deletes the purged tenant's stored security events, incidents, action proposals, baselines, labels and model promotion states (the events through the time-series access view; the model states exist under the root tenant only)."
+    },
+    {
+      "point": "common:boot_task",
+      "key": "ai_firewall_registries",
+      "export": "ai_firewall/server/registry/ai_firewall.registry",
+      "order": 110,
+      "scope": "system",
+      "description": "Phase 55 01 §1.5: the boot guard of the firewall's four registries (ai_firewall:signal, :action, :honeytoken, :analyst). Loads every contribution in a system context and refuses the boot on a kind registered twice, an attribute without a personal-data class, an action without undo, a human rung on a machine or device lane (FWA-6, LANE_POLICY), a TTL max above the 30-day cap, a decoy without a detector, more than one analyst, or a contribution that cannot be loaded.",
+      "metadata": {
+        "phase": "guard",
+        "fn": "assertFirewallRegistries",
+        "name": "ai-firewall-registries"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "ai_firewall/server/ai_firewall.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.8, 02 §2.3, §2.4 and 03 §3.2: the firewall's own signal kinds: a tenant admin changed an action's mode (ai_firewall.action_mode_changed, written by PUT /api/ai-firewall/actions), a person acknowledged, resolved or reopened an incident (ai_firewall.incident_status_changed, written by PATCH /api/ai-firewall/incidents/[incidentId]), a person gave an incident a verdict (ai_firewall.incident_labelled, written by PUT /api/ai-firewall/incidents/[incidentId]/label), the request fold's nomination of an actor whose request counters of one flush are worth a look (ai_firewall.request_pattern, counts only, weight 0), and (04.7) the tree models' promotion store: the automatic gate promoted or demoted a model (ai_firewall.model_promoted, ai_firewall.model_demoted) and a ROOT owner held a model in shadow or released the hold (ai_firewall.model_held, ai_firewall.model_released, written by PUT /api/ai-firewall/models), and (04.8) the request cascade's decisions about one actor over one flush, sent only when one was not allow, an audit-sample request was a miss or the actor hovers under a threshold (ai_firewall.cascade_decision, counts and support references, weight 0). Read by the registry like every other contribution.",
+      "metadata": {
+        "label": "ai_firewall: an action's mode changed (phase 55 01.8); an incident's status changed (02 §2.4); an incident labelled (03 §3.2); an actor's request counters nominated to the detectors (02 §2.3); a tree model promoted, demoted, held or released (04.7); the request cascade's decisions about an actor (04.8)",
+        "ids": [
+          "ai_firewall.request_pattern",
+          "ai_firewall.action_mode_changed",
+          "ai_firewall.incident_status_changed",
+          "ai_firewall.incident_labelled",
+          "ai_firewall.model_promoted",
+          "ai_firewall.model_demoted",
+          "ai_firewall.model_held",
+          "ai_firewall.model_released",
+          "ai_firewall.cascade_decision"
+        ]
+      }
+    }
+  ],
+  "permissions": [
+    {
+      "id": "ai_firewall.activity.read",
+      "name": "Read the AI firewall's activity",
+      "description": "System-level: open Platform -> AI firewall and read the model status, the cascade mode, security events across every tenant and the active address bans. Root super-admin only (GLOBAL scope).",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.settings.manage",
+      "name": "Manage the AI firewall's settings",
+      "description": "Open Settings -> AI firewall and read its settings: the kill switch, the default mode of the firewall's actions and how long security events, closed incidents and finished actions are kept (7 to 365 days). Changing them also needs Manage the AI firewall's actions.",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.events.read",
+      "name": "Read the AI firewall's security events",
+      "description": "Read the workspace's stored security events (who did what, from which address and device, with which outcome) and the catalogue of signal kinds. Events carry people's ids and addresses.",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.incidents.read",
+      "name": "Read the AI firewall's incidents",
+      "description": "Read the workspace's incidents: one actor's security events taken together as one case, with its score, its timeline and the actions proposed for it.",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.incidents.manage",
+      "name": "Manage the AI firewall's incidents",
+      "description": "Acknowledge, resolve and reopen the workspace's incidents and mark them as a real attack or a false alarm (the feedback the models learn from).",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.actions.manage",
+      "name": "Manage the AI firewall's actions",
+      "description": "Decide what the firewall may do in the workspace: the mode of each action (Observe, Suggest, Auto), the default mode, the kill switch, and approving, rejecting or undoing a proposed or executed action.",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "ai_firewall.platform.read",
+      "name": "Read the AI firewall's platform view",
+      "description": "System-level: read the platform's own security events, incidents and actions (stored under the root tenant) and the firewall's registries across the installation. Root super-admin only (GLOBAL scope).",
+      "group": "AI firewall",
+      "minRole": "ADMIN"
+    }
+  ],
+  "settings": {
+    "keys": "AI_FIREWALL_KEYS"
+  },
+  "slots": [
+    {
+      "slot": "tenant_setting.settings.links",
+      "component": "ai_firewall/ui/ai-firewall-settings-link.component",
+      "order": 64,
+      "scope": "tenant",
+      "permissions": [
+        "ai_firewall.settings.manage",
+        "tenant_setting.config.read"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "ai_firewall:signal",
+      "kind": "provider",
+      "pattern": "catalog",
+      "lazyContributors": true,
+      "uniqueMetadata": "ids",
+      "metadataSchema": {
+        "label": "string",
+        "ids": "string[]",
+        "routes": "string[]",
+        "records": "string[]"
+      },
+      "contract": "common/server/common.firewall-contracts#FirewallSignalContribution",
+      "description": "The signal kinds a module emits (docs/phases/55-ai-firewall/01 §1.5): what the firewall may read, and the vocabulary of its rules, models and pages. Default export: one FirewallSignalContribution or an array ({ kind, labelKey?, lanes, actorKinds, outcomes?, severity, defaultWeight 0..1, attrs: { <name>: { type: string | number | boolean | untrusted, pd: none | identifier | network | device | location | contact | content } } }); import the type from common/server/common.firewall-contracts, never from ai_firewall. metadata: { label, ids: the kinds it registers (exactly those the export lists), routes?: the human auth routes whose outcome these kinds record (npm run check:firewall-signal-coverage), records?: kinds another contribution registers that record the outcome of those routes too (a passkey sign-in ends in user_session.login; each must be registered) }. The kinds of audit rows are the audit actions (auditRowSignal in the contract adds the row's attributes); each kind is registered by the module that owns the action. The snapshot refuses a kind two contributions list (uniqueMetadata ids); boot refuses (the ai-firewall-registries guard) a kind registered twice, ids the export and the manifest disagree on, a malformed kind and an attribute without a personal-data class. Loaded in a system context, process-wide, by the boot guard and on first use; never while a module evaluates (lazyContributors). Contributing is not depending: a Pro, Enterprise or IoT module contributes from its own folder and ai_firewall imports none of its contributors."
+    },
+    {
+      "id": "ai_firewall:action",
+      "kind": "provider",
+      "pattern": "catalog",
+      "lazyContributors": true,
+      "uniqueMetadata": "ids",
+      "metadataSchema": {
+        "label": "string",
+        "ids": "string[]"
+      },
+      "contract": "common/server/common.firewall-contracts#FirewallActionContribution",
+      "description": "An action the responder may take through the module that owns it (docs/phases/55-ai-firewall/01 §1.5, 05): end a session, lock an account, ban an address, revoke a key. Default export: one FirewallActionContribution or an array ({ id '<module>.<verb>', rung, lanes, actorKinds, ttl { defaultMs, maxMs }, minimumMode suggest | auto, defaultMode?, hourlyBudget, evidence { boundToActor, minSignals, kinds? }, execute(ctx), undo(ctx) }); import the type from common/server/common.firewall-contracts. The owning module's own service does the work; ai_firewall writes no other module's table. metadata: { label, ids: the action ids it registers }. Boot refuses (the ai-firewall-registries guard) an action without undo (FWA-4), a human rung (step_up, end_session, end_all_sessions, lock) on a machine or device lane, a step-up on a lane whose LANE_POLICY has no step-up and an address actor on a lane that never bans addresses (FWA-6), a ttl.maxMs above the platform cap (30 days), end_all_sessions or lock without evidence bound to the actor (FWA-5), an evidence kind no ai_firewall:signal contribution registers, an id that names another module, and a duplicate id. Every action is Observe on install; a tenant's mode per action and the kill switches are ai_firewall's settings."
+    },
+    {
+      "id": "ai_firewall:honeytoken",
+      "kind": "provider",
+      "pattern": "catalog",
+      "lazyContributors": true,
+      "uniqueMetadata": "ids",
+      "metadataSchema": {
+        "label": "string",
+        "ids": "string[]"
+      },
+      "contract": "common/server/common.firewall-contracts#HoneytokenContribution",
+      "description": "A decoy a module owns (docs/phases/55-ai-firewall/01 §1.5, 02 §2.5): a key, a record, a route or a credential nobody legitimate touches. Default export: one HoneytokenContribution or an array ({ id '<module>.<decoy>', kind, labelKey, detector { signalKind }, plant?(tenantId), remove?(tenantId) }); import the type from common/server/common.firewall-contracts. The owning module emits detector.signalKind (severity critical; emitHoneytokenTouch in the contract) when the decoy is touched, and answers a touch exactly as it answers what the decoy pretends to be (a wrong key, a missing record, a missing route). plant(tenantId) answers { ref, bait?, where? } for the canary list (GET /api/ai-firewall/honeytokens, the only place a decoy is shown); no list, count or export a customer reads may show a decoy. metadata: { label, ids: the decoy ids }. Boot refuses (the ai-firewall-registries guard) a decoy without a detector, a detector whose signal kind no ai_firewall:signal contribution registers or registers below critical, an id that names another module and a duplicate id."
+    },
+    {
+      "id": "ai_firewall:analyst",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "metadataSchema": {
+        "label": "string"
+      },
+      "contract": "common/server/common.firewall-contracts#FirewallAnalyst",
+      "description": "The optional language-model analyst (docs/phases/55-ai-firewall/01 §1.5, 06): incident triage, the digest, questions over events. Default export: a FirewallAnalyst ({ key, available(tenantId), triage(incident, allowed), digest(tenantId, period, facts), toFilter(tenantId, question) }, every method may answer null); import the type from common/server/common.firewall-contracts. Contributed by the Pro module ai; a Core install has none and explains from templates. It advises only: its triage can create a Suggest item, never an automatic action (FWA-11), and its output is constrained to the registered action ids (FWA-3). Select with fallback none: at most one provider; boot refuses (the ai-firewall-registries guard) a second one, since the firewall would not know which one triages."
+    }
+  ]
+}

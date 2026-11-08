@@ -1,0 +1,26 @@
+const TenantInvitationMessages = {
+  INVITATION_NOT_FOUND: "Invitation not found",
+  INVITATION_ALREADY_SENT: "An active invitation has already been sent to this email",
+  INVITATION_EXPIRED: "This invitation has expired",
+  INVITATION_ALREADY_ACCEPTED: "This invitation has already been accepted",
+  INVITATION_ALREADY_DECLINED: "This invitation has already been declined",
+  INVITATION_REVOKED: "This invitation has been revoked",
+  INVITATION_INVALID_TOKEN: "Invalid invitation token",
+  INVITATION_EMAIL_MISMATCH: "This invitation was sent to a different email address",
+  INVITATION_EMAIL_NOT_VERIFIED: "Verify your email address before accepting an invitation by id; the emailed link works without it",
+  INVITATION_ALREADY_MEMBER: "This user is already a member of this tenant",
+  INVITATION_SENT: "Invitation sent successfully",
+  INVITATION_ACCEPTED: "Invitation accepted successfully",
+  INVITATION_DECLINED: "Invitation declined successfully",
+  INVITATION_REVOKED_SUCCESS: "Invitation revoked successfully",
+  INVITATION_ONLY_PENDING_CAN_BE_REVOKED: "Only pending invitations can be revoked",
+  INVITATION_ROLE_NOT_ALLOWED: "This role cannot be granted via invitation",
+  INVITATION_ROLE_EXCEEDS_CALLER: "You cannot invite a member with a role equal to or higher than your own",
+  INVITATION_ROLE_NEEDS_APPROVAL: "Dual control is on, so this role cannot be granted by invitation. Invite the person as a User, then change their role; the change waits for a second approver.",
+  INVITATION_ONLY_PENDING_CAN_BE_RESENT: "Only pending invitations can be resent",
+  INVITATION_ONLY_PENDING_CAN_BE_REMINDED: "Only pending invitations can be reminded",
+  INVITATION_REMINDER_SENT: "Invitation reminder sent successfully",
+  INVITATION_LIMIT_REACHED: "Your plan's limit on outstanding invitations has been reached",
+} as const;
+
+export default TenantInvitationMessages;

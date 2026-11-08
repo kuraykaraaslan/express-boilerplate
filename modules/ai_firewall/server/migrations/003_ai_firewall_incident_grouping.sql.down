@@ -1,0 +1,25 @@
+-- DOWN for 003_ai_firewall_incident_grouping.sql: the incident grouping's columns and the one-active-incident index.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped columns (every incident keeps its actor, status, severity and
+-- times, and loses its score timeline, its explanation and who acknowledged it). Without the index two workers may open two incidents for
+-- one actor again.
+DROP INDEX IF EXISTS "uq_ai_firewall_incidents_active";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "acknowledgedBy";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "acknowledgedAt";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "coldStart";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "alertsOnly";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "platform";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "history";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "explanation";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "detections";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "scorings";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "peakAt";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "peakScore";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'ai_firewall:003_ai_firewall_incident_grouping.sql';
+  END IF;
+END $$;

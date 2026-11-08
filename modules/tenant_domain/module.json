@@ -1,0 +1,496 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_domain",
+  "name": "Tenant Domain",
+  "description": "Every tenant's free <slug>.<wildcard> subdomain, plus custom domains per plan (custom_domain / max_domains) with DNS verification (TXT/CNAME challenge) and suspension when the plan stops including them.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-earth-americas",
+  "tags": [
+    "tenant",
+    "domain",
+    "infrastructure"
+  ],
+  "priority": 23,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "db",
+      "env",
+      "feature_gate",
+      "notification",
+      "tenant",
+      "tenant_member",
+      "user",
+      "webhook"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_domain",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "domains",
+      "permissions": ["tenant_domain.domains.read"],
+      "label": "Domains",
+      "href": "/admin/domains",
+      "icon": "fas fa-globe",
+      "group": "Settings",
+      "workspace": "organisation",
+      "order": 10,
+      "scope": "tenant"
+    },
+    {
+      "id": "base-domains",
+      "label": "Base domains",
+      "href": "/admin/platform/base-domains",
+      "placement": "root",
+      "icon": "fas fa-sitemap",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 74,
+      "scope": "system",
+      "permissions": [
+        "tenant_domain.base_domains.read"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/domains",
+      "component": "tenant_domain/ui/domains.page"
+    },
+    {
+      "path": "/admin/domains/settings",
+      "component": "tenant_domain/ui/domains-settings.page"
+    },
+    {
+      "path": "/admin/domains/report",
+      "component": "tenant_domain/ui/domains-report.page"
+    },
+    {
+      "path": "/admin/domains/[domainId]",
+      "component": "tenant_domain/ui/domains-domain-id.page"
+    },
+    {
+      "path": "/admin/platform/base-domains",
+      "placement": "root",
+      "component": "tenant_domain/ui/base-domains.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/base-domains/[baseDomainId]/check",
+      "placement": "root",
+      "handler": "tenant_domain/server/base-domains-base-domain-id-check.route"
+    },
+    {
+      "path": "/api/base-domains/[baseDomainId]/order",
+      "placement": "root",
+      "handler": "tenant_domain/server/base-domains-base-domain-id-order.route"
+    },
+    {
+      "path": "/api/base-domains/[baseDomainId]",
+      "placement": "root",
+      "handler": "tenant_domain/server/base-domains-base-domain-id.route"
+    },
+    {
+      "path": "/api/base-domains",
+      "placement": "root",
+      "handler": "tenant_domain/server/base-domains.route"
+    },
+    {
+      "path": "/api/domains/base-domain",
+      "handler": "tenant_domain/server/domains-base-domain.route"
+    },
+    {
+      "path": "/api/base-domain-offer",
+      "handler": "tenant_domain/server/base-domain-offer.route"
+    },
+    {
+      "path": "/api/tenants/[targetTenantId]/domains/base-domain",
+      "placement": "root",
+      "handler": "tenant_domain/server/tenants-target-tenant-id-domains-base-domain.route"
+    },
+    {
+      "path": "/api/domains/report",
+      "handler": "tenant_domain/server/domains-report.route"
+    },
+    {
+      "path": "/api/domains/[domainId]/verify",
+      "handler": "tenant_domain/server/domains-domain-id-verify.route"
+    },
+    {
+      "path": "/api/domains/[domainId]/ssl-check",
+      "handler": "tenant_domain/server/domains-domain-id-ssl-check.route"
+    },
+    {
+      "path": "/api/domains/[domainId]/timeline",
+      "handler": "tenant_domain/server/domains-domain-id-timeline.route"
+    },
+    {
+      "path": "/api/domains/[domainId]",
+      "handler": "tenant_domain/server/domains-domain-id.route"
+    },
+    {
+      "path": "/api/domains",
+      "handler": "tenant_domain/server/domains.route"
+    },
+    {
+      "path": "/api/tenants/[targetTenantId]/domains",
+      "placement": "root",
+      "handler": "tenant_domain/server/tenants-target-tenant-id-domains.route"
+    },
+    {
+      "path": "/api/cron/dns-recheck",
+      "handler": "tenant_domain/server/cron-dns-recheck.route"
+    },
+    {
+      "path": "/api/cron/ssl-health",
+      "handler": "tenant_domain/server/cron-ssl-health.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant_domain.domains.read",
+      "name": "View domains",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.domains.view_timeline",
+      "name": "View domain activity timeline",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.domains.reports",
+      "name": "View domain health report",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.domains.verify",
+      "name": "Verify domain ownership (DNS)",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.domains.ssl_check",
+      "name": "Force SSL re-check",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.domains.create",
+      "name": "Add domain",
+      "group": "Domains",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_domain.domains.assign_site",
+      "name": "Assign a domain to a site",
+      "group": "Domains",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_domain.domains.delete",
+      "name": "Remove domain",
+      "group": "Domains",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_domain.domains.change_base",
+      "name": "Move the organization's address to another base domain",
+      "group": "Domains",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "tenant_domain.base_domains.offer",
+      "name": "See which base domains a new organization's address may use",
+      "group": "Account",
+      "minRole": "USER",
+      "scope": "account"
+    },
+    {
+      "id": "tenant_domain.base_domains.read",
+      "name": "Read the managed base domains",
+      "description": "System-level: open Platform -> Base domains, see each base domain, its DNS records, its wildcard certificate and how many addresses it holds. Root super-admin only (GLOBAL scope).",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_domain.base_domains.manage",
+      "name": "Manage the managed base domains",
+      "description": "System-level: add, switch, delete a base domain, check its DNS and order its wildcard certificate. Root super-admin only (GLOBAL scope); audited.",
+      "group": "Domains",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "tenant_domain:base_domain_scope",
+      "kind": "provider",
+      "pattern": "guard",
+      "timeoutMs": 2000,
+      "description": "The zone domains this deployment's tenants' base domains must sit inside (docs/phases/02-fleet/14-zones-and-central-signup.md, F43): an address under a zone must mean data in that zone's region. Default export: () => Promise<{ zones: string[] } | null> (null = no restriction). Asked only on a fleet node; no contribution = no restriction. A contribution that throws, times out or is paused refuses new base domains (fail closed); existing ones keep serving. Exists so tenant_domain never imports the fleet: fleet_agent answers it from the installed trust bundle."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant:purge_step",
+      "key": "tenant_domain",
+      "export": "tenant_domain/server/tenant_domain.tenant-purge",
+      "order": 60,
+      "scope": "both",
+      "description": "Deletes the purged tenant's platform-held certificates and their sealed private keys (phase 51).",
+      "metadata": {
+        "label": "Remove the purged tenant's domain certificates"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "tenant_domain",
+      "export": "tenant_domain/server/tenant_domain.export-collection",
+      "order": 27,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Custom domains",
+        "collections": [
+          "domains"
+        ],
+        "erasure": {
+          "mode": "NO_PERSONAL_DATA",
+          "note": "the tenant custom domains and their certificate state"
+        }
+      }
+    },
+    {
+      "point": "notification_mail:brand_source",
+      "key": "tenant_domain",
+      "export": "tenant_domain/server/tenant_domain.mail-brand",
+      "order": 20,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Tenant primary domain",
+        "fields": [
+          "baseUrl"
+        ]
+      }
+    },
+    {
+      "point": "common:tenant_origin",
+      "key": "tenant_domain",
+      "export": "tenant_domain/server/tenant_domain.tenant-origin",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Tenant primary domain, else the free subdomain"
+      }
+    },
+    {
+      "point": "tenant:seed_step",
+      "key": "wildcard_subdomain",
+      "export": "tenant_domain/server/tenant_domain.seed-step",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Wildcard subdomain"
+      }
+    },
+    {
+      "point": "tenant:slug_changed",
+      "key": "free_subdomain",
+      "export": "tenant_domain/server/tenant_domain.slug-listener",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Free subdomain follows the slug"
+      }
+    },
+    {
+      "point": "feature_gate:entitlement_changed",
+      "key": "tenant_domain",
+      "export": "tenant_domain/server/tenant_domain.entitlement-listener",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Custom domains follow the plan"
+      }
+    },
+    {
+      "point": "tenant:onboarding_check",
+      "key": "dns_configured",
+      "export": "tenant_domain/server/tenant_domain.onboarding-check",
+      "order": 10,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Custom domain verified"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_domain_dns_recheck",
+      "export": "tenant_domain/server/tenant_domain.job",
+      "order": 2190,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleDnsRecheckJob",
+        "name": "tenant-domain-dns-recheck"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_domain_ssl_health",
+      "export": "tenant_domain/server/ssl_health.job",
+      "order": 3020,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleSslHealthJob",
+        "name": "tenant-domain-ssl-health"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_domain_certificates",
+      "export": "tenant_domain/server/tenant_domain.certificates.job",
+      "order": 3021,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleCertificateJobs",
+        "name": "tenant-domain-certificates"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_domain.verified",
+      "export": "tenant_domain/server/tenant_domain.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant Domain",
+        "label": "Domain verified",
+        "description": "A custom domain passed DNS ownership verification."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_domain.activated",
+      "export": "tenant_domain/server/tenant_domain.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant Domain",
+        "label": "Domain activated",
+        "description": "A custom domain moved to ACTIVE."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_domain.dns_failed",
+      "export": "tenant_domain/server/tenant_domain.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant Domain",
+        "label": "Domain DNS failed",
+        "description": "A live custom domain stopped resolving and was downgraded."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_domain.suspended",
+      "export": "tenant_domain/server/tenant_domain.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant Domain",
+        "label": "Domain suspended",
+        "description": "The plan no longer includes a custom domain; it stopped serving and the free subdomain took over."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "tenant_domain.reactivated",
+      "export": "tenant_domain/server/tenant_domain.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Tenant Domain",
+        "label": "Domain reactivated",
+        "description": "The plan includes a suspended custom domain again; it is back to the status it had."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_domain/server/tenant_domain.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: a custom domain added, deleted, assigned to a site, its verification requested, its status changed and its DNS re-check failed; phase 56: an organization moving its free subdomain to another base, and the root tenant's managed base domains added, changed, removed, DNS-checked and their certificate ordered), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_domain: custom domains added, deleted, assigned, verified and their status (phase 55 coverage)",
+        "ids": [
+          "domain.created",
+          "domain.deleted",
+          "domain.site_assigned",
+          "domain.verification_requested",
+          "domain.status_changed",
+          "domain.dns_check_failed", "domain.base_changed", "base_domain.created", "base_domain.updated", "base_domain.deleted", "base_domain.dns_checked", "base_domain.order_requested"
+        ]
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_domain_base_domains",
+      "export": "tenant_domain/server/tenant_domain.base-domains",
+      "order": 230,
+      "scope": "system",
+      "description": "Phase 56 (D340): seeds TENANT_WILDCARD_DOMAIN as the first managed base domain (default, ACTIVE) when the table does not hold it, and reads the base-domain list once so the first request does not wait for it. Never fatal.",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "seedBaseDomainFromEnv",
+        "name": "tenant-domain-base-domains"
+      }
+    }
+  ],
+  "slots": [
+    {
+      "slot": "common.entity.panels",
+      "component": "tenant_domain/ui/tenant-domains-entity-panel.component",
+      "order": 30,
+      "scope": "both",
+      "props": {
+        "panelId": "tenant_domain.domains",
+        "region": "main",
+        "entityTypes": [
+          "tenant"
+        ],
+        "title": "Domains",
+        "titleKey": "tenant_domain.list.title"
+      }
+    }
+  ],
+  "appRoutes": [
+    {
+      "path": "internal/api/tls-cert/route",
+      "export": "tenant_domain/server/tls-cert.app-route",
+      "names": [
+        "GET"
+      ]
+    },
+    {
+      "path": ".well-known/acme-challenge/[token]/route",
+      "export": "tenant_domain/server/acme-challenge.app-route",
+      "names": [
+        "GET"
+      ]
+    },
+    {
+      "path": "internal/api/caddy-ask/route",
+      "export": "tenant_domain/server/caddy-ask.app-route",
+      "names": [
+        "GET"
+      ]
+    }
+  ]
+}

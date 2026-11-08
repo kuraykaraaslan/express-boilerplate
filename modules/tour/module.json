@@ -1,0 +1,27 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tour",
+  "name": "Guided tours",
+  "description": "Guided tours on the module pages. A module carries its tours as JSON (modules/<id>/tours/<tour>.tour.json, schema modules/tour/tour.schema.json): steps that highlight data-tour anchors in its pages, can span pages and move on when the reader clicks. The registry snapshot validates every tour (schema, anchors present in the code, admin routes, texts in the module's dictionary) and builds the list the browser loads. Every text is a translation key of the owning module, so tours are translated like any UI text (dictionaries or Platform → Translations, languages from localization, RTL mirrored). A Tours button in the top bar lists the tours of the page and the others; a tour is offered once on the first visit to its page. Done and skipped tours are remembered per browser. Draws with the kui-react Tour (Driver.js). No server routes, no tables.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-route",
+  "tags": ["platform", "onboarding", "help", "tour"],
+  "priority": 103,
+  "dependencies": {
+    "requires": ["app_shell", "common", "i18n", "localization"]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tour",
+  "license": "Proprietary",
+  "slots": [
+    {
+      "slot": "app_shell.topbar",
+      "component": "tour/ui/tour-topbar.component",
+      "order": 35,
+      "scope": "both"
+    }
+  ]
+}

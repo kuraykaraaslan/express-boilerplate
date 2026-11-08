@@ -1,0 +1,5 @@
+-- DOWN for 002_ai_firewall_baselines.sql: the feature store's baselines and role priors.
+--
+-- NEVER auto-run; manual rollback only. Every actor starts from cold again (the role priors too): the behaviour features read as missing
+-- until the baseline job has folded BASELINE_MIN_DAYS days anew.
+DROP TABLE IF EXISTS "ai_firewall_baselines";

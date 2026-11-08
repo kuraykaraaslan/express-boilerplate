@@ -1,0 +1,5 @@
+-- DOWN for 005_tenant_domain_certificates_directory.sql: the issuing directory of each certificate.
+--
+-- NEVER auto-run; manual rollback only (the migration runner ignores `.sql.down`). Without the column a release before 51.5 cannot tell a
+-- staging certificate from a production one: run it only when no staging certificate is held.
+ALTER TABLE "tenant_domain_certificates" DROP COLUMN IF EXISTS "directoryUrl";

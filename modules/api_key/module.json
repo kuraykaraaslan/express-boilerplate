@@ -1,0 +1,326 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "api_key",
+  "name": "API Key",
+  "description": "Tenant-scoped API keys for programmatic access (hashed at rest, scope-bound).",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-key",
+  "tags": [
+    "platform",
+    "security"
+  ],
+  "priority": 40,
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "env",
+      "feature_gate",
+      "ip_subnet",
+      "notification",
+      "session_end",
+      "user"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/api_key",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "api-keys",
+      "permissions": ["api_key.keys.read"],
+      "label": "API Keys",
+      "href": "/admin/api-keys",
+      "icon": "fas fa-key",
+      "group": "Developer",
+      "workspace": "developer",
+      "order": 10,
+      "scope": "tenant"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/api-keys",
+      "component": "api_key/ui/api-keys.page"
+    },
+    {
+      "path": "/admin/api-keys/settings",
+      "component": "api_key/ui/api-keys-settings.page"
+    },
+    {
+      "path": "/admin/api-keys/reports",
+      "component": "api_key/ui/api-keys-report.page"
+    },
+    {
+      "path": "/admin/api-keys/[apiKeyId]",
+      "component": "api_key/ui/api-keys-api-key-id.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/api-keys/scope-definitions/[scopeDefinitionId]",
+      "handler": "api_key/server/api-key-scope-definitions-scope-definition-id.route"
+    },
+    {
+      "path": "/api/api-keys/scope-definitions",
+      "handler": "api_key/server/api-key-scope-definitions.route"
+    },
+    {
+      "path": "/api/api-keys/activity-report",
+      "handler": "api_key/server/api-keys-activity-report.route"
+    },
+    {
+      "path": "/api/api-keys/rotation-audit",
+      "handler": "api_key/server/api-keys-rotation-audit.route"
+    },
+    {
+      "path": "/api/api-keys/permission-catalog",
+      "handler": "api_key/server/api-keys-permission-catalog.route"
+    },
+    {
+      "path": "/api/api-keys/[apiKeyId]/rotate",
+      "handler": "api_key/server/api-keys-api-key-id-rotate.route"
+    },
+    {
+      "path": "/api/api-keys/[apiKeyId]",
+      "handler": "api_key/server/api-keys-api-key-id.route"
+    },
+    {
+      "path": "/api/api-keys/revoke-all",
+      "handler": "api_key/server/api-keys-revoke-all.route"
+    },
+    {
+      "path": "/api/api-keys",
+      "handler": "api_key/server/api-keys.route"
+    },
+    {
+      "path": "/api/api-keys/sweep-expired",
+      "handler": "api_key/server/api-keys-sweep-expired.route"
+    },
+    {
+      "path": "/api/api-keys/verify",
+      "handler": "api_key/server/api-keys-verify.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "api_key.keys.read",
+      "name": "View API keys",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.keys.create",
+      "name": "Create API keys",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.keys.update",
+      "name": "Update API keys",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.keys.delete",
+      "name": "Revoke an API key",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.keys.rotate",
+      "name": "Rotate API keys",
+      "group": "API Keys",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "api_key.keys.revoke_all",
+      "name": "Revoke all API keys",
+      "group": "API Keys",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "api_key.keys.sweep",
+      "name": "Sweep expired API keys",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.reports.read",
+      "name": "View API key reports",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.scope_definitions.read",
+      "name": "View API key scope definitions",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.scope_definitions.create",
+      "name": "Create API key scope definitions",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.scope_definitions.update",
+      "name": "Update API key scope definitions",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "api_key.scope_definitions.delete",
+      "name": "Delete API key scope definitions",
+      "group": "API Keys",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_export:collection",
+      "key": "api_key",
+      "export": "api_key/server/api_key.export-collection",
+      "order": 20,
+      "scope": "tenant",
+      "metadata": {
+        "label": "API keys",
+        "collections": [
+          "apiKeys"
+        ]
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.created",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key created",
+        "description": "A new API key was issued."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.updated",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key updated",
+        "description": "An API key was updated or deactivated."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.anomaly_detected",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key usage anomaly",
+        "description": "A key unused for a long time was presented from a new address."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.deleted",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key revoked",
+        "description": "An API key was revoked."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.expired",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key expired",
+        "description": "An API key passed its expiry and was deactivated by the expiry sweep."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.expiring",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key expiring soon",
+        "description": "An API key is approaching its expiry (rotation reminder)."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "api_key.rotated",
+      "export": "api_key/server/api_key.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "API Keys",
+        "label": "API key rotated",
+        "description": "An API key was rotated; a successor key was issued."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "api_key/server/api_key.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "api_key: refused keys, the dormant-key anomaly, throttles, revocations, decoy touches (phase 55 01.6, 02.5)",
+        "ids": [
+          "api_key.verify.failed",
+          "api_key.anomaly.detected",
+          "api_key.throttled",
+          "api_key.throttle_cleared",
+          "api_key.created",
+          "api_key.revoke_all",
+          "api_key.rotated",
+          "api_key.deleted",
+          "api_key.decoy_touched",
+          "api_key.decoy_record_touched",
+          "api_key.updated"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:action",
+      "key": "firewall_actions",
+      "export": "api_key/server/api_key.firewall-actions",
+      "scope": "system",
+      "description": "Phase 55 01.6: the actions the firewall's responder may take through this module (execute and undo call its own functions). Observe on install; the responder (05) owns modes, budgets and evidence.",
+      "metadata": {
+        "label": "api_key: throttle a key, revoke a key (phase 55 01.6)",
+        "ids": [
+          "api_key.throttle",
+          "api_key.revoke"
+        ]
+      }
+    },
+    {
+      "point": "ai_firewall:honeytoken",
+      "key": "firewall_honeytokens",
+      "export": "api_key/server/api_key.firewall-honeytokens",
+      "scope": "system",
+      "description": "Phase 55 02.5: the decoys this module owns: the decoy key of each tenant (shaped like a real key, no row, refused by verify like a wrong key, listed only in the firewall's canary list) and the canary key id of each tenant (no row, no page lists it; /api/api-keys/<id> answers 404 as for any missing key). Both derived from the server's field key, never stored; any touch is a critical signal.",
+      "metadata": {
+        "label": "api_key: the decoy key and the canary key record (phase 55 02.5)",
+        "ids": [
+          "api_key.decoy_key",
+          "api_key.decoy_record"
+        ]
+      }
+    }
+  ]
+}

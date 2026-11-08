@@ -1,0 +1,177 @@
+{
+  "format": "nb-menu/1",
+  "spec": {
+    "workspaces": {
+      "iot": {
+        "order": 1
+      },
+      "automation": {
+        "order": 2,
+        "hidden": true
+      },
+      "home": {
+        "hidden": true
+      },
+      "platform": {
+        "order": 3,
+        "hidden": true
+      },
+      "content": {
+        "hidden": true
+      },
+      "knowledge": {
+        "hidden": true
+      },
+      "commerce": {
+        "hidden": true
+      },
+      "events": {
+        "hidden": true
+      },
+      "community": {
+        "hidden": true
+      },
+      "crm": {
+        "hidden": true
+      },
+      "marketing": {
+        "hidden": true
+      },
+      "inventory": {
+        "hidden": true
+      },
+      "erp": {
+        "hidden": true
+      },
+      "finance": {
+        "hidden": true
+      },
+      "hr": {
+        "hidden": true
+      },
+      "projects": {
+        "hidden": true
+      },
+      "bookings": {
+        "hidden": true
+      },
+      "partner": {
+        "hidden": true
+      }
+    },
+    "items": {
+      "dashboards-hub": {
+        "group": "IoT",
+        "workspace": "iot",
+        "order": 1
+      },
+      "automation": {
+        "label": "Flows"
+      },
+      "iot-devices": {
+        "hidden": true
+      },
+      "iot-device-profiles": {
+        "hidden": true
+      },
+      "iot-assets": {
+        "hidden": true
+      },
+      "viewer-designs": {
+        "hidden": true
+      }
+    },
+    "roles": {
+      "sysadmin": {
+        "workspaces": {
+          "automation": {
+            "hidden": false
+          },
+          "platform": {
+            "hidden": false
+          }
+        },
+        "items": {
+          "iot-devices": {
+            "hidden": false
+          },
+          "iot-device-profiles": {
+            "hidden": false
+          }
+        }
+      },
+      "owner": {
+        "workspaces": {
+          "automation": {
+            "hidden": false
+          },
+          "platform": {
+            "hidden": false
+          }
+        },
+        "items": {
+          "iot-devices": {
+            "hidden": false
+          },
+          "iot-device-profiles": {
+            "hidden": false
+          }
+        }
+      },
+      "admin": {
+        "workspaces": {
+          "automation": {
+            "hidden": false
+          },
+          "platform": {
+            "hidden": false
+          }
+        },
+        "items": {
+          "iot-devices": {
+            "hidden": false
+          },
+          "iot-device-profiles": {
+            "hidden": false
+          }
+        }
+      },
+      "user": {
+        "workspaces": {
+          "operations": {
+            "hidden": true
+          },
+          "developer": {
+            "hidden": true
+          },
+          "organisation": {
+            "hidden": true
+          },
+          "monitoring": {
+            "hidden": true
+          },
+          "system": {
+            "hidden": true
+          }
+        }
+      }
+    },
+    "customGroups": {
+      "field-technician": {
+        "items": {
+          "iot-devices": {
+            "hidden": false
+          },
+          "iot-assets": {
+            "hidden": false
+          }
+        }
+      }
+    }
+  },
+  "labels": {
+    "shell_menu.item.automation": {
+      "tr": "Akışlar"
+    }
+  }
+}

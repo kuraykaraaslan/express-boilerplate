@@ -1,0 +1,105 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "db",
+  "name": "Database",
+  "description": "TypeORM DataSource factory — single shared DB for all entities, optional per-tenant DB override via TenantDatabase.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-database",
+  "tags": [
+    "infrastructure",
+    "core",
+    "database"
+  ],
+  "priority": 3,
+  "dependencies": {
+    "requires": [
+      "env",
+      "logger"
+    ]
+  },
+  "exports": {
+    "getDataSource": "db.ts",
+    "tenantDataSourceFor": "db.ts",
+    "clearTenantDsCache": "db.ts",
+    "TenantDatabase": "entities/tenant_database.entity.ts",
+    "parseDbUrl": "db.utils.ts"
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/db",
+  "license": "Proprietary",
+  "apiRoutes": [
+    {
+      "path": "/api/cron/demo-reset",
+      "handler": "db/server/cron-demo-reset.route"
+    },
+    {
+      "path": "/api/cron/time-series-retention",
+      "handler": "db/server/cron-time-series-retention.route"
+    },
+    {
+      "path": "/api/cron/time-series-rollup",
+      "handler": "db/server/cron-time-series-rollup.route"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "db:post_deploy",
+      "kind": "provider",
+      "pattern": "fanout",
+      "gate": "platform",
+      "timeoutMs": 30000,
+      "metadataSchema": { "tenantDatabases": "boolean" },
+      "description": "An idempotent data-upkeep step another module runs on EVERY deploy of the control database, such as dashboard publishing the platform's builtin widgets into the root tenant. Default export: PostDeployStep { run(ctx: PostDeployContext) => Promise<string | void> } (db.post-deploy.ts); ctx gives a DataSource on the deploy target (direct connection, the application's entities), withTenantTransaction(tenantId, fn(manager)) and log(message). Run one after another in extension order by deployDatabase after the bootstrap seed and the fleet tenant, under the deploy advisory lock. Not for the dedicated tenant databases of the fan-out, unless the contribution declares metadata { tenantDatabases: true }: the fan-out then also runs it against each dedicated tenant database after that database migrated cleanly (only the opted-in steps; such a step must not assume control-database tables). A step must be idempotent and must reach the database only through ctx (never the runtime DataSource, Redis or the env module: the deploy runs at build time and in a migrate sidecar). Best effort: a step that fails to load or throws is logged and reported in the deploy report's postDeploy, the others still run and the deploy does not fail. The 30 s budget covers loading the contribution; db never imports the owner."
+    },
+    {
+      "id": "db:seeder",
+      "kind": "provider",
+      "pattern": "catalog",
+      "contract": "db/server/db.seed-contracts#SeederContribution",
+      "consumedBy": "seed",
+      "description": "A module that is not part of the seed runner's static list contributes its demo-data seeder here (an add-on package such as dashboard_scada: the runner is Enterprise, an add-on may not be imported from it, ADR-0013). Default export: SeederContribution { name, tier, deps?, run(ctx: SeedContext) } (db.seed-contracts.ts), the same entry the runner's own SEEDERS list holds; `run` is the module's `seed<Module>` function. The seed module reads the active contributions of the seeded tenant (a module that is off or not entitled for the tenant is not seeded) and runs them in their tier with the built-in seeders; the seeder names and tiers are checked together with the built-in ones. db never imports the contributor and never runs a seeder itself."
+    },
+    {
+      "id": "db:tenant_key_columns",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "The columns a tenant data key (TDEK, P7-TDEK, decision F16) protects. The module that owns a tenant-scoped table contributes, next to its entity and in the same commit as the code that encrypts them, a default export `TENANT_KEY_COLUMNS: Array<{ table, idColumn, tenantColumn?, columns, rowFilter?: { column, values }, family, blindIndexes?: Array<{ column, of, purpose }>, skipValues? }>` (db.tenant-key-columns.ts): text columns that hold field-encryption v2 envelopes under the row tenant's key (db.tenant-keys.service.ts). db resolves, the owner contributes - db never imports the owner. The declarations drive the online re-encryption backfill, the `encryption.tdek_enabled` judge and the key-protected families of the deletion receipt; a ratchet test requires every secret- or special-category-patterned column of a tenant-scoped table to be declared here or waived with a reason. Every installed contribution counts whatever a tenant's module state (the declaration describes the schema)."
+    },
+    {
+      "id": "db:time_series",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "A module declares append-only, time-keyed tables as time-series: default export is `TIME_SERIES_TABLES: Array<{ table, timeColumn, chunkInterval, retention?, compressAfter?, segmentBy?, tenantColumn?, continuousAggregates?, rollups? }>` (see db.time-series.ts). db resolves, the owning module contributes - db never imports the owner. With TimescaleDB the table becomes a hypertable with chunk-drop retention (TSL: policies, compression, continuous aggregates); without it the same declaration yields a plain table with a BRIN time index, a (tenantId, time DESC) btree and batched-delete retention. `rollups` (tenant-scoped tables) create tenant-isolated rollup tables (RLS + FORCE) filled per tenant by job `db-time-series-rollup`; an RLS hypertable cannot be compressed or feed a continuous aggregate, so those two are refused there. Every unique index/primary key of the entity MUST include the time column and, for a tenant-scoped table, START with the tenant column (e.g. `(tenantId, deviceId, keyId, ts)`: a key without the tenant lets a unique violation reveal another tenant's row; `ensureTimeSeriesTables` enforces it on the live table), and the (tenantId, time DESC) index is created in both modes."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "db_time_series_retention",
+      "export": "db/server/db.time-series.job",
+      "order": 2060,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleTimeSeriesRetentionJob",
+        "name": "db-time-series-retention"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "db_tenant_key_backfill",
+      "export": "db/server/db.tenant-key-backfill.job",
+      "order": 2061,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleTenantKeyBackfillJob",
+        "name": "db-tenant-key-backfill"
+      }
+    }
+  ]
+}

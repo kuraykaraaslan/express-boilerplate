@@ -1,0 +1,23 @@
+<%# No heading here: partials/email_header.ejs already renders the subject as an
+    h1, and this mail's subject is the literal string "New Contact Form
+    Message" — a heading of our own would print it twice. %>
+<p>Someone submitted the contact form on <strong><%= appName %></strong>.</p>
+
+<table style="border-collapse:collapse;margin:16px 0;">
+  <tr><td style="padding:4px 12px;color:#666;">Name</td><td style="padding:4px 12px;"><strong><%= name %></strong></td></tr>
+  <tr><td style="padding:4px 12px;color:#666;">Email</td><td style="padding:4px 12px;"><a href="mailto:<%= email %>"><%= email %></a></td></tr>
+  <%# locals.phone, not a bare phone. EJS compiles with with(locals), so a bare
+      identifier throws ReferenceError when the KEY IS ABSENT (as opposed to
+      empty) — and sendContactFormAdminEmail swallows that in its catch, so the
+      admin notification would vanish leaving only a log line. Every conditional
+      in the tree's other templates reads a property (invoice.dueDate), which is
+      why none of them hit this. %>
+  <% if (locals.phone) { %>
+  <tr><td style="padding:4px 12px;color:#666;">Phone</td><td style="padding:4px 12px;"><%= phone %></td></tr>
+  <% } %>
+</table>
+
+<p><strong>Message</strong></p>
+<div style="white-space:pre-wrap;padding:12px;border-left:3px solid #ddd;color:#555;"><%= message %></div>
+
+<p style="color:#888;font-size:12px;">Reply directly to <%= email %> to answer this enquiry.</p>

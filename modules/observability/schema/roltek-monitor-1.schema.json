@@ -1,0 +1,1174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "roltek-monitor-1",
+  "title": "Roltek monitor",
+  "description": "One uptime monitor. Per-type rules (for example \"a TCP target must be host:port\") are enforced by the server and reported with a specific message.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "type": {
+      "default": "HTTP",
+      "type": "string",
+      "enum": [
+        "HTTP",
+        "TCP",
+        "PING",
+        "DNS",
+        "TLS",
+        "DOMAIN",
+        "HEARTBEAT",
+        "STEPS",
+        "BROWSER"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "intervalSeconds": {
+      "default": 60,
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 86400
+    },
+    "timeoutMs": {
+      "default": 10000,
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 120000
+    },
+    "expectedStatus": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expectedBodyContains": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 500
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "degradedLatencyMs": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "headers": {
+      "anyOf": [
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "consecutiveFailThreshold": {
+      "default": 3,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "isActive": {
+      "default": true,
+      "type": "boolean"
+    },
+    "assertions": {
+      "anyOf": [
+        {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "status"
+                  },
+                  "in": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 100,
+                      "maximum": 599
+                    }
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "in"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "header"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "exists",
+                      "equals",
+                      "contains",
+                      "matches"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "op"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "body"
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "contains",
+                      "notContains",
+                      "matches"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "op",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "json"
+                  },
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "exists",
+                      "equals",
+                      "contains",
+                      "gt",
+                      "lt",
+                      "between"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "path",
+                  "op"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "latency"
+                  },
+                  "maxMs": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 600000
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "maxMs"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "size"
+                  },
+                  "maxBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000000
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "DOWN",
+                      "DEGRADED"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "maxBytes"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certWarnDays": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certCriticalDays": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "heartbeatGraceSeconds": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "steps": {
+      "anyOf": [
+        {
+          "minItems": 1,
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "method": {
+                "default": "GET",
+                "type": "string",
+                "enum": [
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "PATCH",
+                  "DELETE",
+                  "HEAD"
+                ]
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "headers": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              },
+              "body": {
+                "type": "string",
+                "maxLength": 10000
+              },
+              "assertions": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "status"
+                        },
+                        "in": {
+                          "minItems": 1,
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 599
+                          }
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "in"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "header"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "exists",
+                            "equals",
+                            "contains",
+                            "matches"
+                          ]
+                        },
+                        "value": {
+                          "type": "string",
+                          "maxLength": 300
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "name",
+                        "op"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "body"
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "contains",
+                            "notContains",
+                            "matches"
+                          ]
+                        },
+                        "value": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 400
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "op",
+                        "value"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "json"
+                        },
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "exists",
+                            "equals",
+                            "contains",
+                            "gt",
+                            "lt",
+                            "between"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 300
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        },
+                        "max": {
+                          "type": "number"
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "path",
+                        "op"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "latency"
+                        },
+                        "maxMs": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 600000
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "maxMs"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "size"
+                        },
+                        "maxBytes": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 100000000
+                        },
+                        "severity": {
+                          "type": "string",
+                          "enum": [
+                            "DOWN",
+                            "DEGRADED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "maxBytes"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "extract": {
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9_]{0,30}$"
+                    },
+                    "from": {
+                      "type": "string",
+                      "enum": [
+                        "json",
+                        "header",
+                        "regex"
+                      ]
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "from",
+                    "path"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "name",
+              "url"
+            ]
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "browser": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "steps": {
+              "minItems": 1,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "goto"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "url": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      },
+                      "waitUntil": {
+                        "default": "load",
+                        "type": "string",
+                        "enum": [
+                          "load",
+                          "domcontentloaded"
+                        ]
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "url"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "click"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "selector"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "fill"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "value": {
+                        "type": "string",
+                        "maxLength": 1000,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "selector",
+                      "value"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "press"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "key": {
+                        "type": "string",
+                        "pattern": "^(?:(?:Control|Shift|Alt|Meta)\\+)*(?:[A-Za-z0-9]|Enter|Tab|Escape|Backspace|Delete|Space|Home|End|PageUp|PageDown|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|F[1-9]|F1[0-2])$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "key"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "waitForSelector"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "state": {
+                        "default": "visible",
+                        "type": "string",
+                        "enum": [
+                          "visible",
+                          "attached",
+                          "hidden"
+                        ]
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "selector"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "waitForText"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "text"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "expectText"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "text"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "expectVisible"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name",
+                      "selector"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "string",
+                        "const": "expectUrl"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "contains": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      },
+                      "equals": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      },
+                      "matches": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000
+                      }
+                    },
+                    "required": [
+                      "action",
+                      "name"
+                    ]
+                  }
+                ]
+              }
+            },
+            "viewport": {
+              "default": {
+                "width": 1280,
+                "height": 720
+              },
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 320,
+                  "maximum": 1920
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 240,
+                  "maximum": 1200
+                }
+              },
+              "required": [
+                "width",
+                "height"
+              ]
+            },
+            "vitals": {
+              "type": "object",
+              "properties": {
+                "maxLoadMs": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 120000
+                },
+                "maxLcpMs": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 120000
+                },
+                "maxCls": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "severity": {
+                  "default": "DEGRADED",
+                  "type": "string",
+                  "enum": [
+                    "DOWN",
+                    "DEGRADED"
+                  ]
+                }
+              }
+            },
+            "noPageErrors": {
+              "default": true,
+              "type": "boolean"
+            },
+            "noFailedMainRequest": {
+              "default": true,
+              "type": "boolean"
+            },
+            "screenshotOnFailure": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "steps"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "secrets": {
+      "anyOf": [
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,39}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latencyBaselineFactor": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 1.5,
+          "maximum": 50
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "groupName": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tags": {
+      "anyOf": [
+        {
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "locations": {
+      "anyOf": [
+        {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quorum": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pausedUntil": {
+      "anyOf": [
+        {},
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "maintenanceUntil": {
+      "anyOf": [
+        {},
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

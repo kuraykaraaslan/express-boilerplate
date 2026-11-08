@@ -1,0 +1,16 @@
+-- DOWN for 008_ai_firewall_model_states.sql: shadow mode's incident tracks and the promotion store.
+--
+-- NEVER auto-run; manual rollback only. Both tree models lose their promotion (the cascade falls back to shadow, then off with the
+-- previous release), their shadow period starts again and the drift reference is gone; the incidents keep their rule scores but lose what
+-- the models said about them. The audit rows of every promotion, demotion and hold stay in the audit log.
+DROP TABLE IF EXISTS "ai_firewall_model_states";
+DROP INDEX IF EXISTS "idx_ai_firewall_incidents_models";
+ALTER TABLE "ai_firewall_incidents" DROP COLUMN IF EXISTS "models";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'ai_firewall:008_ai_firewall_model_states.sql';
+  END IF;
+END $$;

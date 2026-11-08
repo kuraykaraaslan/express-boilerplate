@@ -1,0 +1,116 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification_mail",
+  "name": "Email Notifications",
+  "description": "Pluggable email sender (SMTP, SES, Mailgun, Postmark, Resend, SendGrid). EJS templates. BullMQ-backed queue.",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-envelope",
+  "tags": [
+    "notifications",
+    "email"
+  ],
+  "priority": 30,
+  "dependencies": {
+    "requires": [
+      "env",
+      "feature_gate",
+      "notification_log",
+      "redis",
+      "redis_idempotency",
+      "tenant_setting"
+    ]
+  },
+  "settings": {
+    "keys": "MAIL_KEYS",
+    "level": {
+      "allowed": ["platform", "tenant", "tenant_first"],
+      "default": "platform",
+      "keys": [
+        "mailProvider", "smtpHost", "smtpPort", "smtpUsername",
+        "smtpPassword", "smtpEncryption", "smtpSecure", "sendgridApiKey",
+        "mailgunApiKey", "mailgunDomain", "mailgunRegion", "awsSesAccessKeyId",
+        "awsSesSecretAccessKey", "awsSesRegion", "postmarkApiKey", "resendApiKey"
+      ],
+      "points": ["mail:provider"]
+    }
+  },
+  "settingKeys": [
+    "MAIL_KEYS"
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification_mail",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/email",
+      "component": "notification_mail/ui/settings-email.page",
+      "permissions": ["notification_mail.settings.read", "tenant_setting.config.read"]
+    },
+    {
+      "path": "/admin/settings/notifications",
+      "component": "notification_mail/ui/settings-notifications.page",
+      "permissions": ["notification_mail.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "permissions": [
+    {
+      "id": "notification_mail.settings.read",
+      "name": "View email settings",
+      "group": "Email",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_mail.settings.update",
+      "name": "Change email settings",
+      "group": "Email",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "mail:provider",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "any",
+      "persists": true,
+      "external": true,
+      "inTree": false,
+      "description": "An email sending backend. Backends come from sandboxed marketplace plugins (e.g. @smtp/mail, @sendgrid/mail); no in-tree module provides one, and the host reads plugins only."
+    },
+    {
+      "id": "notification_mail:brand_source",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "Read seam for a tenant's mail brand. Default export: { load(tenantId) } returning a MailBrandPatch { name, logoLight, logoDark, primaryColor, baseUrl } or null (notification_mail/server/notification_mail.brand.types#MailBrandSource). The same four-field allowlist the status page reads, plus the tenant's own verified origin for links; no HTML, CSS, footer or sender name can be contributed. Every value is validated again by notification_mail (HTTPS-only logos, hex colours, escaped names). A missing or empty source means the platform default, never an error. Merged first-non-null per field, cached 5 minutes in Redis under notification_mail:brand:<tenantId>; contributors invalidate that key from their write paths.",
+      "contract": "notification_mail/server/notification_mail.brand.types#MailBrandSource"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "notification:channel",
+      "key": "mail",
+      "export": "notification_mail/server/notification_mail.channel",
+      "order": 20,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Email"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "mail_worker",
+      "export": "notification_mail/server/notification_mail.queue.service",
+      "order": 1610,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startMailWorker",
+        "name": "mail-worker"
+      }
+    }
+  ]
+}

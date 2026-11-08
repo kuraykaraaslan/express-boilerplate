@@ -1,0 +1,103 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification",
+  "name": "Notifications",
+  "description": "The platform's notification dispatcher. Resolves recipient preferences, per-category opt-outs and ONE quiet-hours model once, then fans out to channel providers contributed through `notification:channel`. Security/OTP traffic is exempt from every recipient-controlled gate via an urgency flag.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-bell",
+  "tags": [
+    "notifications",
+    "dispatcher",
+    "platform"
+  ],
+  "priority": 28,
+  "dependencies": {
+    "requires": [
+      "logger",
+      "tenant_setting",
+      "user_preferences"
+    ],
+    "optional": [
+      "automation",
+      "organization"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "notification:suppression",
+      "kind": "provider",
+      "pattern": "guard",
+      "failOpen": {
+        "reason": "A provider that throws knows nothing about any address; refusing every message would also stop password resets and security alerts.",
+        "when": "transactional and critical purposes only; marketing and other commercial purposes fail closed (consent, EXT-3)"
+      },
+      "description": "An ADDRESS-level gate: may we write to this address at all? Default export: { addressKind: 'EMAIL'|'SMS', isSuppressed(tenantId, address, { purpose }) } implementing SuppressionProvider. Separate from preferences because it answers a different question about a different subject — preferences need an account, suppression works on a guest address, a bounced mailbox or somebody who never had a login. Consulted BEFORE the CRITICAL exemption: urgency waives what the RECIPIENT chose, never what the ADDRESS is. A provider must FAIL CLOSED (an address it cannot evaluate is suppressed); the dispatcher fails OPEN on a provider error, because a broken provider knows nothing about anybody. Declared so `notification` never imports a CRM domain.",
+      "contract": "notification/server/notification.types#SuppressionProvider"
+    },
+    {
+      "id": "notification:channel",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "none",
+      "description": "A delivery channel (mail, sms, push, inapp, or any open slug such as telegram). Default export: { channel, canDeliver?, deliver } implementing NotificationChannelProvider. A NEW channel (not one of the four core ids) must declare static `metadata` on its contribution so the policy can decide without loading it: { label, addressKind: 'EMAIL'|'SMS'|'ACCOUNT'|'EXTERNAL', respectsQuietHours: boolean } (respectsQuietHours is required; EXTERNAL channels resolve their own address in canDeliver and report no_address when unlinked). Its per-user toggle lives in user_preferences.channelPrefs[channel]. The dispatcher resolves policy BEFORE calling a provider, so a provider must not re-check preferences, category opt-outs or quiet hours — doing so applies the policy twice. Declared so `notification` never imports a channel module: the dispatcher stays installable with zero channels, and a tenant only gets the channels it has."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "automation:node",
+      "key": "automation",
+      "export": "notification/server/notification.automation-node",
+      "order": 60,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Notify",
+        "ids": [
+          "action.notify"
+        ]
+      }
+    },
+    {
+      "point": "automation:choices",
+      "key": "channels",
+      "export": "notification/server/notification.automation-choices",
+      "order": 61,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Notification channels",
+        "ids": [
+          "notification.channels"
+        ]
+      }
+    },
+    {
+      "point": "automation:choices",
+      "key": "recipients",
+      "export": "notification/server/notification.automation-recipients",
+      "order": 62,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Notification recipients",
+        "ids": [
+          "notification.recipients"
+        ]
+      }
+    },
+    {
+      "point": "automation:node_ui",
+      "key": "action_notify",
+      "export": "notification/ui/notification-notify.node-ui",
+      "scope": "tenant",
+      "metadata": {
+        "type": "action.notify",
+        "label": "Notify with the recipients suggested"
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "localization.currencySelector.label": "Currency",
+  "localization.currencySelector.noResults": "No results",
+  "localization.currencySelector.searchPlaceholder": "Search currency…",
+  "localization.phoneInput.country": "Country",
+  "localization.phoneInput.incomplete": "This does not look like a complete number yet.",
+  "localization.phoneInput.number": "Phone number",
+  "localization.phoneInput.required": "(required)"
+}

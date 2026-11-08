@@ -1,0 +1,7 @@
+{
+  "notification_sms.permission.notification_sms_messages_read.name": "SMS sağlayıcılarını görüntüle",
+  "notification_sms.permission.notification_sms_messages_send.name": "Organizasyon adına SMS gönder",
+  "notification_sms.permission.notification_sms_settings_read.name": "SMS ayarlarını görüntüle",
+  "notification_sms.permission.notification_sms_settings_update.name": "SMS ayarlarını değiştir",
+  "notification_sms.permissionGroup.notifications": "Bildirimler"
+}

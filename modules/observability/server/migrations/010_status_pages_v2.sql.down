@@ -1,0 +1,61 @@
+-- DOWN for 010_status_pages_v2.sql: status page v2.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of status_pages, status_component_groups, status_translations and status_automations; the four added `status_components` columns (groupId, showUptime, showHistory, showRegions); the seven added `status_subscribers` columns; and every subscriber that is not a plain email subscriber (see below). Migration 020 adds `managedBy`/`sourceKey` to status_components: undo 020 first.
+--
+-- NOT exactly reversible without deleting rows: the up made `status_subscribers.email` nullable (an SMS or webhook subscriber has none) and added
+-- `channel`. The down must restore NOT NULL on `email`, which is impossible while a NULL email exists, and dropping `channel` would turn a webhook
+-- subscriber that does carry an email into an email subscriber. So the down first DELETES every row with `channel <> 'EMAIL'` or a NULL email: the rows
+-- only this feature can create. Plain email subscribers are kept. The number of deleted rows is reported as a NOTICE.
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 010_status_pages_v2.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 1. Subscribers: rows that cannot exist before this migration go first, then the indexes, the columns and the NOT NULL it relaxed.
+DO $$
+DECLARE
+  removed bigint;
+BEGIN
+  IF to_regclass('status_subscribers') IS NOT NULL AND EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema() AND table_name = 'status_subscribers' AND column_name = 'channel'
+  ) THEN
+    DELETE FROM "status_subscribers" WHERE "channel" <> 'EMAIL' OR "email" IS NULL;
+    GET DIAGNOSTICS removed = ROW_COUNT;
+    RAISE NOTICE 'status_subscribers: % non-email subscriber row(s) deleted', removed;
+  END IF;
+END $$;
+DROP INDEX IF EXISTS "uq_status_subscriber_phone";
+DROP INDEX IF EXISTS "uq_status_subscriber_endpoint";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "consecutiveFailures";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "locale";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "pageId";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "signingSecret";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "endpointUrl";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "phone";
+ALTER TABLE IF EXISTS "status_subscribers" DROP COLUMN IF EXISTS "channel";
+ALTER TABLE IF EXISTS "status_subscribers" ALTER COLUMN "email" SET NOT NULL;
+
+-- 2. Columns added to the pre-existing `status_components` table.
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "showRegions";
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "showHistory";
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "showUptime";
+ALTER TABLE IF EXISTS "status_components" DROP COLUMN IF EXISTS "groupId";
+
+-- 3. The tables, newest first (indexes go with them; no CASCADE, see 002).
+DROP TABLE IF EXISTS "status_automations";
+DROP TABLE IF EXISTS "status_translations";
+DROP TABLE IF EXISTS "status_component_groups";
+DROP TABLE IF EXISTS "status_pages";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:010_status_pages_v2.sql';
+  END IF;
+END $$;

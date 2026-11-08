@@ -1,0 +1,304 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "webhook",
+  "name": "Outgoing Webhooks",
+  "description": "Subscriber-configured outbound webhooks (tenant-scoped; root tenant carries platform-wide events), signed deliveries, retry+redelivery.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-rss",
+  "tags": [
+    "platform",
+    "integration"
+  ],
+  "priority": 40,
+  "dependencies": {
+    "requires": [
+      "db",
+      "env",
+      "feature_gate",
+      "redis",
+      "tenant"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/webhook",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "webhooks",
+      "permissions": ["webhook.endpoints.read"],
+      "label": "Webhooks",
+      "href": "/admin/webhooks",
+      "icon": "fas fa-tower-broadcast",
+      "group": "Developer",
+      "workspace": "developer",
+      "order": 10,
+      "scope": "tenant"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/webhooks",
+      "component": "webhook/ui/webhooks.page"
+    },
+    {
+      "path": "/admin/webhooks/settings",
+      "component": "webhook/ui/webhooks-settings.page"
+    },
+    {
+      "path": "/admin/webhooks/[webhookId]",
+      "component": "webhook/ui/webhooks-webhook-id.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/webhooks/[webhookId]/deliveries/[deliveryId]/redeliver",
+      "handler": "webhook/server/webhooks-webhook-id-deliveries-delivery-id-redeliver.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]/deliveries/replay-dead-letter",
+      "handler": "webhook/server/webhooks-webhook-id-deliveries-replay-dead-letter.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]/deliveries",
+      "handler": "webhook/server/webhooks-webhook-id-deliveries.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]/rotate-secret",
+      "handler": "webhook/server/webhooks-webhook-id-rotate-secret.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]",
+      "handler": "webhook/server/webhooks-webhook-id.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]/test",
+      "handler": "webhook/server/webhooks-webhook-id-test.route"
+    },
+    {
+      "path": "/api/webhooks/[webhookId]/trigger",
+      "handler": "webhook/server/webhooks-webhook-id-trigger.route"
+    },
+    {
+      "path": "/api/webhooks/capabilities",
+      "handler": "webhook/server/webhooks-capabilities.route"
+    },
+    {
+      "path": "/api/webhooks/events",
+      "handler": "webhook/server/webhooks-events.route"
+    },
+    {
+      "path": "/api/webhooks/metrics",
+      "handler": "webhook/server/webhooks-metrics.route"
+    },
+    {
+      "path": "/api/webhooks/report",
+      "handler": "webhook/server/webhooks-report.route"
+    },
+    {
+      "path": "/api/webhooks",
+      "handler": "webhook/server/webhooks.route"
+    },
+    {
+      "path": "/api/cron/webhook-pending-sweep",
+      "handler": "webhook/server/cron-webhook-pending-sweep.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "webhook.endpoints.read",
+      "name": "View webhook endpoints",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.endpoints.create",
+      "name": "Create webhook endpoints",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.endpoints.update",
+      "name": "Update webhook endpoints",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.endpoints.delete",
+      "name": "Delete webhook endpoints",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.endpoints.rotate_secret",
+      "name": "Rotate webhook signing secret",
+      "group": "Webhooks",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "webhook.endpoints.test",
+      "name": "Send test webhook delivery",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.endpoints.trigger",
+      "name": "Manually trigger webhook event",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.deliveries.read",
+      "name": "View webhook deliveries",
+      "group": "Deliveries",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.deliveries.redeliver",
+      "name": "Redeliver a failed webhook delivery",
+      "group": "Deliveries",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.deliveries.replay",
+      "name": "Replay dead-lettered deliveries",
+      "group": "Deliveries",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.events.read",
+      "name": "View webhook event catalog",
+      "group": "Webhooks",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.metrics.read",
+      "name": "View webhook delivery metrics",
+      "group": "Monitoring",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "webhook.reports.read",
+      "name": "View webhook reports",
+      "group": "Monitoring",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_export:collection",
+      "key": "webhook",
+      "export": "webhook/server/webhook.export-collection",
+      "order": 22,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Webhooks",
+        "collections": [
+          "webhooks",
+          "webhookDeliveries"
+        ]
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "webhook_delivery_worker",
+      "export": "webhook/server/webhook.queue",
+      "order": 1600,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startWebhookDeliveryWorker",
+        "name": "webhook-delivery-worker"
+      }
+    },
+    {
+      "point": "db:post_deploy",
+      "key": "encrypt_secrets",
+      "export": "webhook/server/webhook.post-deploy",
+      "order": 60,
+      "scope": "system",
+      "description": "Encrypts the webhook signing secrets (secret, previousSecret) stored before the columns were field-encrypted (P9-6): idempotent, batched, guarded on the value read, counts only. New writes are encrypted by the entity transformer. Also runs on every dedicated tenant database of the deploy fan-out (metadata.tenantDatabases), where a tenant with a database of its own keeps these rows.",
+      "metadata": {
+        "tenantDatabases": true
+      }
+    },
+    {
+      "point": "db:tenant_key_columns",
+      "key": "webhook",
+      "export": "webhook/server/webhook.tenant-key-columns",
+      "scope": "system",
+      "description": "Webhook signing secrets (secret, previousSecret), encrypted under the tenant's data key (P7-TDEK, F16)."
+    },
+    {
+      "point": "common:boot_task",
+      "key": "webhook_pending_sweep",
+      "export": "webhook/server/webhook.pending-sweep.job",
+      "order": 3010,
+      "scope": "system",
+      "description": "Every 10 minutes: re-enqueues the PENDING webhook deliveries whose BullMQ job was lost (Redis lost its data), with the delivery id as the job id; dead-letters, with a reason, those older than a day or whose endpoint is gone or disabled (D252, docs/audits/2026-11-03-redis-outage.md §6.8). HTTP twin: POST /api/cron/webhook-pending-sweep.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleWebhookPendingSweepJob",
+        "name": "webhook-pending-sweep"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "webhook/server/webhook.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: a webhook endpoint created, updated, deleted and its signing secret rotated; deliveries redelivered, dead letters replayed, tests sent and events triggered by hand), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "webhook: endpoints created, changed, deleted and their secret rotated; deliveries redelivered, replayed, tested and triggered (phase 55 coverage)",
+        "ids": [
+          "webhook.created",
+          "webhook.updated",
+          "webhook.deleted",
+          "webhook.secret_rotated",
+          "webhook.delivery_redelivered",
+          "webhook.dead_letters_replayed",
+          "webhook.test_sent",
+          "webhook.event_triggered"
+        ]
+      }
+    }
+  ],
+  "widgets": [
+    {
+      "id": "webhook-health",
+      "name": "Webhooks",
+      "component": "webhook/ui/webhook-health-widget.component",
+      "workspace": "developer",
+      "scope": "tenant",
+      "size": "medium",
+      "order": 20,
+      "permissions": [
+        "webhook.metrics.read"
+      ]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "webhook:event_type",
+      "kind": "provider",
+      "pattern": "catalog",
+      "metadataOnly": true,
+      "metadataSchema": {
+        "scope": "string",
+        "group": "string",
+        "label": "string",
+        "description": "string"
+      },
+      "description": "A module declares a webhook event it emits, without editing webhook: one contribution per event, the contribution key is the event name (lower-case dotted segments, stable forever) and the static metadata is { scope: 'tenant' | 'platform', group, label, description }. The export is the module's <module>.webhook-events file, which lists the names for its emit sites; only the metadata is read, so building the catalog loads no code. The catalog (webhook.catalog.ts) is process-wide: the events of every installed module, whatever a tenant has switched on. Create, update and the manual trigger refuse an event no installed module declares for the tenant's scope (422); an update may keep an already-stored event whose module was removed. A dispatched event nobody declares is logged once and skips the endpoint lookup (event sinks still hear it). Two modules may declare the same event; the first by order wins and a declaration with a different scope is ignored with a warning."
+    },
+    {
+      "id": "webhook:event_sink",
+      "kind": "provider",
+      "pattern": "fanout",
+      "description": "A module that wants to hear every dispatched domain event. Default export: { key?, names?: string[], onEvent(tenantId, event, payload, meta?) } where meta is { actor?: { type, id } } (only the actor id travels; a flow that needs a name reads it with an enrichment node). dispatchEvent calls it BEFORE the plan gate, FIRE-AND-FORGET: dispatchEvent sits on the request path of ~50 modules, so a sink that is slow, broken or missing must never delay or fail a dispatch. A tenant without the feature_webhooks plan feature still reaches its sinks (the sink applies its own plan gate). Each sink is isolated; a throw is logged and dropped. Platform-scope events are pinned to the root tenant by dispatchPlatformEvent, so sinks hear them under the root tenant only."
+    }
+  ]
+}

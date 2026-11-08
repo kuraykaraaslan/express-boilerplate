@@ -1,0 +1,156 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "notification_sms",
+  "name": "SMS Notifications",
+  "description": "Pluggable SMS sender (Twilio, Nexmo, Clickatell, NetGSM).",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-message",
+  "tags": [
+    "notifications",
+    "sms"
+  ],
+  "priority": 30,
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "env",
+      "feature_gate",
+      "logger",
+      "notification_log",
+      "redis",
+      "redis_idempotency",
+      "tenant",
+      "tenant_setting"
+    ]
+  },
+  "settings": {
+    "keys": "SMS_KEYS",
+    "level": {
+      "allowed": ["platform", "tenant", "tenant_first"],
+      "default": "platform",
+      "keys": [
+        "smsProvider", "smsRegionProviderMap", "twilioAccountSid", "twilioAuthToken",
+        "twilioPhoneNumber", "nexmoApiKey", "nexmoApiSecret", "nexmoPhoneNumber",
+        "clickatellApiKey", "netgsmUserCode", "netgsmPassword", "netgsmPhoneNumber",
+        "verimorUsername", "verimorPassword", "verimorSourceAddr"
+      ],
+      "points": ["sms:provider"]
+    }
+  },
+  "settingKeys": [
+    "SMS_KEYS"
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/notification_sms",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/settings/sms",
+      "component": "notification_sms/ui/settings-sms.page",
+      "permissions": ["notification_sms.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "sms:provider",
+      "kind": "provider",
+      "pattern": "select",
+      "fallback": "any",
+      "persists": true,
+      "external": true,
+      "inTree": false,
+      "description": "An SMS sending backend. Backends come from sandboxed marketplace plugins (e.g. @twilio/sms, @netgsm/sms); no in-tree module provides one, and the host reads plugins only."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "notification:channel",
+      "key": "sms",
+      "export": "notification_sms/server/notification_sms.channel",
+      "order": 40,
+      "scope": "tenant",
+      "metadata": {
+        "label": "SMS"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "sms_worker",
+      "export": "notification_sms/server/notification_sms.queue.service",
+      "order": 1620,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startSmsWorker",
+        "name": "sms-worker"
+      }
+    },
+    {
+      "point": "tenant_export:collection",
+      "key": "notification_sms",
+      "export": "notification_sms/server/notification_sms.export-collection",
+      "order": 26,
+      "scope": "tenant",
+      "metadata": {
+        "label": "SMS opt-outs",
+        "collections": [
+          "notificationSmsOptOuts"
+        ],
+        "erasure": {
+          "mode": "RETAIN",
+          "basis": "LEGAL_OBLIGATION",
+          "reference": "an SMS opt-out (STOP) is kept so the objection keeps being honoured: GDPR Art. 21(3), Art. 17(3)(b); KVKK Art. 5(2)(c); Law 6563 Art. 8"
+        }
+      }
+    },
+    {
+      "point": "tenant:purge_step",
+      "key": "notification_sms",
+      "export": "notification_sms/server/notification_sms.tenant-purge",
+      "order": 76,
+      "scope": "both",
+      "description": "Deletes the purged tenant's SMS opt-out rows (notification_sms_optouts, recipients' phone numbers; D254). The cached states in Redis name the tenant and go with the purge's Redis flush.",
+      "metadata": {
+        "label": "Remove the purged tenant's SMS opt-out list"
+      }
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/notifications/sms/send",
+      "placement": "root",
+      "handler": "notification_sms/server/notifications-sms-send.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "notification_sms.messages.send",
+      "name": "Send SMS on behalf of the tenant",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_sms.messages.read",
+      "name": "View SMS providers",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_sms.settings.read",
+      "name": "View SMS settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "notification_sms.settings.update",
+      "name": "Change SMS settings",
+      "group": "Notifications",
+      "minRole": "ADMIN"
+    }
+  ]
+}

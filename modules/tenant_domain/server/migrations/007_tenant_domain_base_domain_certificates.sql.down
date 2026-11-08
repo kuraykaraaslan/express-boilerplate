@@ -1,0 +1,5 @@
+-- DOWN for 007_tenant_domain_base_domain_certificates.sql: the wildcard certificates of the managed base domains.
+--
+-- NEVER auto-run; manual rollback only (the migration runner ignores `.sql.down`). Dropping the table drops the wildcard keys: hosts under
+-- a base domain fall back to their per-name certificates of phase 51 where those are still held, and fail the handshake where they are not.
+DROP TABLE IF EXISTS "tenant_domain_base_domain_certificates";

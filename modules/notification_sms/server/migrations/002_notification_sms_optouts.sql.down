@@ -1,0 +1,6 @@
+-- DOWN for 002_notification_sms_optouts.sql: the durable SMS opt-out list.
+--
+-- NEVER auto-run; manual rollback only. The migration runner loads `*.sql` files only, so this `.sql.down` file is ignored by
+-- `db:deploy`, the release manifest and the schema version. Dropping the table FORGETS EVERY OPT-OUT: export the rows first
+-- (`SELECT * FROM notification_sms_optouts WHERE "optedOut"`) and keep honouring them; the previous release reads a Redis set only.
+DROP TABLE IF EXISTS "notification_sms_optouts";

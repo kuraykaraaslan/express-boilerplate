@@ -1,0 +1,2 @@
+-- DOWN of mcp_server 001. Every MCP client connected through OAuth loses its grant (its access tokens expire in Redis on their own).
+DROP TABLE IF EXISTS "mcp_oauth_grants";

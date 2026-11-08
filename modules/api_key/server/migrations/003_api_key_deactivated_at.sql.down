@@ -1,0 +1,13 @@
+-- DOWN for 003_api_key_deactivated_at.sql: the key's deactivation stamp.
+--
+-- NEVER auto-run; manual rollback only; destroys the stamps (a revocation the firewall recorded before it can no longer be undone by the
+-- firewall: its undo answers superseded, and an administrator reactivates the key on the keys page).
+ALTER TABLE "api_keys" DROP COLUMN IF EXISTS "deactivatedAt";
+
+-- the ledger row, so a later deploy applies the file again
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'api_key:003_api_key_deactivated_at.sql';
+  END IF;
+END $$;

@@ -1,0 +1,5 @@
+-- DOWN for 001_session_end_orders.sql: the outbox of session-ending orders.
+--
+-- NEVER auto-run; manual rollback only. Run it only when the table is empty (`SELECT count(*) FROM session_end_orders`): a pending
+-- order dropped here is a device or socket session that is not ended.
+DROP TABLE IF EXISTS "session_end_orders";

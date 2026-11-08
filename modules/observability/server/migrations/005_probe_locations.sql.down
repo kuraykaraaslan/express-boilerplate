@@ -1,0 +1,31 @@
+-- DOWN for 005_probe_locations.sql: probe locations.
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: every row of probe_locations, probe_runners (registered runner public keys), probe_enrolments and probe_leases, `monitors.locations`/`quorum`/`locationState` and `monitor_checks.locationKey` (the per-location label of every stored check).
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 005_probe_locations.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 1. Columns added to the pre-existing `monitor_checks` and `monitors` tables.
+ALTER TABLE IF EXISTS "monitor_checks" DROP COLUMN IF EXISTS "locationKey";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "locationState";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "quorum";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "locations";
+
+-- 2. The tables, newest first (indexes go with them; no CASCADE, see 002).
+DROP TABLE IF EXISTS "probe_leases";
+DROP TABLE IF EXISTS "probe_enrolments";
+DROP TABLE IF EXISTS "probe_runners";
+DROP TABLE IF EXISTS "probe_locations";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:005_probe_locations.sql';
+  END IF;
+END $$;

@@ -1,0 +1,115 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "feature_gate",
+  "name": "Feature Gate",
+  "description": "Plan-based feature gating as a leaf: owns the BOOLEAN/LIMIT policy, the grace-ceiling arithmetic and the Redis cache, but owns no table and knows nothing about plans or subscriptions. Where a tenant's entitlements come from is contributed through `feature_gate:entitlement_source`. With no source installed it does not gate at all.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": [
+    "single",
+    "node",
+    "fleet"
+  ],
+  "icon": "fas fa-lock-open",
+  "tags": [
+    "entitlements",
+    "billing",
+    "platform"
+  ],
+  "priority": 12,
+  "dependencies": {
+    "requires": [
+      "env",
+      "logger",
+      "redis"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/feature_gate",
+  "license": "Proprietary",
+  "extensionPoints": [
+    {
+      "id": "feature_gate:entitlement_source",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "platform",
+      "description": "Where a tenant's entitlements come from. Default export: (tenantId) => Promise<EntitlementState | null>, where EntitlementState is { status, gracePeriodEndsAt, features[] } and null means 'this source has no arrangement for that tenant' — meaningfully different from a state whose status is not live. Declared so the gate never imports a subscription rail: before it, fifteen modules had to require tenant_subscription just to ask 'may this tenant send mail', which is also why five unexpected mutual-import pairs existed (DUP-01 step 5). Sources are ADDITIVE: a tenant holding both a subscription and a granted bundle gets the union, so a second source can be added without re-deciding precedence per key. With ZERO sources registered the gate allows everything — that is the standalone-installability contract, not a loophole. A source that THROWS fails the check closed (500), because 'cannot answer' is not 'absent'."
+    },
+    {
+      "id": "feature_gate:entitlement_ceiling",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "platform",
+      "description": "A deployment-wide CAP on what the entitlement sources grant (fleet step 3b.10, decision F23, owner rule S11): the stricter of a tenant's plan and the deployment's license. Default export: EntitlementCeilingProvider { ceiling() => Promise<EntitlementFeature[] | null>, baseline() => EntitlementFeature[] | null }. Applied after the additive merge of entitlement_source as a minimum: a BOOLEAN is on only when both say on, a LIMIT is the smaller (-1 loses to any finite value); it also caps the ungated and wildcard answers, since a cap is global. A key no contributor names is untouched, and with no contributor (or every one answering null) nothing changes. Never a grant: on a key the plan never declared it can only add a refusal. A separate point because entitlement_source is additive by contract, so a cap contributed there would widen. Asked in a system context and memoised per process for 10 s, 1 s when a contributor answered its baseline (invalidateEntitlementCeiling drops it); the per-tenant cache stays the plan's answer. A contributor whose ceiling() throws or hangs answers its own baseline() (the un-licensed baseline, S11 rule 5), never deny-all; one that cannot be loaded, or whose baseline() throws, fails the check closed (500).",
+      "contract": "feature_gate/server/feature_gate.types#EntitlementCeilingProvider"
+    },
+    {
+      "id": "feature_gate:deployment_usage",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "platform",
+      "description": "How many of each deployment-wide counted thing exist now (fleet step 3b.11, owner rule S11 rule 7), shown in the console next to the license cap. Default export: DeploymentUsageProvider () => Promise<Record<string, number>>; the module that owns the rows answers its own keys (tenant: tenants; fleet on a control plane: nodes, regions) and {} when it counts nothing here. Display only: enforcement recounts under its own lock and never reads this. A contributor that throws or times out leaves its keys unknown (null), never a 500.",
+      "contract": "feature_gate/server/feature_gate.types#DeploymentUsageProvider"
+    },
+    {
+      "id": "feature_gate:entitlement_changed",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Told that a tenant's entitlements just changed. Default export: EntitlementChangeListener { entitlementChanged(tenantId) => Promise<void> }. Announced by invalidateFeatureCache, which every write that changes what a tenant is entitled to already calls after it commits (a plan assigned, cancelled or lapsed, a grace period started or ended, a catalogue entitlement granted, revoked or expired), so a module that keeps state derived from an entitlement (tenant_domain suspends the custom domains a plan no longer includes) reacts at once instead of on its next sweep. Detached: the announcing write does not wait, and a listener that fails is logged and counted, never surfaced to that write; a listener must be idempotent and keep its own periodic reconcile as the safety net. Platform gate: the reaction is the platform's, not a tenant feature, so a listener runs whatever the tenant switched on. A catalogue edit that changes many tenants at once (a plan's features) is not announced per tenant; it reaches listeners through the cache TTL and their sweeps.",
+      "contract": "feature_gate/server/feature_gate.entitlement-changed#EntitlementChangeListener"
+    },
+    {
+      "id": "feature_gate:pieces",
+      "kind": "provider",
+      "pattern": "catalog",
+      "metadataOnly": true,
+      "metadataSchema": {
+        "label": "string",
+        "description": "string"
+      },
+      "description": "Sellable pieces inside a module (ADR-0015): a module that sells or switches on part of itself piece by piece declares each piece here, one contribution per piece under its own module id, without editing feature_gate. The contribution key is the piece id (a lower-case letter, then letters and digits, no underscore, at most 24) and the static metadata is { label, description? } in English; the export is the module's <module>.piece-list file, the readable twin of these contributions (definePieces of feature_gate.pieces.ts), which the module's test pins to module.json. The keys are derived, never written: the entitlement key bundle:<moduleId>_<pieceId> (what a licence names, a catalogue product grants and the gate checks) and the catalogue product bundle_<moduleId>_<pieceId> (one feature-only, one-time add-on per piece). Read by feature_gate.pieces.registry.ts (metadata only, a system context, every contribution checked against the point's zod schema and key patterns; a malformed one is dropped with a warning) for the shared piece check feature_gate.piece-check.ts (pieceStates(tenantId, moduleId): the licence ceiling first, then ROOT, monetization off, checkFeatureAccess; any failure is a 503), and by the vendor's licence tool from the module.json files. A piece is a key, never a module: the module's code ships whole and the key decides who may add the piece's content."
+    },
+    {
+      "id": "feature_gate:protected_packs",
+      "kind": "provider",
+      "pattern": "catalog",
+      "metadataOnly": true,
+      "metadataSchema": {
+        "entry": "string",
+        "symbol": "string",
+        "gate": "string",
+        "host": "string[]",
+        "bundle": "string[]",
+        "integerStep": "number",
+        "decimalShift": "number"
+      },
+      "description": "Paid client content served behind a ticket instead of as a public chunk (dashboard phase 33, ADR-0016). A module declares one contribution per pack, keyed by the pack id: entry (module-relative source of the value, ui/ or server/), symbol (its named export or default), gate (module-relative source of gate(value, licensed), which swaps the value for grey 'Unlicensed' stand-ins when the licence check fails), host (the module specifiers a pack reads from the page's registry globalThis.__KUI_PACK_HOST__ instead of bundling; a closed list, any other import outside the module fails the build), bundle (optional: package specifiers bundled into the pack together with what they import, the closed exception for a pack written against an engine API such as @kuraykaraaslan/kui-viewer/designer-kit), integerStep and decimalShift (how the per-download mark moves the pack's numbers, feature_gate.pack-mark.ts). scripts/build-protected-packs.mts bundles every declared pack into .protected-packs/ before next build (development builds on demand). The owning module issues tickets from its own route through issuePackTicket (feature_gate.protected-packs.ts: an audit row per ticket, strict); GET /api/feature_gate/packs/[moduleId]/[packId]?t= serves the marked pack to a valid ticket only. The export is the module's server file listing its packs, the readable twin of these contributions, which the module's test pins to module.json."
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/feature_gate/packs/[moduleId]/[packId]",
+      "handler": "feature_gate/server/feature-gate-packs-module-id-pack-id.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "feature_gate/server/feature_gate.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: plan features checked, licence caps that refused a creation, protected pack tickets), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "feature_gate: feature checks, licence caps, pack tickets (phase 55 coverage)",
+        "ids": [
+          "feature.access.checked",
+          "fleet.license.limit_blocked",
+          "feature_gate.pack.ticket"
+        ]
+      }
+    }
+  ]
+}

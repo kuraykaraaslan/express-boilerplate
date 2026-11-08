@@ -1,0 +1,147 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "translation",
+  "name": "Translations",
+  "description": "UI texts kept in the database on top of the module dictionaries in code: a language the code does not ship, or a corrected text, live without a deploy or a store release. Read order is database > JSON > English. Rows are per (locale, module, platform, key); platform NULL is shared by web and mobile.",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "icon": "fas fa-language",
+  "tags": [
+    "platform",
+    "i18n"
+  ],
+  "priority": 5,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "i18n",
+      "limiter",
+      "localization",
+      "logger",
+      "redis",
+      "tenant_setting"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/translation",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "platform-translations",
+      "label": "Translations",
+      "href": "/admin/translations",
+      "placement": "root",
+      "icon": "fas fa-language",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 70,
+      "scope": "system",
+      "permissions": [
+        "translation.texts.read"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/translations",
+      "placement": "root",
+      "component": "translation/ui/translations.page"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/localization/languages",
+      "handler": "translation/server/localization-languages.route"
+    },
+    {
+      "path": "/api/localization/languages/[code]",
+      "handler": "translation/server/localization-languages-code.route"
+    },
+    {
+      "path": "/api/translations",
+      "placement": "root",
+      "handler": "translation/server/translations.route"
+    },
+    {
+      "path": "/api/translations/summary",
+      "placement": "root",
+      "handler": "translation/server/translations-summary.route"
+    },
+    {
+      "path": "/api/translations/import",
+      "placement": "root",
+      "handler": "translation/server/translations-import.route"
+    },
+    {
+      "path": "/api/translations/export",
+      "placement": "root",
+      "handler": "translation/server/translations-export.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "translation.languages.read_public",
+      "name": "Read the public UI texts",
+      "description": "The languages offered and their stored texts, read by the apps before sign-in.",
+      "group": "Translations",
+      "minRole": "GUEST"
+    },
+    {
+      "id": "translation.texts.read",
+      "name": "Read the stored UI texts",
+      "description": "System-level: list, summarise and export the texts every tenant reads. Root super-admin only (GLOBAL scope).",
+      "group": "Translations",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "translation.texts.manage",
+      "name": "Edit the stored UI texts",
+      "description": "System-level: save, delete and import the texts every tenant reads. Root super-admin only (GLOBAL scope); audited.",
+      "group": "Translations",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "translation_message_overlay",
+      "export": "translation/server/translation.overlay",
+      "order": 100,
+      "scope": "system",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "registerTranslationOverlay",
+        "name": "translation-message-overlay"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "translation/server/translation.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: the platform's interface texts saved, removed and imported), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "translation: interface texts saved, removed and imported (phase 55 coverage)",
+        "ids": [
+          "translation.texts.saved",
+          "translation.texts.removed",
+          "translation.texts.imported"
+        ]
+      }
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "translation:source",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "A module whose UI texts are created at run time (the sidebar's renamed items, added workspaces and custom links of shell_menu) names their keys with their English source, so Platform -> Translations lists, counts, exports and imports them like any key and never flags their stored texts as leftovers. Default export: { sources() } implementing TranslationSourceProvider, answering [{ module, key, en }]; `module` must be the contributor's own id and the key must start with it. At most 5000 per provider; a provider that throws is left out of that answer. translation imports nothing of the contributing module.",
+      "contract": "translation/server/translation.sources.types#TranslationSourceProvider"
+    }
+  ]
+}

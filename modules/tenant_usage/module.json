@@ -1,0 +1,175 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_usage",
+  "name": "Tenant Usage",
+  "description": "Usage metric tracking per tenant (API calls, storage GB, seats). Source for plan-limit enforcement.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": [
+    "single",
+    "node",
+    "fleet"
+  ],
+  "icon": "fas fa-gauge",
+  "tags": [
+    "tenant",
+    "metrics",
+    "billing"
+  ],
+  "priority": 24,
+  "dependencies": {
+    "requires": [
+      "db",
+      "feature_gate",
+      "observability",
+      "telemetry",
+      "tenant",
+      "tenant_setting"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_usage",
+  "license": "Proprietary",
+  "routes": [
+    {
+      "path": "/admin/usage",
+      "component": "tenant_usage/ui/usage.page",
+      "permissions": [
+        "tenant_usage.metrics.read"
+      ],
+      "title": "Usage",
+      "titleKey": "tenant_usage.menu.tenant-usage"
+    },
+    {
+      "path": "/admin/usage/settings",
+      "component": "tenant_usage/ui/usage-settings.page",
+      "permissions": ["tenant_usage.metrics.read", "tenant_setting.config.read"],
+      "title": "Usage",
+      "titleKey": "tenant_usage.menu.tenant-usage"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "tenant_subscription.subscription.drawers",
+      "component": "tenant_usage/ui/usage.drawer",
+      "order": 10,
+      "scope": "tenant",
+      "permissions": [
+        "tenant_usage.metrics.read"
+      ],
+      "props": {
+        "drawerId": "usage",
+        "label": "Usage",
+        "labelKey": "tenant_usage.drawer.usage"
+      }
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/cron/usage-flush",
+      "handler": "tenant_usage/server/cron-usage-flush.route"
+    },
+    {
+      "path": "/api/tenant-usage/metrics",
+      "handler": "tenant_usage/server/tenant_usage.metrics.route"
+    },
+    {
+      "path": "/api/tenant-usage/metrics/[metric]/series",
+      "handler": "tenant_usage/server/tenant-usage-metrics-metric-series.route"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "tenant_export:collection",
+      "key": "tenant_usage",
+      "export": "tenant_usage/server/tenant_usage.export-collection",
+      "order": 26,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Usage counters",
+        "collections": [
+          "tenantUsage"
+        ],
+        "erasure": {
+          "mode": "NO_PERSONAL_DATA",
+          "note": "monthly aggregate usage counters of the tenant"
+        }
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "tenant_usage_flush",
+      "export": "tenant_usage/server/tenant_usage.job",
+      "order": 2150,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleUsageFlushJob",
+        "name": "tenant-usage-flush"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "usage.threshold",
+      "export": "tenant_usage/server/tenant_usage.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Usage",
+        "label": "Usage threshold",
+        "description": "A metered usage metric crossed an alert threshold (e.g. 80% / 95% of quota)."
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "usage.overage",
+      "export": "tenant_usage/server/tenant_usage.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Usage",
+        "label": "Usage overage",
+        "description": "A metered usage metric exceeded its plan quota (overage billing trigger)."
+      }
+    },
+    {
+      "point": "telemetry:entity_kind",
+      "key": "tenant_usage",
+      "export": "tenant_usage/server/tenant_usage.telemetry",
+      "order": 41,
+      "scope": "tenant",
+      "description": "The usage counters projected as readings of kind tenant_usage (entity = the tenant; keys = the declared metrics; one row per minute window of summed increments), class 365, readable for the tenant's own entity with tenant_usage.metrics.read, shown to dashboards; quotas never read it (42-telemetry/06)."
+    }
+  ],
+  "permissions": [
+    {
+      "id": "tenant_usage.metrics.read",
+      "name": "Read declared usage metrics and quotas",
+      "group": "Usage",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_usage.settings.update",
+      "name": "Change usage alert settings",
+      "group": "Usage",
+      "minRole": "ADMIN"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "tenant_usage:quota_alert",
+      "kind": "hook",
+      "pattern": "fanout",
+      "gate": "platform",
+      "description": "Told that a tenant's use of a metered quota passed one of its alert thresholds this month (Usage settings; 80 and 95 % by default), used it up, or went over it (docs/phases/53-setting-levels 53.9, D173). tenant_usage sends the usage.threshold / usage.overage webhooks itself; a listener does what the tenant's people see: tenant_subscription tells the tenant's owners and points them to the usage packs. Default export: QuotaAlertListener { quotaAlert(alert: { tenantId, metric, label, quotaKey, used, limit, percent, kind: 'threshold' | 'exhausted' | 'overage', threshold?, month }) => Promise<void> } (server/tenant_usage.extension-points.ts). Fired from the periodic usage job, at most once per metric, kind and threshold a month; best-effort (a failing listener is logged). Platform gate: a quota is the platform's billing, owed whatever the tenant switched on.",
+      "contract": "tenant_usage/server/tenant_usage.extension-points#QuotaAlertListener"
+    },
+    {
+      "id": "tenant_usage:metric",
+      "kind": "provider",
+      "pattern": "catalog",
+      "metadataOnly": true,
+      "description": "A module declares a period metric it increments through TenantUsageService.increment/incrementBatch, without editing tenant_usage. The declaration is the contribution's static metadata: { label, unit, period: 'month' | 'day', quotaKey? } with the contribution key as the metric key (lowerCamel, stable forever); quotaKey names the feature_gate LIMIT it is enforced against (feature_gate.period-quota / tenant_usage.quota). The default export documents the same object; only the metadata is read, so no code loads on the hot path. The six original metrics are declared by tenant_usage itself and cannot be redefined. Undeclared keys are logged and dropped, never thrown."
+    }
+  ]
+}

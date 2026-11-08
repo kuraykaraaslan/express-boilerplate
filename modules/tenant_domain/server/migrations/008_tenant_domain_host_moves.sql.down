@@ -1,0 +1,4 @@
+-- DOWN for 008_tenant_domain_host_moves.sql: the 30-day redirects of hosts a tenant left.
+--
+-- NEVER auto-run; manual rollback only (the migration runner ignores `.sql.down`). Without the table an old host is an unknown host again.
+DROP TABLE IF EXISTS "tenant_domain_host_moves";

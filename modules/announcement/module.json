@@ -1,0 +1,189 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "announcement",
+  "name": "Announcements",
+  "description": "One message to every user on the right channels (docs/phases/47-announcements): the platform operator to every tenant (chosen tenants, roles, plans, editions), a tenant admin to their own workspace. Popup (acknowledged once per person), toast, banner, the bell, mail, push and SMS; text per language with a fallback; send now or scheduled, expiry, withdraw; a send that keeps failing is given up, its sender told, and retried or withdrawn by hand; numbers per announcement. Maintenance windows make their own planned and unplanned notices on it.",
+  "version": "1.0.0",
+  "tier": "notifications",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-bullhorn",
+  "tags": [
+    "announcements",
+    "maintenance",
+    "notifications",
+    "broadcast"
+  ],
+  "priority": 101,
+  "dependencies": {
+    "requires": [
+      "audit_log",
+      "auth_abac",
+      "common",
+      "db",
+      "i18n",
+      "limiter",
+      "logger",
+      "notification",
+      "redis",
+      "tenant"
+    ],
+    "optional": [
+      "notification_inapp"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/announcement",
+  "license": "Proprietary",
+  "permissions": [
+    {
+      "id": "announcements.send",
+      "name": "Send announcements",
+      "description": "Compose, schedule, send, test, retry and withdraw announcements and edit maintenance notices. In the root tenant it reaches every tenant (behind the platform admin gate); elsewhere the workspace's own members. High impact: a send can mail every user.",
+      "group": "Announcements",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "announcements.view",
+      "name": "See announcements",
+      "description": "See the announcements meant for oneself in the shell (popup, banner, toast) and acknowledge them.",
+      "group": "Announcements",
+      "minRole": "USER"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/announcements",
+      "handler": "announcement/server/announcements.route"
+    },
+    {
+      "path": "/api/announcements/audience",
+      "handler": "announcement/server/announcements-audience.route"
+    },
+    {
+      "path": "/api/announcements/live",
+      "handler": "announcement/server/announcements-live.route"
+    },
+    {
+      "path": "/api/announcements/live/[announcementId]",
+      "handler": "announcement/server/announcements-live-announcement-id.route"
+    },
+    {
+      "path": "/api/announcements/[announcementId]",
+      "handler": "announcement/server/announcements-announcement-id.route"
+    },
+    {
+      "path": "/api/announcements/[announcementId]/send",
+      "handler": "announcement/server/announcements-announcement-id-send.route"
+    },
+    {
+      "path": "/api/announcements/[announcementId]/withdraw",
+      "handler": "announcement/server/announcements-announcement-id-withdraw.route"
+    },
+    {
+      "path": "/api/announcements/[announcementId]/test",
+      "handler": "announcement/server/announcements-announcement-id-test.route"
+    },
+    {
+      "path": "/api/announcements/[announcementId]/retry",
+      "handler": "announcement/server/announcements-announcement-id-retry.route"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "announcement:audience_facet",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "gate": "platform",
+      "description": "An audience axis of a platform announcement that another module knows (D18): the contribution's `key` is the facet id the audience stores its values under (`plan`: tenant_subscription, the tenants whose live subscription is on a chosen plan; `edition`: module_lifecycle, the tenants using an active module of a chosen edition), `metadata.label` its name in the composer. Default export: { options() => Promise<{ value, label }[]>, tenantsMatching(values) => Promise<tenantId[]> } (AudienceFacetProvider in server/announcement.types.ts). The composer lists every facet's options; a send narrows its tenants to those that match ANY value of each facet it uses. Fails CLOSED for a facet in use: when its provider cannot answer, the count and the send are refused (503) rather than reaching people the sender meant to leave out. Platform gate: the facets describe tenants across the platform. With no contribution, the composer offers no facet.",
+      "contract": "announcement/server/announcement.types#AudienceFacetProvider"
+    },
+    {
+      "id": "announcement:mail_coverage",
+      "kind": "provider",
+      "pattern": "aggregate",
+      "description": "Which addresses another module already mails about the same maintenance moment, so a person gets ONE mail (docs/phases/47-announcements B): asked before a maintenance notice of a tenant's window goes out by mail at its start or end, with the addresses it would mail. Default export: { coveredAddresses({ tenantId, windowId, stage: 'start' | 'end', emails }) => Promise<string[]> } (MailCoverageProvider in server/announcement.types.ts), a subset of `emails`, which the notice then leaves out of its mail (the bell, banner and toast still reach them). observability contributes its status-page subscribers, mailed at a window's start and end. Best-effort: a provider that fails covers nobody and the notice mails everyone it would.",
+      "contract": "announcement/server/announcement.types#MailCoverageProvider"
+    }
+  ],
+  "extensions": [
+    {
+      "point": "common:boot_task",
+      "key": "announcement_maintenance_notices",
+      "export": "announcement/server/announcement.maintenance",
+      "order": 1155,
+      "scope": "system",
+      "metadata": {
+        "phase": "approval",
+        "fn": "registerMaintenanceAnnouncements",
+        "name": "announcement-maintenance-notices"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "announcement_worker",
+      "export": "announcement/server/announcement.job",
+      "order": 2185,
+      "scope": "system",
+      "metadata": {
+        "phase": "consumer",
+        "fn": "startAnnouncementWorker",
+        "name": "announcement-worker"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "announcement_tick",
+      "export": "announcement/server/announcement.job",
+      "order": 2186,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleAnnouncementTickJob",
+        "name": "announcement-tick"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "announcement/server/announcement.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55: the signal kinds this module emits (the audit actions it owns: announcements drafted, changed, sent, scheduled, test-sent, retried, withdrawn and failed), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "announcement: drafts, sends, schedules, withdrawals, failed fan-outs (phase 55 coverage)",
+        "ids": [
+          "announcement.drafted",
+          "announcement.updated",
+          "announcement.sent",
+          "announcement.scheduled",
+          "announcement.test_sent",
+          "announcement.retried",
+          "announcement.withdrawn",
+          "announcement.failed"
+        ]
+      }
+    }
+  ],
+  "slots": [
+    {
+      "slot": "app_shell.banners",
+      "component": "announcement/ui/announcement-live.component",
+      "order": 1,
+      "scope": "both",
+      "permissions": ["announcements.view"]
+    },
+    {
+      "slot": "tenant.maintenance.drawers",
+      "component": "announcement/ui/announcements.drawer",
+      "order": 10,
+      "scope": "both",
+      "permissions": ["announcements.send"],
+      "props": {
+        "drawerId": "announcements",
+        "label": "Announcements",
+        "labelKey": "announcement.drawer.label"
+      }
+    }
+  ]
+}

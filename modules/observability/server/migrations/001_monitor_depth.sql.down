@@ -1,0 +1,56 @@
+-- DOWN for 001_monitor_depth.sql: monitor depth (new check types and features on `monitors`).
+--
+-- NEVER auto-run; manual rollback only; destroys the data of the dropped tables/columns. The migration runner loads `*.sql` files only,
+-- so this `.sql.down` file is ignored by `db:deploy`, the release manifest and the schema version.
+--
+-- Data lost: the 15 added `monitors` columns (assertions, TLS thresholds, heartbeat token and state, steps, secrets, baseline factor, group, tags, pause and maintenance windows).
+--
+-- NOT exactly reversible without a decision: the up widened `monitors.type` from varchar(8) to varchar(16) ('HEARTBEAT' has 9 characters). The down
+-- narrows it back. If any row still has a type longer than 8 characters (a HEARTBEAT monitor) the down STOPS with an exception and changes nothing:
+-- delete or convert those monitors first (`DELETE FROM monitors WHERE char_length("type") > 8;`). Rows of type TLS, DOMAIN or STEPS fit and are kept,
+-- but the code before this migration does not know those types, so delete or deactivate them as well before running the old release.
+--
+-- Run it by hand, inside one transaction, with the target schema ALONE on the search path (an unqualified DROP ... IF EXISTS resolves through
+-- the path: never leave `public` behind another schema), after a backup and with the observability workers stopped. Undo the migrations newest first; the whole procedure is docs/guides/observability/rollback.md:
+--   PGOPTIONS='-c search_path=<schema>' psql "$DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f 001_monitor_depth.sql.down
+-- Idempotent: every statement is a no-op when its object is already gone. Proven by modules/observability/scripts/rollback-proof.mts.
+
+-- 1. The widened column first, and before anything is dropped, so that a refusal leaves the schema untouched.
+DO $$
+DECLARE
+  too_long bigint;
+BEGIN
+  IF to_regclass('monitors') IS NOT NULL THEN
+    SELECT count(*) INTO too_long FROM "monitors" WHERE char_length("type") > 8;
+    IF too_long > 0 THEN
+      RAISE EXCEPTION 'cannot narrow monitors.type to varchar(8): % row(s) have a longer type (HEARTBEAT). Delete or convert them first.', too_long;
+    END IF;
+    ALTER TABLE "monitors" ALTER COLUMN "type" TYPE varchar(8);
+  END IF;
+END $$;
+
+-- 2. The index, then the columns it was built on.
+DROP INDEX IF EXISTS "uq_monitors_heartbeat_token";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "maintenanceUntil";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "pausedUntil";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "tags";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "groupName";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "latencyBaselineFactor";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "secrets";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "steps";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "heartbeatState";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "heartbeatStartedAt";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "lastHeartbeatAt";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "heartbeatGraceSeconds";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "heartbeatTokenHash";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "certCriticalDays";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "certWarnDays";
+ALTER TABLE IF EXISTS "monitors" DROP COLUMN IF EXISTS "assertions";
+
+-- Forget the migration in the ledger, so the next `db:deploy` applies the up file again instead of skipping it.
+DO $$
+BEGIN
+  IF to_regclass('_sql_migrations') IS NOT NULL THEN
+    DELETE FROM _sql_migrations WHERE name = 'observability:001_monitor_depth.sql';
+  END IF;
+END $$;

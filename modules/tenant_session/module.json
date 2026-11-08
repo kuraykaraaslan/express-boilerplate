@@ -1,0 +1,82 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "tenant_session",
+  "name": "Tenant Session",
+  "description": "Tenant-scoped session handling: bind a user session to a specific tenant, resolve tenant from request.",
+  "version": "1.0.0",
+  "tier": "tenancy",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-city",
+  "tags": [
+    "tenant",
+    "auth"
+  ],
+  "priority": 22,
+  "dependencies": {
+    "requires": [
+      "db",
+      "env",
+      "ip_subnet",
+      "observability",
+      "redis",
+      "tenant",
+      "user_session"
+    ]
+  },
+  "permissions": [
+    {
+      "id": "tenant_session.settings.read",
+      "name": "View sign-in policy",
+      "group": "Security",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "tenant_session.settings.update",
+      "name": "Change sign-in policy",
+      "group": "Security",
+      "minRole": "ADMIN"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/settings/sign-in-policy",
+      "component": "tenant_session/ui/sign-in-policy-settings.page",
+      "permissions": ["tenant_session.settings.read", "tenant_setting.config.read"]
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/tenant_session",
+  "license": "Proprietary",
+  "extensions": [
+    {
+      "point": "tenant:suspension",
+      "key": "tenant_session",
+      "export": "tenant_session/server/tenant_session.suspension",
+      "order": 20,
+      "metadata": {
+        "label": "Revoke a suspended tenant's sessions"
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "tenant_session/server/tenant_session.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "tenant_session: permission and membership refusals, tenant IP lists, the auth-failure breaker, session country changes, global-admin access, sessions resolved (phase 55 01.6, coverage)",
+        "ids": [
+          "permission.denied",
+          "tenant.session.resolved",
+          "tenant.session.denied",
+          "tenant.session.geo_anomaly",
+          "security.global_admin_access",
+          "security.tenant_ip_denied",
+          "security.auth_circuit_open"
+        ]
+      }
+    }
+  ]
+}

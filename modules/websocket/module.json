@@ -1,0 +1,46 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "websocket",
+  "name": "WebSocket Gateway",
+  "description": "Shared realtime transport: a standalone Socket.IO gateway process that hosts one namespace per domain. Provides handshake tickets, presence/markers, a Redis pub/sub bridge, and ns-auth — domains register a RealtimeNamespace via the `websocket:namespace` extension point.",
+  "version": "1.0.0",
+  "tier": "infrastructure",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-tower-broadcast",
+  "tags": [
+    "infrastructure",
+    "core",
+    "realtime",
+    "websocket"
+  ],
+  "priority": 3,
+  "dependencies": {
+    "requires": [
+      "common",
+      "env",
+      "logger",
+      "process_host",
+      "redis"
+    ]
+  },
+  "extensionPoints": [
+    {
+      "id": "websocket:namespace",
+      "kind": "provider",
+      "pattern": "catalog",
+      "description": "Domain modules contribute a RealtimeNamespace descriptor (default export) that the gateway wires onto its own Socket.IO namespace at boot."
+    }
+  ],
+  "sidecars": [
+    {
+      "id": "ws",
+      "entry": "server/index.ts",
+      "autostart": true
+    }
+  ],
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/websocket",
+  "license": "Proprietary"
+}

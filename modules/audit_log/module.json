@@ -1,0 +1,249 @@
+{
+  "$schema": "../module.schema.json",
+  "id": "audit_log",
+  "name": "Audit Log",
+  "description": "Append-only audit trail for sensitive actions, stored per-tenant (platform events land on ROOT_TENANT_ID).",
+  "version": "1.0.0",
+  "tier": "platform",
+  "edition": "core",
+  "placement": "core",
+  "roles": ["single", "node", "fleet"],
+  "icon": "fas fa-scroll",
+  "tags": [
+    "platform",
+    "security",
+    "compliance"
+  ],
+  "priority": 40,
+  "dependencies": {
+    "requires": [
+      "common",
+      "db",
+      "env",
+      "feature_gate",
+      "ip_subnet",
+      "logger",
+      "observability",
+      "redis",
+      "tenant",
+      "tenant_setting",
+      "webhook"
+    ]
+  },
+  "author": "Kuray Karaaslan",
+  "homepage": "https://github.com/kuraykaraaslan/next-boilerplate/tree/main/modules/audit_log",
+  "license": "Proprietary",
+  "menu": [
+    {
+      "id": "platform-audit-logs",
+      "permissions": ["audit_log.logs.read_cross_tenant"],
+      "label": "Audit Logs",
+      "href": "/admin/audit-logs",
+      "placement": "root",
+      "icon": "fas fa-clock-rotate-left",
+      "group": "Platform",
+      "workspace": "platform",
+      "order": 10,
+      "scope": "system"
+    }
+  ],
+  "routes": [
+    {
+      "path": "/admin/audit-logs",
+      "component": "audit_log/ui/audit-logs.page",
+      "permissions": ["audit_log.logs.read"]
+    },
+    {
+      "path": "/admin/audit-logs/settings",
+      "component": "audit_log/ui/audit-logs-settings.page",
+      "permissions": ["audit_log.logs.read", "tenant_setting.config.read"]
+    }
+  ],
+  "apiRoutes": [
+    {
+      "path": "/api/cron/audit-log-purge",
+      "handler": "audit_log/server/cron-audit-log-purge.route"
+    },
+    {
+      "path": "/api/audit-logs/anonymize",
+      "handler": "audit_log/server/audit-logs-anonymize.route"
+    },
+    {
+      "path": "/api/audit-logs/cross-tenant",
+      "placement": "root",
+      "handler": "audit_log/server/audit-logs-cross-tenant.route"
+    },
+    {
+      "path": "/api/audit-logs/export",
+      "handler": "audit_log/server/audit-logs-export.route"
+    },
+    {
+      "path": "/api/audit-logs/purge",
+      "handler": "audit_log/server/audit-logs-purge.route"
+    },
+    {
+      "path": "/api/audit-logs",
+      "handler": "audit_log/server/audit-logs.route"
+    },
+    {
+      "path": "/api/audit-logs/verify",
+      "handler": "audit_log/server/audit-logs-verify.route"
+    }
+  ],
+  "permissions": [
+    {
+      "id": "audit_log.logs.read",
+      "name": "View audit trail",
+      "group": "Audit Log",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "audit_log.logs.export",
+      "name": "Export audit trail",
+      "group": "Audit Log",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "audit_log.logs.verify",
+      "name": "Verify audit hash chain",
+      "group": "Audit Log",
+      "minRole": "ADMIN"
+    },
+    {
+      "id": "audit_log.logs.anonymize",
+      "name": "Anonymize actor (GDPR erasure)",
+      "group": "Audit Log",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "audit_log.logs.purge",
+      "name": "Purge expired audit logs",
+      "group": "Audit Log",
+      "minRole": "OWNER"
+    },
+    {
+      "id": "audit_log.logs.read_cross_tenant",
+      "name": "View cross-tenant audit trail",
+      "group": "Audit Log",
+      "minRole": "OWNER"
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "audit_log:archive_exporter",
+      "kind": "provider",
+      "pattern": "first",
+      "onFailure": "fail-closed",
+      "description": "Where the rows of a retention purge are written before they are deleted. A contribution default-exports () => Promise<AuditArchiveExporter | null>: the exporter (export(tenantId, ndjson, rowCount)) when the destination is configured, null when it is not. No contribution, or null from every one, means no archive: the purge still proceeds and the chain stays provable through its checkpoint. A contribution that THROWS fails closed: the sweep skips the sealed tenants it would have archived instead of deleting rows an operator meant to keep. Only SEALED tenants are archived (a legacy row carries the actor id in the clear). The exporter must write the NDJSON it is given to a write-once destination and must not read it back. audit_log imports none of its providers."
+    },
+    {
+      "id": "audit_log:record_sink",
+      "kind": "provider",
+      "pattern": "fanout",
+      "contract": "audit_log/server/audit_log.record-sink#AuditRecordSink",
+      "description": "A module that wants to hear every written audit row (docs/phases/55-ai-firewall/01 §1.4a; the AI firewall's audit intake). Default export: { key?, actions?: string[], onRecord(record) } where record is the frozen WrittenAuditRecord { tenantId, action, severity, actorType, actorId, onBehalfOfActorId, actorTenantId, resourceType, resourceId, ipAddress, userAgent, metadata, nodeId, occurredAt, sealed }. `actions` narrows the subscription; a sink without it hears every row, say it out loud. Called AFTER the row's transaction committed, FIRE-AND-FORGET: log() sits on the path of every audited operation, so a sink that is slow, broken or missing must never delay or fail a write (a write that failed tells no sink). Each sink is isolated; a throw is logged and dropped. Actor ids travel in the clear (also for a sealed chain): a sink that stores what it hears covers that store with its own export and erasure contributions. A sink must not write an audit row for every row it hears (that loops). audit_log imports none of its sinks."
+    }
+  ],
+  "extensions": [
+    {
+      "point": "dashboard:countable",
+      "key": "audit_log",
+      "export": "audit_log/server/audit_log.countables",
+      "order": 10,
+      "scope": "system",
+      "metadata": {
+        "label": "Audit Logs"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "audit_log_purge",
+      "export": "audit_log/server/audit_log.purge.job",
+      "order": 2260,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleAuditPurgeJob",
+        "name": "audit-log-purge"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "audit_log_verify",
+      "export": "audit_log/server/audit_log.verify.job",
+      "order": 2261,
+      "scope": "system",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleAuditVerifyJob",
+        "name": "audit-chain-verify"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "audit_log_refusal_sink",
+      "export": "audit_log/server/audit_log.refusals",
+      "order": 120,
+      "scope": "system",
+      "description": "Phase 55 00 §0.3: installs the refusal sink of common/server/refusal-sink.ts in every process, so the silent refusals (CSRF, tenant IP lists, the auth breaker, inbound signatures, fleet agent 401s, infected files, plugin sandbox bounds, IoT gateway blocks) are counted per action, tenant, key and minute and written as one aggregated row each.",
+      "metadata": {
+        "phase": "runtime",
+        "fn": "registerRefusalAudit",
+        "name": "audit-refusal-sink"
+      }
+    },
+    {
+      "point": "common:boot_task",
+      "key": "audit_log_refusal_flush",
+      "export": "audit_log/server/audit_log.refusals",
+      "order": 2262,
+      "scope": "system",
+      "description": "Phase 55 00 §0.3: every 30 s, writes the refusal buckets whose minute is over and whose counting process did not flush them itself.",
+      "metadata": {
+        "phase": "scheduler",
+        "fn": "scheduleRefusalFlush",
+        "name": "audit-refusal-flush"
+      }
+    },
+    {
+      "point": "observability:alert-source",
+      "key": "security-rules",
+      "export": "audit_log/server/audit_log.security-alerts",
+      "order": 100,
+      "scope": "tenant",
+      "metadata": {
+        "label": "Default security alert rules (failed-login spike, lockout burst, login anomaly, impersonation, new platform admin, audit chain)"
+      }
+    },
+    {
+      "point": "webhook:event_type",
+      "key": "audit.high_risk",
+      "export": "audit_log/server/audit_log.webhook-events",
+      "metadata": {
+        "scope": "tenant",
+        "group": "Security",
+        "label": "High-risk audit event",
+        "description": "A high-risk action was recorded in the audit log (e.g. impersonation, account lock, permission denied)."
+      }
+    },
+    {
+      "point": "ai_firewall:signal",
+      "key": "firewall_signals",
+      "export": "audit_log/server/audit_log.firewall-signals",
+      "scope": "system",
+      "description": "Phase 55 01.6: the signal kinds this module emits (the audit actions it owns), each attribute with its personal-data class. Read by ai_firewall through its registry; imports only the contract from common.",
+      "metadata": {
+        "label": "audit_log: CSRF and forged-callback refusals, the audit chain, erasure and purge of its rows, settings changes (phase 55 01.6 and coverage)",
+        "ids": [
+          "security.csrf_refused",
+          "security.inbound_signature_invalid",
+          "audit.chain_broken",
+          "audit.purged",
+          "audit_log.anonymized",
+          "audit_log.purged",
+          "settings.updated"
+        ]
+      }
+    }
+  ]
+}
