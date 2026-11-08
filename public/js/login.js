@@ -75,6 +75,23 @@
     setTimeout(function () { location.href = destination; }, POST_LOGIN_REDIRECT_DELAY_MS);
   }
 
+  // Leaving the code step drops the pending session, so the next sign-in starts clean.
+  function startOtp(methods, message, accountOnly, mustChangePassword) {
+    var area = document.getElementById('login-form-area'), box = document.getElementById('login-otp');
+    area.classList.add('hidden');
+    box.classList.remove('hidden');
+    window.AuthUi.otpStep(box, {
+      tenantId: tenantId, methods: methods,
+      onVerified: function () { box.classList.add('hidden'); finishLogin(message, accountOnly, mustChangePassword); },
+      onCancel: function () {
+        box.classList.add('hidden'); box.textContent = '';
+        area.classList.remove('hidden');
+        submitBtn.disabled = false;
+        api.post(tp('/api/auth/logout')).catch(function () {});
+      }
+    });
+  }
+
   var form = document.querySelector('#login-form-area form[novalidate]');
   var submitBtn = form.querySelector('button[type="submit"]');
   form.addEventListener('submit', function (e) {
@@ -89,10 +106,8 @@
         : 'Signed in as ' + email;
       var methods = (d.userSecurity && d.userSecurity.otpMethods) || [];
       if (methods.length > 0) {
-        // The one-time code step is not on this page yet: the pending session is dropped and the person is told.
-        api.post(tp('/api/auth/logout')).catch(function () {});
-        say('error', 'This account asks for a one-time code, which this sign-in page does not support yet.');
-        submitBtn.disabled = false;
+        // The server marks the new session pending whenever the account has a code method: the code comes first.
+        startOtp(window.AuthUi.orderOtpMethods(methods), message, d.tenantMember === null, d.mustChangePassword === true);
         return;
       }
       finishLogin(message, d.tenantMember === null, d.mustChangePassword === true);

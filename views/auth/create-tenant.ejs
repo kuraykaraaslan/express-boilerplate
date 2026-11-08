@@ -1,0 +1,42 @@
+<%
+  // Create an organization (platform-level; admin only). Behaviour in /js/create-tenant.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="ct-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary">Create an organization</h1>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="ct-success" class="hidden space-y-4">
+        <div role="status" class="rounded-lg bg-success-subtle border border-success px-4 py-3 text-center space-y-1">
+          <p class="text-sm font-semibold text-success-fg">Organization created!</p>
+          <p class="text-sm text-success-fg">Your tenant workspace is ready.</p>
+        </div>
+        <div id="ct-open-banner" role="alert" class="hidden"></div>
+        <div id="ct-open-box"><%- include('../../kui/modules/ui/Button', { type: 'button', fullWidth: true, children: 'Open the organization' }) %></div>
+      </div>
+
+      <form id="ct-form" novalidate class="space-y-4">
+        <div id="ct-banner" role="alert" class="hidden"></div>
+        <%- include('../../kui/modules/ui/Input', {
+          id: 'tenant-name', label: 'Organization Name', name: 'name', required: true, placeholder: 'Acme Corp', maxLength: 100,
+          iconLeft: '<i class="fa-solid fa-building text-xs" aria-hidden="true"></i>'
+        }) %>
+        <%- include('../../kui/modules/ui/Input', {
+          id: 'tenant-slug', label: 'Slug', name: 'slug', required: true, placeholder: 'acme-corp', maxLength: 63,
+          hint: 'Used in URLs — lowercase letters, numbers, and hyphens only.',
+          iconLeft: '<i class="fa-solid fa-globe text-xs" aria-hidden="true"></i>'
+        }) %>
+        <%- include('../../kui/modules/ui/Button', { type: 'submit', fullWidth: true, children: 'Create Organization' }) %>
+      </form>
+    </div>
+
+    <p class="text-center text-sm text-text-secondary">
+      <a id="ct-select" href="/auth/select-tenant" class="text-primary font-medium hover:underline">Select an existing organization</a>
+    </p>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/create-tenant.js"></script>

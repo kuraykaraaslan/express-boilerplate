@@ -19,6 +19,9 @@ const pages: { page: string; view: string; title: string }[] = [
   { page: 'select-tenant', view: 'auth/select-tenant', title: 'Choose an organization' },
   { page: 'verify-email', view: 'auth/verify-email', title: 'Verify your email' },
   { page: 'logout', view: 'auth/logout', title: 'Signing out' },
+  { page: 'callback', view: 'auth/callback', title: 'Completing sign in' },
+  { page: 'complete-profile', view: 'auth/complete-profile', title: 'Finish setting up' },
+  { page: 'create-tenant', view: 'auth/create-tenant', title: 'Create an organization' },
 ];
 
 for (const p of pages) {

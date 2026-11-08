@@ -1,0 +1,56 @@
+<%
+  // Shown right after a no-email login (national identity, or any provider that returns no email). Behaviour in /js/complete-profile.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="cp-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md">
+    <div class="rounded-2xl border border-border bg-surface-raised shadow-sm p-6 sm:p-8 space-y-6">
+      <div class="text-center space-y-1">
+        <h1 class="text-2xl font-bold text-text-primary">Finish setting up</h1>
+        <p class="text-sm text-text-secondary">Your identity was verified, but we still need an email for your account.</p>
+      </div>
+
+      <div id="cp-otp" class="hidden"></div>
+
+      <div id="cp-main" class="space-y-6">
+        <div id="cp-done" class="hidden" role="status">
+          <div class="flex items-start gap-3 rounded-lg border p-3 bg-success-subtle border-success text-success-fg text-sm">
+            <i class="fa-solid fa-circle-check mt-0.5 shrink-0" aria-hidden="true"></i><span id="cp-done-text"></span>
+          </div>
+        </div>
+
+        <div id="cp-choose" class="space-y-3">
+          <%- include('../../kui/modules/ui/Button', { type: 'button', fullWidth: true, children: 'Add a new email address' }) %>
+          <%- include('../../kui/modules/ui/Button', { type: 'button', variant: 'outline', fullWidth: true, children: 'I already have an account' }) %>
+        </div>
+
+        <form id="cp-email-form" novalidate class="hidden space-y-4">
+          <div class="cp-banner hidden" role="alert"></div>
+          <%- include('../../kui/modules/ui/Input', {
+            id: 'complete-profile-email', label: 'Email address', type: 'email', name: 'email', required: true, placeholder: 'you@example.com',
+            iconLeft: '<i class="fa-solid fa-envelope text-xs" aria-hidden="true"></i>'
+          }) %>
+          <%- include('../../kui/modules/ui/Button', { type: 'submit', fullWidth: true, children: 'Send verification email' }) %>
+          <button type="button" class="cp-back w-full text-xs text-text-secondary hover:underline">Back</button>
+        </form>
+
+        <form id="cp-merge-form" novalidate class="hidden space-y-4">
+          <div class="cp-banner hidden" role="alert"></div>
+          <%- include('../../kui/modules/ui/Input', {
+            id: 'complete-profile-merge-email', label: 'Existing account email', type: 'email', name: 'email', required: true,
+            iconLeft: '<i class="fa-solid fa-envelope text-xs" aria-hidden="true"></i>'
+          }) %>
+          <%- include('../../kui/modules/ui/Input', {
+            id: 'complete-profile-merge-password', label: 'Password', type: 'password', name: 'password', required: true,
+            iconLeft: '<i class="fa-solid fa-lock text-xs" aria-hidden="true"></i>'
+          }) %>
+          <%- include('../../kui/modules/ui/Button', { type: 'submit', fullWidth: true, children: 'Link & sign in to my account' }) %>
+          <button type="button" class="cp-back w-full text-xs text-text-secondary hover:underline">Back</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/otp-step.js"></script>
+<script src="/js/complete-profile.js"></script>
