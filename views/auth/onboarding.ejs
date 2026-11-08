@@ -1,0 +1,49 @@
+<%
+  // Self-service onboarding, the platform sign-up's second step: the signed-in person opens their own organization.
+  // Behaviour in /js/onboarding.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="ob-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary">Open your organization</h1>
+      <p class="text-sm text-text-secondary">Name it and choose its address. You will be its owner.</p>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="ob-loading" class="flex justify-center py-8" role="status"><i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i></div>
+      <div id="ob-load-error" role="alert" class="hidden"></div>
+
+      <div id="ob-zone" role="status" class="hidden space-y-3 text-center">
+        <p class="text-sm text-text-secondary">Workspaces for this location are not opened on this server. Choose your location again.</p>
+        <a id="ob-zone-link" href="#" class="hidden text-primary font-medium hover:underline">Choose another location</a>
+      </div>
+
+      <div id="ob-closed" role="status" class="hidden text-center">
+        <p class="text-sm text-text-secondary" id="ob-closed-text"></p>
+      </div>
+
+      <form id="ob-form" novalidate class="hidden space-y-4">
+        <div id="ob-banner" role="alert" class="hidden"></div>
+        <%- include('../../kui/modules/ui/Input', { id: 'onboarding-name', label: 'Organization name', name: 'name', required: true, maxLength: 100 }) %>
+        <%- include('../../kui/modules/ui/Input', {
+          id: 'onboarding-slug', label: 'Address', name: 'slug', required: true, maxLength: 63,
+          iconLeft: '<i class="fa-solid fa-globe text-xs" aria-hidden="true"></i>'
+        }) %>
+        <p id="ob-slug-hint" class="hidden -mt-3 text-xs text-text-secondary"></p>
+        <p id="ob-slug-status" class="hidden -mt-3 text-xs" role="status"></p>
+        <div id="ob-base-box" class="hidden space-y-1">
+          <label for="onboarding-base" class="block text-sm font-medium text-text-primary">Domain</label>
+          <select id="onboarding-base" class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"></select>
+        </div>
+        <%- include('../../kui/modules/ui/Button', { type: 'submit', fullWidth: true, children: 'Create organization' }) %>
+      </form>
+    </div>
+
+    <p class="text-center text-sm text-text-secondary">
+      <a id="ob-picker" href="/auth/select-tenant" class="text-primary font-medium hover:underline">Go to my organizations</a>
+    </p>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/onboarding.js"></script>

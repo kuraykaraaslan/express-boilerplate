@@ -21,6 +21,7 @@ const pages: { page: string; view: string; title: string }[] = [
   { page: 'logout', view: 'auth/logout', title: 'Signing out' },
   { page: 'callback', view: 'auth/callback', title: 'Completing sign in' },
   { page: 'complete-profile', view: 'auth/complete-profile', title: 'Finish setting up' },
+  { page: 'onboarding', view: 'auth/onboarding', title: 'Open your organization' },
   { page: 'create-tenant', view: 'auth/create-tenant', title: 'Create an organization' },
 ];
 
