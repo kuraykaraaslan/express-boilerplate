@@ -102,3 +102,15 @@ NB serves every module API through ONE catch-all (`app/tenant/[tenantId]/api/[..
 E1 first deliverable: the dispatcher + shim, proven on `auth/login` and `me/profile`.
 
 E0b: per page, list the kui-react components used and mark each as present or missing in kui-ejs (and in kui-react).
+
+## E1 notes (2026-11-08)
+
+Owner decisions: copy straight over (no workspaces, no package.json per module); no tests, no runtime started; fix first, push after.
+
+- `@kuraykaraaslan-labs/<id>[/...]` resolves through one tsconfig wildcard path (`modules/*`, then `modules/*/server/index`); 16 package.json exports that rename a file (process_host `supervisor/*`, common `config`, ...) get explicit paths, written by the sync script. `next/server`, `next/headers` and `next` map to `shims/next/*`.
+- The git-ignored generated registry in NB lists every module (the snapshot keeps protected modules and every entity). Core-only copy: export an enterprise copy of NB to a scratch folder, run the snapshot there with `NB_DISABLED_MODULES` = every non-core id and `new Set()` in place of PROTECTED at `build-registry-snapshot.mjs:107`, then pass that folder as `--generated`. Result: 58 modules, 467 API routes, no import of a non-core module. `db.entities.generated.ts` is filtered to core entities by the sync script (480 dropped).
+- NB finding: a Core export does not pass its own snapshot (`plugin_runtime` page route `/admin/plugins/[listingId]` names permission `marketplace.plugins.invoke`, which only a non-core module declares).
+- Server files import some `ui/` files (shell_menu -> app_shell/ui/shell-profile, common/ui/icon-map, tenant_branding hook); the sync script pulls those 11 in by import closure.
+- 18 npm packages the core server code imports were missing in Express (socket.io, yaml, prom-client, isolated-vm, jspdf, ...); added to package.json at NB's versions, `npm install` is the owner's step.
+- Replaced: `router/*`, `modules_express/*` and `server.ts` (they imported the old module layout) by `router/dispatch.ts` (the NB catch-all, ported), `boot.ts` (NB instrumentation) and `index.ts`.
+- Not yet done: a type check, any run. Non-core Express modules (payment, coupon, auth_saml, ...) still import the old layout and do not compile until they are ported or removed. NB's 12 file routes (health, cron, streaming) are not mounted.

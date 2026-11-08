@@ -17,6 +17,70 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@kuraykaraaslan-labs/common/config": [
+        "./modules/common/server/install-config/install-config.define.ts"
+      ],
+      "@kuraykaraaslan-labs/common/server/widget-settings": [
+        "./modules/common/server/widget-settings/templates/index.ts"
+      ],
+      "@kuraykaraaslan-labs/feature_gate/testing": [
+        "./modules/feature_gate/server/testing/pieces.contract.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/child": [
+        "./modules/process_host/server/supervisor/supervisor.child.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/cluster": [
+        "./modules/process_host/server/supervisor/supervisor.cluster.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/drain": [
+        "./modules/process_host/server/supervisor/supervisor.drain.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/local": [
+        "./modules/process_host/server/supervisor/supervisor.local.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/local-child": [
+        "./modules/process_host/server/supervisor/supervisor.local-child.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/local-ports": [
+        "./modules/process_host/server/supervisor/supervisor.local-ports.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/policy": [
+        "./modules/process_host/server/supervisor/supervisor.policy.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/process-kind": [
+        "./modules/process_host/server/supervisor/supervisor.process-kind.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/publisher": [
+        "./modules/process_host/server/supervisor/supervisor.publisher.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/relay": [
+        "./modules/process_host/server/supervisor/supervisor.relay.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/types": [
+        "./modules/process_host/server/supervisor/supervisor.types.ts"
+      ],
+      "@kuraykaraaslan-labs/process_host/server/supervisor/wait-window": [
+        "./modules/process_host/server/supervisor/supervisor.wait-window.ts"
+      ],
+      "@kuraykaraaslan-labs/websocket/server": [
+        "./modules/websocket/server/barrel.ts"
+      ],
+      "@kuraykaraaslan-labs/automation_integrations": [
+        "./modules/automation_integrations/contract/index.d.ts"
+      ],
+      "@kuraykaraaslan-labs/*": [
+        "./modules/*",
+        "./modules/*/server/index"
+      ],
+      "next/server": [
+        "./shims/next/server.ts"
+      ],
+      "next/headers": [
+        "./shims/next/headers.ts"
+      ],
+      "next": [
+        "./shims/next/index.ts"
       ]
     },
     "typeRoots": [
@@ -24,11 +88,12 @@
     ]
   },
   "include": [
+    "**/*.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.d.ts",
+    "libs/**/*.ts",
     "modules/**/*.ts",
-    "libs/**/*.ts"
+    "shims/**/*.ts"
   ],
   "exclude": [
     "node_modules",
