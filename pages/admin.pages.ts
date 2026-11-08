@@ -76,8 +76,10 @@ async function handle(req: Request, res: Response): Promise<void> {
     const viewer = await adminViewer(tenantId);
 
     // The page: a route of an enabled module, placed for this tenant; a page outside its placement is no match.
-    const match = adminPath === '/admin' ? undefined : moduleRegistry.findPageRoute(adminPath, { tenantId });
-    if (adminPath !== '/admin' && (!match || !enabled.has(match.route.moduleId))) {
+    const found = moduleRegistry.findPageRoute(adminPath, { tenantId });
+    const match = found && enabled.has(found.route.moduleId) ? found : undefined;
+    // /admin is the dashboard module's page; when that module is off the shell still opens on a plain home.
+    if (!match && adminPath !== '/admin') {
       res.status(404).render('404', { layout: 'layouts/blank' });
       return;
     }
