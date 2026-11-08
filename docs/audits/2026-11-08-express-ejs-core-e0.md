@@ -186,5 +186,18 @@ Build order for E5: auth (13 pages, login first), account, tenant and members, t
 - `kui/` is the vendored kui-ejs view layer (`scripts/sync-kui-ejs.mjs`; partials keep their relative layout, so `kui/modules` and `kui/views` stay siblings). Express's own pages live in `views/`, routes in `pages/`, hand-written browser scripts in `public/js/`.
 - The browser uses NB's own API client: `client/api.ts` is bundled by `scripts/build-client.mjs` (esbuild, tsconfig paths) into `public/js/kui-api.js` (`window.Kui`: `api` with CSRF mint/replay and refresh queue, `tenantPath`, `authErrorText`). The server injects `window.__TENANCY__` as NB's `<TenancyScript/>` does.
 - First page: `/auth/login` (also `/tenant/{id}/auth/login`, `/t/{id}/auth/login`). Ported: password sign-in, SSO and ACS provider lists, safe redirect, account-only redirect, must-change-password, session-ended and SSO-error banners, sign-up link when registration is open.
-- Not ported yet on login: the one-time-code step (`LoginOtpStep`): an account with code methods is signed out again with a message; tenant branding (name, logos, sign-in title); the `auth.login.methods` slot (passkey, e-signature); translations (English literals only).
+- Not ported yet on login: tenant branding (name, logos, sign-in title); the `auth.login.methods` slot (passkey, e-signature); translations (English literals only).
 - Build steps the owner runs after `npm install`: `npm run build:css`, `npm run build:client`. Nothing here has been rendered or run.
+
+## E5 auth pages (2026-11-08)
+
+All auth pages of the `auth` module are in except `auth-settings`: login, forgot-password, reset-password, register, change-password, select-tenant, verify-email, logout, callback, complete-profile, onboarding, create-tenant. Same pattern each time: a view in `views/auth/` on kui partials, a hand-written script in `public/js/` on `window.Kui`, one line in the `pages` list of `pages/auth.pages.ts`.
+
+- Shared browser helpers: `public/js/auth-ui.js` (banner, per-field errors, busy state, error-text reader with an English stub for `t`) and `public/js/otp-step.js` (the one-time-code step, a port of `LoginOtpStep`; used by login, callback and complete-profile, with `switchTenantPath` addressing on the callback).
+- `window.Kui` now also exposes `switchTenantPath`, `splitTenantBase`, `tenancyMode`, `isRootTenant`, `tenantLabelProblem`, `authErrorCodes`, `isRateLimited`.
+- Gotcha found while writing them: kui-ejs `Button` escapes `children` (`<%= %>`), so markup cannot go through it; `hidden` must not share an element with `flex`/`inline-flex` (the winner depends on stylesheet order), so toggled blocks wrap their flex content in a plain `hidden` div.
+- Nothing here has been rendered or run (owner instruction).
+
+### Next: the admin shell and the generic settings page
+
+`auth-settings` is one of 27 core pages (of the 58 core modules) built on `ModuleSettingsPage` (`tenant_setting/ui/module-settings-page.component.tsx`, 481 lines, 170 pages in NB overall). Those pages are uniform (fields list from `modules/<id>/server/<id>.settings.fields.ts`, title, subtitle, parent crumb, `moduleId`), so one data-driven Express page can serve all of them: the route table comes from each module's `module.json` `routes` (path, component, permissions). It needs the admin shell first (NB: `app/tenant/[tenantId]/admin/(shell)` and the `shell` module; kui-ejs has `AppShell`, `AppSidebar`, `AppTopBar`, `AppBreadcrumbs`, `PageHeader`, `Card`, `Toggle`, `Select`, `Input`).
