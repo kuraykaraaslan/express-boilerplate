@@ -83,6 +83,12 @@ Route handlers import only `next/server`. Usage across core: `NextResponse.json`
 
 NB serves every module API through ONE catch-all (`app/tenant/[tenantId]/api/[...slug]/route.ts`). The path resolves through `moduleRegistry.findApiRoute` (from each `module.json` `apiRoutes`) to a verbatim handler in the generated `apiHandlers` map, after the CSRF gate, the module-enabled check and the tenant/observability contexts. Only 12 file routes exist outside it (cron, health, streaming). So the Express work is one dispatcher that reproduces this chain, fed by the same registry and generated handler map, plus the shim. This replaces the "generated router file per route" idea in the plan (D2 amended).
 
+## Sync inputs (found while starting E1)
+
+- Each NB `module.json` has `apiRoutes: [{ path, handler }]`, for example `/api/auth/me/profile` -> `account/server/me-profile.route`. The sync script reads these for the 58 core modules, so no route table has to be written by hand.
+- NB handlers and services import each other as `@kuraykaraaslan-labs/<module>/server/<file>` (per-module `package.json` exports). Express must resolve the same specifiers (npm workspaces or tsconfig paths), otherwise copied files would need rewriting. Decision D6: resolve the same specifiers; never rewrite imports in copied files.
+- NB's generated map lives at `modules/common/server/generated/api-handlers.ts` (1023 lines, all editions). Express needs its own generated map, limited to core handlers.
+
 ## Findings
 
 1. **Heaviest next-coupled modules** (need real adapters, not just the shim): `auth_abac` (10 files, 11 adapters), `dashboard` (21), `observability` (12), `common` (7), `tenant_session` (4), `user_session` (4), `tenant_setting` (3).
