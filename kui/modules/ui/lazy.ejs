@@ -1,0 +1,7 @@
+<%# EJS has no code-splitting equivalent — this template just renders children. Kept for naming parity. %>
+<%
+  var _className = locals.className || '';
+%>
+<div class="<%= _className %>">
+  <% if (locals.children) { %><%- locals.children %><% } %>
+</div>

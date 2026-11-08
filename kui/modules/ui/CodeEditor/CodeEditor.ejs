@@ -1,0 +1,217 @@
+<%
+  // ─── CodeEditor (EJS) ──────────────────────────────────────────────────────
+  //
+  // Pixel-identical sibling of kui-react modules/ui/CodeEditor/index.tsx
+  // (with engines/codemirror.tsx, parts/Toolbar.tsx, parts/FindBar.tsx,
+  // parts/Gutter.tsx). The engine is a textarea (CodeMirror 6 is not a
+  // dependency yet); scripts/codemirror-loader.js drives it.
+  //
+  // M1: engine flag (default codemirror — monaco falls back to the same
+  //     engine), language data attribute, light/dark/high-contrast theme,
+  //     readonly, placeholder, line-number gutter with the active line.
+  // M2: Tab / Shift+Tab indent (Esc, then Tab leaves the field), Ctrl/Cmd+/
+  //     comment toggle, auto-indent on Enter, bracket and quote pairs (wrap,
+  //     step over, Backspace), find / replace bar (Ctrl/Cmd+F), toolbar
+  //     (language, find, format, copy, full screen), format (Shift+Alt+F) and
+  //     formatOnSave (Ctrl/Cmd+S). Edits go through the browser's insertText,
+  //     so Ctrl+Z undoes them like typing. Not in the textarea engine:
+  //     multi-cursor, bracket-match highlight.
+  // M3: diagnostics (`markers`: gutter dot, tinted line, a list under the
+  //     field that jumps to the spot, aria-invalid), completion
+  //     (`getSuggestions`: Ctrl+Space or typing a name or a dot, a listbox) and
+  //     hover (`getHover`: the dotted name under the pointer after 400 ms).
+  //
+  // Locals:
+  //   id            — required, used as <textarea> id (auto-generated otherwise)
+  //   name          — hidden input name for form integration
+  //   label         — visible label above the editor
+  //   hint          — helper text under the editor
+  //   error         — error text — switches border to error tone
+  //   value         — initial source code
+  //   language      — js|ts|json|html|css|sql|python|yaml|markdown|plaintext
+  //   theme         — 'light' | 'dark' | 'high-contrast' (default 'light')
+  //   engine        — 'codemirror' | 'monaco' (default 'codemirror')
+  //   readonly      — boolean, default false
+  //   placeholder   — placeholder text when value is empty
+  //   minHeight     — px (default 200)
+  //   showLineNumbers — default true
+  //   className     — extra classes on wrapper
+  //   ── M2 ──
+  //   showToolbar   — the bar above the field (default false)
+  //   format        — name of a global function (value) => string | Promise<string>
+  //                   that tidies the code; a throw leaves the code as it was
+  //   formatOnSave  — Ctrl/Cmd+S runs `format` first (the key still reaches the page)
+  //   tabSize       — the spaces one Tab inserts (default 2)
+  //   ── M3 ──
+  //   markers       — [{ line, column?, endLine?, endColumn?, severity:
+  //                   'error'|'warning'|'info'|'hint', message, source?, code? }]
+  //   getSuggestions — name of a global function (ctx) => Suggestion[] | Promise;
+  //                   ctx = { language, value, cursor: { line, column },
+  //                   triggerCharacter?, prefix }; Suggestion = { label,
+  //                   insertText?, detail?, documentation? }
+  //   getHover      — name of a global function (ctx) => { contents } | null | Promise;
+  //                   ctx = { language, value, word, cursor }
+  //   messages      — the words of the toolbar, find bar and lists (English by
+  //                   default, see partials/_messages.ejs)
+  //
+  // Functions can also be given in the browser:
+  //   KuiCodeEditor.attach(root, { format, getSuggestions, getHover, markers, messages })
+  //   KuiCodeEditor.get(id) → { getValue, setValue, setMarkers, configure, format, openFind, closeFind }
+  //
+  // Listen for `kui-codeeditor:change` on the wrapper —
+  //   event.detail = { value: string, id: string }
+  //
+  // TODO M4: minimap, vim keymap, code folding.
+  // TODO M5: a11y + i18n messages.
+
+  var _id          = locals.id            || ('ce-' + Math.random().toString(36).substr(2, 6));
+  var _name        = locals.name          || '';
+  var _label       = locals.label         || '';
+  var _hint        = locals.hint          || '';
+  var _error       = locals.error         || '';
+  var _value       = locals.value         || '';
+  var _language    = locals.language      || 'plaintext';
+  var _theme       = locals.theme         || 'light';
+  var _engine      = locals.engine        || 'codemirror';
+  var _readonly    = !!locals.readonly;
+  var _placeholder = locals.placeholder   || '';
+  var _minHeight   = Number(locals.minHeight) > 0 ? Number(locals.minHeight) : 200;
+  var _showLineNumbers = locals.showLineNumbers === false ? false : true;
+  var _className   = locals.className     || '';
+  var _showToolbar = !!locals.showToolbar;
+  var _format      = typeof locals.format === 'string' && locals.format ? locals.format : null;
+  var _formatOnSave = !!locals.formatOnSave;
+  var _tabSize     = Number(locals.tabSize) >= 1 ? Math.floor(Number(locals.tabSize)) : 2;
+  var _getSuggestions = typeof locals.getSuggestions === 'string' && locals.getSuggestions ? locals.getSuggestions : null;
+  var _getHover    = typeof locals.getHover === 'string' && locals.getHover ? locals.getHover : null;
+
+  var _m = {};
+  include('partials/_messages', { M: _m });
+  var _ownMessages = locals.messages || {};
+  Object.keys(_ownMessages).forEach(function (k) { if (typeof _ownMessages[k] === 'string') _m[k] = _ownMessages[k]; });
+
+  // Markers: the valid ones, in reading order (the list) and the worst of each line (gutter, tints).
+  var _RANK = { error: 3, warning: 2, info: 1, hint: 0 };
+  var _markers = (Array.isArray(locals.markers) ? locals.markers : []).filter(function (mk) {
+    return mk && Number(mk.line) >= 1 && Object.prototype.hasOwnProperty.call(_RANK, mk.severity);
+  });
+  var _sorted = _markers.slice().sort(function (a, b) { return a.line - b.line || (a.column || 0) - (b.column || 0); });
+  var _byLine = {};
+  _markers.forEach(function (mk) {
+    var had = _byLine[mk.line];
+    if (!had || _RANK[mk.severity] > _RANK[had.severity]) _byLine[mk.line] = mk;
+  });
+
+  var _noteId = _id + '-note';
+  var _problemsId = _id + '-problems';
+  var _describedBy = [(_hint || _error) ? _noteId : '', _sorted.length ? _problemsId : ''].filter(Boolean).join(' ');
+  var _invalid = !!_error || _sorted.some(function (mk) { return mk.severity === 'error'; });
+
+  var _themeRootClass = ({
+    light: 'kui-codeeditor-theme-light bg-surface-base text-text-primary border-border',
+    dark: 'kui-codeeditor-theme-dark bg-surface-sunken text-text-primary border-border-strong',
+    'high-contrast': 'kui-codeeditor-theme-hc bg-surface-base text-text-primary border-border-focus',
+  })[_theme] || 'bg-surface-base text-text-primary border-border';
+
+  var _lineCount = _value ? (_value.split('\n').length) : 1;
+
+  var _config = {
+    id: _id, language: _language, readonly: _readonly, tabSize: _tabSize, minHeight: _minHeight,
+    showToolbar: _showToolbar, formatOnSave: _formatOnSave, format: _format,
+    getSuggestions: _getSuggestions, getHover: _getHover, markers: _markers, messages: _m,
+  };
+%>
+<div
+  data-kui-codeeditor="<%= _id %>"
+  data-engine="<%= _engine %>"
+  data-language="<%= _language %>"
+  data-theme="<%= _theme %>"
+  class="w-full<%= _className ? ' ' + _className : '' %>"
+>
+  <% if (_label) { %>
+  <label for="<%= _id %>" class="block text-sm font-medium text-text-primary mb-1"><%= _label %></label>
+  <% } %>
+
+  <% if (_showToolbar) { %>
+  <%- include('partials/_toolbar', { _m: _m, _language: _language, _readonly: _readonly, _hasFormat: !!_format }) %>
+  <% } %>
+  <%- include('partials/_findbar', { _m: _m, _readonly: _readonly }) %>
+
+  <div
+    data-kui-codeeditor-engine="<%= _engine === 'monaco' ? 'monaco-fallback' : 'codemirror-fallback' %>"
+    data-language="<%= _language %>"
+    data-theme="<%= _theme %>"
+    <% if (_readonly) { %>data-readonly<% } %>
+    class="relative flex w-full overflow-hidden rounded-md border font-mono text-sm focus-within:ring-2 focus-within:ring-border-focus <%= _themeRootClass %><%= _error ? ' border-error focus-within:ring-error' : '' %><%= _showToolbar ? ' rounded-t-none' : '' %>"
+    style="min-height: <%= _minHeight %>px"
+  >
+    <span data-kui-codeeditor-measure aria-hidden="true" class="pointer-events-none invisible absolute left-0 top-0 whitespace-pre font-mono text-sm">0000000000</span>
+    <% if (_showLineNumbers) { %>
+    <%- include('partials/_gutter', { _lineCount: _lineCount, _activeLine: 1, _minHeight: _minHeight, _byLine: _byLine }) %>
+    <% } %>
+    <div data-kui-codeeditor-body class="relative flex min-w-0 flex-1">
+      <%- include('partials/_tints', { _byLine: _byLine }) %>
+      <textarea
+        id="<%= _id %>"
+        data-kui-codeeditor-textarea
+        <% if (_readonly) { %>readonly aria-readonly="true"<% } %>
+        spellcheck="false"
+        wrap="off"
+        autocapitalize="off"
+        autocorrect="off"
+        autocomplete="off"
+        aria-multiline="true"
+        <% if (_invalid) { %>aria-invalid="true"<% } %>
+        <% if (_describedBy) { %>aria-describedby="<%= _describedBy %>"<% } %>
+        <% if (_getSuggestions) { %>aria-autocomplete="list"<% } %>
+        placeholder="<%= _placeholder %>"
+        class="relative flex-1 min-w-0 resize-none bg-transparent px-3 py-2 leading-5 font-mono text-sm tabular-nums caret-text-primary placeholder:text-text-disabled focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed<%= _readonly ? ' cursor-default' : '' %>"
+        style="min-height: <%= _minHeight %>px"
+      ><%= _value %></textarea>
+    </div>
+  </div>
+
+  <% if (_name) { %>
+  <input type="hidden" data-kui-codeeditor-input name="<%= _name %>" value="<%= _value %>" />
+  <% } %>
+
+  <%- include('partials/_problems', { _sorted: _sorted, _m: _m, _id: _problemsId }) %>
+
+  <% if (_hint || _error) { %>
+  <p id="<%= _noteId %>" class="mt-1 text-xs <%= _error ? 'text-error' : 'text-text-secondary' %>"><%= _error || _hint %></p>
+  <% } %>
+</div>
+
+<script>
+(function () {
+  // Load the editing helpers, the view pieces and the engine once per page.
+  if (!window.KuiCodeEditor) {
+    <%- include('scripts/editing.js') %>
+    <%- include('scripts/view.js') %>
+    <%- include('scripts/codemirror-loader.js') %>
+  }
+  <% if (_engine === 'monaco') { %>
+  if (!window.KuiCodeEditorMonaco) {
+    <%- include('scripts/monaco-loader.js') %>
+  }
+  <% } %>
+
+  var config = <%- include('../_script-json', { value: _config }) %>;
+  var id = config.id;
+  if (window.__kuiCodeEditorInit && window.__kuiCodeEditorInit[id]) return;
+  window.__kuiCodeEditorInit = window.__kuiCodeEditorInit || {};
+  window.__kuiCodeEditorInit[id] = true;
+
+  function init() {
+    var root = document.querySelector('[data-kui-codeeditor="' + id + '"]');
+    if (!root || !window.KuiCodeEditor) return;
+    window.KuiCodeEditor.attach(root, config);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

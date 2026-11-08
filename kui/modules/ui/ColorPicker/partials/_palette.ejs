@@ -1,0 +1,22 @@
+<%#
+  modules/ui/ColorPicker/partials/_palette.ejs
+
+  TODO M2: preset palettes (Material/Tailwind/custom) + recent colors row.
+
+  For M1 this partial renders the 8×4 default swatch grid. The variable
+  `_swatches` (array of hex strings) must be in scope.
+%>
+<% if (_swatches && _swatches.length) { %>
+<div data-cp-grid class="grid grid-cols-8 gap-1 mb-3">
+  <% _swatches.forEach(function (c) { %>
+    <button
+      type="button"
+      aria-label="Color <%= c %>"
+      title="<%= c %>"
+      data-cp-color="<%= c %>"
+      class="w-6 h-6 rounded-sm border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+      style="background: <%= c %>"
+    ></button>
+  <% }); %>
+</div>
+<% } %>

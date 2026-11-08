@@ -1,0 +1,12 @@
+<%#
+  chart.pie: the slices of a bound table; pie, donut or donut with the total in the centre; the legend in `auto` sits at
+  the right when the box is wide and below it when not, which the browser measures (kui-react PieChartView). With the
+  rows behind the slices (the page listens for a slice click: `host.hasSliceClick`) every slice is a button, and
+  scripts/widget-kit.js turns the chart's `kui:chart-slice-click` into the card's `kui:widget-slice-click` with the row.
+  Locals: model (pieChartModel + id, locale, legendAuto, sliceRows).
+%><%_
+  var _m = locals.model;
+  var _props = Object.assign({ id: _m.id, locale: _m.locale, legendAuto: _m.legendAuto }, _m.chart);
+  if (_m.sliceRows) _props.sliceClick = true;
+_%>
+<%- include('_chart', { type: 'pie', props: _props, sliceRows: _m.sliceRows, runtimeOnce: locals.runtimeOnce, loadChartScripts: locals.loadChartScripts }) %>

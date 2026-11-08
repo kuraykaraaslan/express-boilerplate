@@ -1,0 +1,76 @@
+<%
+  // Shared by TimeWindowPicker.ejs and TimeWindowSelect.ejs (kui-react exports these from
+  // modules/ui/TimeWindowPicker.tsx and TimeWindowSelect imports them). Fills the object
+  // passed as `S`:  include('./TimeWindowPicker/_shared', { S: S })
+  //   S.DEFAULT_MESSAGES          — DEFAULT_TIME_WINDOW_MESSAGES
+  //   S.DEFAULT_CALENDAR_PERIODS  — the 18 calendar periods, current.* first
+  //   S.DURATION, S.DURATION_UNITS — `<n>m|h|d` and its units
+  //   S.FALLBACK_ZONES, S.zoneChoices(current)
+  //   S.aggregationText(code, m), S.durationText(code, m) — a code in the messages' words
+  // Optional messages with no default (kui-react 8811cff; without them the codes are shown, as before):
+  //   aggregationNames — words for the aggregation codes ({ avg: 'average' }); a code without one is shown as it is
+  //   shortUnits       — short unit words for an interval or a window length in a compact text
+  //                      ({ m: ' min', h: ' h', d: ' d' }: `5m` → "5 min"); a unit without one is shown as it is
+  var S = locals.S;
+  S.DEFAULT_MESSAGES = {
+    label: 'Time window',
+    presets: 'Quick ranges',
+    custom: 'Custom',
+    from: 'From (UTC)',
+    to: 'To (UTC)',
+    interval: 'Interval',
+    intervalAuto: 'Interval: auto',
+    intervalValue: 'Interval: {value}',
+    aggregation: 'Aggregation',
+    aggregationValue: 'Aggregate: {value}',
+    calendar: 'Calendar',
+    calendarPeriod: 'Calendar period',
+    soFar: 'So far',
+    duration: 'Last',
+    durationAmount: 'Amount',
+    durationUnit: 'Unit',
+    durationUnits: { m: 'minutes', h: 'hours', d: 'days' },
+    timezone: 'Time zone',
+    timezoneDefault: 'Zone: default',
+    periods: {
+      'current.hour': 'This hour', 'current.day': 'Today', 'current.week': 'This week', 'current.isoWeek': 'This week (Mon)',
+      'current.month': 'This month', 'current.quarter': 'This quarter', 'current.halfYear': 'This half year', 'current.year': 'This year',
+      'previous.hour': 'Previous hour', 'previous.day': 'Yesterday', 'previous.week': 'Previous week', 'previous.isoWeek': 'Previous week (Mon)',
+      'previous.month': 'Previous month', 'previous.quarter': 'Previous quarter', 'previous.halfYear': 'Previous half year', 'previous.year': 'Previous year',
+      dayBeforeYesterday: 'Day before yesterday', thisDayLastWeek: 'This day last week',
+    },
+  };
+  S.DEFAULT_CALENDAR_PERIODS = [
+    'current.hour', 'current.day', 'current.week', 'current.isoWeek', 'current.month', 'current.quarter', 'current.halfYear', 'current.year',
+    'previous.hour', 'previous.day', 'previous.week', 'previous.isoWeek', 'previous.month', 'previous.quarter', 'previous.halfYear', 'previous.year',
+    'dayBeforeYesterday', 'thisDayLastWeek',
+  ];
+  // `<n>m`, `<n>h` or `<n>d`: what a custom duration is written as.
+  S.DURATION = /^([1-9]\d{0,5})([mhd])$/;
+  S.DURATION_UNITS = ['m', 'h', 'd'];
+  // An aggregation code in the messages' words (`avg` → "average" when the host gives one), else the code itself.
+  S.aggregationText = function (code, m) {
+    var names = m && m.aggregationNames;
+    return names && Object.prototype.hasOwnProperty.call(names, code) && names[code] != null ? names[code] : code;
+  };
+  // A duration code (`5m`, `2h`, `1d`) with the messages' short unit words (`5 min`), else the code itself.
+  S.durationText = function (code, m) {
+    var match = /^(\d+)([mhd])$/.exec(code);
+    var units = m && m.shortUnits;
+    var unit = match && units ? units[match[2]] : undefined;
+    return match && unit != null ? match[1] + unit : code;
+  };
+  // A short list for a runtime that cannot enumerate zones.
+  S.FALLBACK_ZONES = [
+    'UTC', 'Europe/London', 'Europe/Berlin', 'Europe/Istanbul', 'Europe/Moscow', 'Africa/Cairo', 'Asia/Dubai', 'Asia/Kolkata',
+    'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland', 'America/Sao_Paulo', 'America/New_York',
+    'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  ];
+  // Every IANA zone the runtime knows (UTC first), or the short list; the current value is always among them.
+  S.zoneChoices = function (current) {
+    var all = [];
+    try { all = (typeof Intl.supportedValuesOf === 'function' && Intl.supportedValuesOf('timeZone')) || []; } catch (e) { all = []; }
+    var list = all.length > 0 ? ['UTC'].concat(all.filter(function (z) { return z !== 'UTC'; })) : S.FALLBACK_ZONES;
+    return current && list.indexOf(current) === -1 ? list.concat([current]) : list;
+  };
+%>

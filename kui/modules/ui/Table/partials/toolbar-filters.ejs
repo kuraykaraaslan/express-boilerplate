@@ -1,0 +1,28 @@
+<%
+  // The DataTable filter fields with `placement: 'toolbar'` (kui-react parts/FilterPanel.tsx ToolbarFilterControl):
+  // a radio field as a segmented ButtonGroup named by the field label, a select field as a Select whose label is
+  // read by screen readers only. Applied at once by ../scripts/data-table.js. A `required` field has no "Any".
+  //
+  // Locals: id (the table id), fields (the toolbar fields), values (the applied values), messages.
+  var _tableId = locals.id || 'dt';
+  var _fields  = Array.isArray(locals.fields) ? locals.fields : [];
+  var _values  = (locals.values && typeof locals.values === 'object') ? locals.values : {};
+  var _m = {};
+%><%- include('./_messages', { out: _m, messages: locals.messages }) -%><%
+  function _atom(own) {
+    var o = {};
+    Object.keys(locals).forEach(function (k) { o[k] = undefined; });
+    return Object.assign(o, own);
+  }
+%>
+<% _fields.forEach(function (field) {
+     var v = typeof _values[field.id] === 'string' ? _values[field.id] : '';
+     var fid = _tableId + '-filters-' + field.id;
+     if (field.type === 'radio') {
+       var _items = (field.required ? [] : [{ value: '', label: field.anyLabel || _m.any }]).concat((field.options || []).map(function (o) { return { value: o.value, label: o.label }; }));
+%>
+<div role="group" aria-label="<%= field.label %>" class="shrink-0" data-part="toolbar-filter" data-dt-toolbar-field="<%= field.id %>" data-dt-filter-type="radio" data-dt-values="<%= JSON.stringify(_items.map(function (i) { return i.value; })) %>"><%- include('../../ButtonGroup', _atom({ size: 'sm', items: _items, value: v })) %></div>
+<%   } else if (field.type === 'select') { %>
+<div class="shrink-0 min-w-40" data-part="toolbar-filter" data-dt-toolbar-field="<%= field.id %>" data-dt-filter-type="select"><%- include('../../Select', _atom({ id: fid, label: field.label, hideLabel: true, options: field.options || [], placeholder: field.required ? undefined : (field.placeholder || _m.any), value: v })) %></div>
+<%   }
+   }); %>

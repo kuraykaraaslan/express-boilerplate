@@ -1,0 +1,33 @@
+<%
+  // The CodeEditor's default English words, filled into the object passed as `M`:
+  //   include('partials/_messages', { M: M })
+  // Server-side twin of DEFAULT_MESSAGES in scripts/view.js (kui-react
+  // DEFAULT_CODE_EDITOR_MESSAGES); tests/code-editor.test.ts checks they agree. kui-react's
+  // function messages are `{name}` templates here: findCount ({current}, {total}), markerAt
+  // ({line}, {message}) and markerAtColumn ({line}, {column}, {message}).
+  var M = locals.M;
+  M.placeholder = '';
+  M.loading = 'Loading…';
+  M.readOnlyLabel = 'read-only';
+  M.toolbarLabel = 'Code tools';
+  M.find = 'Find and replace';
+  M.findPlaceholder = 'Find';
+  M.replacePlaceholder = 'Replace with';
+  M.findPrev = 'Previous match';
+  M.findNext = 'Next match';
+  M.findClose = 'Close find';
+  M.replaceOne = 'Replace';
+  M.replaceAll = 'Replace all';
+  M.matchCase = 'Match case';
+  M.findNone = 'No match';
+  M.findCount = '{current} of {total}';
+  M.format = 'Format the code';
+  M.copy = 'Copy the code';
+  M.copied = 'Copied';
+  M.fullscreen = 'Full screen';
+  M.exitFullscreen = 'Leave full screen';
+  M.suggestions = 'Suggestions';
+  M.problems = 'Problems in the code';
+  M.markerAt = 'Line {line}: {message}';
+  M.markerAtColumn = 'Line {line}, column {column}: {message}';
+-%>

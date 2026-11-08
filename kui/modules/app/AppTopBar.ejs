@@ -1,0 +1,27 @@
+<%
+  // Regions (parity with kui-react AppTopBar): `start` sits right after the logo, `end` is
+  // pushed to the far end. Each takes an HTML string or ordered { id, node (HTML), order,
+  // hidden } items (like CSS order: missing is 0, ties keep array order), so top-bar
+  // controls can come from other modules. No region wrapper is rendered when unused.
+  var _region = function (region) {
+    if (!region) return '';
+    if (!Array.isArray(region)) return String(region);
+    return region
+      .map(function (it, i) { return { it: it, i: i, o: (typeof it.order === 'number' && isFinite(it.order)) ? it.order : 0 }; })
+      .filter(function (e) { return e.it && !e.it.hidden; })
+      .sort(function (a, b) { return a.o - b.o || a.i - b.i; })
+      .map(function (e) { return e.it.node || ''; })
+      .join('');
+  };
+  var _start = _region(locals.start);
+  var _end   = _region(locals.end);
+%>
+<%# min-w-0: in a narrow header the bar shrinks with it instead of keeping its content's width (kui-react's comment). %>
+<div class="flex min-w-0 items-center gap-3 flex-1<%= locals.className ? ' '+locals.className : '' %>">
+  <% if (locals.logoContent) { %>
+  <div class="shrink-0"><%- locals.logoContent %></div>
+  <% } %>
+  <% if (_start) { %><div data-region="start" class="flex items-center gap-2"><%- _start %></div><% } %>
+  <%- locals.children || '' %>
+  <% if (_end) { %><div data-region="end" class="flex items-center gap-2 ml-auto shrink-0"><%- _end %></div><% } %>
+</div>

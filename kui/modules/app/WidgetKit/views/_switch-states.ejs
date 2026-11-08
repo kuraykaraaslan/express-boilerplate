@@ -1,0 +1,5 @@
+<%#
+  The state text (or pill) of each of the switch's states inside the element the switch is described by (`stateId`),
+  only the current one visible (see _switch-layout.ejs). Locals: g (the switch model), state, stateId.
+%><%_ var _g = locals.g; var _pill = _g.display === 'pill'; _%>
+<span id="<%= locals.stateId %>" class="min-w-0<%= _pill ? '' : ' truncate' %>"><% ['on', 'off', 'unknown'].forEach(function (n) { var look = _g.states[n]; if (!look.showState) return; %><span data-kui-state="<%= n %>"<% if (locals.state !== n) { %> hidden<% } %>><% if (_pill) { %><%- include('../_pill', { label: _g.labels[n], color: look.color, background: undefined, icon: look.stateIcon, size: undefined, variant: undefined, staleText: '' }) %><% } else { %><span class="min-w-0 truncate"><%- include('../_metric', { text: _g.labels[n], unit: '', unitPosition: 'after', size: look.stateSize, font: _g.stateFont, color: look.color, className: '', style: undefined, textAttr: '', unitAttr: '', unitHidden: false }) %></span><% } %></span><% }); %></span>

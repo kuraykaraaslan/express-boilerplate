@@ -1,0 +1,27 @@
+<%
+  var _name     = locals.name     || 'paymentMethod';
+  var _value    = locals.value    || 'CREDIT_CARD';
+  var _legend   = locals.legend   || 'Payment method';
+  var _disabled = !!locals.disabled;
+
+  // NextJS option set — brand icons (fa-brands), no `desc` subtitles, 2-column card layout.
+  // CREDIT_CARD uses fa-cc-visa (brand) so the brand library covers it; falls back to solid fa-credit-card via icon CSS.
+  var methods = [
+    { value: 'CREDIT_CARD', label: 'Credit Card',    icon: '<i class="fa-brands fa-cc-visa h-4 w-4 text-blue-600" aria-hidden="true"></i>' },
+    { value: 'PAYPAL',      label: 'PayPal',         icon: '<i class="fa-brands fa-paypal h-4 w-4 text-blue-500" aria-hidden="true"></i>' },
+    { value: 'APPLE_PAY',   label: 'Apple Pay',      icon: '<i class="fa-brands fa-apple-pay h-4 w-4 text-gray-900" aria-hidden="true"></i>' },
+    { value: 'GOOGLE_PAY',  label: 'Google Pay',     icon: '<i class="fa-brands fa-google-pay h-4 w-4 text-blue-600" aria-hidden="true"></i>' },
+    { value: 'CRYPTO',      label: 'Cryptocurrency', icon: '<i class="fa-brands fa-bitcoin h-4 w-4 text-orange-500" aria-hidden="true"></i>' },
+  ];
+%>
+<div class="w-full<%= locals.className ? ' ' + locals.className : '' %>">
+  <%- include('../../../ui/RadioGroup', {
+    name:     _name,
+    legend:   _legend,
+    options:  methods,
+    value:    _value,
+    variant:  'card',
+    columns:  2,
+    disabled: _disabled
+  }) %>
+</div>

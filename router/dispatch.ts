@@ -39,6 +39,18 @@ const notFound = () => NextResponse.json({ message: 'Not found', code: 'NOT_FOUN
 
 type Target = { tenantId: string; apiPath: string };
 
+/** The tenant a host serves: the root surface, or a registered domain that serves; null for an unknown host or a failed lookup. */
+export async function tenantOfHost(host: string): Promise<string | null> {
+  if (isRootSurfaceHost(host, rootSurfaceEnv())) return ROOT_TENANT_ID;
+  try {
+    const info = await TenantDomainService.getByDomain(host);
+    if (!info) return null;
+    // The platform's managed base domains (the table's list); the environment's wildcard when it cannot be read.
+    const bases = await TenantDomainService.managedBases().catch(() => process.env.TENANT_WILDCARD_DOMAIN || process.env.NEXT_PUBLIC_TENANT_WILDCARD_DOMAIN || null);
+    return isServingDomain(info, bases) ? info.tenantId : null;
+  } catch { return null; }
+}
+
 /**
  * Which tenant and which module path a request addresses. Explicit forms (`/tenant/{id}/api/..`, and `/{prefix}/{id}/api/..` in path
  * tenancy) name the tenant; a bare `/api/..` is the host's tenant in domain mode and the root tenant in path mode. In domain mode an
@@ -46,18 +58,7 @@ type Target = { tenantId: string; apiPath: string };
  */
 async function resolveTarget(pathname: string, host: string): Promise<Target | null> {
   const explicit = pathname.match(/^\/(?:tenant|api\/tenant)\/([^/]+)(\/api(?:\/.*)?)?$/) ?? (TENANCY_MODE === 'path' ? pathname.match(new RegExp(`^/${TENANT_PATH_PREFIX}/([^/]+)(/api(?:/.*)?)$`)) : null);
-  let hostTenant: string | null | undefined;
-  const fromHost = async (): Promise<string | null> => {
-    if (hostTenant !== undefined) return hostTenant;
-    if (isRootSurfaceHost(host, rootSurfaceEnv())) return (hostTenant = ROOT_TENANT_ID);
-    try {
-      const info = await TenantDomainService.getByDomain(host);
-      if (!info) return (hostTenant = null);
-      // The platform's managed base domains (the table's list); the environment's wildcard when it cannot be read.
-      const bases = await TenantDomainService.managedBases().catch(() => process.env.TENANT_WILDCARD_DOMAIN || process.env.NEXT_PUBLIC_TENANT_WILDCARD_DOMAIN || null);
-      return (hostTenant = isServingDomain(info, bases) ? info.tenantId : null);
-    } catch { return (hostTenant = null); }
-  };
+  const fromHost = () => tenantOfHost(host);
   if (explicit) {
     const tenantId = explicit[1];
     if (!TENANT_ID_RE.test(tenantId)) return null;

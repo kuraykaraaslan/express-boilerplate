@@ -1,0 +1,4 @@
+<%#
+  The slider's value in the kit's metric style; the control's runtime keeps the number live (`data-kui-control-value`).
+  Locals: g (the slider model), text, size.
+%><%- include('../_metric', { text: locals.text, unit: '', unitPosition: 'after', size: locals.size, font: locals.g.valueFont, color: locals.g.valueColor, className: '', style: undefined, textAttr: 'data-kui-control-value', unitAttr: '', unitHidden: false }) %>

@@ -1,0 +1,22 @@
+<%#
+  content.video: the video player filling the card, from the settings' address or a bound one (kui-react
+  ContentVideoView). A stream (.m3u8) is played natively where the browser can and through hls.js (loaded once) elsewhere.
+  The live options (`model.live`, src/widget-kit-host/video-live.ts) go to the player as kui-react gives them to kui-player:
+  `live` (stop when hidden), `presence` (the "still watching?" check; every video card of a board joins ONE group,
+  `presenceGroup: 'board'`) and `sources` (Standard / High, with `preferAlternateInFullscreen`). Nothing here knows what
+  is being streamed.
+  Locals: model (`videoModel` plus `id` and `live`).
+%><%_ var _v = locals.model; _%>
+<% if (!_v.player) { %>
+<p role="status" class="flex h-full items-center justify-center p-4 text-center text-sm text-text-secondary"><%= _v.emptyText %></p>
+<% } else { var _p = _v.player; %>
+<div class="h-full w-full overflow-hidden bg-black" data-testid="video-widget"><%- include('../../../ui/VideoPlayer/VideoPlayer', {
+  id: _v.id, src: _p.src, hls: _p.hls, hlsScript: '', poster: _p.poster || '', title: _p.title || '',
+  autoPlay: _p.autoPlay, startMuted: _p.startMuted, loop: _p.loop, autoHideControls: _p.autoHideControls, fit: _p.fit, theme: _p.theme,
+  subtitles: _p.subtitles, fill: true, enableCast: false, className: '', qualities: [], defaultQuality: '', audioTracks: [],
+  live: _v.live ? _v.live.live : undefined, presence: _v.live ? _v.live.presence : undefined,
+  presenceGroup: _v.live ? _v.live.presenceGroup : undefined, presenceTexts: _v.live ? _v.live.presenceTexts : undefined,
+  sources: _v.live ? _v.live.sources : undefined, loadOnPlay: !!(_v.live && _v.live.loadOnPlay),
+  preferAlternateInFullscreen: !!(_v.live && _v.live.preferAlternateInFullscreen)
+}) %></div>
+<% } %>

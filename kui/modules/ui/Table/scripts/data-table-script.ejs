@@ -1,0 +1,11 @@
+<%#
+  Boots one DataTable in the browser: inlines the runtime (table-logic.js + data-table.js, defined once
+  per page) and starts the table with its config. Locals: config (see ../partials/paginated.ejs).
+-%>
+<script>
+if (!window.KuiDataTable) {
+<%- include('./table-logic.js') %>
+<%- include('./data-table.js') %>
+}
+window.KuiDataTable.init(<%- include('../../_script-json', { value: locals.config }) %>);
+</script>

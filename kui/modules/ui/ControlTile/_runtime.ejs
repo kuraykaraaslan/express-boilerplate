@@ -1,0 +1,16 @@
+<%
+  // The one place the async-control runtime is inlined. Every Control*.ejs includes
+  // this AFTER its markup; the scripts are idempotent (window.KuiControl guards) and
+  // autoInit() mounts every [data-kui-control] that is not mounted yet.
+  // Pass loadRuntime: false to a control when the host page loads
+  //   control-logic.js, async-control.js and control-bind.js once via <script src>
+  //   (and ConfirmDialog/scripts/confirm-dialog.js, which the confirmation step asks through).
+  // The ConfirmDialog runtime comes first: a confirm step asks through window.KuiConfirm.
+%>
+<%- include('../ConfirmDialog/_runtime') %>
+<script>
+<%- include('./scripts/control-logic.js') %>
+<%- include('./scripts/async-control.js') %>
+<%- include('./scripts/control-bind.js') %>
+(function () { if (window.KuiControl && window.KuiControl.autoInit) window.KuiControl.autoInit(); })();
+</script>

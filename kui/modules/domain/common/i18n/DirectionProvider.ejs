@@ -1,0 +1,18 @@
+<%
+  var _lang = locals.lang || 'en';
+  var RTL_LANGS = ['ar', 'he', 'fa', 'ur', 'yi', 'ku', 'ps', 'sd'];
+  var _dir  = RTL_LANGS.indexOf(_lang) !== -1 ? 'rtl' : 'ltr';
+  var _applyToDocument = (locals.applyToDocument === undefined) ? true : !!locals.applyToDocument;
+%>
+<div dir="<%= _dir %>" lang="<%= _lang %>"<% if (locals.className) { %> class="<%= locals.className %>"<% } %>>
+  <%- locals.children || '' %>
+</div>
+<% if (_applyToDocument) { %>
+<script>
+(function () {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('dir',  <%- include('../../../ui/_script-json', { value: String(_dir) }) %>);
+  document.documentElement.setAttribute('lang', <%- include('../../../ui/_script-json', { value: String(_lang) }) %>);
+})();
+</script>
+<% } %>

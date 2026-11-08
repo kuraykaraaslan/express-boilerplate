@@ -1,0 +1,125 @@
+<%
+  // Server-rendered onboarding wizard. The current step is driven by
+  // querystring/locals (?step=N) so each next/back/skip submits a form.
+  var _id            = locals.id            || ('onb-' + Math.random().toString(36).substr(2,6));
+  var _steps         = locals.steps         || [];
+  var _current       = (typeof locals.current === 'number') ? locals.current : 0;
+  if (_current < 0) _current = 0;
+  if (_current >= _steps.length) _current = Math.max(0, _steps.length - 1);
+  var _mode          = locals.mode          || 'page';
+  var _open          = (locals.open === undefined) ? true : !!locals.open;
+  var _title         = locals.title         || 'Welcome';
+  var _allowSkip     = (locals.allowSkip === undefined) ? true : !!locals.allowSkip;
+  var _nextLabel     = locals.nextLabel     || 'Next';
+  var _prevLabel     = locals.prevLabel     || 'Back';
+  var _skipLabel     = locals.skipLabel     || 'Skip';
+  var _completeLabel = locals.completeLabel || 'Finish';
+  var _indicator     = locals.indicator     || 'dots';
+  var _stepAction    = locals.stepAction    || '?';
+  var _completeAction= locals.completeAction|| (locals.stepAction ? locals.stepAction + '&complete=1' : '?complete=1');
+  var _skipAction    = locals.skipAction    || (locals.stepAction ? locals.stepAction + '&skip=1'     : '?skip=1');
+  var _className     = locals.className     ? ' ' + locals.className : '';
+
+  var _step      = _steps[_current] || { title: '', description: '', content: '' };
+  var _isFirst   = _current === 0;
+  var _isLast    = _current === _steps.length - 1;
+  var _pct       = _steps.length > 0 ? Math.min(100, Math.max(0, ((_current + 1) / _steps.length) * 100)) : 0;
+%>
+
+<% if (_mode === 'modal') { %>
+<div
+  id="<%= _id %>"
+  data-onboarding-wizard
+  class="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-200<%= _open ? '' : ' opacity-0 pointer-events-none hidden' %>"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="<%= _id %>-title"
+>
+  <div class="absolute inset-0 bg-black/50" aria-hidden="true"></div>
+  <div class="relative z-[101] w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-xl flex flex-col">
+    <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-border shrink-0">
+      <h2 id="<%= _id %>-title" class="text-base font-semibold text-text-primary"><%= _title %></h2>
+    </div>
+    <div class="px-6 py-4 flex-1">
+<% } else { %>
+<div id="<%= _id %>" class="mx-auto w-full max-w-2xl rounded-xl border border-border bg-surface-raised p-6 shadow-sm">
+<% } %>
+
+  <div class="flex flex-col gap-6<%= _className %>">
+    <div class="flex items-center gap-3">
+      <span class="text-xs uppercase tracking-wide text-text-disabled font-medium shrink-0">
+        <%= _current + 1 %> / <%= _steps.length %>
+      </span>
+      <div class="flex-1">
+        <% if (_indicator === 'bar') { %>
+        <div class="h-1 w-full rounded-full bg-surface-sunken overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="<%= _steps.length %>" aria-valuenow="<%= _current + 1 %>" aria-label="Step <%= _current + 1 %> of <%= _steps.length %>">
+          <div class="h-full bg-primary transition-[width] duration-300" style="width: <%= _pct %>%;"></div>
+        </div>
+        <% } else { %>
+        <div class="flex items-center gap-2" role="progressbar" aria-valuemin="0" aria-valuemax="<%= _steps.length %>" aria-valuenow="<%= _current + 1 %>" aria-label="Step <%= _current + 1 %> of <%= _steps.length %>">
+          <% _steps.forEach(function(_s, i) { %>
+            <% var dotClass = (i === _current) ? 'w-6 bg-primary' : (i < _current ? 'w-2 bg-primary' : 'w-2 bg-surface-sunken'); %>
+            <span class="h-2 rounded-full transition-all <%= dotClass %>" aria-hidden="true"></span>
+          <% }); %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-lg font-semibold text-text-primary"><%= _step.title %></h2>
+      <% if (_step.description) { %>
+        <p class="mt-1 text-sm text-text-secondary"><%= _step.description %></p>
+      <% } %>
+    </div>
+
+    <div class="min-h-[8rem]"><%- _step.content || '' %></div>
+
+    <div class="flex items-center justify-between gap-3 pt-4 border-t border-border">
+      <div>
+        <% if (!_isFirst) { %>
+        <form action="<%= _stepAction %>" method="get" class="inline">
+          <input type="hidden" name="step" value="<%= _current - 1 %>" />
+          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus border border-border text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm">
+            <i class="fa-solid fa-arrow-left w-3.5 h-3.5" aria-hidden="true"></i>
+            <%= _prevLabel %>
+          </button>
+        </form>
+        <% } %>
+      </div>
+      <div class="flex items-center gap-2">
+        <% if (_allowSkip && !_isLast) { %>
+        <form action="<%= _skipAction %>" method="post" class="inline">
+          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-transparent text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm">
+            <i class="fa-solid fa-xmark w-3.5 h-3.5" aria-hidden="true"></i>
+            <%= _skipLabel %>
+          </button>
+        </form>
+        <% } %>
+        <% if (_isLast) { %>
+        <form action="<%= _completeAction %>" method="post" class="inline">
+          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-primary text-primary-fg hover:bg-primary-hover px-4 py-2 text-sm">
+            <i class="fa-solid fa-check w-3.5 h-3.5" aria-hidden="true"></i>
+            <%= _completeLabel %>
+          </button>
+        </form>
+        <% } else { %>
+        <form action="<%= _stepAction %>" method="get" class="inline">
+          <input type="hidden" name="step" value="<%= _current + 1 %>" />
+          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-primary text-primary-fg hover:bg-primary-hover px-4 py-2 text-sm">
+            <%= _nextLabel %>
+            <i class="fa-solid fa-arrow-right w-3.5 h-3.5" aria-hidden="true"></i>
+          </button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+<% if (_mode === 'modal') { %>
+    </div>
+  </div>
+</div>
+<% } else { %>
+</div>
+<% } %>

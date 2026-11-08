@@ -1,0 +1,15 @@
+<%#
+  control.slider: label and value on top, the track below (kui-react ControlSliderView); written once per gesture as the
+  bubbling `kui:widget-control` event, `{ placement, kind: 'set', value: <number>, confirmation }` (scripts/widget-kit.js).
+  The arrangement is _slider-layout.ejs (kui-react's `renderLayout`). Locals: model (`controlSliderModel` plus `id`,
+  `formatSpec`, `reportedLabel`).
+%><%_ var _g = locals.model; var _c = _g.control; _%>
+<%- include('../../../ui/ControlTile/ControlSlider', {
+  id: _g.id, title: '', framed: false, className: '', ariaLabel: _c.ariaLabel, value: _c.value, reported: undefined,
+  min: _c.min, max: _c.max, step: _c.step, unit: '', decimals: 0, format: '', formatSpec: _g.formatSpec, reportedLabel: _g.reportedLabel,
+  orientation: _c.orientation, thickness: _c.thickness, thumbSize: _c.thumbSize, tickMarks: _c.tickMarks, tickLabels: _c.tickLabels,
+  colors: _c.colors, commitMode: _c.commitMode, debounceMs: _c.debounceMs, disabledReason: _c.disabledReason || '', disabled: false, readOnly: false,
+  confirm: _c.confirm.confirm, confirmText: _c.confirm.confirmText || '', messages: _c.messages || {}, onCommit: '', timeoutMs: undefined,
+  layout: 'default', showValue: true, showTicks: true, valueStyle: undefined, startIcon: '', endIcon: '', renderLayout: undefined,
+  layoutPartial: '../../app/WidgetKit/views/_slider-layout', layoutLocals: { g: _g }, loadRuntime: false
+}) %>

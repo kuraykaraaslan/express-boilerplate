@@ -1,0 +1,4 @@
+<%#
+  The track row of control.slider: the end icons around the slider, and an optional text at its end (kui-react's `track`).
+  Locals: g (the slider model), slider (the control's track HTML), end ('value' puts the value at the end of the row), valueText.
+%><div class="flex items-start gap-3"><% if (locals.g.startIcon) { %><span class="flex h-9 items-center"><%- include('_slider-icon', { icon: locals.g.startIcon }) %></span><% } %><%- include('../_slot', { body: locals.slider }) %><% if (locals.g.endIcon) { %><span class="flex h-9 items-center"><%- include('_slider-icon', { icon: locals.g.endIcon }) %></span><% } %><% if (locals.end === 'value') { %><span class="flex h-9 shrink-0 items-center"><%- include('_slider-metric', { g: locals.g, text: locals.valueText, size: locals.g.valueSize }) %></span><% } %></div>

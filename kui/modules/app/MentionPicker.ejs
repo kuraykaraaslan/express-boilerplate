@@ -1,0 +1,131 @@
+<%
+  var _id            = locals.id            || ('mention-' + Math.random().toString(36).substr(2,6));
+  var _users         = locals.users         || [];
+  var _query         = locals.query         || '';
+  var _open          = (locals.open === undefined) ? true : !!locals.open;
+  var _position      = locals.position      || null;
+  var _maxItems      = (typeof locals.maxItems === 'number') ? locals.maxItems : 6;
+  var _emptyMessage  = locals.emptyMessage  || 'No matching users';
+  var _className     = locals.className     ? ' ' + locals.className : '';
+  var _anchorInputId = locals.anchorInputId || '';
+
+  function _initials(name) {
+    if (!name) return '?';
+    var parts = String(name).trim().split(/\s+/);
+    return (parts.slice(0,2).map(function(p){ return p[0]; }).join('') || '?').toUpperCase();
+  }
+
+  function _filter(u, q) {
+    if (!q) return true;
+    var lq = String(q).toLowerCase();
+    return (u.name && u.name.toLowerCase().includes(lq)) ||
+           (u.handle && u.handle.toLowerCase().includes(lq));
+  }
+
+  var _filtered = _users.filter(function(u){ return _filter(u, _query); }).slice(0, _maxItems);
+
+  var _style = '';
+  if (_position) {
+    _style = 'position: absolute; top: ' + (_position.top || 0) + 'px; left: ' + (_position.left || 0) + 'px;';
+  }
+%>
+
+<div
+  id="<%= _id %>"
+  data-mention-picker
+  data-anchor-input-id="<%= _anchorInputId %>"
+  role="listbox"
+  aria-label="Users to mention"
+  style="<%= _style %>"
+  class="z-50 w-72 rounded-lg border border-border bg-surface-raised shadow-lg overflow-hidden<%= _open ? '' : ' hidden' %><%= _className %>"
+>
+  <div role="presentation" class="flex items-center gap-2 border-b border-border px-3 py-2 text-xs text-text-secondary">
+    <i class="fa-solid fa-at text-text-disabled w-3 h-3" aria-hidden="true"></i>
+    <span class="font-medium" data-mention-query>
+      <% if (_query) { %>"<%= _query %>"<% } else { %>Mention…<% } %>
+    </span>
+  </div>
+  <% if (_filtered.length === 0) { %>
+  <p role="presentation" class="px-3 py-4 text-sm text-center text-text-secondary" data-mention-empty><%= _emptyMessage %></p>
+  <% } else { %>
+  <ul role="presentation" class="max-h-64 overflow-y-auto py-1" data-mention-list>
+    <% _filtered.forEach(function(user, i) { %>
+    <li
+      role="option"
+      aria-selected="<%= i === 0 ? 'true' : 'false' %>"
+      data-mention-item
+      data-mention-id="<%= user.id %>"
+      data-mention-name="<%= user.name %>"
+      data-mention-handle="<%= user.handle || '' %>"
+      class="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-surface-overlay<%= i === 0 ? ' bg-surface-overlay' : '' %>"
+    >
+      <% if (user.avatarUrl) { %>
+        <img src="<%= user.avatarUrl %>" alt="<%= user.name %>" class="h-8 w-8 rounded-full object-cover border border-border shrink-0" />
+      <% } else { %>
+        <span aria-label="<%= user.name %>" class="h-8 w-8 rounded-full bg-primary-subtle text-primary font-semibold text-xs flex items-center justify-center shrink-0 border border-primary-subtle select-none">
+          <%= _initials(user.name) %>
+        </span>
+      <% } %>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-text-primary truncate"><%= user.name %></p>
+        <p class="text-xs text-text-secondary truncate">
+          <% if (user.handle) { %>@<%= user.handle %><% } else if (user.subtitle) { %><%= user.subtitle %><% } %>
+        </p>
+      </div>
+    </li>
+    <% }); %>
+  </ul>
+  <% } %>
+</div>
+
+<script>
+  (function () {
+    var picker = document.getElementById(<%- include('../ui/_script-json', { value: String(_id) }) %>);
+    if (!picker) return;
+    var items = Array.prototype.slice.call(picker.querySelectorAll('[data-mention-item]'));
+    var active = 0;
+    var anchorId = picker.getAttribute('data-anchor-input-id') || '';
+    var anchor = anchorId ? document.getElementById(anchorId) : null;
+
+    function setActive(i) {
+      items.forEach(function (el, idx) {
+        var on = idx === i;
+        el.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on) el.classList.add('bg-surface-overlay');
+        else el.classList.remove('bg-surface-overlay');
+        if (on) el.scrollIntoView({ block: 'nearest' });
+      });
+      active = i;
+    }
+
+    items.forEach(function (el, i) {
+      el.addEventListener('mouseenter', function () { setActive(i); });
+      el.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        picker.dispatchEvent(new CustomEvent('mention:select', {
+          detail: {
+            id:     el.getAttribute('data-mention-id'),
+            name:   el.getAttribute('data-mention-name'),
+            handle: el.getAttribute('data-mention-handle')
+          }
+        }));
+      });
+    });
+
+    function onKey(e) {
+      if (!items.length || picker.classList.contains('hidden')) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive((active + 1) % items.length); }
+      else if (e.key === 'ArrowUp')   { e.preventDefault(); setActive((active - 1 + items.length) % items.length); }
+      else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        items[active].dispatchEvent(new MouseEvent('mousedown'));
+      } else if (e.key === 'Escape') {
+        picker.classList.add('hidden');
+        picker.dispatchEvent(new CustomEvent('mention:cancel'));
+      }
+    }
+
+    if (anchor) anchor.addEventListener('keydown', onKey);
+    else        window.addEventListener('keydown', onKey);
+  })();
+</script>

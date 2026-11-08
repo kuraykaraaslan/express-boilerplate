@@ -1,0 +1,132 @@
+<%
+  var _action      = locals.action      || '#';
+  var _method      = locals.method      || 'post';
+  var _initial     = locals.initial     || {};
+  var _submitLabel = locals.submitLabel || 'Save';
+  var _cancelHref  = locals.cancelHref  || null;
+  var _errors      = locals.errors      || {};
+  var _formId      = locals.formId      || ('addr-form-' + Math.random().toString(36).substr(2, 9));
+%>
+<form id="<%= _formId %>" action="<%= _action %>" method="<%= _method %>" novalidate class="space-y-4<%= locals.className ? ' ' + locals.className : '' %>">
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <%- include('../../../ui/Input', {
+      id: 'addr-fullname', label: 'Full Name', name: 'fullName', required: true,
+      iconLeft: '<i class="fa-solid fa-user text-xs" aria-hidden="true"></i>',
+      value: _initial.fullName || '', error: _errors.fullName
+    }) %>
+    <%- include('../../../ui/Input', {
+      id: 'addr-phone', label: 'Phone', name: 'phone', type: 'tel',
+      iconLeft: '<i class="fa-solid fa-phone text-xs" aria-hidden="true"></i>',
+      value: _initial.phone || ''
+    }) %>
+  </div>
+
+  <%- include('../../../ui/Input', {
+    id: 'addr-line1', label: 'Address Line 1', name: 'addressLine1', required: true,
+    iconLeft: '<i class="fa-solid fa-location-dot text-xs" aria-hidden="true"></i>',
+    value: _initial.addressLine1 || '', error: _errors.addressLine1
+  }) %>
+
+  <%- include('../../../ui/Input', {
+    id: 'addr-line2', label: 'Address Line 2 (optional)', name: 'addressLine2',
+    value: _initial.addressLine2 || ''
+  }) %>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <%- include('../../../ui/Input', {
+      id: 'addr-city', label: 'City', name: 'city', required: true,
+      value: _initial.city || '', error: _errors.city
+    }) %>
+    <%- include('../../../ui/Input', {
+      id: 'addr-state', label: 'State / District', name: 'state',
+      value: _initial.state || ''
+    }) %>
+    <%- include('../../../ui/Input', {
+      id: 'addr-postal', label: 'Postal Code', name: 'postalCode',
+      value: _initial.postalCode || ''
+    }) %>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <%- include('../../../ui/Input', {
+      id: 'addr-country', label: 'Country', name: 'country', required: true,
+      iconLeft: '<i class="fa-solid fa-globe text-xs" aria-hidden="true"></i>',
+      value: _initial.country || '', error: _errors.country
+    }) %>
+    <%- include('../../../ui/Input', {
+      id: 'addr-code', label: 'Country Code (2 letters)', name: 'countryCode',
+      value: _initial.countryCode || '', maxLength: 2
+    }) %>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-2">
+    <% if (_cancelHref) { %>
+    <%- include('../../../ui/Button', { variant: 'outline', children: 'Cancel', href: _cancelHref }) %>
+    <% } %>
+    <%- include('../../../ui/Button', { type: 'submit', children: _submitLabel }) %>
+  </div>
+</form>
+
+<script>
+(function () {
+  var form = document.getElementById(<%- include('../../../ui/_script-json', { value: String(_formId) }) %>);
+  if (!form || form.__kuiAddressBound) return;
+  form.__kuiAddressBound = true;
+
+  var rules = [
+    { name: 'fullName',     id: 'addr-fullname', message: 'Full name is required.' },
+    { name: 'addressLine1', id: 'addr-line1',    message: 'Address line 1 is required.' },
+    { name: 'city',         id: 'addr-city',     message: 'City is required.' },
+    { name: 'country',      id: 'addr-country',  message: 'Country is required.' }
+  ];
+
+  function setError(rule, message) {
+    var input = form.querySelector('[name="' + rule.name + '"]');
+    if (!input) return;
+    var wrapper = input.closest('.space-y-1');
+    if (!wrapper) return;
+    var msgArea = wrapper.querySelector('.flex.items-center.justify-between .flex-1');
+    if (!msgArea) return;
+
+    var existing = msgArea.querySelector('[data-kui-client-error]');
+    if (message) {
+      input.setAttribute('aria-invalid', 'true');
+      var existingDesc = input.getAttribute('aria-describedby') || '';
+      var errId = rule.id + '-error';
+      if (existingDesc.indexOf(errId) === -1) {
+        input.setAttribute('aria-describedby', (existingDesc + ' ' + errId).trim());
+      }
+      input.classList.remove('border-border', 'bg-surface-base');
+      input.classList.add('border-error', 'ring-1', 'ring-error', 'bg-error-subtle');
+      if (existing) {
+        existing.textContent = message;
+      } else {
+        var p = document.createElement('p');
+        p.id = errId;
+        p.setAttribute('data-kui-client-error', '1');
+        p.setAttribute('role', 'alert');
+        p.className = 'text-xs text-error';
+        p.textContent = message;
+        msgArea.appendChild(p);
+      }
+    } else if (existing) {
+      input.setAttribute('aria-invalid', 'false');
+      input.classList.remove('border-error', 'ring-1', 'ring-error', 'bg-error-subtle');
+      input.classList.add('border-border', 'bg-surface-base');
+      existing.remove();
+    }
+  }
+
+  form.addEventListener('submit', function (ev) {
+    var hasError = false;
+    rules.forEach(function (rule) {
+      var input = form.querySelector('[name="' + rule.name + '"]');
+      var val = (input && input.value || '').trim();
+      if (!val) { setError(rule, rule.message); hasError = true; }
+      else { setError(rule, null); }
+    });
+    if (hasError) { ev.preventDefault(); }
+  });
+})();
+</script>

@@ -1,0 +1,40 @@
+<% var _id = ctx.id; %>
+
+<%/* ── Loading spinner ── */%>
+<div id="<%= _id %>-spinner"
+  class="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+  <i class="fa-solid fa-spinner text-white text-4xl animate-spin drop-shadow-lg" aria-hidden="true"></i>
+</div>
+
+<%/* ── Centre play overlay (the `minimal` theme has none) ── */%>
+<div id="<%= _id %>-play-overlay"
+  class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300<%= ctx.centerPlay === false ? ' hidden' : '' %>"
+  style="opacity:1"
+  aria-hidden="true">
+  <div id="<%= _id %>-play-circle"
+    class="w-20 h-20 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-2xl ring-2 ring-white/20 transition-transform duration-300">
+    <i class="fa-solid fa-play text-white text-2xl ml-1" aria-hidden="true"></i>
+  </div>
+</div>
+
+<%/* ── Casting overlay ── */%>
+<% if (ctx.enableCast) { %>
+<div id="<%= _id %>-cast-overlay"
+  class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 gap-3 text-center px-6 hidden"
+  style="background:linear-gradient(to bottom,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.75) 55%,rgba(0,0,0,0) 100%)">
+  <i class="fa-brands fa-chromecast text-white text-5xl drop-shadow-lg" aria-hidden="true"></i>
+  <p id="<%= _id %>-cast-device" class="text-white/90 text-sm font-medium">Cihaza yayınlanıyor</p>
+  <% if (ctx.title) { %>
+  <p class="text-white/60 text-xs max-w-[90%] truncate"><%= ctx.title %></p>
+  <% } %>
+</div>
+<% } %>
+
+<%/* ── Subtitle overlay ── */%>
+<div id="<%= _id %>-subtitle-overlay"
+  class="absolute left-0 right-0 flex justify-center px-6 pointer-events-none z-10 transition-all duration-300 hidden"
+  style="bottom:4.5rem">
+  <span id="<%= _id %>-subtitle-text"
+    class="bg-black/80 text-white px-3 py-1 rounded-md text-center max-w-[85%] whitespace-pre-line leading-snug font-medium"
+    style="font-size:1rem"></span>
+</div>

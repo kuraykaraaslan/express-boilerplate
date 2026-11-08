@@ -1,0 +1,6 @@
+<%#
+  "Updated 5 minutes ago": the caption of a stat card (kui-react UpdatedAgo). Nothing without a time.
+  Locals: at (an ISO time or milliseconds).
+%><%_ var _when = widgetKit.updatedText(locals.at, locals.locale, locals.now, locals.messages); if (_when) { _%>
+<%- include('_meta', { text: _when }) %>
+<%_ } _%>

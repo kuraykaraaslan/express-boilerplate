@@ -1,0 +1,22 @@
+<%
+  // Line-number gutter — sibling of kui-react parts/Gutter.tsx.
+  // M3: a diagnostic dot next to the number of a line that has a marker (its worst severity;
+  // the message is the row's title). The browser redraws the rows with
+  // scripts/view.js gutterRowsHtml — keep the two in step (tests/code-editor.test.ts).
+  //
+  // TODO M2: breakpoint dots column (left of numbers), click-to-toggle.
+  // TODO M4: code-folding chevrons.
+
+  var lineCount = Math.max(Number(_lineCount) || 1, 1);
+  var activeLine = Math.max(Number(_activeLine) || 1, 1);
+  var minHeight = Number(_minHeight) || 200;
+  var byLine = locals._byLine || {};
+  var dots = Object.keys(byLine).length > 0;
+  var DOT = { error: 'bg-error', warning: 'bg-warning', info: 'bg-info', hint: 'bg-text-disabled' };
+-%>
+<div
+  data-kui-codeeditor-gutter
+  aria-hidden="true"
+  class="select-none overflow-hidden border-r border-border bg-surface-overlay px-2 py-2 text-right font-mono text-xs leading-5 text-text-disabled"
+  style="min-height: <%= minHeight %>px"
+><% for (var i = 1; i <= lineCount; i++) { var mk = dots ? byLine[i] : null; %><div<% if (mk) { %> data-marker="<%= mk.severity %>" title="<%= mk.message %>"<% } %> class="flex items-center justify-end gap-1 tabular-nums<%= i === activeLine ? ' text-text-primary font-semibold' : '' %>"><% if (dots) { %><span class="h-1.5 w-1.5 shrink-0 rounded-full <%= mk ? DOT[mk.severity] : 'bg-transparent' %>"></span><% } %><%= i %></div><% } %></div>

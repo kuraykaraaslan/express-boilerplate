@@ -1,0 +1,13 @@
+<%#
+  chart.histogram: equal-width bins of one numeric column drawn as bars; each bar's category is its range, the axis
+  prints the bin edges, optional mean and median markers (kui-react HistogramChartView).
+  Locals: model (histogramChartModel + id, locale).
+%><%_
+  var _m = locals.model;
+  var _props = Object.assign({
+    id: _m.id, series: _m.series, showLegend: _m.showLegend, showValues: _m.showValues, valueLabelPosition: _m.valueLabelPosition,
+    valueLabelStyle: _m.valueLabelStyle, radius: _m.radius, barWidth: _m.barWidth, categoryTicks: _m.categoryTicks, markers: _m.markers,
+    yFormat: _m.yFormat, animate: _m.animate, ariaLabel: _m.ariaLabel, locale: _m.locale
+  }, _m.axis, _m.tooltip);
+_%>
+<%- include('_chart', { type: 'bar', props: _props, runtimeOnce: locals.runtimeOnce, loadChartScripts: locals.loadChartScripts }) %>

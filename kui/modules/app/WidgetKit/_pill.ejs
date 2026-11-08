@@ -1,0 +1,5 @@
+<%#
+  A status: a dot (or icon) and a word, tinted with its colour (`Pill`).
+  Locals: label, color, background, icon, size, variant, staleText (a screen-reader addition after the label).
+%><%_ var _p = widgetKit.ui.pillModel({ color: locals.color, background: locals.background, size: locals.size, variant: locals.variant }); var _st = widgetKit.style(_p.style); _%>
+<% if (_p.variant === 'dot') { %><span class="<%= _p.className %>"><span class="h-2 w-2 shrink-0 rounded-full" style="background:<%= _p.dotColor %>"></span><%= locals.label %><% if (locals.staleText) { %><span class="sr-only"> <%= locals.staleText %></span><% } %></span><% } else { %><span class="<%= _p.className %>"<% if (_st) { %> style="<%= _st %>"<% } %>><% if (locals.icon) { %><%- include('_icon', { name: locals.icon, style: { width: '1em', height: '1em', fontSize: '1em' } }) %><% } else { %><span class="h-1.5 w-1.5 shrink-0 rounded-full" style="background:<%= _p.dotColor %>"></span><% } %><%= locals.label %><% if (locals.staleText) { %><span class="sr-only"> <%= locals.staleText %></span><% } %></span><% } %>

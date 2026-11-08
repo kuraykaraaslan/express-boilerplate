@@ -1,0 +1,169 @@
+<%
+  var _position  = locals.position  || 'top-right';
+  var _className = locals.className || '';
+
+  var positionMap = {
+    'top-right':     'top-4 right-4 items-end',
+    'top-left':      'top-4 left-4 items-start',
+    'top-center':    'top-4 left-1/2 -translate-x-1/2 items-center',
+    'bottom-right':  'bottom-4 right-4 items-end',
+    'bottom-left':   'bottom-4 left-4 items-start',
+    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2 items-center',
+  };
+  var posClass = positionMap[_position] || positionMap['top-right'];
+%>
+<div
+  id="notification-system"
+  role="region"
+  aria-live="polite"
+  aria-label="Notifications"
+  class="fixed z-[90] flex flex-col gap-2 pointer-events-none <%= posClass %><%= _className ? ' ' + _className : '' %>"
+></div>
+
+<script>
+(function () {
+  if (window.__notificationSystemInit) return;
+  window.__notificationSystemInit = true;
+
+  var container = document.getElementById('notification-system');
+  if (!container) return;
+
+  // Mirror Toast.ejs variantMap so individual notifications match the
+  // ui/Toast partial markup pixel-for-pixel.
+  var variantMap = {
+    success: { container: 'bg-success-subtle border-success', iconColor: 'text-success-fg',     progressColor: 'bg-success', icon: 'fa-circle-check' },
+    warning: { container: 'bg-warning-subtle border-warning', iconColor: 'text-warning',        progressColor: 'bg-warning', icon: 'fa-triangle-exclamation' },
+    error:   { container: 'bg-error-subtle border-error',     iconColor: 'text-error',          progressColor: 'bg-error',   icon: 'fa-circle-xmark' },
+    info:    { container: 'bg-info-subtle border-info',       iconColor: 'text-info',           progressColor: 'bg-info',    icon: 'fa-circle-info' },
+    loading: { container: 'bg-surface-raised border-border',  iconColor: 'text-text-secondary', progressColor: 'bg-primary', icon: 'fa-spinner fa-spin' }
+  };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function dismiss(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(12px) scale(0.95)';
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 250);
+  }
+
+  // Build markup that matches modules/ui/Toast.ejs output (container shell,
+  // icon row, title/message block, optional action, optional dismiss). The
+  // progress bar overlay is unique to the notification system.
+  function buildToast(id, opts, vm) {
+    var title       = opts.title       || '';
+    var message     = opts.message     || '';
+    var actionLabel = opts.actionLabel || '';
+    var actionHref  = opts.actionHref  || '';
+    var persistent  = !!opts.persistent || opts.variant === 'loading';
+    var closeButton = opts.closeButton !== false && !persistent;
+
+    var titleHtml = title
+      ? '<p class="text-sm font-semibold text-text-primary leading-snug">' + escapeHtml(title) + '</p>'
+      : '';
+    var msgClass  = 'text-sm text-text-secondary leading-snug' + (title ? ' mt-0.5' : '');
+
+    var actionHtml = '';
+    if (actionLabel) {
+      var actionInner = actionHref
+        ? '<a href="' + escapeHtml(actionHref) + '" class="text-xs font-semibold rounded underline underline-offset-2 text-text-primary hover:opacity-70">' + escapeHtml(actionLabel) + '</a>'
+        : '<button type="button" class="text-xs font-semibold rounded underline underline-offset-2 text-text-primary hover:opacity-70">' + escapeHtml(actionLabel) + '</button>';
+      actionHtml = '<div class="flex flex-wrap gap-x-3 gap-y-1 mt-2.5">' + actionInner + '</div>';
+    }
+
+    var dismissBtn = closeButton
+      ? '<button type="button" aria-label="Dismiss" data-dismiss="' + id + '" ' +
+        'class="shrink-0 mt-0.5 rounded text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">' +
+        '<i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i></button>'
+      : '';
+
+    return '<div class="flex items-start gap-3 px-4 pt-4 pb-3">' +
+             '<i class="fa-solid ' + vm.icon + ' mt-0.5 shrink-0 ' + vm.iconColor + '" aria-hidden="true"></i>' +
+             '<div class="flex-1 min-w-0">' + titleHtml +
+               '<p class="' + msgClass + '">' + escapeHtml(message) + '</p>' +
+               actionHtml +
+             '</div>' + dismissBtn +
+           '</div>';
+  }
+
+  function pushNotification(opts) {
+    opts = opts || {};
+    var variant     = opts.variant || 'info';
+    var duration    = typeof opts.duration === 'number' ? opts.duration : (variant === 'loading' ? null : 5000);
+    var persistent  = !!opts.persistent || variant === 'loading';
+    var vm          = variantMap[variant] || variantMap.info;
+    var role        = variant === 'error' ? 'alert' : 'status';
+    var live        = variant === 'error' ? 'assertive' : 'polite';
+    var id          = 'notif-' + Math.random().toString(36).slice(2, 9);
+    var hasDuration = !persistent && typeof duration === 'number' && duration > 0;
+
+    var wrap = document.createElement('div');
+    wrap.id = id;
+    wrap.setAttribute('role', role);
+    wrap.setAttribute('aria-live', live);
+    // Matches Toast.ejs shell exactly: `relative w-80 rounded-xl border shadow-lg overflow-hidden pointer-events-auto <container>`
+    wrap.className = 'relative w-80 rounded-xl border shadow-lg overflow-hidden pointer-events-auto transition-all duration-250 ease-out ' + vm.container;
+    wrap.style.opacity = '0';
+    wrap.style.transform = 'translateY(12px) scale(0.95)';
+
+    // Progress bar height mirrors the Toast.ejs/Toast.tsx pattern (h-0.5 = 2px).
+    var progressHtml = hasDuration
+      ? '<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-black/5">' +
+          '<div data-progress class="h-full rounded-full transition-none ' + vm.progressColor + '" style="width:100%;opacity:0.5"></div>' +
+        '</div>'
+      : '';
+
+    wrap.innerHTML = buildToast(id, opts, vm) + progressHtml;
+    container.appendChild(wrap);
+
+    requestAnimationFrame(function () {
+      wrap.style.opacity = '1';
+      wrap.style.transform = 'translateY(0) scale(1)';
+    });
+
+    var btn = wrap.querySelector('[data-dismiss]');
+    if (btn) btn.addEventListener('click', function () { dismiss(id); });
+
+    if (hasDuration) {
+      var remaining = duration;
+      var lastTick = Date.now();
+      var paused = false;
+      var bar = wrap.querySelector('[data-progress]');
+
+      wrap.addEventListener('mouseenter', function () { paused = true; });
+      wrap.addEventListener('mouseleave', function () { paused = false; lastTick = Date.now(); });
+      document.addEventListener('visibilitychange', function () { paused = document.hidden; if (!paused) lastTick = Date.now(); });
+
+      var ticker = setInterval(function () {
+        if (paused) return;
+        var now = Date.now();
+        remaining = Math.max(0, remaining - (now - lastTick));
+        lastTick = now;
+        if (bar) bar.style.width = ((remaining / duration) * 100) + '%';
+        if (remaining <= 0) { clearInterval(ticker); dismiss(id); }
+      }, 50);
+    }
+    return id;
+  }
+
+  window.pushNotification = window.pushNotification || pushNotification;
+  window.dismissNotification = window.dismissNotification || dismiss;
+  window.notify = window.notify || {
+    success: function (m, o) { return pushNotification(Object.assign({ variant: 'success', message: m }, o || {})); },
+    error:   function (m, o) { return pushNotification(Object.assign({ variant: 'error',   message: m }, o || {})); },
+    warning: function (m, o) { return pushNotification(Object.assign({ variant: 'warning', message: m }, o || {})); },
+    info:    function (m, o) { return pushNotification(Object.assign({ variant: 'info',    message: m }, o || {})); },
+    loading: function (m, o) { return pushNotification(Object.assign({ variant: 'loading', message: m, persistent: true }, o || {})); },
+    dismiss: dismiss
+  };
+  window.toast = window.toast || window.notify;
+})();
+</script>

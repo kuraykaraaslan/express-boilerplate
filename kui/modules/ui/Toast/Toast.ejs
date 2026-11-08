@@ -1,0 +1,22 @@
+<%# modules/ui/Toast/Toast.ejs %>
+<%#
+  Toast suite entry point.
+
+  Renders a single server-side toast card (`partials/_toast-item.ejs`) and
+  initialises the global `window.toast()` / `window.notify()` controller
+  exactly once per page (`scripts/store.js`). Safe to include this partial
+  multiple times — the controller IIFE no-ops on re-init.
+
+  Locals (all optional unless noted):
+    variant      'info' (default) | 'success' | 'warning' | 'error' | 'loading'
+    title        string
+    message      string
+    actionLabel  string
+    actionHref   string
+    persistent   bool — hides the close × button
+    position     string — unused for the server card; reserved for future use
+
+  M1 milestone — see PLANS/26-Toast.md.
+%>
+<%- include('./partials/_toast-item.ejs', locals) %>
+<%- include('./scripts/store.js') %>

@@ -1,0 +1,6 @@
+<%#
+  The body rows of a DataTable for one page, for a server-mode route that answers a fetch with
+  `{ total, html }`: pass the table's own locals (columns, id, rowId, selectable, renderExpanded,
+  rowActions, messages, …) plus `rows` and `offset` ((page - 1) * pageSize). See ./partials/rows.ejs.
+-%>
+<%- include('./partials/rows', locals) %>

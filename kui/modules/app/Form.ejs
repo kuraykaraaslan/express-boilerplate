@@ -1,0 +1,27 @@
+<%
+  var _action  = locals.action  || '#';
+  var _method  = locals.method  || 'post';
+  var _columns = locals.columns || 1;
+%>
+<form action="<%= _action %>" method="<%= _method %>" novalidate class="space-y-6<%= locals.className ? ' '+locals.className : '' %>">
+  <% if (locals.title || locals.description) { %>
+  <div>
+    <% if (locals.title) { %><h2 class="text-lg font-semibold text-text-primary"><%= locals.title %></h2><% } %>
+    <% if (locals.description) { %><p class="text-sm text-text-secondary mt-0.5"><%= locals.description %></p><% } %>
+  </div>
+  <% } %>
+
+  <% if (locals.error) { %>
+  <%- include('../ui/AlertBanner', { variant: 'error', message: locals.error }) %>
+  <% } %>
+
+  <div class="grid gap-4<%= _columns === 2 ? ' sm:grid-cols-2' : ' grid-cols-1' %>">
+    <%- locals.children || '' %>
+  </div>
+
+  <% if (locals.actionsContent) { %>
+  <div class="flex items-center justify-end gap-3 pt-2 border-t border-border">
+    <%- locals.actionsContent %>
+  </div>
+  <% } %>
+</form>

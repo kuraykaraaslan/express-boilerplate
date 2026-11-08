@@ -1,0 +1,116 @@
+<%
+  // Timeline — a chronological activity feed with sticky day headings. Same DOM and classes as kui-react
+  // modules/ui/Timeline.tsx.
+  //
+  // Locals:
+  //   items        — [{ id, at, title, body?, icon?, tone?, meta?, status? }], sorted by `order`
+  //     id         — stable identity (kept for parity; the markup does not carry it)
+  //     at         — Date, ISO string or epoch ms (anything `new Date()` accepts). Missing or invalid: the item is
+  //                  undated, drawn after every dated one (whatever `order` says) without a time
+  //     status     — a step of a process: 'done' (the default look), 'current' (ringed, aria-current="step") or
+  //                  'upcoming' (not reached yet: a hollow, dashed marker and muted text)
+  //     title      — short label, escaped text
+  //     body       — detail text, escaped
+  //     meta       — text at the right of the header row, escaped
+  //     icon       — Font Awesome class of the marker, e.g. 'fa-solid fa-envelope'
+  //     tone       — 'default' (default) | 'success' | 'warning' | 'error' | 'info'
+  //     titlePartial / bodyPartial / metaPartial — absolute path of a partial included instead of the text
+  //                  (React takes a node there, EJS takes a partial); its locals are titleLocals /
+  //                  bodyLocals / metaLocals
+  //   timeZone     — IANA zone for the day grouping and the time (default: the server's own)
+  //   locale       — BCP 47 tag for the date and time formatting
+  //   groupByDay   — day headings between the items (default true)
+  //   order        — 'newest' first (a feed, the default) or 'oldest' first (a process from its start)
+  //   undatedLabel — day heading of the undated items (with groupByDay); without it they follow the last day unheaded
+  //   emptyMessage — shown when there are no items (default 'Nothing here yet.')
+  //   surface      — the surface the timeline sits on: 'base' (default) | 'raised' (inside a card) | 'overlay' | 'sunken'.
+  //                  The sticky day headings, the hollow marker of an upcoming step and the gap of the current step's
+  //                  ring take its colour, so nothing reads as a band or a ring of another surface
+  //   className    — extra classes on the root
+  //
+  // The connector line is left out on the last event (a line running past it reads as "more below"). It is left out
+  // in the template: a `last:` variant on the span would test the span, the li's first child, never the li. The last
+  // event has no bottom padding either: whatever follows the timeline starts right after it.
+  //
+  // A day heading is opaque in the timeline's surface (readable while it sticks), lines up with the events' text (the
+  // item's 0.25rem + the marker's 2.125rem + the 0.75rem gap = 3.125rem) and keeps a gap above the first marker.
+  //
+  // Grouping is by the day in `timeZone`, not by the raw ISO date: 23:50 UTC is another day for someone east
+  // of Greenwich. Unlike kui-react, which formats in the viewer's own zone, a server-rendered page formats in the
+  // server's zone unless `timeZone` is given: pass the viewer's zone when you know it.
+  var _items        = Array.isArray(locals.items) ? locals.items : [];
+  var _timeZone     = locals.timeZone || undefined;
+  var _locale       = locals.locale || undefined;
+  var _groupByDay   = locals.groupByDay !== false;
+  var _dir          = locals.order === 'oldest' ? 1 : -1;
+  var _undatedLabel = locals.undatedLabel != null ? String(locals.undatedLabel) : null;
+  var _emptyMessage = locals.emptyMessage != null ? locals.emptyMessage : 'Nothing here yet.';
+  var _className    = locals.className || '';
+
+  // Literal classes, so the stylesheet keeps them.
+  var SURFACE_CLASS = {
+    base: { bg: 'bg-surface-base', ringOffset: 'ring-offset-surface-base' },
+    raised: { bg: 'bg-surface-raised', ringOffset: 'ring-offset-surface-raised' },
+    overlay: { bg: 'bg-surface-overlay', ringOffset: 'ring-offset-surface-overlay' },
+    sunken: { bg: 'bg-surface-sunken', ringOffset: 'ring-offset-surface-sunken' }
+  };
+  var _surface = Object.prototype.hasOwnProperty.call(SURFACE_CLASS, locals.surface) ? SURFACE_CLASS[locals.surface] : SURFACE_CLASS.base;
+
+  var TONE_CLASS = {
+    'default': 'bg-surface-sunken text-text-secondary',
+    success: 'bg-success-subtle text-success-fg',
+    warning: 'bg-warning-subtle text-warning-fg',
+    error: 'bg-error-subtle text-error-fg',
+    info: 'bg-info-subtle text-info-fg'
+  };
+
+  var _rendered = [];
+  if (_items.length > 0) {
+    var dayFormat = new Intl.DateTimeFormat(_locale, { timeZone: _timeZone, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    // hourCycle rather than hour12: false, which renders midnight as hour "24" on some ICU builds.
+    var timeFormat = new Intl.DateTimeFormat(_locale, { timeZone: _timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    // The item's date, or null when it has none or it is not a real date (formatting one would throw a RangeError).
+    function toDate(v) {
+      if (v === undefined || v === null || v === '') return null;
+      var d = v instanceof Date ? v : new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Undated items go last in either order, keeping the order they came in.
+    var sorted = _items
+      .map(function (item, i) { return { item: item || {}, at: toDate(item ? item.at : null), i: i }; })
+      .sort(function (a, b) {
+        if (!a.at || !b.at) return a.at ? -1 : (b.at ? 1 : a.i - b.i);
+        return _dir * (a.at.getTime() - b.at.getTime()) || a.i - b.i;
+      });
+    function dayOf(at) { return at ? dayFormat.format(at) : _undatedLabel; }
+    _rendered = sorted.map(function (entry, index) {
+      var day = dayOf(entry.at);
+      var previousDay = index === 0 ? undefined : dayOf(sorted[index - 1].at);
+      return { item: entry.item, at: entry.at, day: day, time: entry.at ? timeFormat.format(entry.at) : '', showDay: _groupByDay && day !== null && day !== previousDay };
+    });
+  }
+%>
+<% if (_rendered.length === 0) { %>
+<p class="py-8 text-center text-sm text-text-secondary<%= _className ? ' ' + _className : '' %>"><%= _emptyMessage %></p>
+<% } else { %>
+<ol class="flex flex-col<%= _className ? ' ' + _className : '' %>">
+  <% _rendered.forEach(function (r, index) { var item = r.item; %>
+  <% if (r.showDay) { %><li class="sticky top-0 z-10 mb-2 py-2 pl-[3.125rem] text-xs font-medium uppercase tracking-wide text-text-secondary <%= _surface.bg %>"><%= r.day %></li><% } %>
+  <% var _status = item.status === 'done' || item.status === 'current' || item.status === 'upcoming' ? item.status : null;
+     var _next = _rendered[index + 1]; %>
+  <li class="relative flex gap-3 pl-1<%= _next ? ' pb-5' : '' %>"<% if (_status === 'current') { %> aria-current="step"<% } %><% if (_status) { %> data-status="<%= _status %>"<% } %>>
+    <%# The way to a step not reached yet is dashed. %>
+    <% if (_next) { %><span aria-hidden="true" class="absolute left-[1.0625rem] top-8 bottom-0 <%= _next.item.status === 'upcoming' ? 'border-l border-dashed border-border' : 'w-px bg-border' %>"></span><% } %>
+    <span aria-hidden="true" class="relative z-[1] flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-full <%= _status === 'upcoming' ? 'border-2 border-dashed border-border-strong ' + _surface.bg + ' text-text-disabled' : (TONE_CLASS[item.tone] || TONE_CLASS['default']) %><%= _status === 'current' ? ' ring-2 ring-primary ring-offset-2 ' + _surface.ringOffset : '' %>"><% if (item.icon) { %><i class="<%= item.icon %>" aria-hidden="true"></i><% } %></span>
+    <div class="min-w-0 flex-1 pt-1.5">
+      <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span class="text-sm <%= _status === 'upcoming' ? 'text-text-secondary' : 'text-text-primary' %><%= _status === 'current' ? ' font-medium' : '' %>"><% if (item.titlePartial) { %><%- include(item.titlePartial, item.titleLocals || {}) %><% } else { %><%= item.title != null ? item.title : '' %><% } %></span>
+        <% if (r.at) { %><time datetime="<%= r.at.toISOString() %>" class="text-xs text-text-secondary tabular-nums"><%= r.time %></time><% } %>
+        <% if (item.metaPartial) { %><span class="ml-auto"><%- include(item.metaPartial, item.metaLocals || {}) %></span><% } else if (item.meta) { %><span class="ml-auto"><%= item.meta %></span><% } %>
+      </div>
+      <% if (item.bodyPartial) { %><div class="mt-1 text-sm text-text-secondary"><%- include(item.bodyPartial, item.bodyLocals || {}) %></div><% } else if (item.body) { %><div class="mt-1 text-sm text-text-secondary"><%= item.body %></div><% } %>
+    </div>
+  </li>
+  <% }); %>
+</ol>
+<% } %>

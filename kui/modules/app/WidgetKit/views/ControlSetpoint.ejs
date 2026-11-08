@@ -1,0 +1,16 @@
+<%#
+  control.setpoint: label and the current value on top, the control below: type and apply, a stepper, or a dial
+  (kui-react ControlSetpointView). The control shows the value being set, the head the value the device reports. Applying
+  is the bubbling `kui:widget-control` event, `{ placement, kind: 'set', value: <number>, confirmation }`
+  (scripts/widget-kit.js). The label is the model's `caption`: left out when it only repeats the card's title shown in the
+  header (`captionOf`). Locals: model (`controlSetpointModel` plus `id`, `formatSpec`, `caption`).
+%><%_ var _g = locals.model; var _c = _g.control; var _cur = _g.current; var _vm = _c.valueMetric; _%>
+<div class="flex h-full min-h-0 flex-col gap-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0 pt-0.5"><% if (_g.range) { %><span class="flex flex-col gap-0.5"><%- include('../_metric-label', { text: _g.caption, font: _g.label.font, color: _g.label.color, className: '' }) %><%- include('../_meta', { text: _g.range, className: '', style: undefined, tooltip: '' }) %></span><% } else { %><%- include('../_metric-label', { text: _g.caption, font: _g.label.font, color: _g.label.color, className: '' }) %><% } %></div><% if (_cur) { %><span class="flex shrink-0 items-baseline gap-1.5"><%- include('../_meta', { text: _cur.label, className: '', style: undefined, tooltip: '' }) %><%- include('../_metric', { text: _cur.text, unit: _cur.unit, unitPosition: _cur.unitPosition, size: 'md', font: _cur.font, color: _cur.color, className: '', style: undefined, textAttr: '', unitAttr: '', unitHidden: false }) %></span><% } %></div>
+<%- include('../../../ui/ControlTile/ControlSetpoint', {
+  id: _g.id, title: '', framed: false, className: 'min-h-0 flex-1', ariaLabel: _c.ariaLabel, value: _c.value, reported: undefined,
+  min: _c.min, max: _c.max, step: _c.step, unit: _c.unit || '', decimals: 0, format: '', formatSpec: _g.formatSpec, layout: _c.layout, showValue: false,
+  valueStyle: _c.valueStyle, buttonColor: _c.buttonColor, buttonTextColor: _c.buttonTextColor, borderColor: _c.borderColor,
+  dialColor: _c.dialColor, dialTrackColor: _c.dialTrackColor, messages: _c.messages || {}, disabledReason: _c.disabledReason || '',
+  disabled: false, readOnly: false, confirm: _c.confirm.confirm, confirmText: _c.confirm.confirmText || '', onCommit: '', timeoutMs: undefined,
+  valueContentPartial: _vm ? '../../app/WidgetKit/views/_setpoint-value' : '', valueContentLocals: { vm: _vm }, loadRuntime: false
+}) %></div>

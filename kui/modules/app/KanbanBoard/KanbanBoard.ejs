@@ -1,0 +1,57 @@
+<%
+  // ── KanbanBoard EJS (M1 — Core DnD) ─────────────────────────────────
+  // Pixel-identical to modules/app/KanbanBoard/index.tsx in 01_NextJS_Components.
+  // HTML5 native drag-and-drop between columns + thin drop-line insert hint
+  // + optimistic-UI rewind on rejected onCardMove (rejection signalled by
+  // a global Promise the caller can attach via window.KuiKanban.setMover).
+  var _id       = locals.id       || 'kb-' + Math.random().toString(36).substr(2, 9);
+  var _columns  = locals.columns  || [];
+  var _cards    = locals.cards    || [];
+  var _ariaLabel= locals.ariaLabel|| 'Kanban board';
+%>
+<div
+  id="<%= _id %>"
+  role="application"
+  aria-label="<%= _ariaLabel %>"
+  data-kanban-id="<%= _id %>"
+  class="kanban-board w-full overflow-x-auto flex gap-3 items-start p-2"
+>
+  <% _columns.forEach(function (col) {
+       var colCards = _cards.filter(function (c) { return c.columnId === col.id; });
+  %>
+    <%- include('./partials/_column', { _id: _id, col: col, cards: colCards }) %>
+  <% }); %>
+  <%# TODO M2: trailing "+ Add column" button (onColumnAdd). %>
+  <%# TODO M3: filter/search bar + swimlane row wrappers. %>
+  <%# TODO M5: <span aria-live="polite" /> announcing card moves. %>
+</div>
+
+<script>
+(function () {
+  var KB_ID  = <%- include('../../ui/_script-json', { value: String(_id) }) %>;
+  var MIME   = 'application/x-kanban-card';
+  var cards  = <%- include('../../ui/_script-json', { value: _cards }) %>;
+  var snapshot = null;
+  var dropTarget = null; // { columnId, index }
+  var draggingId = null;
+
+  var root = document.getElementById(KB_ID);
+  if (!root) return;
+
+  /* ── Optimistic mover (rebuilds DOM after splice / rollback) ──────── */
+  <%- include('./scripts/dnd.js') %>
+
+  /* ── Init: bind once per card + column ────────────────────────────── */
+  bindAll();
+
+  /* ── Public API per board (window.KuiKanban.get(id)) ───────────────── */
+  window.KuiKanban = window.KuiKanban || {};
+  window.KuiKanban.get = window.KuiKanban.get || function (id) {
+    return window.KuiKanban[id] || null;
+  };
+  window.KuiKanban[KB_ID] = {
+    setMover: function (fn) { window.KuiKanban[KB_ID]._mover = fn; },
+    getCards: function ()   { return cards.slice(); },
+  };
+})();
+</script>

@@ -1,0 +1,71 @@
+<%
+  // modules/ui/TreeView/TreeView.ejs — M1 entry point.
+  //
+  // Pixel-parity contract with `modules/ui/TreeView/index.tsx` (NextJS).
+  // Recursive node rendering lives in `partials/_node.ejs`; behaviour lives in
+  // `scripts/tree-state.js` + `scripts/keyboard.js`.
+  //
+  // Backwards-compat: legacy `modules/ui/TreeView.ejs` is a shim that
+  // forwards to this template, so existing callers keep working.
+  var _nodes         = locals.nodes         || [];
+  var _selectedId    = locals.selectedId    || '';
+  var _selectedIds   = locals.selectedIds   || (_selectedId ? [_selectedId] : []);
+  var _label         = locals.label         || 'Tree';
+  var _className     = locals.className     || '';
+  var _selectionMode = locals.selectionMode || 'single';
+  var _hideToolbar   = locals.hideToolbar   === true;
+  var _focusId       = locals.focusId       || (_selectedIds[0] || '');
+  var _id            = locals.id            || 'treeview-' + Math.random().toString(36).substr(2, 9);
+  var _expandAllLbl   = (locals.messages && locals.messages.expandAll)   || 'Expand all';
+  var _collapseAllLbl = (locals.messages && locals.messages.collapseAll) || 'Collapse all';
+
+  function _hasAnyChildren(arr) {
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].children && arr[i].children.length) return true;
+    }
+    return false;
+  }
+  var _showToolbar = !_hideToolbar && _hasAnyChildren(_nodes);
+%>
+<div class="flex flex-col gap-1<%= _className ? ' ' + _className : '' %>">
+  <% if (_showToolbar) { %>
+  <div data-tree-toolbar class="flex items-center gap-1 px-1 pb-1 text-xs text-text-secondary">
+    <button type="button" data-tree-action="expand-all"
+      data-tree-target="<%= _id %>"
+      class="inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors">
+      <i class="fa-solid fa-angles-down w-3 h-3" aria-hidden="true"></i>
+      <span><%= _expandAllLbl %></span>
+    </button>
+    <button type="button" data-tree-action="collapse-all"
+      data-tree-target="<%= _id %>"
+      class="inline-flex items-center gap-1 px-2 py-1 rounded-md hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors">
+      <i class="fa-solid fa-angles-up w-3 h-3" aria-hidden="true"></i>
+      <span><%= _collapseAllLbl %></span>
+    </button>
+  </div>
+  <% } %>
+
+  <ul
+    id="<%= _id %>"
+    role="tree"
+    aria-label="<%= _label %>"
+    <% if (_selectionMode === 'multi') { %>aria-multiselectable="true"<% } %>
+    data-selected-id="<%= _selectedIds[_selectedIds.length - 1] || '' %>"
+    data-selection-mode="<%= _selectionMode %>"
+    class="space-y-0.5"
+  >
+    <% _nodes.forEach(function (node, idx) { %>
+      <%- include('./partials/_node', {
+        node: node,
+        depth: 0,
+        selectedIds: _selectedIds,
+        focusId: _focusId,
+        siblings: _nodes.length,
+        posInSet: idx + 1
+      }) %>
+    <% }); %>
+  </ul>
+</div>
+
+<%- include('./scripts/tree-state.js', { _id: _id }) %>
+<%- include('./scripts/keyboard.js',    { _id: _id }) %>

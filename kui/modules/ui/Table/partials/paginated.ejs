@@ -1,0 +1,737 @@
+<%
+  // Unified rich DataTable: mode "paginated" (default), "static", "server" with a data source
+  // (`fetchUrl` / `fetchPage`) and "manual". Same DOM and classes as kui-react
+  // modules/ui/Table/DataTable.tsx (TableFrame over ClientView / ServerView / ManualView). The legacy
+  // server-controlled card (mode "server" without a data source) lives in ./server.ejs.
+  //
+  // Features: multi-column sort (Shift+click, `multiSort: false` keeps one column), global search,
+  // per-column filter popover (text / select), pagination + rows-per-page, loading / empty / error state
+  // (Retry), rowActions, row selection keyed by row id (selectable), expandable detail rows
+  // (renderExpanded), stickyHeader, the filter panel (filterFields) with active-filter chips, live rows,
+  // keyboard rows, column footers, a card shell and a card layout. The browser runtime is
+  // ../scripts/data-table.js (logic in ../scripts/table-logic.js).
+  //
+  // Locals (kui-react prop names; a React callback is a global function name or a DOM event here):
+  //   columns            — { key, header, render?, align?, sortable?, filter?, thClass?, tdClass?,
+  //                        hideBelow? ('sm' | 'md' | 'lg': hidden under that width), sortKey? (the key sent
+  //                        outward when it differs from `key`), footer? (footer cell text), width? (CSS) }
+  //   rows, caption, searchable (true), searchPlaceholder, pageSize (10), pageSizeOptions, emptyMessage,
+  //   loadingMessage, errorMessage, state, mode, className, id, messages (every visible string; see
+  //   ./_messages.ejs), initialSort | defaultSort, multiSort (true), defaultQuery
+  //   rowActions, rowActionsLabel, actionsColumnLabel   — see ./rows.ejs
+  //   rowId              — function (row) => id, or a field name. Default row.id, else the position in
+  //                        `rows` (server mode: in the whole result)
+  //   onRowClick         — global function name called with the row id (also Enter / Space on a focused
+  //                        row); `true` fires the 'kui:dt-row-click' event alone
+  //   keyboardNavigation — keyboard rows (one row in the tab order, Arrow Up/Down, Home/End); default on
+  //                        with onRowClick
+  //   rowState           — function (row) => 'new' | 'leaving' | undefined (highlight / fade)
+  //   rowClassName       — function (row) => extra classes of the row
+  //   selectable         — leading checkbox column; the header checkbox selects / clears the rows shown
+  //   isRowSelectable    — function (row) => true | reason (a refused row's checkbox is disabled, the
+  //                        reason is its title, and the header checkbox skips it)
+  //   rowSelectLabel     — function (row) => accessible name of the row's checkbox
+  //   selectedRowIds     — controlled selection: a change only fires the events below; the host applies it
+  //                        with root.kuiDataTable.setSelectedRowIds(ids)
+  //   defaultSelectedRowIds — initial selection, owned by the table
+  //   onSelectionChange  — global function name, called with every selected id
+  //   bulkActions        — HTML in the selection bar while rows are selected (or a function of the initial
+  //                        selected ids returning it); its controls read root.kuiDataTable.getSelectedRowIds()
+  //   renderExpanded     — function (row) => HTML (raw) | null; rows returning null get no toggle
+  //   stickyHeader       — header stays while the body scrolls (max-h-80)
+  //   filterFields       — the filter panel's fields, see ./filter-fields.ejs
+  //   filterValues       — controlled applied values (host applies with root.kuiDataTable.setFilterValues)
+  //   defaultFilterValues, filtersLive, defaultFiltersOpen, showFilterChips (true)
+  //   onFilterValuesChange — global function name, called on Apply / Reset (every edit with filtersLive)
+  //   title, subtitle, headerActions (HTML) — the header; toolbarStart / toolbarEnd (HTML) — toolbar slots
+  //   variant ('plain' | 'card'), density ('comfortable' | 'compact'), bordered (true)
+  //   layout ('table' | 'cards'), renderCard (function (row, ctx) => HTML; ctx: id, selected, selectable,
+  //                        actions (the row-actions menu HTML or null), toggleSelected (the attribute that
+  //                        makes a control in the card toggle the row's selection)), cardMinWidth ('16rem')
+  //   fetchUrl           — server mode: GET fetchUrl?page&pageSize&search&sort&filters&filterValues
+  //                        (sort, filters, filterValues as JSON) answered with JSON { total, html } (html:
+  //                        the rows rendered by modules/ui/Table/Rows) or { total, rows } (plain text cells)
+  //   fetchPage          — server mode: name of a global function (args) => Promise of the same result;
+  //                        args.signal aborts when a newer query replaces it
+  //   total              — server mode: with `rows`, the first page is drawn here and not fetched.
+  //                        Manual mode: rows across every page (without it there is no pagination)
+  //   reloadKey          — server mode: root.kuiDataTable.setReloadKey(key) refetches when the key changes
+  //   onLoaded           — server mode: global function name called with each answer ({ total, … })
+  //   searchDebounceMs   — server and manual modes: wait this long after the last keystroke (300)
+  //   loading, error, onRetry — manual mode: rows stay under a spinner while loading; the error replaces
+  //                        them, with a Retry button when onRetry (a global function name, or true) is set
+  //   unstyled           — the host draws the look (kui-react `unstyled`): the table, its header and body rows get
+  //                        only the host's classes and styles (tableClassName, Column thClass / thStyle / tdClass /
+  //                        cellClassName / cellStyle, rowClassName, rowStyle): no density padding, header band,
+  //                        uppercase headings, row dividers or row hover, and no border around the table
+  //   tableClassName, tableStyle — classes and inline style (a CSS string or a style object) of the <table>
+  //   scrollClassName    — classes of the scrolling region around the table (e.g. 'min-h-0 flex-1 overflow-auto')
+  //   rowStyle           — function (row) => inline style of the row (a CSS string or a style object)
+  //   Column extras      — thStyle (style of the <th>, merged over width), cellClassName(row) and cellStyle(row)
+  //                        (one row's cell), headerHtml (raw HTML heading instead of the escaped `header` text)
+  //   onRowDoubleClick   — global function name called with the row id on a double click (not on a control in the
+  //                        row; Enter / Space run it when there is no onRowClick); `true` fires the
+  //                        'kui:dt-row-dblclick' event alone
+  //   query, onQueryChange — manual mode: the controlled query fields; the global function called with
+  //                        every query (page, pageSize, sort, search, filters, filterValues), the first once
+  //                        the page has loaded (DOMContentLoaded), so scripts after the table hear it too
+  //
+  // Phase 11.16 (kui-react 0b45fe3):
+  //   searchText         — client modes: function (row) => extra text the search matches (no hidden column needed)
+  //   Column searchValue — client modes: function (row) => the text the search matches for the column (default
+  //                        row[key], rendered columns too); Column searchable: false leaves the column out
+  //   Column render      — function (row, { index, id }): index is the row's position in `rows` (server: in the page)
+  //   groupBy            — function (row) => group key: a full-width header row before each group (card layout: a
+  //                        heading item spanning the grid). Client modes keep groups in first-seen order and sort
+  //                        within each; manual / server group the rows they have
+  //   renderGroupHeader  — function (group, rows) => HTML of a group's header (rows: the group's rows in `rows`)
+  //   isRowSelectionLocked — function (row) => true: ticked and disabled, outside the count, bulk actions and select-all
+  //   filter field `required` (select / radio: no Any, no chip, not counted, kept by Clear all) and
+  //   `placement: 'toolbar'` (select / radio drawn in the toolbar, applied at once)
+  //   Sort priority numbers show only once the user builds a multi-column sort; empty cells sort last.
+  //
+  // Column chooser (kui-react feat/datatable-columns, e4b7858):
+  //   columnChooser      — a "Columns" toolbar button: the viewer hides and shows columns. Off by default; table
+  //                        layout only. Hidden cells carry data-dt-col and are hidden by a rule in the root
+  //   tableId            — stable name of the table across visits: the choice is saved in this browser's localStorage
+  //                        under kui.dataTable.columns.v1.<tableId> (the key kui-react uses); without one it lasts
+  //                        until the page reloads. Hiding the column the rows are sorted by takes it out of the
+  //                        sort. Rows a host renders through Rows.ejs get data-dt-col from the browser
+  //   Column hideable    — false: the column stays on screen and out of the chooser; Column defaultHidden — starts hidden
+  //
+  // Events on the root (bubble): 'kui:dt-selection-change' { ids }, 'kui:dt-filter-values-change'
+  // { values }, 'kui:dt-request' { args } (server mode, before each fetch), 'kui:dt-loaded' { total }
+  // (server mode), 'kui:dt-query-change' { query } (manual mode), 'kui:dt-row-click' { id },
+  // 'kui:dt-row-dblclick' { id },
+  // 'kui:dt-retry' {} (Retry in manual and client modes).
+  // Handle: root.kuiDataTable = { getSelectedRowIds, setSelectedRowIds, clearSelection, getFilterValues,
+  // setFilterValues, setFilterFields(html), reload, setReloadKey(key), getQuery, setQuery(query),
+  // setRows({ html | rows, total }), setLoading(bool), setError(message | null) }.
+
+  var _columns         = locals.columns         || [];
+  var _rows            = locals.rows            || [];
+  var _caption         = locals.caption         || '';
+  var _m = {};
+%><%- include('./_messages', { out: _m, messages: locals.messages }) -%><%
+  var _hasSource       = !!(locals.fetchUrl || locals.fetchPage);
+  var _isServer        = locals.mode === 'server' && _hasSource;
+  var _isManual        = locals.mode === 'manual';
+  var _isStatic        = locals.mode === 'static' && !_isServer;
+  var _isClient        = !_isServer && !_isManual;
+  var _paginated       = _isManual ? typeof locals.total === 'number' : !_isStatic;
+  var _searchable      = locals.searchable !== undefined ? !!locals.searchable : true;
+  var _searchPlaceholder = locals.searchPlaceholder || _m.searchPlaceholder;
+  var _pageSizeOptions = locals.pageSizeOptions || [5, 10, 25, 50];
+  var _emptyMessage    = locals.emptyMessage    || _m.empty;
+  var _loadingMessage  = locals.loadingMessage  || _m.loading;
+  var _errorMessage    = locals.errorMessage    || '';
+  var _className       = locals.className       || '';
+  var _id              = locals.id              || 'dt-' + Math.random().toString(36).substr(2, 9);
+  var _selectable      = !!locals.selectable;
+  var _expandable      = typeof locals.renderExpanded === 'function';
+  var _sticky          = !!locals.stickyHeader;
+  var _rowActions      = Array.isArray(locals.rowActions) && locals.rowActions.length ? locals.rowActions : null;
+  var _actionsColumnLabel = locals.actionsColumnLabel || _m.actionsColumn;
+  var _isCard          = locals.variant === 'card';
+  var _density         = locals.density === 'compact' ? 'compact' : 'comfortable';
+  var _bordered        = locals.bordered !== undefined ? !!locals.bordered : true;
+  var _cards           = locals.layout === 'cards' && typeof locals.renderCard === 'function';
+  var _cardMinWidth    = locals.cardMinWidth || '16rem';
+  var _multiSort       = locals.multiSort !== undefined ? !!locals.multiSort : true;
+  var _clickable       = !!locals.onRowClick;
+  var _dblClickable    = !!locals.onRowDoubleClick;
+  var _keyboard        = locals.keyboardNavigation !== undefined ? !!locals.keyboardNavigation : (_clickable || _dblClickable);
+  var _unstyled        = !!locals.unstyled;
+  var _showChips       = locals.showFilterChips !== undefined ? !!locals.showFilterChips : true;
+  var _regionLabel     = _caption || _m.tableLabel;
+  var _alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' };
+  // kui-react core/columnHelpers.ts (hideBelowClass, densityCellClass) and parts/HeaderCell.tsx.
+  var _hideBelow = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' };
+  var _cellPad = _density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3';
+  var _headPad = _density === 'compact' ? 'px-3 py-2' : 'px-4 py-3';
+  function _cellClass(col) {
+    // unstyled (kui-react cellClassFor(column, '')): no density padding or colour of the table's own.
+    return (locals.unstyled ? '' : _cellPad + ' text-text-primary')
+      + (col.align && col.align !== 'left' ? ' ' + (_alignClass[col.align] || '') : '')
+      + (col.hideBelow && _hideBelow[col.hideBelow] ? ' ' + _hideBelow[col.hideBelow] : '')
+      + (col.tdClass ? ' ' + col.tdClass : '');
+  }
+  // A style local: a CSS string as is, or a style object (camelCase keys; a bare number is pixels, as in React).
+  var _unitless = { opacity: 1, zIndex: 1, fontWeight: 1, lineHeight: 1, flex: 1, flexGrow: 1, flexShrink: 1, order: 1, zoom: 1 };
+  function _css(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    return Object.keys(v).filter(function (k) { return v[k] !== undefined && v[k] !== null && v[k] !== ''; }).map(function (k) {
+      var name = k.indexOf('--') === 0 ? k : k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); });
+      var val = typeof v[k] === 'number' && !_unitless[k] ? v[k] + 'px' : String(v[k]);
+      return name + ':' + val;
+    }).join(';');
+  }
+  function _headStyle(col) {
+    var parts = [];
+    if (col.width) parts.push('width: ' + col.width);
+    var own = _css(col.thStyle);
+    if (own) parts.push(own);
+    return parts.join(';');
+  }
+  function _headClass(col) {
+    if (_unstyled) {
+      // kui-react headerClassFor(column, ''): the alignment, hideBelow and the column's own classes only.
+      return (_alignClass[col.align] || 'text-left')
+        + (col.hideBelow && _hideBelow[col.hideBelow] ? ' ' + _hideBelow[col.hideBelow] : '')
+        + (col.thClass ? ' ' + col.thClass : '');
+    }
+    return _headPad + ' text-xs font-semibold text-text-secondary uppercase tracking-wider '
+      + (_alignClass[col.align] || 'text-left')
+      + (col.hideBelow && _hideBelow[col.hideBelow] ? ' ' + _hideBelow[col.hideBelow] : '')
+      + (col.thClass ? ' ' + col.thClass : '');
+  }
+  function _fill(t, v) {
+    return String(t).replace(/\{(\w+)\}/g, function (a, k) { return Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : a; });
+  }
+  function _headerText(col) {
+    return typeof col.header === 'string' || typeof col.header === 'number' ? String(col.header) : String(col.key);
+  }
+  // EJS hands every include the caller's locals too; blank them so the table's own locals (className,
+  // id, …) never reach an atom as one of its options.
+  function _atom(own) {
+    var o = {};
+    Object.keys(locals).forEach(function (k) { o[k] = undefined; });
+    return Object.assign(o, own);
+  }
+  // The Retry button: the Button atom with kui-react's data-part on its opening tag.
+  var _retryHtml = include('../../Button', _atom({ variant: 'outline', size: 'xs', children: _m.retry })).trim().replace(/^<button/, '<button data-part="retry"');
+
+  // Sort keys: the table works in column keys; `sortKey` is what goes outward (server / manual modes).
+  var _fromWire = {};
+  _columns.forEach(function (c) { if (c.sortKey) _fromWire[c.sortKey] = String(c.key); });
+  function _unwire(sort) {
+    return (Array.isArray(sort) ? sort : []).map(function (s) { return { key: Object.prototype.hasOwnProperty.call(_fromWire, s.key) ? _fromWire[s.key] : s.key, dir: s.dir }; });
+  }
+
+  // The query the first render shows.
+  var _dq = (locals.defaultQuery && typeof locals.defaultQuery === 'object') ? locals.defaultQuery : {};
+  var _cq = (_isManual && locals.query && typeof locals.query === 'object') ? locals.query : null;
+  var _ownSort = locals.initialSort || locals.defaultSort;
+  var _sortState;
+  if (_cq && _cq.sort) _sortState = _unwire(_cq.sort);
+  else if (_isClient) _sortState = Array.isArray(_ownSort) ? _ownSort : (Array.isArray(_dq.sort) ? _dq.sort : []);
+  else if (_isServer) _sortState = Array.isArray(_ownSort) ? _ownSort : _unwire(_dq.sort);
+  else _sortState = _dq.sort ? _unwire(_dq.sort) : (Array.isArray(_ownSort) ? _ownSort : []);
+  function _pick(k, fallback) { return _cq && _cq[k] !== undefined ? _cq[k] : (_dq[k] !== undefined ? _dq[k] : fallback); }
+  var _page = _isClient ? 1 : (Number(_pick('page', 1)) || 1);
+  var _pageSize = _isClient ? (Number(locals.pageSize) || 10) : (Number(_pick('pageSize', locals.pageSize)) || 10);
+  var _search = String(_pick('search', '') || '');
+  var _colFilters = _pick('filters', {}) || {};
+  function _sortOf(key) {
+    for (var i = 0; i < _sortState.length; i++) if (_sortState[i].key === key) return _sortState[i].dir;
+    return null;
+  }
+  function _sortIndex(key) {
+    for (var i = 0; i < _sortState.length; i++) if (_sortState[i].key === key) return i;
+    return -1;
+  }
+
+  // Server mode draws the first page when the route passes it (`rows` + `total`); else it fetches.
+  var _ssr = _isServer && Array.isArray(locals.rows) && typeof locals.total === 'number';
+  var _bodyRows = _isServer ? (_ssr ? _rows : []) : _rows;
+  var _manualError = _isManual && locals.error !== undefined && locals.error !== null && locals.error !== false && locals.error !== '';
+  var _manualLoading = _isManual && !!locals.loading;
+  var _state = locals.state || (_isServer && !_ssr ? 'loading'
+    : _manualError ? 'error'
+    : _bodyRows.length === 0 ? (_manualLoading ? 'loading' : 'empty') : 'ready');
+  var _stateError = _manualError ? String(locals.error) : (_errorMessage || _m.error);
+  var _canRetry = _isServer || !!locals.onRetry;
+
+  // Selection (controlled when selectedRowIds is passed).
+  var _controlledSel = Array.isArray(locals.selectedRowIds);
+  var _selectedIds = _controlledSel ? locals.selectedRowIds : (Array.isArray(locals.defaultSelectedRowIds) ? locals.defaultSelectedRowIds : []);
+  function _rowIdOf(row, fallback) {
+    if (typeof locals.rowId === 'function') return locals.rowId(row);
+    if (typeof locals.rowId === 'string' && locals.rowId) return row[locals.rowId];
+    var own = row ? row.id : undefined;
+    return (typeof own === 'string' || typeof own === 'number') ? own : fallback;
+  }
+  var _offset = (_isManual && _paginated) || _ssr ? (_page - 1) * _pageSize : 0;
+  var _rowIds = _bodyRows.map(function (r, i) { return _rowIdOf(r, _offset + i); });
+  function _canSelect(row) { return typeof locals.isRowSelectable === 'function' ? locals.isRowSelectable(row) : true; }
+  function _isLocked(row) { return _selectable && typeof locals.isRowSelectionLocked === 'function' && !!locals.isRowSelectionLocked(row); }
+  var _selectableIds = _rowIds.filter(function (x, i) { return !_isLocked(_bodyRows[i]) && _canSelect(_bodyRows[i]) === true; });
+  // Locked rows are never part of the selection, even when the host lists their ids.
+  var _lockedKeys = [];
+  _rows.forEach(function (r, i) { if (_isLocked(r)) _lockedKeys.push(JSON.stringify(_rowIdOf(r, _isClient ? i : _offset + i))); });
+  _selectedIds = _selectedIds.filter(function (x) { return _lockedKeys.indexOf(JSON.stringify(x)) === -1; });
+  var _selKeys = _selectedIds.map(function (x) { return JSON.stringify(x); });
+  // The rows the first render shows (the client script re-pages at once; this keeps the header honest).
+  var _shownIds = (_isClient && !_isStatic) ? _selectableIds.slice(0, _pageSize) : _selectableIds;
+  var _shownSel = _shownIds.filter(function (x) { return _selKeys.indexOf(JSON.stringify(x)) !== -1; }).length;
+  var _allShown = _shownIds.length > 0 && _shownSel === _shownIds.length;
+  var _bulk = typeof locals.bulkActions === 'function' ? locals.bulkActions(_selectedIds.slice()) : (locals.bulkActions || '');
+
+  // Filter panel.
+  var _filterFields = Array.isArray(locals.filterFields) ? locals.filterFields : [];
+  var _hasFilters = _filterFields.length > 0;
+  var _fieldDefaults = {};
+  function _isRequiredChoice(f) { return f.required === true && (f.type === 'select' || f.type === 'radio'); }
+  function _inToolbar(f) { return f.placement === 'toolbar' && (f.type === 'select' || f.type === 'radio'); }
+  _filterFields.forEach(function (f) {
+    if (f.defaultValue !== undefined) _fieldDefaults[f.id] = f.defaultValue;
+    else if (_isRequiredChoice(f) && f.options && f.options.length > 0) _fieldDefaults[f.id] = f.options[0].value;
+  });
+  var _panelFields = _filterFields.filter(function (f) { return !_inToolbar(f); });
+  var _toolbarFields = _filterFields.filter(_inToolbar);
+  var _hasPanel = _panelFields.length > 0;
+  var _controlledFilters = !!(locals.filterValues && typeof locals.filterValues === 'object');
+  var _startFilters = (locals.defaultFilterValues && typeof locals.defaultFilterValues === 'object') ? locals.defaultFilterValues
+    : ((_dq.filterValues && typeof _dq.filterValues === 'object') ? _dq.filterValues : {});
+  var _applied = _controlledFilters ? locals.filterValues : Object.assign({}, _fieldDefaults, _startFilters);
+  var _filtersOpen = _hasPanel && !!locals.defaultFiltersOpen;
+  var _filtersLive = !!locals.filtersLive;
+  function _isRange(v) { return typeof v === 'object' && v !== null && !Array.isArray(v) && ('min' in v || 'max' in v); }
+  function _isActive(f, v) {
+    if (v === undefined || v === null || v === '' || v === false) return false;
+    if (typeof v === 'number') return !isNaN(v);
+    if (Array.isArray(v)) return f.type === 'range' ? (v[0] !== Number(f.min) || v[1] !== Number(f.max)) : v.length > 0;
+    if (_isRange(v)) return (v.min !== null && v.min !== undefined) || (v.max !== null && v.max !== undefined);
+    if (typeof v === 'object') return !!(v.from || v.to);
+    return true;
+  }
+  var _activeFields = _filterFields.filter(function (f) { return _isActive(f, _applied[f.id]); });
+  // Required choices and toolbar fields show as themselves: no chip, not counted on the Filters button.
+  var _chipFields = _activeFields.filter(function (f) { return !_isRequiredChoice(f) && !_inToolbar(f); });
+  var _activeCount = _chipFields.length;
+
+  // Active-filter chips (kui-react core/filterPanel.ts filterChipText). The browser repaints them; this
+  // is the first render. A field's `formatChip` is a browser function, so its chip text arrives there.
+  function _optLabel(options, v) {
+    var list = options || [];
+    for (var i = 0; i < list.length; i++) if (list[i].value === v) return list[i].label;
+    return v;
+  }
+  function _valueText(f, v) {
+    switch (f.type) {
+      case 'select': case 'radio': return _optLabel(f.options, String(v));
+      case 'multiselect': case 'checkboxes': return v.map(function (x) { return _optLabel(f.options, x); }).join(', ');
+      case 'checkbox': return '';
+      case 'daterange': return v.from && v.to ? (v.from === v.to ? v.from : v.from + ' – ' + v.to) : (v.from ? '≥ ' + v.from : '≤ ' + v.to);
+      case 'range': return v[0] + ' – ' + v[1];
+      case 'numberrange': {
+        var lo = v.min === undefined ? null : v.min, hi = v.max === undefined ? null : v.max;
+        return lo !== null && hi !== null ? lo + ' – ' + hi : (lo !== null ? '≥ ' + lo : '≤ ' + hi);
+      }
+      default: return Array.isArray(v) ? v.join(', ') : String(v);
+    }
+  }
+  var _chips = [];
+  if (_showChips) {
+    _chipFields.forEach(function (f) {
+      var t = _valueText(f, _applied[f.id]);
+      _chips.push({ id: 'field:' + f.id, text: t ? f.label + ': ' + t : f.label });
+    });
+    _columns.forEach(function (c) {
+      var raw = c.filter ? _colFilters[String(c.key)] : '';
+      if (!raw) return;
+      _chips.push({ id: 'column:' + c.key, text: _headerText(c) + ': ' + _optLabel(c.filter.options, raw) });
+    });
+  }
+  var _hasAnyFilter = _columns.some(function (c) { return !!c.filter; });
+  var _chipsEnabled = _showChips && (_hasFilters || _hasAnyFilter);
+  var _chipClass = 'inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-surface-raised py-0.5 pl-2.5 pr-1 text-xs text-text-primary';
+  var _chipButtonClass = 'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+
+  // Card layout: no header row to click, so a "Sort by" select built from the sortable columns.
+  var _sortable = _columns.filter(function (c) { return c.sortable; });
+  var _sortBy = _cards && _sortable.length > 0;
+  var _sortByValue = _sortState[0] ? _sortState[0].key + ':' + _sortState[0].dir : '';
+  var _selectClass = 'rounded-md border border-border bg-surface-base px-2 py-1.5 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+
+  // Column chooser: the defaults on the server; the browser applies the stored choice (kui-react renders the
+  // defaults on the server too, the stored choice after hydration).
+  var _hideableCols = _columns.filter(function (c) { return c.hideable !== false; });
+  var _chooser = !!locals.columnChooser && !_cards && _hideableCols.length > 0;
+  // The defaults (table-logic.js hiddenColumnKeys with no stored choice): defaultHidden columns, never all of them.
+  var _hiddenCols = !_chooser ? [] : _hideableCols.filter(function (c) { return !!c.defaultHidden; }).map(function (c) { return String(c.key); });
+  if (_hiddenCols.length === _columns.length) _hiddenCols = [];
+  var _hiddenCount = _hiddenCols.length;
+  // table-logic.js columnHideRule: the CSS that hides those columns' cells inside this root.
+  function _cssString(v) { return '"' + String(v).replace(/[\\"]/g, '\\$&').replace(/</g, '\\3c ') + '"'; }
+  function _hideRule(keys) {
+    if (!keys.length) return '';
+    return keys.map(function (k) { return '[data-dt-id=' + _cssString(_id) + '] [data-dt-col=' + _cssString(k) + ']'; }).join(',') + '{display:none!important}';
+  }
+
+  var _leadingCount = (_selectable ? 1 : 0) + (_expandable ? 1 : 0);
+  var _colCount = _leadingCount + _columns.length + (_rowActions ? 1 : 0);
+  var _hasToolbar = _searchable || _hasFilters || _chooser || !!locals.toolbarStart || !!locals.toolbarEnd || _sortBy || _paginated;
+  var _hasFooter = _columns.some(function (c) { return c.footer !== undefined && c.footer !== null; });
+  var _hasHeading = !!(locals.title || locals.subtitle || locals.headerActions);
+  // The controls block (card variant: padded) shows while any of its parts does; the browser repaints it.
+  var _hasControls = _hasToolbar || _hasFilters || _chipsEnabled || _selectable;
+  var _controlsShown = _hasToolbar || _filtersOpen || _chips.length > 0 || (_selectable && _selectedIds.length > 0);
+  var _checkboxClass = 'h-4 w-4 rounded border-border text-primary accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+  var _ready = _state !== 'loading' && _state !== 'error' && _bodyRows.length > 0;
+  var _busy = _manualLoading && _ready;
+  var _stateText = _state === 'error' ? _stateError : (_search ? _fill(_m.noResultsFor, { search: _search }) : _emptyMessage);
+
+  // Client modes: a JSON-safe projection of every row for search / sort (columns without render)
+  // and for the filter panel (each field's row value; the whole row when a field has its own `match`).
+  var _hasMatch = _filterFields.some(function (f) { return typeof f.match === 'string'; });
+  function _jsonSafe(v) {
+    if (v === undefined || typeof v === 'function') return null;
+    try { return JSON.parse(JSON.stringify(v)); } catch (e) { return null; }
+  }
+  // Search: every searchable column (searchValue, else the raw value, rendered or not) and searchText, as one
+  // lower-cased text per row (kui-react applySearch); sort: the raw values of the sortable and plain columns
+  // (numbers stay numbers, dates become times, empty is ''); group: the row's group key.
+  function _searchOf(row) {
+    var parts = [];
+    _columns.forEach(function (col) {
+      if (col.searchable === false) return;
+      var raw = typeof col.searchValue === 'function' ? col.searchValue(row) : row[col.key];
+      if (raw === undefined || raw === null || typeof raw === 'object' && !(raw instanceof Date)) return;
+      parts.push(String(raw));
+    });
+    if (typeof locals.searchText === 'function') parts.push(String(locals.searchText(row) || ''));
+    return parts.join('\u0001').toLowerCase();
+  }
+  function _sortValue(v) {
+    if (v === undefined || v === null) return '';
+    if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.getTime();
+    if (typeof v === 'number') return isFinite(v) ? v : '';
+    return String(v);
+  }
+  var _groupBy = typeof locals.groupBy === 'function' ? locals.groupBy : null;
+  var _rowsData = !_isClient ? [] : _rows.map(function (row) {
+    var obj = {};
+    _columns.forEach(function (col) {
+      if (col.render && !col.sortable) return;
+      obj[col.key] = _sortValue(row[col.key]);
+    });
+    obj.__s = _searchOf(row);
+    if (_groupBy) obj.__g = String(_groupBy(row));
+    return obj;
+  });
+  var _filterData = (!_isClient || !_hasFilters) ? [] : _rows.map(function (row) {
+    if (_hasMatch) {
+      var whole = {};
+      Object.keys(row).forEach(function (k) { if (k !== '_expanded') whole[k] = _jsonSafe(row[k]); });
+      return whole;
+    }
+    var obj = {};
+    _filterFields.forEach(function (f) { obj[f.id] = _jsonSafe(row[f.id]); });
+    return obj;
+  });
+
+  var _rowsLocals = Object.assign({}, locals, { id: _id, rows: _bodyRows, offset: _offset, selectedRowIds: _selectedIds, columnChooser: _chooser });
+%>
+<% var _config = {
+    id: _id,
+    mode: _isServer ? 'server' : (_isManual ? 'manual' : (_isStatic ? 'static' : 'paginated')),
+    paginated: _paginated,
+    cols: _columns.map(function (c) { return { key: c.key, header: _headerText(c), sortable: !!c.sortable, sortKey: c.sortKey || '', hasRender: !!c.render, align: c.align || '', tdClass: c.tdClass || '', cellClass: _cellClass(c), filter: c.filter ? { kind: c.filter.kind || 'text', options: c.filter.options || [], placeholder: c.filter.placeholder || '' } : null }; }),
+    rowsData: _rowsData,
+    filterData: _filterData,
+    rowsCount: _rows.length,
+    colCount: _colCount,
+    pageSize: _pageSize,
+    page: _page,
+    search: _search,
+    filters: _colFilters,
+    hasAnyFilter: _hasAnyFilter,
+    sort: _sortState,
+    multiSort: _multiSort,
+    searchDebounceMs: _isClient ? 0 : (locals.searchDebounceMs !== undefined ? Number(locals.searchDebounceMs) : 300),
+    stateOverride: locals.state || null,
+    msgs: _m,
+    groups: !!_groupBy,
+    groupHeadClass: _unstyled ? '' : _cellPad + ' text-left text-xs font-semibold uppercase tracking-wider text-text-secondary',
+    emptyMessage: _emptyMessage,
+    loadingMessage: _loadingMessage,
+    errorMessage: _errorMessage,
+    selectable: _selectable,
+    selected: _selectedIds,
+    controlledSelection: _controlledSel,
+    onSelectionChange: typeof locals.onSelectionChange === 'string' ? locals.onSelectionChange : '',
+    expandable: _expandable,
+    filtersEnabled: _hasFilters,
+    applied: _applied,
+    controlledFilters: _controlledFilters,
+    filtersLive: _filtersLive,
+    filtersOpen: _filtersOpen,
+    showFilterChips: _chipsEnabled,
+    onFilterValuesChange: typeof locals.onFilterValuesChange === 'string' ? locals.onFilterValuesChange : '',
+    fetchUrl: _isServer && locals.fetchUrl ? String(locals.fetchUrl) : '',
+    fetchPage: _isServer && typeof locals.fetchPage === 'string' ? locals.fetchPage : '',
+    ssrTotal: _ssr ? Number(locals.total) : null,
+    reloadKey: locals.reloadKey === undefined ? null : locals.reloadKey,
+    onLoaded: typeof locals.onLoaded === 'string' ? locals.onLoaded : '',
+    total: _isManual && typeof locals.total === 'number' ? locals.total : null,
+    loading: _manualLoading,
+    error: _manualError ? String(locals.error) : null,
+    retry: _canRetry,
+    onRetry: typeof locals.onRetry === 'string' ? locals.onRetry : '',
+    controlledQuery: _cq ? Object.keys(_cq) : null,
+    onQueryChange: typeof locals.onQueryChange === 'string' ? locals.onQueryChange : '',
+    rowClick: _clickable,
+    onRowClick: typeof locals.onRowClick === 'string' ? locals.onRowClick : '',
+    rowDoubleClick: _dblClickable,
+    onRowDoubleClick: typeof locals.onRowDoubleClick === 'string' ? locals.onRowDoubleClick : '',
+    unstyled: _unstyled,
+    keyboard: _keyboard,
+    cards: _cards,
+    legacyAdvanced: !!locals.legacyAdvanced,
+    columnChooser: _chooser ? {
+      storageKey: locals.tableId ? 'kui.dataTable.columns.v1.' + String(locals.tableId) : '',
+      cols: _columns.map(function (c) { return { key: String(c.key), label: _headerText(c), hideable: c.hideable !== false, defaultHidden: !!c.defaultHidden, hideBelow: c.hideBelow || '' }; })
+    } : null,
+    // Markup the browser adds later, rendered here by the atoms so it stays theirs.
+    badgeHtml: _hasFilters ? include('../../Badge', _atom({ variant: 'primary', size: 'sm', className: 'ml-1', children: '{count}' })).trim() : '',
+    spinnerHtml: (_isServer || _isManual) ? include('../../Spinner', _atom({ size: 'sm', label: null })).trim() : '',
+    busyHtml: (_isServer || _isManual) ? '<div class="absolute inset-0 z-20 flex items-center justify-center bg-surface-base/60" data-part="busy">' + include('../../Spinner', _atom({ size: 'lg' })).trim() + '</div>' : '',
+    retryHtml: _canRetry ? _retryHtml : '',
+    clearAllHtml: _chipsEnabled ? include('../../Button', _atom({ variant: 'ghost', size: 'xs', children: _m.clearAllFilters })).trim().replace(/^<button/, '<button data-part="clear-filters"') : ''
+  };
+%>
+<div id="<%= _id %>" class="<%= _isCard ? 'rounded-xl border border-border bg-surface-raised shadow-sm overflow-hidden' : 'space-y-3' %><%= _className ? ' ' + _className : '' %>" data-dt-root data-dt-id="<%= _id %>"<% if (_isCard) { %> data-variant="card"<% } %><% if (locals.legacyAdvanced) { %> data-adt-root<% } %>>
+  <% if (_hasHeading) { %>
+  <div class="flex items-start justify-between gap-3 flex-wrap<%= _isCard ? ' px-6 py-4 border-b border-border' : '' %>" data-part="header">
+    <div class="min-w-0">
+      <% if (locals.title) { %><h3 class="text-sm font-semibold text-text-primary"><%= locals.title %></h3><% } %>
+      <% if (locals.subtitle) { %><p class="text-xs text-text-secondary mt-0.5"><%= locals.subtitle %></p><% } %>
+    </div>
+    <% if (locals.headerActions) { %><div class="flex shrink-0 flex-wrap items-center gap-2"><%- locals.headerActions %></div><% } %>
+  </div>
+  <% } %>
+
+  <% if (_isCard && _hasControls) { %><div class="space-y-3 p-4<%= _controlsShown ? '' : ' hidden' %>" data-dt-controls><% } %>
+  <% if (_hasToolbar) { %>
+  <div class="flex items-center gap-2 flex-wrap" data-part="toolbar" data-dt-toolbar>
+    <% if (locals.toolbarStart) { %><%- locals.toolbarStart %><% } %>
+    <% if (_searchable) { %>
+      <%- include('../../SearchBar', _atom({ id: _id + '-search', placeholder: _searchPlaceholder, label: _m.search, value: _search, className: 'flex-1 min-w-40' })) %>
+    <% } %>
+    <% if (_toolbarFields.length > 0) { %>
+    <%- include('./toolbar-filters', { id: _id, fields: _toolbarFields, values: _applied, messages: locals.messages }) %>
+    <% } %>
+    <% if (_hasPanel) { %>
+    <button type="button" data-part="filter-toggle" data-dt-filter-toggle aria-expanded="<%= _filtersOpen ? 'true' : 'false' %>"<% if (_filtersOpen) { %> aria-controls="<%= _id %>-filters"<% } %>
+      class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed border border-border text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm shrink-0<%= _filtersOpen ? ' bg-surface-overlay' : '' %>">
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-filter w-3.5 h-3.5" aria-hidden="true"></i></span><%= _m.filters %><% if (_activeCount > 0) { %><%- include('../../Badge', _atom({ variant: 'primary', size: 'sm', className: 'ml-1', children: String(_activeCount) })) %><% } %>
+    </button>
+    <% } %>
+    <% if (_chooser) { %>
+    <%# kui-react parts/ColumnChooser.tsx: an outline button and a panel of one checkbox per hideable column. %>
+    <div class="relative shrink-0" data-part="column-chooser" data-dt-column-chooser>
+      <style data-dt-col-style><%- _hideRule(_hiddenCols) %></style>
+      <button type="button" data-part="column-chooser-toggle" data-dt-columns-toggle aria-expanded="false"
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed border border-border text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm">
+        <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-table-columns w-3.5 h-3.5" aria-hidden="true"></i></span><%= _m.columns %><%- include('../../Badge', _atom({ variant: 'neutral', size: 'sm', className: 'ml-1' + (_hiddenCount > 0 ? '' : ' hidden'), children: String(_hiddenCount) })).trim().replace(/^<span/, '<span aria-label="' + _fill(_m.hiddenColumns, { count: _hiddenCount }).replace(/"/g, '&quot;') + '" data-dt-columns-count') %>
+      </button>
+      <div id="<%= _id %>-columns" role="dialog" aria-label="<%= _m.columns %>" class="absolute right-0 top-full mt-1 z-[70] w-max min-w-[12rem] max-w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-raised shadow-xl p-3 hidden" data-dt-columns-panel>
+        <div class="max-h-72 space-y-2 overflow-y-auto">
+          <% _hideableCols.forEach(function (c) { var _ck = String(c.key); %>
+          <%- include('../../Checkbox', _atom({ id: _id + '-columns-' + _ck.replace(/[^\w-]/g, '_'), label: _headerText(c), checked: _hiddenCols.indexOf(_ck) === -1 })).trim().replace(/^<div/, '<div data-dt-column-choice="' + _ck.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"') %>
+          <% }); %>
+        </div>
+        <div class="mt-3 flex justify-end border-t border-border pt-2">
+          <%- include('../../Button', _atom({ variant: 'ghost', size: 'xs', disabled: true, children: _m.resetColumns })).trim().replace(/^<button/, '<button data-part="column-chooser-reset"') %>
+        </div>
+      </div>
+    </div>
+    <% } %>
+    <% if (_sortBy) { %>
+    <div class="flex items-center gap-2 shrink-0">
+      <label for="<%= _id %>-sortby" class="text-xs text-text-secondary whitespace-nowrap"><%= _m.sortBy %></label>
+      <select id="<%= _id %>-sortby" class="<%= _selectClass %>" data-part="sort-by" data-dt-sort-by>
+        <option value=""<%= _sortByValue === '' ? ' selected' : '' %>><%= _m.sortNone %></option>
+        <% _sortable.forEach(function (c) { var _ck = String(c.key); %>
+        <option value="<%= _ck %>:asc"<%= _sortByValue === _ck + ':asc' ? ' selected' : '' %>><%= _fill(_m.sortAscending, { column: _headerText(c) }) %></option>
+        <option value="<%= _ck %>:desc"<%= _sortByValue === _ck + ':desc' ? ' selected' : '' %>><%= _fill(_m.sortDescending, { column: _headerText(c) }) %></option>
+        <% }); %>
+      </select>
+    </div>
+    <% } %>
+    <% if (locals.toolbarEnd) { %><%- locals.toolbarEnd %><% } %>
+    <% if (_paginated && _pageSizeOptions.length > 0) { %>
+    <div class="flex items-center gap-2 shrink-0">
+      <label for="<%= _id %>-pagesize" class="text-xs text-text-secondary whitespace-nowrap"><%= _m.rowsPerPage %></label>
+      <select
+        id="<%= _id %>-pagesize"
+        data-dt-pagesize
+        class="<%= _selectClass %>"
+      >
+        <% _pageSizeOptions.forEach(function (opt) { %>
+        <option value="<%= opt %>"<%= opt === _pageSize ? ' selected' : '' %>><%= opt %></option>
+        <% }); %>
+      </select>
+    </div>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (_hasFilters) { %>
+  <form id="<%= _id %>-filters" aria-label="<%= _m.filters %>" class="rounded-lg border border-border bg-surface-raised p-4<%= _filtersOpen ? '' : ' hidden' %>" data-part="filter-panel" data-dt-filter-panel novalidate>
+    <%- include('./filter-fields', { id: _id, fields: _filterFields, values: _applied, messages: locals.messages }) %>
+    <div class="mt-4 flex justify-end gap-2" data-dt-filter-actions>
+      <%- include('../../Button', _atom({ variant: 'ghost', size: 'sm', children: _m.resetFilters })) %>
+      <% if (!_filtersLive) { %><%- include('../../Button', _atom({ variant: 'primary', size: 'sm', type: 'submit', children: _m.apply })) %><% } %>
+    </div>
+  </form>
+  <% } %>
+
+  <% if (_chipsEnabled) { %>
+  <div role="group" aria-label="<%= _m.activeFilters %>" class="flex flex-wrap items-center gap-1.5<%= _chips.length === 0 ? ' hidden' : '' %>" data-part="filter-chips" data-dt-chips>
+    <% _chips.forEach(function (chip) { %>
+    <span class="<%= _chipClass %>" data-part="filter-chip"><span class="truncate"><%= chip.text %></span><button type="button" aria-label="<%= _fill(_m.removeFilter, { filter: chip.text }) %>" class="<%= _chipButtonClass %>" data-dt-chip-remove="<%= chip.id %>"><i class="fa-solid fa-xmark w-2.5 h-2.5" aria-hidden="true"></i></button></span>
+    <% }); %>
+    <% if (_chips.length > 1) { %><%- include('../../Button', _atom({ variant: 'ghost', size: 'xs', children: _m.clearAllFilters })).trim().replace(/^<button/, '<button data-part="clear-filters"') %><% } %>
+  </div>
+  <% } %>
+
+  <% if (_selectable) { %>
+  <div class="flex flex-wrap items-center gap-2<%= _selectedIds.length === 0 ? ' hidden' : '' %>" data-part="selection-summary" data-dt-selection-summary>
+    <p class="text-xs text-text-secondary" data-dt-selected-count><%= _m.selectedCount.split('{count}').join(String(_selectedIds.length)) %></p>
+    <%- include('../../Button', _atom({ variant: 'ghost', size: 'xs', children: _m.clearSelection })) %>
+    <% if (_bulk) { %><div class="flex flex-wrap items-center gap-2" data-part="bulk-actions"><%- _bulk %></div><% } %>
+  </div>
+  <% } %>
+  <% if (_isCard && _hasControls) { %></div><% } %>
+
+  <% if (_cards) { %>
+  <% if (_isCard) { %><div class="px-4 pb-4<%= _hasControls && _controlsShown ? '' : ' pt-4' %>" data-dt-cards-wrap><% } %>
+  <div class="relative"<% if (_busy) { %> aria-busy="true"<% } %> data-dt-scroll>
+    <% if (_busy) { %><div class="absolute inset-0 z-20 flex items-center justify-center bg-surface-base/60" data-part="busy"><%- include('../../Spinner', _atom({ size: 'lg' })) %></div><% } %>
+    <% if (!_ready) { %>
+    <div<% if (_state === 'error') { %> role="alert"<% } %> class="rounded-lg border border-border px-4 py-10 text-center text-sm <%= _state === 'error' ? 'text-error-fg bg-error-subtle' : 'text-text-secondary' %>" data-part="state" data-dt-state-row>
+      <span class="inline-flex flex-col items-center gap-2"><% if (_state === 'loading') { %><span class="inline-flex items-center gap-2"><%- include('../../Spinner', _atom({ size: 'sm', label: null })) %><%= _loadingMessage %></span><% } else { %><span><%= _stateText %></span><% } %><% if (_state === 'error' && _canRetry) { %><%- include('../../Button', _atom({ variant: 'outline', size: 'xs', children: _m.retry })).trim().replace(/^<button/, '<button data-part="retry"') %><% } %></span>
+    </div>
+    <% } %>
+    <ul class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(var(--dt-card-min),100%),1fr))]<%= _ready ? '' : ' hidden' %>" style="--dt-card-min: <%= _cardMinWidth %>" aria-label="<%= _regionLabel %>" data-part="cards" data-dt-body>
+      <% if (_state !== 'loading' && _state !== 'error') { %><%- include('./rows', _rowsLocals) %><% } %>
+    </ul>
+    <% if (!_paginated) { %><%- include('../scripts/data-table-script', { config: _config }) %><% } %>
+  </div>
+  <% if (_isCard) { %></div><% } %>
+  <% } else { %>
+  <%
+    // The host's scroll classes come last; one that sets the overflow replaces the table's own (kui-react merges them).
+    var _scrollOwn = String(locals.scrollClassName || '').trim();
+    var _scrollOverflow = /(^|\s)overflow-(auto|hidden|scroll|visible|clip)(\s|$)/.test(_scrollOwn);
+    var _regionClass = 'relative w-full'
+      + (_sticky ? (_scrollOverflow ? ' max-h-80' : ' overflow-auto max-h-80') : (_scrollOverflow ? '' : ' overflow-x-auto'))
+      + (!_isCard && _bordered && !_unstyled ? ' rounded-lg border border-border' : '')
+      + (_isCard ? ' border-t border-border' : '')
+      + (_scrollOwn ? ' ' + _scrollOwn : '');
+    var _tableStyle = _css(locals.tableStyle);
+    var _theadClass = (_unstyled ? '' : 'bg-surface-sunken border-b border-border') + (_sticky ? (_unstyled ? '' : ' ') + 'sticky top-0 z-10' : '');
+  %>
+  <div class="<%= _regionClass %>" tabindex="0" role="region" aria-label="<%= _regionLabel %>"<% if (_busy) { %> aria-busy="true"<% } %> data-dt-scroll>
+    <% if (_busy) { %><div class="absolute inset-0 z-20 flex items-center justify-center bg-surface-base/60" data-part="busy"><%- include('../../Spinner', _atom({ size: 'lg' })) %></div><% } %>
+    <table class="w-full<%= _unstyled ? '' : ' text-sm' %><%= locals.tableClassName ? ' ' + locals.tableClassName : '' %>"<% if (_tableStyle) { %> style="<%= _tableStyle %>"<% } %>>
+      <% if (_caption) { %><caption class="sr-only"><%= _caption %></caption><% } %>
+      <thead<% if (_theadClass) { %> class="<%= _theadClass %>"<% } %>>
+        <tr>
+          <% if (_selectable) { %>
+          <th scope="col" class="w-10 px-4 py-3" data-part="select">
+            <input type="checkbox" aria-label="<%= _m.selectAllRows %>" data-dt-select-all class="<%= _checkboxClass %>"<% if (_allShown) { %> checked<% } %><% if (_shownIds.length === 0) { %> disabled<% } %><% if (_shownSel > 0 && !_allShown) { %> data-indeterminate="true"<% } %>>
+          </th>
+          <% } %>
+          <% if (_expandable) { %>
+          <th scope="col" class="w-10 px-4 py-3" data-part="expand"><span class="sr-only"><%= _m.expandColumn %></span></th>
+          <% } %>
+          <% _columns.forEach(function (col) {
+               var _dir = col.sortable ? _sortOf(col.key) : null;
+               // Priority numbers only once the user builds a multi-column sort: a default one shows plain headings.
+               var _order = 0;
+               var _fv = col.filter ? _colFilters[String(col.key)] : '';
+          %>
+          <th
+            scope="col"<% if (_chooser) { %> data-dt-col="<%= col.key %>"<% } %>
+            <% if (col.sortable) { %>aria-sort="<%= _dir === 'asc' ? 'ascending' : (_dir === 'desc' ? 'descending' : 'none') %>" data-dt-sort-key="<%= col.key %>"<% } %>
+            class="<%= _headClass(col) %>"<% var _hst = _headStyle(col); if (_hst) { %> style="<%= _hst %>"<% } %>
+          >
+            <span class="inline-flex items-center gap-1">
+              <% if (col.sortable) { %>
+              <%# A real button, so the sort is reachable and operable from the keyboard (kui-react HeaderCell). %>
+              <% var _iconCls = 'fa-solid ' + (_dir === 'asc' ? 'fa-chevron-up' : (_dir === 'desc' ? 'fa-chevron-down' : 'fa-sort')) + ' w-2.5 h-2.5' + (_dir ? '' : ' opacity-50'); %>
+              <% if (_unstyled) { %>
+              <%# kui-react HeaderCell unstyled: the icon sits in the button itself; an end-aligned heading keeps its text flush right. %>
+              <button type="button" class="inline-flex items-center gap-1 select-none transition-colors cursor-pointer rounded-sm<%= col.align === 'right' ? ' flex-row-reverse' : '' %> hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _dir ? ' text-text-primary' : '' %>" data-part="sort"><% if (col.headerHtml) { %><%- col.headerHtml %><% } else { %><%= col.header %><% } %><i class="<%= _iconCls %>" data-dt-sort-icon aria-hidden="true"></i></button>
+              <% } else { %>
+              <button type="button" class="inline-flex items-center gap-1 rounded uppercase tracking-wider select-none transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _dir ? ' text-text-primary' : '' %>" data-part="sort"><% if (col.headerHtml) { %><%- col.headerHtml %><% } else { %><%= col.header %><% } %><span class="inline-flex" data-dt-sort-icon aria-hidden="true"><i class="<%= _iconCls %>"></i></span></button>
+              <% } %>
+              <%# The order badge only matters with several sorted columns (kui-react draws it only then). %>
+              <% if (_multiSort || !_unstyled) { %><span class="<%= _order > 0 ? 'inline-flex' : 'hidden' %> ml-0.5 h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-fg px-1" data-dt-sort-order aria-hidden="true"><%= _order > 0 ? _order : '' %></span><% } %>
+              <% } else if (col.headerHtml) { %>
+              <%- col.headerHtml %>
+              <% } else { %>
+              <%= col.header %>
+              <% } %>
+              <% if (col.filter) { %>
+              <span class="relative inline-flex">
+                <button
+                  type="button"
+                  data-dt-filter-trigger="<%= col.key %>"
+                  data-dt-filter-kind="<%= col.filter.kind || 'text' %>"
+                  aria-label="<%= _fill(_fv ? _m.editColumnFilter : _m.columnFilter, { column: _headerText(col) }) %>"
+                  aria-expanded="false"
+                  class="inline-flex items-center justify-center rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= _fv ? 'text-primary hover:text-primary-hover' : 'text-text-disabled hover:text-text-primary' %>"
+                >
+                  <i class="fa-solid fa-filter w-2.5 h-2.5" aria-hidden="true"></i>
+                </button>
+              </span>
+              <% } %>
+            </span>
+          </th>
+          <% }); %>
+          <% if (_rowActions) { %>
+          <th scope="col" class="w-12 px-2 py-3"><span class="sr-only"><%= _actionsColumnLabel %></span></th>
+          <% } %>
+        </tr>
+      </thead>
+      <tbody<% if (!_unstyled) { %> class="divide-y divide-border bg-surface-base"<% } %> data-dt-body>
+        <% if (_state === 'loading') { %>
+        <tr data-dt-state-row>
+          <td colspan="<%= _colCount %>" class="px-4 py-10 text-center text-sm text-text-secondary">
+            <span class="inline-flex items-center gap-2"><%- include('../../Spinner', _atom({ size: 'sm', label: null })) %><%= _loadingMessage %></span>
+          </td>
+        </tr>
+        <% } else if (_state === 'error') { %>
+        <tr data-dt-state-row>
+          <td colspan="<%= _colCount %>" role="alert" class="px-4 py-10 text-center text-sm text-error-fg bg-error-subtle"><span class="inline-flex flex-col items-center gap-2"><span><%= _stateError %></span><% if (_canRetry) { %><%- include('../../Button', _atom({ variant: 'outline', size: 'xs', children: _m.retry })).trim().replace(/^<button/, '<button data-part="retry"') %><% } %></span></td>
+        </tr>
+        <% } else if (_bodyRows.length === 0) { %>
+        <tr data-dt-empty>
+          <td colspan="<%= _colCount %>" class="px-4 py-10 text-center text-sm text-text-secondary"><%= _stateText %></td>
+        </tr>
+        <% } %>
+        <% if (_state !== 'loading' && _state !== 'error') { %>
+        <%- include('./rows', _rowsLocals) %>
+        <% } %>
+      </tbody>
+      <% if (_hasFooter) { %>
+      <tfoot class="border-t border-border bg-surface-sunken font-medium<%= _ready ? '' : ' hidden' %>" data-part="footer" data-dt-footer>
+        <tr>
+          <% if (_leadingCount > 0) { %><td colspan="<%= _leadingCount %>"></td><% } %>
+          <% _columns.forEach(function (col) { %>
+          <td class="<%= _cellClass(col).trim() %>"<% if (_chooser) { %> data-dt-col="<%= col.key %>"<% } %>><%= col.footer !== undefined && col.footer !== null ? col.footer : '' %></td>
+          <% }); %>
+          <% if (_rowActions) { %><td></td><% } %>
+        </tr>
+      </tfoot>
+      <% } %>
+    </table>
+    <%# The boot script sits inside the last box of the root, after everything it binds: a script as the
+        last child would take :last-child from the box before it and give it a space-y margin. %>
+    <% if (!_paginated) { %><%- include('../scripts/data-table-script', { config: _config }) %><% } %>
+  </div>
+  <% } %>
+
+  <% if (_paginated) { %>
+  <div class="flex items-center justify-between gap-4 flex-wrap<%= _isCard ? ' border-t border-border px-4 py-3' : '' %>" data-part="pagination">
+    <p class="text-xs text-text-secondary" data-dt-status></p>
+    <nav aria-label="<%= _m.pagination %>" class="flex items-center gap-1 flex-wrap" data-dt-pagination></nav>
+    <%- include('../scripts/data-table-script', { config: _config }) %>
+  </div>
+  <% } %>
+</div>

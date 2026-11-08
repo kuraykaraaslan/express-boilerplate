@@ -1,0 +1,66 @@
+<%
+  // ── Card partial ─────────────────────────────────────────────────────
+  // Pixel-identical to modules/app/KanbanBoard/parts/Card.tsx
+  var _id  = _id;
+  var card = card;
+
+  var PRIORITY_TONE = {
+    low:    'bg-info-subtle text-info border-info/30',
+    medium: 'bg-primary-subtle text-primary border-primary/30',
+    high:   'bg-warning-subtle text-warning border-warning/30',
+    urgent: 'bg-error-subtle text-error border-error/30'
+  };
+  var LABEL_TONE = {
+    primary: 'bg-primary-subtle text-primary',
+    success: 'bg-success-subtle text-success-fg',
+    warning: 'bg-warning-subtle text-warning',
+    error:   'bg-error-subtle text-error',
+    info:    'bg-info-subtle text-info',
+    neutral: 'bg-surface-overlay text-text-secondary'
+  };
+
+  function initials(name) {
+    var parts = String(name || '').split(/\s+/);
+    return (parts[0] || '').charAt(0).toUpperCase() + (parts[1] || '').charAt(0).toUpperCase();
+  }
+
+  var hasMeta = !!card.priority || (card.labels && card.labels.length) || (card.assignees && card.assignees.length);
+%>
+<li
+  role="listitem"
+  draggable="true"
+  tabindex="0"
+  data-card-id="<%= card.id %>"
+  data-from-column-id="<%= card.columnId %>"
+  class="kb-card group select-none cursor-grab active:cursor-grabbing rounded-md border border-border bg-surface-base shadow-sm px-3 py-2 transition-opacity hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+>
+  <div class="flex items-start gap-2">
+    <i class="fa-solid fa-grip-vertical mt-0.5 text-[10px] text-text-disabled group-hover:text-text-secondary shrink-0" aria-hidden="true"></i>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-text-primary leading-snug break-words"><%= card.title %></p>
+      <% if (card.description) { %>
+        <p class="mt-0.5 text-xs text-text-secondary line-clamp-2"><%= card.description %></p>
+      <% } %>
+      <% if (hasMeta) { %>
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+          <% if (card.priority) { %>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border <%= PRIORITY_TONE[card.priority] || PRIORITY_TONE.medium %>"><%= card.priority %></span>
+          <% } %>
+          <% (card.labels || []).forEach(function (l) { %>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium <%= LABEL_TONE[l.tone || 'neutral'] %>"><%= l.label %></span>
+          <% }); %>
+          <% if (card.assignees && card.assignees.length) { %>
+            <span class="ml-auto inline-flex items-center gap-0.5 text-[10px] text-text-secondary">
+              <% card.assignees.slice(0, 3).forEach(function (a) { %>
+                <span title="<%= a.name %>" class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-surface-overlay text-[9px] font-medium text-text-primary border border-border"><%= initials(a.name) %></span>
+              <% }); %>
+              <% if (card.assignees.length > 3) { %>
+                <span class="text-text-secondary">+<%= card.assignees.length - 3 %></span>
+              <% } %>
+            </span>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</li>

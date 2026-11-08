@@ -1,0 +1,6 @@
+<%#
+  Secondary information: a time, "of 100K", a caption (`Meta`). Nothing for an empty text.
+  Locals: text, className, style (a style record), tooltip (the title attribute; not `title`, which a placement local of that name would shadow).
+%><%_ if (locals.text !== null && locals.text !== undefined && locals.text !== '') { var _st = widgetKit.style(locals.style); _%>
+<span<% if (locals.tooltip) { %> title="<%= locals.tooltip %>"<% } %> class="<%= widgetKit.ui.metaClass(locals.className) %>"<% if (_st) { %> style="<%= _st %>"<% } %>><%= locals.text %></span>
+<%_ } _%>

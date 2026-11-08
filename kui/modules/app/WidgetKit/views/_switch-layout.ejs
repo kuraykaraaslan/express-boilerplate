@@ -1,0 +1,20 @@
+<%#
+  The arrangement of control.switch (kui-react ControlSwitchView's `renderLayout`), included by ControlSwitch.ejs
+  (`layoutPartial`). The switch can change state in the browser, so the parts whose look follows the state (the head's
+  icon tile and the state text or pill) are drawn once per state and the control's runtime shows the one that matches
+  (`data-kui-state`, `stateViews`). The visible label is the model's `caption` (left out when it only repeats the card's
+  title shown in the header, `captionOf`); the switch's accessible name stays `ariaLabel`.
+  Locals: g (the switch model), parts ({ control, state, stateText, stateId, pending, locked } of ControlSwitch.ejs).
+%><%_
+  var _g = locals.g;
+  var _p = locals.parts;
+  var _names = ['on', 'off', 'unknown'];
+  var _hasTile = _names.some(function (n) { return !!_g.states[n].tile; });
+  var _pill = _g.display === 'pill';
+  var _right = _g.layout === 'right';
+_%>
+<%_ if (_g.layout === 'centered') { _%>
+<div class="flex min-h-0 flex-1 flex-col items-center justify-center-safe gap-1.5 text-center [&>*]:shrink-0"><% if (_hasTile || _g.caption) { %><div class="flex max-w-full items-center gap-2"><%- include('_switch-icons', { g: _g, state: _p.state }) %><%- include('../_metric-label', { text: _g.caption, font: _g.label.font, color: _g.label.color, className: '' }) %></div><% } %><%- include('../_slot', { body: _p.control }) %><%- include('_switch-states', { g: _g, state: _p.state, stateId: _p.stateId }) %></div>
+<%_ } else { _%>
+<div class="flex min-h-0 flex-1 flex-col gap-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0 pt-0.5"><%- include('../_metric-label', { text: _g.caption, font: _g.label.font, color: _g.label.color, className: '' }) %></div><%- include('_switch-icons', { g: _g, state: _p.state }) %></div><div class="mt-auto flex min-h-9 items-center gap-3 <%= _right ? 'justify-between' : 'justify-start' %>"><% if (_right) { %><%- include('_switch-states', { g: _g, state: _p.state, stateId: _p.stateId }) %><%- include('../_slot', { body: _p.control }) %><% } else { %><%- include('../_slot', { body: _p.control }) %><%- include('_switch-states', { g: _g, state: _p.state, stateId: _p.stateId }) %><% } %></div></div>
+<%_ } _%>

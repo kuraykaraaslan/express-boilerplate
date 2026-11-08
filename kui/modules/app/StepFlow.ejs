@@ -1,0 +1,97 @@
+<%
+  var _steps         = locals.steps         || [];
+  var _current       = typeof locals.currentStep === 'number' ? locals.currentStep : 0;
+  var _stepError     = locals.stepError     || '';
+  var _completeLabel = locals.completeLabel || 'Finish';
+  var _cancelLabel   = locals.cancelLabel   || 'Cancel';
+  var _nextLabel     = locals.nextLabel     || 'Next';
+  var _prevLabel     = locals.prevLabel     || 'Back';
+  var _showCancel    = locals.showCancel !== false;
+  var _completing    = !!locals.completing;
+  var _className     = locals.className     || '';
+  var _flowId        = locals.id || ('stepflow-' + Math.random().toString(36).slice(2, 8));
+
+  if (_current < 0) _current = 0;
+  if (_current > _steps.length - 1) _current = Math.max(0, _steps.length - 1);
+
+  var stepperItems = _steps.map(function (s, i) {
+    return {
+      label: s.label,
+      description: s.description,
+      state: i < _current ? 'complete' : (i === _current ? 'active' : 'pending')
+    };
+  });
+
+  var isLast = _current === _steps.length - 1;
+  var activeStep = _steps[_current] || {};
+%>
+<div id="<%= _flowId %>" class="space-y-6<%= _className ? ' ' + _className : '' %>">
+  <%- include('../ui/Stepper', { steps: stepperItems }) %>
+
+  <div class="min-h-[12rem]">
+    <%- activeStep.content || '' %>
+  </div>
+
+  <% if (_stepError) { %>
+    <%- include('../ui/AlertBanner', { variant: 'error', message: _stepError }) %>
+  <% } %>
+
+  <div class="flex items-center justify-between gap-3 pt-4 border-t border-border">
+    <div>
+      <% if (_showCancel && _current === 0) { %>
+        <span data-stepflow-cancel>
+          <%- include('../ui/Button', {
+            variant: 'ghost',
+            children: _cancelLabel,
+          }) %>
+        </span>
+      <% } %>
+      <% if (_current > 0) { %>
+        <span data-stepflow-prev>
+          <%- include('../ui/Button', {
+            variant: 'outline',
+            children: _prevLabel,
+          }) %>
+        </span>
+      <% } %>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-text-disabled"><%= _current + 1 %> / <%= _steps.length %></span>
+      <% if (isLast) { %>
+        <span data-stepflow-complete>
+          <%- include('../ui/Button', {
+            variant: 'primary',
+            loading: _completing,
+            children: _completeLabel,
+          }) %>
+        </span>
+      <% } else { %>
+        <span data-stepflow-next>
+          <%- include('../ui/Button', {
+            variant:   'primary',
+            children:  _nextLabel,
+            iconRight: '<span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-arrow-right w-3.5 h-3.5"></i></span>',
+          }) %>
+        </span>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../ui/_script-json', { value: String(_flowId) }) %>);
+  if (!root) return;
+  function fire(name) {
+    root.dispatchEvent(new CustomEvent(name, { bubbles: true }));
+  }
+  var n = root.querySelector('[data-stepflow-next] button, [data-stepflow-next] a');
+  var p = root.querySelector('[data-stepflow-prev] button, [data-stepflow-prev] a');
+  var c = root.querySelector('[data-stepflow-cancel] button, [data-stepflow-cancel] a');
+  var d = root.querySelector('[data-stepflow-complete] button, [data-stepflow-complete] a');
+  if (n) n.addEventListener('click', function () { fire('stepflow:next'); });
+  if (p) p.addEventListener('click', function () { fire('stepflow:prev'); });
+  if (c) c.addEventListener('click', function () { fire('stepflow:cancel'); });
+  if (d) d.addEventListener('click', function () { fire('stepflow:complete'); });
+})();
+</script>

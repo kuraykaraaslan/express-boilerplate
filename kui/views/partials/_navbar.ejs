@@ -1,0 +1,68 @@
+<%
+  var isActive = function(path, exact) {
+    if (exact) return locals.currentPath === path;
+    return locals.currentPath === path || (locals.currentPath || '').startsWith(path + '/');
+  };
+  var navItems = [
+    { href: '/',       label: 'Showcase', exact: true  },
+    { href: '/theme',  label: 'Themes',   exact: false },
+  ];
+%>
+<header class="sticky top-0 z-40 border-b border-border bg-surface-raised/95 backdrop-blur">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-14 items-center justify-between gap-4">
+
+      <!-- Logo -->
+      <a href="/"
+         class="flex items-center gap-2 font-semibold text-text-primary
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded-md">
+        <%- include('_brand-mark', { className: 'h-7 w-7' }) %>
+        <span class="hidden sm:inline"><%= site.name %></span>
+      </a>
+
+      <!-- Nav -->
+      <nav aria-label="Main navigation" class="hidden md:flex items-center gap-1">
+        <% navItems.forEach(function(item) { %>
+          <% var active = isActive(item.href, item.exact); %>
+          <a
+            href="<%= item.href %>"
+            class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus
+                   <%= active ? 'bg-primary-subtle text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay' %>"
+            <% if (active) { %>aria-current="page"<% } %>
+          ><%= item.label %></a>
+        <% }) %>
+      </nav>
+
+      <!-- Right side: theme toggle -->
+      <div class="flex items-center gap-2">
+        <%- include('./_theme_toggle') %>
+
+        <!-- Mobile menu button -->
+        <button id="mobile-menu-btn" type="button"
+                aria-label="Open navigation menu"
+                aria-expanded="false"
+                aria-controls="mobile-menu"
+                class="md:hidden p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-overlay
+                       transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+          <i class="fa-solid fa-bars" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" hidden
+       class="md:hidden border-t border-border bg-surface-raised px-4 py-3 space-y-1">
+    <% navItems.forEach(function(item) { %>
+      <% var active = isActive(item.href, item.exact); %>
+      <a
+        href="<%= item.href %>"
+        class="block px-3 py-2 rounded-md text-sm font-medium transition-colors
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus
+               <%= active ? 'bg-primary-subtle text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay' %>"
+        <% if (active) { %>aria-current="page"<% } %>
+      ><%= item.label %></a>
+    <% }) %>
+  </div>
+</header>

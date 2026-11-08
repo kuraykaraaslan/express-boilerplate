@@ -1,0 +1,6 @@
+<%#
+  Emits trusted markup that a control partial has already built (the control itself, the slider's track) inside a
+  layout partial that arranges it: the control partials hand a layout their parts as HTML strings (`renderLayout` /
+  `layoutPartial` in ControlTile). Every interpolated value in those strings was escaped when it was built.
+  Locals: body.
+%><%- body %>

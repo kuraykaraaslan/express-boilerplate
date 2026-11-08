@@ -1,0 +1,6 @@
+<%
+  // kui-react Avatar (size sm) exactly as ChatBubble draws it: one element, no wrapper (kui-ejs's Avatar.ejs adds a
+  // wrapper span for its status dot). Locals: name, src.
+  var _n = locals.name || '?';
+  var _init = String(_n).trim().split(/\s+/).map(function (w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+%><% if (locals.src) { %><img src="<%= locals.src %>" alt="<%= _n %>" class="h-8 w-8 text-xs rounded-full object-cover border border-border shrink-0" /><% } else { %><span aria-label="<%= _n %>" class="h-8 w-8 text-xs rounded-full bg-primary-subtle text-primary font-semibold flex items-center justify-center shrink-0 border border-primary-subtle select-none"><%= _init %></span><% } %>

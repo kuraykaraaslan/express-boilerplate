@@ -1,0 +1,97 @@
+<%#
+  data.table: the bound rows with per-column display, row colour rules, the history layout and full styling (kui-react
+  DataTableView). The vendored table model decides every row, cell and look; the rows are drawn by the kit DataTable
+  (modules/ui/Table) in manual, unstyled mode, as in kui-react. The header sort is the table's query: its
+  `kui:dt-query-change` becomes the `wk.<id>.sort` param (scripts/widget-kit.js) and the page draws the table again.
+  Search, column picker, pager and the empty text stay the widget's own. Locals: model.
+%><%_ var _m = locals.model; var _t = widgetKit.table; var _x = _m.m;
+  // EJS hands every include the caller's locals too (the placement's title, data, loading, error …); blank them so only
+  // the table's own options reach it.
+  function _own(o) {
+    var out = {};
+    Object.keys(locals).forEach(function (k) { out[k] = undefined; });
+    return Object.assign(out, o);
+  }
+  function _esc(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var _align = { start: 'left', center: 'center', end: 'right' };
+  var _columns = [];
+  if (_m.rowNumberHead) {
+    _columns.push({
+      key: '__rowNumber',
+      header: _m.rowNumberHead.label,
+      headerHtml: '<span aria-hidden="true">#</span><span class="sr-only">' + _esc(_m.rowNumberHead.label) + '</span>',
+      thClass: _m.rowNumberHead.className,
+      thStyle: widgetKit.style(_m.rowNumberHead.style),
+      cellClassName: function (r) { return r.m.numberCell ? r.m.numberCell.className : ''; },
+      cellStyle: function (r) { return r.m.numberCell ? widgetKit.style(r.m.numberCell.style) : ''; },
+      render: function (r) { return r.m.numberCell ? _esc(r.m.numberCell.text) : ''; }
+    });
+  }
+  _m.head.forEach(function (h, ci) {
+    _columns.push({
+      key: h.key,
+      header: h.label,
+      // The model's own alignment classes are in `className`; this only keeps the kit's defaults in step with them.
+      align: _align[_m.columns[ci].align],
+      sortable: h.sortable,
+      thClass: h.className,
+      thStyle: widgetKit.style(h.style),
+      cellClassName: function (r) { return r.m.cells[ci].className; },
+      cellStyle: function (r) { return widgetKit.style(r.m.cells[ci].style); },
+      render: function (r) { return include('_table-cell', { content: r.m.cells[ci].content }); }
+    });
+  });
+  if (_m.buttonsHead) {
+    _columns.push({
+      key: '__buttons',
+      header: _m.buttonsHead.label,
+      headerHtml: '<span class="sr-only">' + _esc(_m.buttonsHead.label) + '</span>',
+      thClass: _m.buttonsHead.className,
+      thStyle: widgetKit.style(_m.buttonsHead.style),
+      cellClassName: function (r) { return r.m.buttonsCell ? r.m.buttonsCell.className : ''; },
+      cellStyle: function (r) { return r.m.buttonsCell ? widgetKit.style(r.m.buttonsCell.style) : ''; },
+      render: function () { return ''; }
+    });
+  }
+  var _viewRows = _m.empty ? [] : _m.rows.map(function (r) { return { id: r.index, m: r }; });
+  var _sort = _m.sort ? [{ key: _m.sort.key, dir: _m.sort.dir }] : [];
+  // The sort the page drew: the browser script navigates only on a change from it.
+  var _drawn = JSON.stringify({ sort: _m.sort ? _m.sort.key + ':' + _m.sort.dir : '' });
+_%>
+<div class="flex h-full min-h-0 flex-col gap-1.5" data-wk-table data-wk-query="<%= _drawn %>">
+<% if (_m.showToolbar) { %>
+<div class="flex items-center gap-2 px-2 pt-1"><% if (_m.clientSearch) { %><label class="relative flex min-w-0 max-w-72 flex-1 items-center"><%- include('_table-svg', { d: _t.ICON_SEARCH, className: 'pointer-events-none absolute left-2.5 text-text-secondary' }) %><input type="search" value="<%= _m.searchValue %>" maxlength="200" placeholder="<%= _x.search %>" aria-label="<%= _x.search %>" data-wk-search class="h-8 w-full min-w-0 rounded-md border border-border bg-transparent pl-8 pr-2 text-[13px] text-text-primary placeholder:text-text-secondary/70 <%= _t.FOCUS %>"></label><% } %><% if (_m.columnPicker) { %><details class="relative ml-auto shrink-0"><summary class="<%= _t.TOOL_BUTTON %> list-none [&::-webkit-details-marker]:hidden"><%- include('_table-svg', { d: _t.ICON_COLUMNS }) %><%= _x.columns %></summary><fieldset class="absolute right-0 z-20 mt-1 flex min-w-44 flex-col gap-0.5 rounded-lg border border-border bg-surface-raised p-1.5 shadow-lg"><legend class="sr-only"><%= _x.columns %></legend><% _m.pickerColumns.forEach(function (c) { %><label class="flex h-7 cursor-pointer items-center gap-2 rounded-md px-1.5 text-[13px] text-text-primary hover:bg-surface-overlay"><input type="checkbox" data-wk-column="<%= c.key %>" class="accent-[var(--primary)] <%= _t.FOCUS %>"<% if (c.checked) { %> checked<% } %>><%= c.label %></label><% }); %></fieldset></details><% } %></div>
+<% } %>
+<% if (_m.empty) { %>
+<div class="min-h-0 flex-1 overflow-auto">
+<p class="py-6 text-center text-[13px] text-text-secondary"><%= _m.emptyText %></p>
+</div>
+<% } else { %>
+<%- include('../../../ui/Table/Table', _own({
+  id: _m.tableId,
+  mode: 'manual',
+  unstyled: true,
+  rows: _viewRows,
+  columns: _columns,
+  rowId: function (r) { return r.id; },
+  state: 'ready',
+  searchable: false,
+  multiSort: false,
+  query: { sort: _sort },
+  rowClassName: function () { return _m.rowClass; },
+  rowStyle: function (r) { return widgetKit.style(r.m.style); },
+  className: 'flex min-h-0 flex-1 flex-col',
+  scrollClassName: 'min-h-0 flex-1 overflow-auto',
+  tableClassName: 'border-separate border-spacing-0 text-[13px] text-text-primary',
+  tableStyle: widgetKit.style(_m.tableStyle),
+  messages: { tableLabel: _x.table }
+})) %>
+<% } %>
+<% if (_m.footer.kind === 'rowsShown') { %>
+<div class="flex min-h-8 items-center px-2"><%- include('../_meta', { text: _m.footer.text }) %></div>
+<% } else if (_m.footer.kind === 'pager') { %>
+<%- include('_table-pager', { footer: _m.footer, m: _x }) %>
+<% } %>
+</div>

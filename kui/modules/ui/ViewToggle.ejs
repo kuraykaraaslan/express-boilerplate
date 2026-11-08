@@ -1,0 +1,62 @@
+<%
+  var _value     = locals.value     || 'horizontal';
+  var _labels    = locals.labels    || {};
+  var _ariaLabel = locals.ariaLabel || 'View options';
+  var _className = locals.className || '';
+  var _id        = locals.id        || 'viewtoggle-' + Math.random().toString(36).substr(2, 9);
+
+  var hLabel = _labels.horizontal || 'Horizontal';
+  var vLabel = _labels.vertical   || 'Vertical';
+
+  var options = [
+    { key: 'horizontal', label: hLabel, icon: 'fa-table-list' },
+    { key: 'vertical',   label: vLabel, icon: 'fa-table-cells' }
+  ];
+%>
+<div
+  id="<%= _id %>"
+  role="group"
+  aria-label="<%= _ariaLabel %>"
+  class="flex items-center gap-0.5 rounded-lg p-0.5 border border-border bg-surface-raised<%= _className ? ' ' + _className : '' %>"
+>
+  <% options.forEach(function (opt) { %>
+  <%
+    var isActive = _value === opt.key;
+    var btnCls = isActive
+      ? 'bg-primary text-primary-fg shadow-sm'
+      : 'text-text-secondary hover:text-text-primary';
+  %>
+  <button
+    type="button"
+    data-vt-option="<%= opt.key %>"
+    aria-pressed="<%= isActive ? 'true' : 'false' %>"
+    onclick="viewToggleSelect(<%= JSON.stringify(String(_id)) %>, <%= JSON.stringify(String(opt.key)) %>)"
+    class="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= btnCls %>"
+  >
+    <span class="flex items-center gap-1.5">
+      <i class="fa-solid <%= opt.icon %> w-3.5 h-3.5" aria-hidden="true"></i>
+      <%= opt.label %>
+    </span>
+  </button>
+  <% }); %>
+</div>
+
+<script>
+(function () {
+  function viewToggleSelect(groupId, value) {
+    var group = document.getElementById(groupId);
+    if (!group) return;
+    group.querySelectorAll('[data-vt-option]').forEach(function (btn) {
+      var active = btn.getAttribute('data-vt-option') === value;
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.classList.toggle('bg-primary', active);
+      btn.classList.toggle('text-primary-fg', active);
+      btn.classList.toggle('shadow-sm', active);
+      btn.classList.toggle('text-text-secondary', !active);
+      btn.classList.toggle('hover:text-text-primary', !active);
+    });
+    group.dispatchEvent(new CustomEvent('viewtoggle:change', { detail: { value: value }, bubbles: true }));
+  }
+  window.viewToggleSelect = window.viewToggleSelect || viewToggleSelect;
+})();
+</script>

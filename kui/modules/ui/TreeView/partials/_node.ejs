@@ -1,0 +1,64 @@
+<%
+  // Recursive node renderer. Required locals:
+  //   node       — { id, label, children? }
+  //   depth      — 0-based indent depth
+  //   selectedIds — array<string>  (multi-select aware; legacy `selectedId`
+  //                                 callers pass a single-element array)
+  //   focusId    — string | undefined (initial focusable row)
+  //
+  // Pixel-parity contract with `modules/ui/TreeView/index.tsx` — keep the
+  // class lists and aria attributes byte-for-byte aligned.
+  var node        = locals.node;
+  var depth       = (locals.depth !== undefined) ? locals.depth : 0;
+  var selectedIds = locals.selectedIds || [];
+  var focusId     = locals.focusId;
+  var siblings    = locals.siblings || 1;
+  var posInSet    = locals.posInSet || 1;
+
+  var hasChildren = !!(node.children && node.children.length > 0);
+  var isSelected  = selectedIds.indexOf(node.id) !== -1;
+  var isFocused   = focusId === node.id || (!focusId && posInSet === 1 && depth === 0);
+  var level       = depth + 1;
+  var rowCls = 'flex items-center gap-1.5 px-2 py-1.5 text-sm rounded-md cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus hover:bg-surface-overlay transition-colors' + (isSelected ? ' bg-primary-subtle text-primary font-medium' : '');
+%>
+<li
+  role="treeitem"
+  data-tree-node-id="<%= node.id %>"
+  data-has-children="<%= hasChildren ? 'true' : 'false' %>"
+  <% if (hasChildren) { %>aria-expanded="true"<% } %>
+  aria-selected="<%= isSelected ? 'true' : 'false' %>"
+  aria-level="<%= level %>"
+  aria-posinset="<%= posInSet %>"
+  aria-setsize="<%= siblings %>"
+>
+  <div
+    tabindex="<%= isFocused ? 0 : -1 %>"
+    data-tree-row
+    style="padding-left: <%= depth * 1.25 %>rem;"
+    class="<%= rowCls %>"
+  >
+    <% if (hasChildren) { %>
+    <span aria-hidden="true" data-tree-chevron class="text-text-disabled w-3 shrink-0 flex items-center justify-center">
+      <i class="fa-solid fa-chevron-down w-2.5 h-2.5" aria-hidden="true"></i>
+    </span>
+    <% } else { %>
+    <span class="w-3 shrink-0" aria-hidden="true"></span>
+    <% } %>
+    <span><%= node.label %></span>
+  </div>
+
+  <% if (hasChildren) { %>
+  <ul role="group" class="ml-0">
+    <% node.children.forEach(function (child, idx) { %>
+      <%- include('_node', {
+        node: child,
+        depth: depth + 1,
+        selectedIds: selectedIds,
+        focusId: focusId,
+        siblings: node.children.length,
+        posInSet: idx + 1
+      }) %>
+    <% }); %>
+  </ul>
+  <% } %>
+</li>

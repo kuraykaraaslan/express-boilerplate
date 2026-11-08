@@ -1,0 +1,4 @@
+<%#
+  What sits inside a progress ring: the number and its meta (kui-react ProgressView's `labelContent`).
+  Locals: metric (the metric locals or null), secondary (text or null), half (semicircle), fontSize.
+%><span class="flex flex-col items-center gap-1 leading-none<%= locals.half ? ' pb-[2%]' : '' %>"><% if (locals.metric) { %><%- include('_progress-metric', { metric: locals.metric, size: 'xl', style: { fontSize: locals.fontSize } }) %><% } %><% if (locals.secondary) { %><span class="<%= widgetKit.ui.metaClass() %>"><span data-part="secondary"><%= locals.secondary %></span></span><% } %></span>

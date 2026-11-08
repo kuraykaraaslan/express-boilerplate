@@ -1,0 +1,32 @@
+<%
+// Marker tooltip HTML — kept as a partial for documentation parity with the
+// NextJS modules/ui/MapView/parts/Popup.tsx component.
+//
+// At runtime, popup markup is produced by the `ttHtml()` JS helper inside
+// scripts/map-leaflet.js because Leaflet's `bindTooltip()` consumes a string,
+// not server-rendered HTML. This file therefore exists primarily so the
+// directory layout mirrors the NextJS split and so future SSR popup
+// pre-renders have a home.
+//
+// Expects locals: tooltip = { title, description?, fields?: [{ label, value }] }
+%>
+<div style="min-width:130px;max-width:220px">
+  <p style="font-weight:600;font-size:13px;color:#111827;margin-bottom:<%= (tooltip.description || (tooltip.fields && tooltip.fields.length)) ? '3px' : '0' %>">
+    <%= tooltip.title %>
+  </p>
+  <% if (tooltip.description) { %>
+    <p style="font-size:11px;color:#6b7280;line-height:1.4;margin-bottom:<%= tooltip.fields && tooltip.fields.length ? '4px' : '0' %>">
+      <%= tooltip.description %>
+    </p>
+  <% } %>
+  <% if (tooltip.fields && tooltip.fields.length) { %>
+    <table style="width:100%;border-collapse:collapse;margin-top:2px"><tbody>
+      <% tooltip.fields.forEach(function (f) { %>
+        <tr>
+          <td style="font-size:11px;color:#6b7280;padding-right:6px;padding-top:1px;white-space:nowrap"><%= f.label %></td>
+          <td style="font-size:11px;color:#111827;font-weight:500;padding-top:1px"><%= f.value %></td>
+        </tr>
+      <% }); %>
+    </tbody></table>
+  <% } %>
+</div>

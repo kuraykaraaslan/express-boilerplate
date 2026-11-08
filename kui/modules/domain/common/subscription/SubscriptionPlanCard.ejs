@@ -1,0 +1,105 @@
+<%
+  var _plan       = locals.plan       || {};
+  var _isCurrent  = !!locals.isCurrent;
+  var _isSelected = !!locals.isSelected;
+  var _loading    = !!locals.loading;
+  var _action     = locals.action     || '';
+  var _className  = locals.className   || '';
+
+  var planId      = _plan.planId      || '';
+  var planName    = _plan.name        || '';
+  var description = _plan.description || '';
+  var price       = typeof _plan.price === 'number' ? _plan.price : 0;
+  var currency    = _plan.currency    || 'USD';
+  var interval    = _plan.interval    || 'MONTHLY';
+  var features    = _plan.features    || [];
+  var isPopular   = !!_plan.isPopular;
+
+  var INTERVAL_LABEL = {
+    MONTHLY: '/ month',
+    YEARLY:  '/ year',
+    ONCE:    'one-time',
+  };
+  var intervalLabel = INTERVAL_LABEL[interval] || INTERVAL_LABEL.MONTHLY;
+
+  var formattedPrice;
+  try {
+    formattedPrice = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: (price % 100 === 0) ? 0 : 2,
+    }).format(price / 100);
+  } catch (e) {
+    formattedPrice = (price / 100).toFixed(2) + ' ' + currency;
+  }
+
+  var highlighted = isPopular || _isSelected || _isCurrent;
+
+  var cardClass = 'relative flex flex-col rounded-2xl border p-6 transition-shadow ' +
+                  (highlighted
+                    ? 'border-primary shadow-md shadow-primary/10'
+                    : 'border-border shadow-sm hover:shadow-md');
+
+  var btnDisabled = _isCurrent || _loading || !_action;
+  var btnText = _isCurrent ? 'Current Plan' : (_loading ? 'Processing…' : ('Choose ' + planName));
+  var btnClass = 'mt-auto w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ' +
+                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ' +
+                 (_isCurrent
+                   ? 'bg-surface-raised text-text-secondary cursor-default'
+                   : 'bg-primary text-primary-fg hover:bg-primary-hover active:bg-primary-active disabled:opacity-50 disabled:cursor-not-allowed');
+%>
+<div class="<%= cardClass %><%= _className ? ' ' + _className : '' %>">
+  <% if (isPopular && !_isCurrent) { %>
+  <span class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-fg">
+    <i class="fa-solid fa-star w-2.5 h-2.5" aria-hidden="true"></i>
+    Popular
+  </span>
+  <% } %>
+
+  <% if (_isCurrent) { %>
+  <span class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-success px-3 py-0.5 text-xs font-semibold text-white">
+    <i class="fa-solid fa-check w-2.5 h-2.5" aria-hidden="true"></i>
+    Current Plan
+  </span>
+  <% } %>
+
+  <div class="mb-4">
+    <h3 class="text-base font-semibold text-text-primary"><%= planName %></h3>
+    <% if (description) { %>
+    <p class="mt-1 text-xs text-text-secondary"><%= description %></p>
+    <% } %>
+  </div>
+
+  <div class="mb-6 flex items-baseline gap-1">
+    <span class="text-3xl font-bold text-text-primary tracking-tight"><%= formattedPrice %></span>
+    <span class="text-sm text-text-secondary"><%= intervalLabel %></span>
+  </div>
+
+  <% if (features && features.length > 0) { %>
+  <ul class="mb-6 flex-1 space-y-2">
+    <% features.forEach(function(feature) { %>
+    <li class="flex items-start gap-2 text-sm text-text-primary">
+      <i class="fa-solid fa-check w-3.5 h-3.5 text-success mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+      <span><%= feature %></span>
+    </li>
+    <% }); %>
+  </ul>
+  <% } %>
+
+  <% if (_action && !_isCurrent) { %>
+  <form action="<%= _action %>" method="post" class="mt-auto">
+    <input type="hidden" name="planId" value="<%= planId %>">
+    <button type="submit"
+            <%= btnDisabled ? 'disabled' : '' %>
+            class="<%= btnClass %>">
+      <%= btnText %>
+    </button>
+  </form>
+  <% } else { %>
+  <button type="button"
+          disabled
+          class="<%= btnClass %>">
+    <%= btnText %>
+  </button>
+  <% } %>
+</div>

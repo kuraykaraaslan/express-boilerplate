@@ -1,0 +1,11 @@
+<%
+  // The tinted lines behind the text, one per line with a marker (its worst severity) — sibling
+  // of the tints in kui-react engines/codemirror.tsx. scripts/view.js tintsHtml is the browser's
+  // twin (tests/code-editor.test.ts compares them).
+  var byLine = locals._byLine || {};
+  var lines = Object.keys(byLine).map(Number).sort(function (a, b) { return a - b; });
+  var TINT = { error: 'bg-error-subtle', warning: 'bg-warning-subtle', info: 'bg-info-subtle', hint: 'bg-surface-overlay' };
+-%>
+<% if (lines.length) { -%>
+<div aria-hidden="true" data-kui-codeeditor-tints class="pointer-events-none absolute inset-x-0 top-0" style="transform: translateY(0px)"><% lines.forEach(function (line) { %><div data-line="<%= line %>" class="absolute inset-x-0 <%= TINT[byLine[line].severity] %>" style="top: <%= 8 + (line - 1) * 20 %>px; height: 20px"></div><% }) %></div>
+<% } -%>

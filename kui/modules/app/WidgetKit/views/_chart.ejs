@@ -1,0 +1,21 @@
+<%#
+  One chart of a widget: modules/ui/Chart/Chart.ejs filling the card body. The chart's browser scripts (the shared
+  helpers and the renderer of this chart type) are inlined once per request when the host passes `runtimeOnce`
+  (res.locals; the same object PlacementCard's runtime uses), else with every chart. Pass loadChartScripts: false when
+  the page loads modules/ui/Chart/scripts/*.js itself.
+  Locals: type ('line' | 'area' | 'bar' | 'pie' | 'scatter' | 'heatmap'), props (the Chart.ejs locals), sliceRows (a pie
+  whose slices answer a click: the table row behind each slice, in the slices' order, as `data-wk-slice-rows`).
+%><%_
+  var _type = locals.type;
+  var _renderer = { line: 'series', area: 'series', bar: 'bar', pie: 'pie', scatter: 'scatter', heatmap: 'heatmap' }[_type];
+  var _once = locals.runtimeOnce;
+  var _scripts = locals.loadChartScripts !== false;
+  var _helpers = _scripts && !(_once && _once.chartHelpers);
+  var _draws = _scripts && !(_once && _once['chart_' + _renderer]);
+  if (_once && _scripts) { _once.chartHelpers = true; _once['chart_' + _renderer] = true; }
+_%>
+<% if (_helpers || _draws) { %><script>
+<% if (_helpers) { %><%- include('../../../ui/Chart/scripts/chart-helpers.js') %><% } %>
+<% if (_draws) { %><%- include('../../../ui/Chart/scripts/' + _renderer + '.js') %><% } %>
+</script><% } %>
+<div class="h-full min-h-0 w-full"<% if (locals.sliceRows) { %> data-wk-slice-rows="<%= JSON.stringify(locals.sliceRows) %>"<% } %>><%- include('../../../ui/Chart/Chart', Object.assign({}, locals.props, { type: _type, fill: true, loadHelpers: false })) %></div>

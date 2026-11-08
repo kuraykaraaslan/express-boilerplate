@@ -1,0 +1,70 @@
+<%
+  // Insert-image + insert-table modals. Receives _id via include locals.
+  // Pixel-identical to React ImageInsertModal.tsx + TableInsertModal.tsx.
+  var _modalId      = _id + '-img-modal';
+  var _tableModalId = _id + '-table-modal';
+  // The footers and bodies below are HTML strings handed to Modal as slots, so every value is
+  // HTML-escaped here; a value inside an onclick's JS goes in as JSON first.
+  var _attr = function (s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var _idA  = _attr(_id);
+
+  var _imgChildren = '' +
+    '<div class="space-y-4">' +
+      '<div class="space-y-1">' +
+        '<span class="block text-sm font-medium text-text-primary">Image file</span>' +
+        '<div id="' + _idA + '-img-drop" class="relative rounded-md border-2 border-dashed border-border bg-surface-base flex items-center justify-center gap-2 px-4 py-4 text-center text-sm">' +
+          '<i class="fa-solid fa-folder-open text-text-disabled" aria-hidden="true"></i>' +
+          '<span class="text-text-secondary">' +
+            '<button type="button" id="' + _idA + '-img-browse" class="text-primary underline underline-offset-2 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded">Choose file</button>' +
+            ' or drop here' +
+          '</span>' +
+          '<input type="file" accept="image/*" class="sr-only" id="' + _idA + '-img-file" aria-label="Choose an image file" />' +
+        '</div>' +
+        '<p id="' + _idA + '-img-filename" class="text-xs text-text-secondary hidden"></p>' +
+        '<p class="text-xs text-text-disabled">Max 5.0 MB. PNG, JPG, GIF, WebP, SVG.</p>' +
+      '</div>' +
+      '<div class="space-y-1">' +
+        '<label for="' + _idA + '-img-url" class="block text-sm font-medium text-text-primary">Or paste URL</label>' +
+        '<input type="url" id="' + _idA + '-img-url" placeholder="https://example.com/image.png" class="block w-full rounded-md border border-border bg-surface-base text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus px-3 py-2 text-sm" />' +
+      '</div>' +
+      '<div class="space-y-1">' +
+        '<label for="' + _idA + '-img-alt" class="block text-sm font-medium text-text-primary">Alt text</label>' +
+        '<input type="text" id="' + _idA + '-img-alt" class="block w-full rounded-md border border-border bg-surface-base text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus px-3 py-2 text-sm" />' +
+        '<p class="text-xs text-text-secondary">Describe the image for screen readers.</p>' +
+      '</div>' +
+      '<p id="' + _idA + '-img-error" class="text-sm text-error hidden" role="alert"></p>' +
+    '</div>';
+
+  var _imgFooter = '' +
+    '<button type="button" onclick="closeModal(' + _attr(JSON.stringify(_modalId)) + ')" class="inline-flex items-center justify-center gap-2 rounded-md border border-border text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">Cancel</button>' +
+    '<button type="button" id="' + _idA + '-img-insert" class="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-fg hover:bg-primary-hover px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed">Insert</button>';
+
+  var _tableChildren = '' +
+    '<div class="space-y-4">' +
+      '<div id="' + _idA + '-table-grid" class="inline-grid gap-0.5" style="grid-template-columns: repeat(12, 1.25rem)" role="grid" aria-label="Table size picker"></div>' +
+      '<div class="grid grid-cols-2 gap-3">' +
+        '<div class="space-y-1"><label class="block text-sm font-medium text-text-primary" for="' + _idA + '-tbl-rows">Rows</label><input id="' + _idA + '-tbl-rows" type="number" min="1" max="12" value="3" class="block w-full rounded-md border border-border bg-surface-base text-text-primary px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus" /></div>' +
+        '<div class="space-y-1"><label class="block text-sm font-medium text-text-primary" for="' + _idA + '-tbl-cols">Columns</label><input id="' + _idA + '-tbl-cols" type="number" min="1" max="12" value="3" class="block w-full rounded-md border border-border bg-surface-base text-text-primary px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus" /></div>' +
+      '</div>' +
+    '</div>';
+  var _tableFooter = '' +
+    '<button type="button" onclick="closeModal(' + _attr(JSON.stringify(_tableModalId)) + ')" class="inline-flex items-center justify-center gap-2 rounded-md border border-border text-text-primary hover:bg-surface-overlay px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">Cancel</button>' +
+    '<button type="button" id="' + _idA + '-tbl-insert" class="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-fg hover:bg-primary-hover px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">Insert</button>';
+%>
+<%- include('../../ui/Modal', {
+  id: _modalId,
+  title: 'Insert image',
+  description: 'Upload a file or paste an image URL.',
+  size: 'md',
+  children: _imgChildren,
+  footer: _imgFooter
+}) %>
+
+<%- include('../../ui/Modal', {
+  id: _tableModalId,
+  title: 'Insert table',
+  description: 'Pick the size from the grid or type values.',
+  size: 'sm',
+  children: _tableChildren,
+  footer: _tableFooter
+}) %>

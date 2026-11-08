@@ -1,0 +1,8 @@
+<%#
+  modules/ui/ConfirmHost.ejs — mounts the confirmation runtime once per page (kui-react <ConfirmHost />): after it,
+  `KuiConfirm.confirmDialog(options)` (also `window.confirmDialog`) asks from anywhere on the page and
+  `KuiConfirm.cancelAllConfirms()` answers every open and waiting request with null. The layouts include it once;
+  partials that ask include ConfirmDialog/_runtime themselves, so a page without the layout still works. When several
+  copies load, the first draws and all of them share one queue.
+%>
+<%- include('./ConfirmDialog/_runtime') %>

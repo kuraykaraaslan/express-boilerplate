@@ -1,0 +1,172 @@
+<%
+  var _items       = locals.items       || [];
+  var _title       = locals.title       || '';
+  var _description = locals.description || '';
+  var _badge       = locals.badgeContent || locals.badge || '';
+  var _className   = locals.className   || '';
+  var _hasHeader   = !!(_title || _badge || _description);
+  var _id          = locals.id || ('app-bc-' + Math.random().toString(36).substr(2, 6));
+%>
+<div id="<%= _id %>" class="w-full space-y-4 p-4 border border-border rounded-xl bg-surface-raised<%= _className ? ' ' + _className : '' %>">
+  <% if (_hasHeader) { %>
+  <div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <% if (_title) { %><h1 class="text-2xl font-bold text-text-primary leading-tight"><%= _title %></h1><% } %>
+      <% if (_badge) { %><%- _badge %><% } %>
+    </div>
+    <% if (_description) { %>
+    <p class="text-sm text-text-secondary mt-0.5"><%= _description %></p>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (_items.length > 0) { %>
+  <div class="hidden sm:block">
+    <nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-1 text-sm">
+      <% _items.forEach(function(item, i) {
+        var isLast = i === _items.length - 1;
+        var fullPath = _items.slice(0, i + 1).map(function(b){ return b.label; }).join(' › ');
+        var _tipId = _id + '-tip-' + i;
+      %>
+      <span class="flex items-center gap-1">
+        <span class="relative inline-flex items-center" data-tooltip-host="<%= _tipId %>" data-tooltip-delay="0">
+          <span aria-describedby="<%= _tipId %>">
+            <% if (isLast) { %>
+              <span class="text-text-primary font-medium px-1" aria-current="page"><%= item.label %></span>
+            <% } else if (item.href) { %>
+              <a
+                href="<%= item.href %>"
+                class="text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded px-1"
+              ><%= item.label %></a>
+            <% } else { %>
+              <span class="text-text-secondary px-1"><%= item.label %></span>
+            <% } %>
+          </span>
+          <span
+            id="<%= _tipId %>"
+            role="tooltip"
+            class="absolute z-[80] whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium shadow-md transition-opacity duration-150 pointer-events-none opacity-0 bg-surface-overlay text-text-primary border border-border top-full left-1/2 -translate-x-1/2 mt-2"
+          >
+            <%= fullPath %>
+            <span aria-hidden="true" class="absolute w-2 h-2 rotate-45 border border-border top-[-5px] left-1/2 -translate-x-1/2 border-b-0 border-r-0 bg-surface-overlay"></span>
+          </span>
+        </span>
+        <% if (!isLast) { %>
+        <i class="fa-solid fa-chevron-right text-text-disabled w-2.5 h-2.5" aria-hidden="true"></i>
+        <% } %>
+      </span>
+      <% }); %>
+    </nav>
+  </div>
+
+  <div class="flex items-center gap-2 sm:hidden">
+    <nav aria-label="Breadcrumb" class="flex items-center gap-1 text-sm">
+      <%
+        var _mobileItems;
+        if (_items.length >= 3) {
+          _mobileItems = [_items[0], { label: '…' }, _items[_items.length - 1]];
+        } else {
+          _mobileItems = _items.slice();
+        }
+      %>
+      <% _mobileItems.forEach(function(item, mi) {
+        var isLastMobile = mi === _mobileItems.length - 1;
+      %>
+        <% if (isLastMobile) { %>
+          <span class="text-text-primary font-medium px-1" aria-current="page"><%= item.label %></span>
+        <% } else if (item.href) { %>
+          <a href="<%= item.href %>" class="text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded px-1"><%= item.label %></a>
+          <i class="fa-solid fa-chevron-right text-text-disabled w-2.5 h-2.5" aria-hidden="true"></i>
+        <% } else { %>
+          <span class="text-text-secondary px-1"><%= item.label %></span>
+          <i class="fa-solid fa-chevron-right text-text-disabled w-2.5 h-2.5" aria-hidden="true"></i>
+        <% } %>
+      <% }); %>
+    </nav>
+    <% if (_items.length > 2) { %>
+    <div class="relative">
+      <button
+        type="button"
+        aria-label="View full path"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        onclick="(function(b){var m=b.nextElementSibling;var open=m.classList.toggle('hidden')===false;b.setAttribute('aria-expanded',String(open));})(this)"
+        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-text-primary hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+      >
+        Full path
+        <i class="fa-solid fa-chevron-down w-2.5 h-2.5" aria-hidden="true"></i>
+      </button>
+      <div role="menu" class="hidden absolute left-0 top-full mt-1 z-20 min-w-[12rem] rounded-md border border-border bg-surface-raised shadow-lg py-1">
+        <% _items.forEach(function(item, i) {
+          var iconCls = i === 0 ? 'fa-house' : (i === _items.length - 1 ? 'fa-file' : 'fa-folder');
+        %>
+        <% if (item.href) { %>
+        <a href="<%= item.href %>" role="menuitem" class="flex items-center gap-2 px-3 py-1.5 text-sm text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+          <i class="fa-solid <%= iconCls %>" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          <span><%= item.label %></span>
+        </a>
+        <% } else { %>
+        <span role="menuitem" class="flex items-center gap-2 px-3 py-1.5 text-sm text-text-primary">
+          <i class="fa-solid <%= iconCls %>" style="width:0.75rem;height:0.75rem" aria-hidden="true"></i>
+          <span><%= item.label %></span>
+        </span>
+        <% } %>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <% } %>
+</div>
+
+<script>
+(function () {
+  if (window.__a11yTooltipInit) return;
+  window.__a11yTooltipInit = true;
+  var timers = {};
+  function show(host) {
+    var id = host.getAttribute('data-tooltip-host');
+    var delay = Number(host.getAttribute('data-tooltip-delay') || 0);
+    var tip = document.getElementById(id);
+    if (!tip) return;
+    if (delay > 0) {
+      timers[id] = setTimeout(function () { tip.classList.remove('opacity-0'); tip.classList.add('opacity-100'); }, delay);
+    } else {
+      tip.classList.remove('opacity-0'); tip.classList.add('opacity-100');
+    }
+  }
+  function hide(host) {
+    var id = host.getAttribute('data-tooltip-host');
+    var tip = document.getElementById(id);
+    if (timers[id]) { clearTimeout(timers[id]); delete timers[id]; }
+    if (tip) { tip.classList.add('opacity-0'); tip.classList.remove('opacity-100'); }
+  }
+  document.addEventListener('mouseover', function (e) {
+    var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+    if (host) show(host);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+    if (host && !host.contains(e.relatedTarget)) hide(host);
+  });
+  document.addEventListener('focusin', function (e) {
+    var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+    if (host) show(host);
+  });
+  document.addEventListener('focusout', function (e) {
+    var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+    if (host && !host.contains(e.relatedTarget)) hide(host);
+  });
+  // Close mobile "Full path" dropdown on outside click
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    document.querySelectorAll('[aria-haspopup="menu"][aria-expanded="true"]').forEach(function (btn) {
+      if (!btn.parentElement.contains(t)) {
+        var menu = btn.nextElementSibling;
+        if (menu) menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+})();
+</script>

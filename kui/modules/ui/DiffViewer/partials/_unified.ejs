@@ -1,0 +1,74 @@
+<%
+  // Unified view — single-column. Locals:
+  //   hunks       = Hunk[]
+  //   collapsible = boolean
+  //
+  // Collapsible mode wraps a hunk's leading/trailing context runs in a
+  // <button> that expands them. The toggle is driven by a tiny inline
+  // listener at the bottom of DiffViewer.ejs so we don't ship a separate
+  // script file.
+  var _hunks = locals.hunks || [];
+  var _collapsible = !!locals.collapsible;
+  var _diffId = locals.diffId || ('dv-' + Math.random().toString(36).substr(2, 6));
+
+  function _partition(changes) {
+    var first = -1, last = -1;
+    for (var i = 0; i < changes.length; i++) {
+      if (changes[i].type !== 'context') {
+        if (first === -1) first = i;
+        last = i;
+      }
+    }
+    if (first === -1) return { lead: changes, middle: [], trail: [] };
+    return {
+      lead: changes.slice(0, first),
+      middle: changes.slice(first, last + 1),
+      trail: changes.slice(last + 1),
+    };
+  }
+%>
+<% if (!_hunks.length) { %>
+<div class="px-3 py-2 font-mono text-xs text-text-secondary">No changes.</div>
+<% } else { %>
+<div role="region" aria-label="Unified diff" tabindex="0" class="overflow-x-auto">
+  <% _hunks.forEach(function (hunk, hi) {
+    var parts = _collapsible ? _partition(hunk.changes) : { lead: [], middle: hunk.changes, trail: [] };
+  %>
+  <div data-diff-hunk="<%= hi %>">
+    <%- include('./_hunk-header', { hunk: hunk }) %>
+
+    <% if (_collapsible && parts.lead.length) { %>
+    <button
+      type="button"
+      data-diff-expand="<%= _diffId %>-<%= hi %>-lead"
+      aria-expanded="false"
+      class="w-full flex items-center gap-2 px-3 py-1 font-mono text-xs bg-surface-overlay text-text-secondary border-y border-border hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    ><i class="fa-solid fa-plus w-3 h-3 w-3 h-3" aria-hidden="true"></i> Show <%= parts.lead.length %> more line<%= parts.lead.length === 1 ? '' : 's' %></button>
+    <div data-diff-expand-target="<%= _diffId %>-<%= hi %>-lead" class="hidden">
+      <% parts.lead.forEach(function (ch) { %>
+      <%- include('./_line', { change: ch, variant: 'unified' }) %>
+      <% }); %>
+    </div>
+    <% } %>
+
+    <% (_collapsible ? parts.middle : hunk.changes).forEach(function (ch) { %>
+    <%- include('./_line', { change: ch, variant: 'unified' }) %>
+    <% }); %>
+
+    <% if (_collapsible && parts.trail.length) { %>
+    <button
+      type="button"
+      data-diff-expand="<%= _diffId %>-<%= hi %>-trail"
+      aria-expanded="false"
+      class="w-full flex items-center gap-2 px-3 py-1 font-mono text-xs bg-surface-overlay text-text-secondary border-y border-border hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    ><i class="fa-solid fa-plus w-3 h-3 w-3 h-3" aria-hidden="true"></i> Show <%= parts.trail.length %> more line<%= parts.trail.length === 1 ? '' : 's' %></button>
+    <div data-diff-expand-target="<%= _diffId %>-<%= hi %>-trail" class="hidden">
+      <% parts.trail.forEach(function (ch) { %>
+      <%- include('./_line', { change: ch, variant: 'unified' }) %>
+      <% }); %>
+    </div>
+    <% } %>
+  </div>
+  <% }); %>
+</div>
+<% } %>

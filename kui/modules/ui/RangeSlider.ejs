@@ -1,0 +1,219 @@
+<%#
+  modules/ui/RangeSlider.ejs — numeric slider input.
+
+  Distinct from modules/ui/Slider.ejs, which is a carousel — this is a
+  numeric <input type="range"> control. Named RangeSlider (not Slider) to
+  avoid colliding with the carousel.
+
+  Single mode — commit on release (kui-react `onCommit` / `pending` / `commitIdleMs`):
+    The native `input` event still fires per step (live label). The committed
+    value fires ONCE per gesture: on pointer up, after `commitIdleMs` (default
+    400) of keyboard idle for Arrow / Home / End / Page keys, or on blur.
+    It is delivered as the DOM event 'kui:rangeslider-commit' on the root
+    (bubbles, detail: { value, id }) and, when `onCommit` is a string, to the
+    global function of that name. Use it for slow writes (a device, a server
+    setting).
+    `pending: true` disables the thumb and sets aria-busy while a write is in
+    flight. At runtime: root.__rangeslider.setPending(bool) / .setValue(n).
+%>
+<%
+  var _id        = locals.id        || 'range-' + Math.random().toString(36).substr(2, 9);
+  var _label     = locals.label     || '';
+  var _hint      = locals.hint      || '';
+  var _min       = (locals.min !== undefined) ? Number(locals.min) : 0;
+  var _max       = (locals.max !== undefined) ? Number(locals.max) : 100;
+  var _step      = (locals.step !== undefined) ? Number(locals.step) : 1;
+  var _disabled  = !!locals.disabled;
+  var _showValue = (locals.showValue === undefined) ? true : !!locals.showValue;
+  var _isRange   = !!locals.range;
+  var _className = locals.className || '';
+  var _pending   = !!locals.pending;
+  var _commitIdleMs = (locals.commitIdleMs !== undefined) ? Number(locals.commitIdleMs) : 400;
+  var _onCommit  = typeof locals.onCommit === 'string' ? locals.onCommit : '';
+
+  var _hintId = _hint ? (_id + '-hint') : '';
+
+  var _rangeVal = Array.isArray(locals.value) ? locals.value : [_min, _max];
+  var _lo = (_rangeVal[0] !== undefined) ? Number(_rangeVal[0]) : _min;
+  var _hi = (_rangeVal[1] !== undefined) ? Number(_rangeVal[1]) : _max;
+  var _singleVal = (!Array.isArray(locals.value) && locals.value !== undefined) ? Number(locals.value) : _min;
+
+  // Identical to kui-react RangeSlider THUMB_CLASSES: a disabled or pending slider is drawn at
+  // half opacity (thumb and track), not with a greyed thumb.
+  var thumbClass = '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-surface-base [&::-webkit-slider-thumb]:shadow '
+    + '[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-surface-base [&::-moz-range-thumb]:bg-primary '
+    + 'focus-visible:outline-none focus-visible:[&::-webkit-slider-thumb]:ring-2 focus-visible:[&::-webkit-slider-thumb]:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+  var rangeInputClass = 'pointer-events-none absolute inset-0 h-5 w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto ' + thumbClass;
+
+  function pct(v) {
+    if (_max === _min) return 0;
+    return Math.min(100, Math.max(0, ((v - _min) / (_max - _min)) * 100));
+  }
+%>
+<div id="<%= _id %>" data-rangeslider data-range="<%= _isRange ? 'true' : 'false' %>" data-min="<%= _min %>" data-max="<%= _max %>" data-commit-idle-ms="<%= _commitIdleMs %>"<% if (_onCommit) { %> data-on-commit="<%= _onCommit %>"<% } %> class="w-full space-y-2<%= _className ? ' ' + _className : '' %>">
+  <% if (_label || _showValue) { %>
+    <div class="flex items-center justify-between text-sm">
+      <% if (_label) { %>
+        <% if (_isRange) { %><span class="font-medium text-text-primary"><%= _label %></span><% } else { %><label for="<%= _id %>-input" class="font-medium text-text-primary"><%= _label %></label><% } %>
+      <% } %>
+      <% if (_showValue) { %>
+        <% if (_isRange) { %>
+          <span class="tabular-nums text-text-secondary"><span data-rangeslider-value-min><%= _lo %></span> – <span data-rangeslider-value-max><%= _hi %></span></span>
+        <% } else { %>
+          <span class="tabular-nums text-text-secondary" data-rangeslider-value-single><%= _singleVal %></span>
+        <% } %>
+      <% } %>
+    </div>
+  <% } %>
+
+  <% if (_isRange) { %>
+    <div class="relative h-5"<% if (_hintId) { %> aria-describedby="<%= _hintId %>"<% } %>>
+      <div class="pointer-events-none absolute top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-surface-sunken"></div>
+      <div
+        data-rangeslider-fill
+        class="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-primary"
+        style="left: <%= pct(_lo) %>%; right: <%= 100 - pct(_hi) %>%;"
+      ></div>
+      <input
+        type="range"
+        id="<%= _id %>-min"
+        aria-label="<%= _label ? _label + ' minimum' : 'Minimum value' %>"
+        min="<%= _min %>"
+        max="<%= _max %>"
+        step="<%= _step %>"
+        value="<%= _lo %>"
+        <% if (locals.nameMin) { %>name="<%= locals.nameMin %>"<% } %>
+        <% if (_disabled) { %>disabled<% } %>
+        data-rangeslider-handle="min"
+        class="<%= rangeInputClass %>"
+      >
+      <input
+        type="range"
+        id="<%= _id %>-max"
+        aria-label="<%= _label ? _label + ' maximum' : 'Maximum value' %>"
+        min="<%= _min %>"
+        max="<%= _max %>"
+        step="<%= _step %>"
+        value="<%= _hi %>"
+        <% if (locals.nameMax) { %>name="<%= locals.nameMax %>"<% } %>
+        <% if (_disabled) { %>disabled<% } %>
+        data-rangeslider-handle="max"
+        class="<%= rangeInputClass %>"
+      >
+    </div>
+  <% } else { %>
+    <input
+      type="range"
+      id="<%= _id %>-input"
+      min="<%= _min %>"
+      max="<%= _max %>"
+      step="<%= _step %>"
+      value="<%= _singleVal %>"
+      <% if (locals.name) { %>name="<%= locals.name %>"<% } %>
+      <% if (_disabled || _pending) { %>disabled<% } %>
+      <% if (_pending) { %>aria-busy="true"<% } %>
+      <% if (_hintId) { %>aria-describedby="<%= _hintId %>"<% } %>
+      data-rangeslider-handle="single"
+      class="h-1.5 w-full appearance-none rounded-full <%= thumbClass %>"
+      style="background-image: linear-gradient(to right, var(--primary) <%= pct(_singleVal) %>%, var(--surface-sunken) <%= pct(_singleVal) %>%);"
+    >
+  <% } %>
+
+  <% if (_hintId) { %><p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= _hint %></p><% } %>
+</div>
+
+<script>
+(function () {
+  var rootId = <%- include('./_script-json', { value: String(_id) }) %>;
+  var root = document.getElementById(rootId);
+  if (!root) return;
+
+  var isRange = root.getAttribute('data-range') === 'true';
+  var min = Number(root.getAttribute('data-min'));
+  var max = Number(root.getAttribute('data-max'));
+
+  function pct(v) {
+    if (max === min) return 0;
+    return Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100));
+  }
+
+  if (!isRange) {
+    var single = document.getElementById(rootId + '-input');
+    var singleLabel = root.querySelector('[data-rangeslider-value-single]');
+    if (!single) return;
+    function paint(v) {
+      single.style.backgroundImage = 'linear-gradient(to right, var(--primary) ' + pct(v) + '%, var(--surface-sunken) ' + pct(v) + '%)';
+      if (singleLabel) singleLabel.textContent = String(v);
+    }
+
+    // Commit on release: one commit per gesture, never per step.
+    var COMMIT_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'];
+    var idleMs = Number(root.getAttribute('data-commit-idle-ms'));
+    if (!isFinite(idleMs)) idleMs = 400;
+    var latest = null;
+    var timer = null;
+    function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
+    function flush() {
+      clearTimer();
+      var v = latest;
+      latest = null;
+      if (v === null) return;
+      root.dispatchEvent(new CustomEvent('kui:rangeslider-commit', { bubbles: true, detail: { value: v, id: rootId } }));
+      var fnName = root.getAttribute('data-on-commit');
+      if (fnName && typeof window[fnName] === 'function') window[fnName](v);
+    }
+
+    single.addEventListener('input', function () {
+      var v = Number(single.value);
+      latest = v;
+      paint(v);
+    });
+    single.addEventListener('pointerup', flush);
+    single.addEventListener('keyup', function (e) {
+      if (COMMIT_KEYS.indexOf(e.key) !== -1) { clearTimer(); timer = setTimeout(flush, idleMs); }
+    });
+    single.addEventListener('blur', flush);
+
+    root.__rangeslider = {
+      setPending: function (on) {
+        single.disabled = <%- include('./_script-json', { value: !!_disabled }) %> || !!on;
+        if (on) single.setAttribute('aria-busy', 'true'); else single.removeAttribute('aria-busy');
+      },
+      setValue: function (v) { single.value = String(v); paint(Number(single.value)); },
+    };
+    return;
+  }
+
+  var minHandle = document.getElementById(rootId + '-min');
+  var maxHandle = document.getElementById(rootId + '-max');
+  var fill      = root.querySelector('[data-rangeslider-fill]');
+  var minLabel  = root.querySelector('[data-rangeslider-value-min]');
+  var maxLabel  = root.querySelector('[data-rangeslider-value-max]');
+  if (!minHandle || !maxHandle) return;
+
+  function updateFill() {
+    var lo = Number(minHandle.value);
+    var hi = Number(maxHandle.value);
+    if (fill) {
+      fill.style.left  = pct(lo) + '%';
+      fill.style.right = (100 - pct(hi)) + '%';
+    }
+    if (minLabel) minLabel.textContent = String(lo);
+    if (maxLabel) maxLabel.textContent = String(hi);
+  }
+
+  minHandle.addEventListener('input', function () {
+    if (Number(minHandle.value) > Number(maxHandle.value)) {
+      minHandle.value = maxHandle.value;
+    }
+    updateFill();
+  });
+
+  maxHandle.addEventListener('input', function () {
+    if (Number(maxHandle.value) < Number(minHandle.value)) {
+      maxHandle.value = minHandle.value;
+    }
+    updateFill();
+  });
+})();
+</script>

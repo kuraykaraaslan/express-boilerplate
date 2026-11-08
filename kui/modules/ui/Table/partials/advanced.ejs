@@ -1,0 +1,28 @@
+<%
+  // @deprecated AdvancedDataTable — a thin wrapper over the DataTable (kui-react AdvancedDataTable does the
+  // same): mode "static", no search, `rowId` = the row's position in `rows` (so selection events still
+  // report positions), and the `_expanded` row field (raw HTML) as `renderExpanded` when any row has one.
+  // Use the DataTable with `selectable`, `renderExpanded` and `stickyHeader` instead.
+  //
+  // Locals: columns, rows, caption, selectable, stickyHeader, emptyMessage, className, id,
+  // onSelectionChange (global function name, called with the selected positions).
+  // Events: 'kui:dt-selection-change' { ids } and, kept from the old partial, 'adt:selection' { count, ids }.
+  var _rows = locals.rows || [];
+  var _hasExpanded = _rows.some(function (r) { return r && r._expanded !== undefined && r._expanded !== null && r._expanded !== ''; });
+%>
+<%- include('./paginated', {
+  mode: 'static',
+  searchable: false,
+  columns: locals.columns || [],
+  rows: _rows,
+  rowId: function (row) { return _rows.indexOf(row); },
+  renderExpanded: _hasExpanded ? function (row) { return row._expanded; } : undefined,
+  caption: locals.caption,
+  selectable: !!locals.selectable,
+  stickyHeader: !!locals.stickyHeader,
+  emptyMessage: locals.emptyMessage,
+  className: locals.className,
+  id: locals.id || 'adt-' + Math.random().toString(36).substr(2, 9),
+  onSelectionChange: locals.onSelectionChange,
+  legacyAdvanced: true
+}) %>

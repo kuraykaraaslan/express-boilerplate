@@ -1,0 +1,143 @@
+<%
+  // modules/ui/Slider/Slider.ejs
+  // M1 — touch swipe + momentum + edge resistance.
+  // Pixel-identical NextJS sibling at modules/ui/Slider/index.tsx.
+  //
+  // TODO M2: slidesPerView / responsive / vertical orientation.
+  // TODO M3: virtual loop + autoplay polish + progress + fade.
+  // TODO M4: thumbnails, sync, parallax, lazy, 3D effects.
+  // TODO M5: full WAI-ARIA, keyboard, aria-live, reduced motion.
+
+  var _slides           = locals.slides           || [];
+  var _autoPlay         = !!locals.autoPlay;
+  var _autoPlayInterval = Number(locals.autoPlayInterval) || 4000;
+  var _showDots         = locals.showDots !== false;
+  var _showArrows       = locals.showArrows !== false;
+  var _loop             = locals.loop !== false;
+  var _dragThreshold    = Number(locals.dragThreshold) || 50;
+  var _className        = locals.className        || '';
+  var _slideClassName   = locals.slideClassName   || '';
+  var _ariaLabel        = locals.ariaLabel        || 'Content slider';
+  var _id               = locals.id               || 'slider-' + Math.random().toString(36).substr(2, 9);
+  var _total            = _slides.length;
+%>
+<% if (_total > 0) { %>
+<div
+  id="<%= _id %>"
+  class="relative overflow-hidden rounded-xl<%= _className ? ' ' + _className : '' %>"
+  role="region"
+  aria-label="<%= _ariaLabel %>"
+  aria-roledescription="carousel"
+  data-slider-root
+  data-slider-total="<%= _total %>"
+  data-slider-autoplay="<%= _autoPlay ? '1' : '0' %>"
+  data-slider-interval="<%= _autoPlayInterval %>"
+  data-slider-loop="<%= _loop ? '1' : '0' %>"
+  data-slider-threshold="<%= _dragThreshold %>"
+>
+  <%- include('./partials/_track', { _slides: _slides, _total: _total, _slideClassName: _slideClassName }) %>
+  <%- include('./partials/_arrows', { _showArrows: _showArrows, _total: _total }) %>
+  <%- include('./partials/_dots', { _showDots: _showDots, _total: _total }) %>
+</div>
+
+<%# Inline the helper scripts once per page (idempotent IIFEs). %>
+<script><%- include('./scripts/drag.js') %></script>
+<script><%- include('./scripts/autoplay.js') %></script>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../_script-json', { value: String(_id) }) %>);
+  if (!root) return;
+  var total     = parseInt(root.getAttribute('data-slider-total'), 10) || 0;
+  var autoPlay  = root.getAttribute('data-slider-autoplay') === '1';
+  var interval  = parseInt(root.getAttribute('data-slider-interval'), 10) || 4000;
+  var loop      = root.getAttribute('data-slider-loop') === '1';
+  var threshold = parseInt(root.getAttribute('data-slider-threshold'), 10) || 50;
+  if (total <= 1) return;
+
+  var track   = root.querySelector('[data-slider-track]');
+  var prevBtn = root.querySelector('[data-slider-prev]');
+  var nextBtn = root.querySelector('[data-slider-next]');
+  var dots    = Array.prototype.slice.call(root.querySelectorAll('[data-slider-dot]'));
+  var slides  = Array.prototype.slice.call(root.querySelectorAll('[data-slider-slide]'));
+  var current = 0;
+  var transitioning = false;
+  var dragging = false;
+  var dragOffsetPx = null;
+
+  function applyTransform() {
+    if (!track) return;
+    var base = 'translateX(-' + (current * 100) + '%)';
+    if (dragOffsetPx != null) {
+      track.style.transitionDuration = '0ms';
+      track.style.transform = base + ' translateX(' + dragOffsetPx + 'px)';
+    } else {
+      track.style.transitionDuration = '350ms';
+      track.style.transform = base;
+    }
+  }
+
+  function render() {
+    applyTransform();
+    slides.forEach(function (s, i) { s.setAttribute('aria-hidden', i === current ? 'false' : 'true'); });
+    dots.forEach(function (d, i) {
+      d.setAttribute('aria-selected', i === current ? 'true' : 'false');
+      if (i === current) {
+        d.classList.remove('w-2', 'bg-white/40', 'hover:bg-white/70');
+        d.classList.add('w-5', 'bg-white');
+      } else {
+        d.classList.remove('w-5', 'bg-white');
+        d.classList.add('w-2', 'bg-white/40', 'hover:bg-white/70');
+      }
+    });
+    var canPrev = loop || current > 0;
+    var canNext = loop || current < total - 1;
+    if (prevBtn) prevBtn.classList.toggle('hidden', !canPrev);
+    if (nextBtn) nextBtn.classList.toggle('hidden', !canNext);
+  }
+
+  function goTo(idx) {
+    if (transitioning) return;
+    var target = loop
+      ? ((idx % total) + total) % total
+      : Math.max(0, Math.min(idx, total - 1));
+    if (target === current) { render(); return; }
+    transitioning = true;
+    current = target;
+    render();
+    setTimeout(function () { transitioning = false; }, 350);
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function () { goTo(current - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { goTo(current + 1); });
+  dots.forEach(function (d, i) { d.addEventListener('click', function () { goTo(i); }); });
+
+  // M1 — pointer drag (touch + mouse + pen).
+  if (window.__kuiSliderAttachDrag) {
+    window.__kuiSliderAttachDrag(root, {
+      getCurrent:   function () { return current; },
+      getTotal:     function () { return total; },
+      getLoop:      function () { return loop; },
+      getThreshold: function () { return threshold; },
+      goTo:         goTo,
+      setOffset:    function (px) { dragOffsetPx = px; applyTransform(); },
+      setDragging:  function (v)  { dragging = v; if (v) { track.classList.add('cursor-grabbing'); } else { track.classList.remove('cursor-grabbing'); } },
+    });
+  }
+
+  if (window.__kuiSliderAttachAutoplay) {
+    window.__kuiSliderAttachAutoplay(root, {
+      getCurrent:  function () { return current; },
+      getTotal:    function () { return total; },
+      getLoop:     function () { return loop; },
+      getInterval: function () { return interval; },
+      getEnabled:  function () { return autoPlay; },
+      isDragging:  function () { return dragging; },
+      goTo:        goTo,
+    });
+  }
+
+  render();
+})();
+</script>
+<% } %>

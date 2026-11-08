@@ -1,0 +1,87 @@
+<%
+  var _variant = locals.variant || 'spinner';
+  var _rows    = locals.rows    || 5;
+  var _cols    = locals.cols    || 4;
+  var _cards   = locals.cards   || 3;
+%>
+
+<% if (_variant === 'spinner') { %>
+<div class="flex items-center justify-center py-16<%= locals.className ? ' '+locals.className : '' %>">
+  <%- include('../ui/Spinner', { size: 'lg' }) %>
+</div>
+
+<% } else if (_variant === 'table') { %>
+<div class="w-full overflow-x-auto rounded-lg border border-border<%= locals.className ? ' '+locals.className : '' %>" aria-busy="true" aria-label="Loading table">
+  <table class="w-full text-sm">
+    <thead class="bg-surface-sunken border-b border-border">
+      <tr>
+        <% for (var c = 0; c < _cols; c++) { %>
+        <th class="px-4 py-3"><div class="h-3 rounded bg-surface-sunken animate-pulse w-16"></div></th>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border bg-surface-base">
+      <% for (var r = 0; r < _rows; r++) { %>
+        <%- include('../ui/Skeleton', { variant: 'tableRow', cols: _cols }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<% } else if (_variant === 'cards') { %>
+<div class="grid gap-4<%= _cards>=3 ? ' grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : ' grid-cols-1 sm:grid-cols-2' %><%= locals.className ? ' '+locals.className : '' %>">
+  <% for (var i = 0; i < _cards; i++) { %>
+    <%- include('../ui/Skeleton', { variant: 'card' }) %>
+  <% } %>
+</div>
+
+<% } else if (_variant === 'list') { %>
+<ul class="divide-y divide-border<%= locals.className ? ' '+locals.className : '' %>" aria-busy="true" aria-label="Loading list">
+  <% for (var i = 0; i < _rows; i++) { %>
+  <li class="flex items-center gap-3 py-3 px-4">
+    <%- include('../ui/Skeleton', { variant: 'avatar', size: 'sm' }) %>
+    <div class="flex-1 space-y-2">
+      <%- include('../ui/Skeleton', { variant: 'line', width: 'w-1/3' }) %>
+      <%- include('../ui/Skeleton', { variant: 'line', width: 'w-2/3' }) %>
+    </div>
+    <div class="h-4 w-12 rounded bg-surface-sunken animate-pulse"></div>
+  </li>
+  <% } %>
+</ul>
+
+<% } else if (_variant === 'detail') { %>
+<div class="space-y-6<%= locals.className ? ' '+locals.className : '' %>" aria-busy="true" aria-label="Loading detail">
+  <div class="pb-4 border-b border-border space-y-3">
+    <%- include('../ui/Skeleton', { variant: 'line', width: 'w-1/4' }) %>
+    <%- include('../ui/Skeleton', { variant: 'line', width: 'w-1/2' }) %>
+    <div class="flex gap-2">
+      <% for (var i = 0; i < 3; i++) { %>
+      <div class="h-6 w-16 rounded-full bg-surface-sunken animate-pulse"></div>
+      <% } %>
+    </div>
+  </div>
+  <div class="grid sm:grid-cols-2 gap-4">
+    <% for (var i = 0; i < 4; i++) { %>
+    <div class="space-y-2">
+      <%- include('../ui/Skeleton', { variant: 'line', width: 'w-1/4' }) %>
+      <%- include('../ui/Skeleton', { variant: 'line', width: 'w-full' }) %>
+    </div>
+    <% } %>
+  </div>
+  <%- include('../ui/Skeleton', { variant: 'text', lines: 4 }) %>
+</div>
+
+<% } else if (_variant === 'form') { %>
+<div class="space-y-5<%= locals.className ? ' '+locals.className : '' %>" aria-busy="true" aria-label="Loading form">
+  <% for (var i = 0; i < _rows; i++) { %>
+  <div class="space-y-2">
+    <%- include('../ui/Skeleton', { variant: 'line', width: 'w-1/4' }) %>
+    <div class="h-9 rounded-md bg-surface-sunken animate-pulse w-full"></div>
+  </div>
+  <% } %>
+  <div class="flex justify-end gap-2 pt-2">
+    <div class="h-9 w-20 rounded-md bg-surface-sunken animate-pulse"></div>
+    <div class="h-9 w-24 rounded-md bg-surface-sunken animate-pulse"></div>
+  </div>
+</div>
+<% } %>

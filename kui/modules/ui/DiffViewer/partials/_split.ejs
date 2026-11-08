@@ -1,0 +1,66 @@
+<%
+  // Split view — yan yana iki kolon. Locals:
+  //   hunks  = Hunk[]
+  //   diffId = string (for scoping the scroll-sync data attribute)
+  var _hunks = locals.hunks || [];
+  var _diffId = locals.diffId || ('dv-' + Math.random().toString(36).substr(2, 6));
+
+  function _pairChanges(changes) {
+    var out = [];
+    var i = 0;
+    while (i < changes.length) {
+      var c = changes[i];
+      if (c.type === 'context') {
+        out.push({ left: c, right: c });
+        i++;
+        continue;
+      }
+      var removes = [], adds = [];
+      while (i < changes.length && changes[i].type === 'remove') { removes.push(changes[i]); i++; }
+      while (i < changes.length && changes[i].type === 'add')    { adds.push(changes[i]);    i++; }
+      var max = Math.max(removes.length, adds.length);
+      for (var k = 0; k < max; k++) {
+        out.push({ left: removes[k] || null, right: adds[k] || null });
+      }
+    }
+    return out;
+  }
+%>
+<% if (!_hunks.length) { %>
+<div class="px-3 py-2 font-mono text-xs text-text-secondary">No changes.</div>
+<% } else { %>
+<div role="region" aria-label="Split diff" class="grid grid-cols-2 gap-0">
+  <div data-diff-split-left="<%= _diffId %>" tabindex="0" role="region" aria-label="Diff, before" class="overflow-x-auto border-r border-border">
+    <% _hunks.forEach(function (hunk, hi) {
+      var pairs = _pairChanges(hunk.changes);
+    %>
+    <div data-diff-hunk="<%= hi %>">
+      <%- include('./_hunk-header', { hunk: hunk }) %>
+      <% pairs.forEach(function (p, idx) { %>
+        <% if (p.left) { %>
+          <%- include('./_line', { change: p.left, variant: 'split-old' }) %>
+        <% } else { %>
+          <div aria-hidden="true" class="grid grid-cols-[3rem_1rem_1fr] font-mono text-xs leading-5 bg-surface-overlay"><span>&nbsp;</span><span>&nbsp;</span><span>&nbsp;</span></div>
+        <% } %>
+      <% }); %>
+    </div>
+    <% }); %>
+  </div>
+  <div data-diff-split-right="<%= _diffId %>" tabindex="0" role="region" aria-label="Diff, after" class="overflow-x-auto">
+    <% _hunks.forEach(function (hunk, hi) {
+      var pairs = _pairChanges(hunk.changes);
+    %>
+    <div data-diff-hunk="<%= hi %>">
+      <%- include('./_hunk-header', { hunk: hunk }) %>
+      <% pairs.forEach(function (p, idx) { %>
+        <% if (p.right) { %>
+          <%- include('./_line', { change: p.right, variant: 'split-new' }) %>
+        <% } else { %>
+          <div aria-hidden="true" class="grid grid-cols-[3rem_1rem_1fr] font-mono text-xs leading-5 bg-surface-overlay"><span>&nbsp;</span><span>&nbsp;</span><span>&nbsp;</span></div>
+        <% } %>
+      <% }); %>
+    </div>
+    <% }); %>
+  </div>
+</div>
+<% } %>

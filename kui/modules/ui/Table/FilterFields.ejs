@@ -1,0 +1,6 @@
+<%#
+  The filter-panel controls of a DataTable, for changing its field list at runtime: render this with
+  { id: <table id>, fields, values, messages } and pass the HTML to tableRoot.kuiDataTable.setFilterFields(html).
+  See ./partials/filter-fields.ejs for the field descriptors.
+-%>
+<%- include('./partials/filter-fields', locals) %>

@@ -1,0 +1,211 @@
+<%
+  // ServiceMap — services as nodes and calls as edges on a deterministic layered layout (no graph library). Rate,
+  // error and latency badges on nodes and edges, pan and zoom, roving-focus keyboard navigation along the call graph
+  // and a panel for the selected service. Errors are never colour alone: a warning icon plus the error percentage, a
+  // heavier border and a dashed edge.
+  // Same locals, DOM and classes as kui-react modules/ui/ServiceMap/index.tsx; the layout is the same code, so the
+  // coordinates are identical (ServiceMap/map-model.js, loaded on the server through _observability/_load.ejs and
+  // inlined in the browser: one source). The server draws the whole map for the state at render time;
+  // ServiceMap/scripts/service-map.js (inlined after map-model.js, idempotent) adds measuring and fitting, pan, zoom,
+  // the keyboard, selection and the mirrored layout on a right-to-left page.
+  //
+  // Locals:
+  //   nodes        — [{ id, name, kind?, rate?, errorRate?, latencyMs?, status? }]; ids are strings.
+  //     kind       — `service`, `database`, `queue`... shown as a caption
+  //     rate       — requests per second
+  //     errorRate  — fraction of failed requests, 0..1
+  //     latencyMs  — a representative latency (p95) in ms
+  //     status     — 'ok' | 'warn' | 'error' | 'unknown': explicit health; otherwise derived from errorRate and
+  //                  errorThresholds
+  //   edges        — [{ id?, from, to, rate?, errorRate?, latencyMs? }]. Unknown endpoints, self loops and repeated
+  //                  (from, to) pairs are ignored; a call that closes a cycle is drawn as an arc over the nodes.
+  //   selectedId   — the selected service id (or null for none). React treats it as controlled: here it is the state
+  //                  at render time and the root gets data-sm-select-controlled (see Events)
+  //   defaultSelectedId — selected at render time; the browser then selects freely (default null)
+  //   renderSelection — false hides the panel; a function (node, { incoming, outgoing }) => text draws the panel body
+  //                  as escaped text (React takes a function returning a node). Default: the built-in panel
+  //   selectionPartial — absolute path of a partial drawn as the panel body, with the locals
+  //                  { node, incoming, outgoing } (wins over a renderSelection function)
+  //   errorThresholds — { warn, error }: error-rate fractions that make a service degraded / failing when `status` is
+  //                  not given (default { warn: 0.01, error: 0.05 })
+  //   height       — height of the map in px (default 420)
+  //   width        — EJS only: the width in px the server draws the map at (default 900). React draws nothing until
+  //                  the browser has measured the box; the server cannot measure, so it assumes this width and the
+  //                  script measures the real one and fits the drawing to it. Without JavaScript the drawing keeps
+  //                  this width (the box clips it)
+  //   direction    — 'ltr' | 'rtl'. Without it the map is drawn left to right and the script mirrors it when the
+  //                  page is right to left (React reads `dir` the same way, after mounting)
+  //   hideControls — hide the zoom buttons and the hint (the hint stays for screen readers)
+  //   messages     — partial overrides of the texts (DEFAULT_SERVICE_MAP_MESSAGES of kui-react; `status` merges per
+  //                  key; `{value}`, `{name}`, `{status}`, `{metrics}`, `{calls}`, `{from}`, `{to}` are placeholders)
+  //   className    — extra classes on the root
+  //   id           — prefix of the generated ids (marker arrows, the hint); default generated: pass it when two maps
+  //                  share a page and the ids must be stable
+  //   loadRuntime  — default true: inline the browser scripts (false when the host page loads map-model.js and
+  //                  service-map.js once and calls KuiServiceMap.autoInit())
+  //
+  // Not the same as React, by necessity: `width` above; the icon of a degraded or failing service is an inline
+  // <svg data-icon="triangle-exclamation"> (as FontAwesomeIcon draws it) because an icon-font <i> cannot be drawn
+  // inside an <svg>; the panel of every service is drawn into <template data-sm-panels> so the script can show it
+  // without the data (one panel per service travels with the page).
+  //
+  // Events on the root (they bubble): 'kui:service-map-select' { id, node } (React: onSelect(node | null); id and
+  // node are null when cleared). A controlled root only emits it; the host applies the state with
+  // KuiServiceMap.select(root, id). KuiServiceMap.fit(root) and KuiServiceMap.zoom(root, factor) do what the buttons do.
+  var F = {}, M = {};
+  include('./_observability/_load', { out: F, src: include('./_observability/format.js') });
+  include('./_observability/_load', { out: M, src: include('./ServiceMap/map-model.js') });
+
+  function posNum(v, d) { var n = Number(v); return isFinite(n) && n > 0 ? n : d; }
+
+  var DEFAULT_MESSAGES = {
+    label: 'Service map', zoomIn: 'Zoom in', zoomOut: 'Zoom out', fit: 'Fit to view',
+    hint: 'Drag to pan, Ctrl + scroll to zoom. Arrow keys move along calls, Enter selects.',
+    empty: 'No services to show.', rate: '{value} req/s', errors: '{value} errors', latency: 'p95 {value}',
+    status: { ok: 'healthy', warn: 'degraded', error: 'failing', unknown: 'no data' },
+    selection: 'Selected service', upstream: 'Called by', downstream: 'Calls', none: 'none', clearSelection: 'Clear selection',
+    nodeLabel: '{name}, {status}{metrics}{calls}', edgeLabel: '{from} to {to}{metrics}'
+  };
+  var _given = locals.messages && typeof locals.messages === 'object' ? locals.messages : {};
+  var _msg = Object.assign({}, DEFAULT_MESSAGES, _given, { status: Object.assign({}, DEFAULT_MESSAGES.status, _given.status) });
+
+  var _nodes = Array.isArray(locals.nodes) ? locals.nodes : [];
+  var _edges = Array.isArray(locals.edges) ? locals.edges : [];
+  var _height = posNum(locals.height, 420);
+  var _width = Math.floor(posNum(locals.width, 900));
+  var _explicitDir = locals.direction === 'rtl' || locals.direction === 'ltr';
+  var _rtl = locals.direction === 'rtl';
+  var _className = locals.className || '';
+  var _hideControls = locals.hideControls === true;
+  var _uid = locals.id ? String(locals.id).replace(/[^a-zA-Z0-9_-]/g, '') : 'ks-sm-' + Math.random().toString(36).substr(2, 9);
+  var _given_t = locals.errorThresholds && typeof locals.errorThresholds === 'object' ? locals.errorThresholds : {};
+  var _thr = { warn: typeof _given_t.warn === 'number' ? _given_t.warn : 0.01, error: typeof _given_t.error === 'number' ? _given_t.error : 0.05 };
+
+  var _layout = M.layoutServiceMap(_nodes, _edges, { nodeWidth: M.NODE_W, nodeHeight: M.NODE_H, direction: _rtl ? 'rtl' : 'ltr' });
+  var _nodeById = new Map();
+  _nodes.forEach(function (n) { _nodeById.set(n.id, n); });
+  var _edgeData = new Map();
+  _edges.forEach(function (e) { _edgeData.set(e.id != null ? e.id : e.from + '->' + e.to, e); });
+
+  var _selectControlled = locals.selectedId !== undefined;
+  var _selectedRaw = _selectControlled ? locals.selectedId : (locals.defaultSelectedId != null ? locals.defaultSelectedId : null);
+  var _selected = _selectedRaw && _nodeById.has(_selectedRaw) ? _selectedRaw : null;
+  var _showPanel = locals.renderSelection !== false;
+
+  var _placed = new Map();
+  _layout.nodes.forEach(function (n) { _placed.set(n.id, n); });
+  var _order = [];
+  _layout.layers.forEach(function (l) { _order = _order.concat(l); });
+  var _active = _selected && _placed.has(_selected) ? _selected : (_order.length ? _order[0] : null);
+  var _view = M.fitView(_layout.width, _layout.height, _width, _height);
+
+  function nodeText(n) {
+    var parts = [];
+    if (n.rate !== undefined) parts.push(F.fillMessage(_msg.rate, { value: F.formatCompact(n.rate) }));
+    if (n.errorRate !== undefined) parts.push(F.fillMessage(_msg.errors, { value: F.formatPercent(n.errorRate * 100, 1) }));
+    if (n.latencyMs !== undefined) parts.push(F.fillMessage(_msg.latency, { value: F.formatDurationMs(n.latencyMs) }));
+    return parts;
+  }
+  function edgeText(e) {
+    var parts = [];
+    if (e.rate !== undefined) parts.push(F.formatCompact(e.rate) + '/s');
+    if (e.errorRate !== undefined) parts.push(F.formatPercent(e.errorRate * 100, 1));
+    if (e.latencyMs !== undefined) parts.push(F.formatDurationMs(e.latencyMs));
+    return parts;
+  }
+  // The caption line under the name: the error percentage moves to a badge when the node is degraded or failing.
+  function nodeLine(n, health) {
+    var out = [];
+    if (n.rate !== undefined) out.push(F.fillMessage(_msg.rate, { value: F.formatCompact(n.rate) }));
+    if (n.errorRate !== undefined && health !== 'error' && health !== 'warn') out.push(F.fillMessage(_msg.errors, { value: F.formatPercent(n.errorRate * 100, 1) }));
+    if (n.latencyMs !== undefined) out.push(F.fillMessage(_msg.latency, { value: F.formatDurationMs(n.latencyMs) }));
+    return out;
+  }
+  function nameOf(id) { var x = _nodeById.get(id); return x ? x.name : id; }
+
+  var _ctx = {
+    F: F, M: M, msg: _msg, nodeById: _nodeById, edges: _edges, thresholds: _thr, edgeText: edgeText,
+    markerId: _uid + '-arrow', markerErrId: _uid + '-arrow-err',
+    healthStroke: { ok: 'var(--border-strong)', warn: 'var(--warning)', error: 'var(--error)', unknown: 'var(--border)' },
+    rtl: _rtl,
+    selectionPartial: typeof locals.selectionPartial === 'string' && locals.selectionPartial ? locals.selectionPartial : '',
+    renderSelection: locals.renderSelection
+  };
+
+  var _cfg = {
+    width: _width, height: _height, rtl: _rtl, auto: !_explicitDir, selected: _selected, nodes: _nodes, edges: _edges
+  };
+  var CTRL = 'flex h-8 w-8 items-center justify-center rounded border border-border bg-surface-raised text-text-secondary transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var _buttons = [
+    { action: 'zoom-in', label: _msg.zoomIn, icon: 'fa-magnifying-glass-plus' },
+    { action: 'zoom-out', label: _msg.zoomOut, icon: 'fa-magnifying-glass-minus' },
+    { action: 'fit', label: _msg.fit, icon: 'fa-expand' }
+  ];
+%>
+<%# w-full min-w-0: the map takes its container's width (a root sized by its content measured 0 in kui-react). %>
+<div class="flex w-full min-w-0 flex-col gap-3<%= _className ? ' ' + _className : '' %>" data-sm-root data-sm-config="<%= JSON.stringify(_cfg) %>"<% if (_selectControlled) { %> data-sm-select-controlled<% } %>>
+  <div class="relative w-full" style="height: <%= _height %>px" data-sm-box>
+    <% if (!_layout.nodes.length) { %>
+    <div class="flex h-full items-center justify-center rounded-md border border-border bg-surface-base text-sm text-text-secondary"><%= _msg.empty %></div>
+    <% } else { %>
+    <div class="relative h-full overflow-hidden rounded-md border border-border bg-surface-base">
+      <svg role="group" aria-label="<%= _msg.label %>" aria-describedby="<%= _uid %>-hint" width="<%= _width %>" height="<%= _height %>" direction="<%= _rtl ? 'rtl' : 'ltr' %>" class="block touch-none select-none" style="cursor: grab" data-sm-svg>
+        <defs>
+          <marker id="<%= _ctx.markerId %>" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--border-strong)"></path>
+          </marker>
+          <marker id="<%= _ctx.markerErrId %>" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--error)"></path>
+          </marker>
+        </defs>
+        <g transform="<%= M.viewTransform(_view) %>" data-sm-view>
+          <% _layout.edges.forEach(function (pe) {
+            var data = _edgeData.get(pe.id);
+            var parts = edgeText(data || { from: '', to: '' });
+            var label = F.fillMessage(_msg.edgeLabel, { from: nameOf(pe.from), to: nameOf(pe.to), metrics: parts.length ? ', ' + parts.join(', ') : '' });
+            var dim = _selected !== null && pe.from !== _selected && pe.to !== _selected;
+          %><%- include('./ServiceMap/_edge', { c: _ctx, pe: pe, data: data, dim: dim, label: label }) %><% }); %>
+          <% _layout.nodes.forEach(function (pn) {
+            var n = _nodeById.get(pn.id);
+            if (!n) return;
+            var health = M.healthOf(n, _thr);
+            var metrics = nodeText(n);
+            var calls = _layout.edges.filter(function (e) { return e.from === n.id; }).map(function (e) { return nameOf(e.to); });
+            var label = F.fillMessage(_msg.nodeLabel, {
+              name: n.name, status: _msg.status[health],
+              metrics: metrics.length ? ', ' + metrics.join(', ') : '',
+              calls: calls.length ? ', ' + _msg.downstream.toLowerCase() + ' ' + calls.join(', ') : ''
+            });
+            var dim = _selected !== null && _selected !== n.id && !_layout.edges.some(function (e) { return (e.from === _selected && e.to === n.id) || (e.to === _selected && e.from === n.id); });
+          %><%- include('./ServiceMap/_node', { c: _ctx, pn: pn, n: n, health: health, line: nodeLine(n, health), selected: _selected === n.id, focusable: _active === n.id, dim: dim, label: label }) %><% }); %>
+        </g>
+      </svg>
+      <% if (!_hideControls) { %>
+      <div class="absolute end-2 top-2 flex flex-col gap-1">
+        <% _buttons.forEach(function (b) { %>
+        <button type="button" aria-label="<%= b.label %>" title="<%= b.label %>" data-sm-action="<%= b.action %>" class="<%= CTRL %>"><i class="fa-solid <%= b.icon %> h-3.5 w-3.5" aria-hidden="true"></i></button>
+        <% }); %>
+      </div>
+      <p id="<%= _uid %>-hint" class="pointer-events-none absolute bottom-1.5 start-2 max-w-[70%] text-xs text-text-disabled"><%= _msg.hint %></p>
+      <% } else { %>
+      <p id="<%= _uid %>-hint" class="sr-only"><%= _msg.hint %></p>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+  <% if (_layout.nodes.length && _showPanel && _selected !== null) { %>
+  <%- include('./ServiceMap/_panel', { c: _ctx, id: _selected }) %>
+  <% } %>
+  <% if (_layout.nodes.length && _showPanel) { %>
+  <template data-sm-panels>
+    <% _layout.nodes.forEach(function (pn) { %><%- include('./ServiceMap/_panel', { c: _ctx, id: pn.id }) %><% }); %>
+  </template>
+  <% } %>
+</div>
+<% if (_layout.nodes.length && locals.loadRuntime !== false) { %>
+<script>
+<%- include('./ServiceMap/map-model.js') %>
+<%- include('./ServiceMap/scripts/service-map.js') %>
+(function () { if (window.KuiServiceMap) window.KuiServiceMap.autoInit(); })();
+</script>
+<% } %>

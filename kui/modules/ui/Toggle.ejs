@@ -1,0 +1,147 @@
+<%
+  // Toggle — role="switch".
+  //
+  // Async states (kui-react Toggle `pending` / `mismatch` / `describedBy`):
+  //   pending     — a write is in flight: the thumb shows a spinner, the input is
+  //                 disabled and aria-busy is set. No layout shift.
+  //   mismatch    — the other side reports a different value than was requested:
+  //                 a warning ring on the track and aria-invalid. Pair it with
+  //                 `describedBy` (id of the element that explains it).
+  //   describedBy — id of a consumer-rendered hint element.
+  // Both flags can also be flipped at runtime:
+  //   document.querySelector('[data-toggle-root="<id>"]').__toggle
+  //     .setPending(bool) / .setMismatch(bool) / .setChecked(bool)
+  var _sz  = locals.size || 'md';
+  var _ch  = !!locals.checked;
+  var _dis = !!locals.disabled;
+  var _id  = locals.id || 'toggle-' + Math.random().toString(36).substr(2, 9);
+  var _pending  = !!locals.pending;
+  var _mismatch = !!locals.mismatch;
+  var MISMATCH_CLASSES = 'ring-2 ring-warning ring-offset-1 ring-offset-surface-base';
+
+  var sizeMap = {
+    sm: { track: 'h-4 w-7',   thumb: 'h-3 w-3',     on: 'translate-x-3.5' },
+    md: { track: 'h-5 w-9',   thumb: 'h-3.5 w-3.5', on: 'translate-x-4'   },
+    lg: { track: 'h-6 w-11',  thumb: 'h-4 w-4',     on: 'translate-x-5'   }
+  };
+  var sm = sizeMap[_sz] || sizeMap.md;
+
+  var trackBg = (_ch ? 'bg-primary' : 'bg-surface-sunken border border-border') + (_mismatch ? ' ' + MISMATCH_CLASSES : '');
+  var thumbTranslate = _ch ? sm.on : 'translate-x-0';
+%>
+<label
+  for="<%= _id %>"
+  class="flex items-start gap-3 <%= _dis ? 'cursor-not-allowed opacity-50' : (_pending ? 'cursor-progress' : 'cursor-pointer') %><%= locals.className ? ' ' + locals.className : '' %>"
+  data-toggle-root="<%= _id %>"
+>
+  <div class="relative shrink-0 mt-0.5">
+    <input
+      id="<%= _id %>"
+      type="checkbox"
+      role="switch"
+      class="sr-only"
+      aria-checked="<%= _ch ? 'true' : 'false' %>"
+      <% if (!locals.label && locals.ariaLabel) { %>aria-label="<%= locals.ariaLabel %>"<% } %>
+      data-toggle-input
+      <% if (_ch)  { %>checked<% } %>
+      <% if (_dis || _pending) { %>disabled<% } %>
+      <% if (_pending) { %>aria-busy="true"<% } %>
+      <% if (locals.describedBy) { %>aria-describedby="<%= locals.describedBy %>"<% } %>
+      <% if (_mismatch) { %>aria-invalid="true"<% } %>
+      <% if (locals.name)     { %>name="<%= locals.name %>"<% } %>
+      <% if (locals.value)    { %>value="<%= locals.value %>"<% } %>
+      <% if (locals.onchange) { %>onchange="<%= locals.onchange %>"<% } %>
+    >
+    <div
+      data-toggle-track
+      class="rounded-full transition-colors duration-200 <%= sm.track %> <%= trackBg %>"
+    ></div>
+    <div
+      data-toggle-thumb
+      class="absolute top-0.5 left-0.5 rounded-full bg-white shadow-sm transition-transform duration-200 <%= sm.thumb %> <%= thumbTranslate %>"
+    ><% if (_pending) { %><span data-toggle-spinner aria-hidden="true" class="absolute inset-0 m-auto h-[70%] w-[70%] animate-spin rounded-full border border-primary border-t-transparent motion-reduce:animate-none"></span><% } %></div>
+  </div>
+  <% if (locals.label || locals.description) { %>
+  <div>
+    <% if (locals.label) { %>
+      <span class="text-sm font-medium text-text-primary" data-toggle-label><%= locals.label %></span>
+    <% } %>
+    <% if (locals.description) { %>
+      <p class="text-xs text-text-secondary mt-0.5"><%= locals.description %></p>
+    <% } %>
+  </div>
+  <% } %>
+</label>
+
+<script>
+(function () {
+  var root = document.querySelector(<%- include('./_script-json', { value: '[data-toggle-root="' + _id + '"]' }) %>);
+  if (!root || root.__toggleBound) return;
+  root.__toggleBound = true;
+
+  var input = root.querySelector('[data-toggle-input]');
+  var track = root.querySelector('[data-toggle-track]');
+  var thumb = root.querySelector('[data-toggle-thumb]');
+  if (!input || !track || !thumb) return;
+
+  var ON_CLASS = <%- include('./_script-json', { value: String(sm.on) }) %>;
+  var TRACK_ON_CLASSES  = ['bg-primary'];
+  var TRACK_OFF_CLASSES = ['bg-surface-sunken', 'border', 'border-border'];
+
+  var _checked = input.checked;
+
+  function render() {
+    input.setAttribute('aria-checked', _checked ? 'true' : 'false');
+    if (_checked) {
+      TRACK_OFF_CLASSES.forEach(function (c) { track.classList.remove(c); });
+      TRACK_ON_CLASSES.forEach(function (c) { track.classList.add(c); });
+      thumb.classList.remove('translate-x-0');
+      thumb.classList.add(ON_CLASS);
+    } else {
+      TRACK_ON_CLASSES.forEach(function (c) { track.classList.remove(c); });
+      TRACK_OFF_CLASSES.forEach(function (c) { track.classList.add(c); });
+      thumb.classList.remove(ON_CLASS);
+      thumb.classList.add('translate-x-0');
+    }
+  }
+
+  var DIS = <%- include('./_script-json', { value: !!_dis }) %>;
+  var MISMATCH = <%- include('./_script-json', { value: String(MISMATCH_CLASSES) }) %>.split(' ');
+  var SPINNER = 'absolute inset-0 m-auto h-[70%] w-[70%] animate-spin rounded-full border border-primary border-t-transparent motion-reduce:animate-none';
+
+  input.addEventListener('change', function () {
+    _checked = input.checked;
+    render();
+  });
+
+  // Runtime API for async controls (see ControlSwitch).
+  root.__toggle = {
+    setChecked: function (on) { input.checked = !!on; _checked = input.checked; render(); },
+    setPending: function (on) {
+      input.disabled = DIS || !!on;
+      if (on) input.setAttribute('aria-busy', 'true'); else input.removeAttribute('aria-busy');
+      root.classList.remove('cursor-pointer', 'cursor-progress');
+      if (!DIS) root.classList.add(on ? 'cursor-progress' : 'cursor-pointer');
+      var sp = thumb.querySelector('[data-toggle-spinner]');
+      if (on && !sp) {
+        sp = document.createElement('span');
+        sp.setAttribute('data-toggle-spinner', '');
+        sp.setAttribute('aria-hidden', 'true');
+        sp.className = SPINNER;
+        thumb.appendChild(sp);
+      } else if (!on && sp) {
+        thumb.removeChild(sp);
+      }
+    },
+    setMismatch: function (on) {
+      MISMATCH.forEach(function (c) { track.classList[on ? 'add' : 'remove'](c); });
+      if (on) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+    },
+    setDescribedBy: function (id) {
+      if (id) input.setAttribute('aria-describedby', id); else input.removeAttribute('aria-describedby');
+    }
+  };
+
+  render();
+})();
+</script>

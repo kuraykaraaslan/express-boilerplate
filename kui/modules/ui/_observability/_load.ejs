@@ -1,0 +1,15 @@
+<%#
+  Loads one of the pure browser/Node scripts of the observability partials for the server side, so the
+  server and the browser run the SAME code instead of two copies. Fills the object passed as `out`:
+    include('./_observability/_load', { out: M, src: include('./_observability/format.js') })
+  `src` is the script text (an include of the .js file); it is evaluated with a stand-in `window`, and every
+  member it exports (window.Kui…) is copied onto `out`. Prints nothing.
+-%>
+<%
+  var _w = {};
+  (new Function('window', locals.src))(_w);
+  Object.keys(_w).forEach(function (k) {
+    var lib = _w[k];
+    if (lib && typeof lib === 'object') Object.keys(lib).forEach(function (m) { locals.out[m] = lib[m]; });
+  });
+%>

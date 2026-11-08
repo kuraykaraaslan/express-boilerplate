@@ -1,0 +1,23 @@
+<%#
+  stat.sparkline: Stat's label, icon, number and change, plus the trend line of the series (kui-react StatSparklineView).
+  The label is the model's `caption`: left out when it only repeats the card's title shown in the header (`captionOf`).
+  Locals: model.
+%><%_
+  var _m = locals.model;
+  var _s = _m.s;
+  var _label = _m.caption ? { text: _m.caption, font: _s.labelFont, color: _s.labelColor } : null;
+  var _tile = _s.icon ? { name: _s.icon, size: _m.tileIconSize, background: _s.iconBackground, color: _m.tileIconColor } : null;
+  var _metric = { text: _m.valueText, unit: locals.format.unit, unitPosition: locals.format.unitPosition, size: _m.layout === 'inline' ? 'lg' : 'xl', font: _s.autoScale === false ? _s.valueFont : undefined, color: _m.metricColor };
+  var _delta = _m.change ? { text: _m.change.text, direction: _m.change.direction, meaning: _m.change.meaning, color: _m.change.color, label: _m.timeText || undefined } : null;
+_%>
+<% if (_m.layout === 'chart-only') { %>
+<div class="flex h-full min-h-0 flex-col gap-2"><%- include('../_metric-head', { label: _label, tile: _tile }) %><div class="min-h-0 flex-1"><%- include('_spark-chart', { model: _m }) %></div></div>
+<% } else if (_m.layout === 'inline') { %>
+<div class="flex h-full min-h-0 items-end gap-4"><div class="flex min-w-0 shrink-0 flex-col gap-1.5 self-stretch"><%- include('../_metric-head', { label: _label, tile: null }) %><div class="mt-auto flex flex-col gap-1.5"><span data-part="value"><%- include('../_metric', _metric) %></span><% if (_delta) { %><span data-part="change"><%- include('../_delta', _delta) %></span><% } else if (_m.timeText) { %><%- include('../_meta', { text: _m.timeText }) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div><div class="h-full max-h-24 min-w-0 flex-1 self-end"><%- include('_spark-chart', { model: _m }) %></div></div>
+<% } else if (_m.layout === 'overlay') { %>
+<div class="relative flex h-full min-h-0 flex-col gap-2"><div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 opacity-40"><%- include('_spark-chart', { model: _m }) %></div><div class="relative"><%- include('../_metric-head', { label: _label, tile: _tile }) %></div><div class="relative mt-auto flex flex-col gap-1.5"><span data-part="value"><%- include('../_metric', _metric) %></span><% if (_delta) { %><span data-part="change"><%- include('../_delta', _delta) %></span><% } else if (_m.timeText) { %><%- include('../_meta', { text: _m.timeText }) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div>
+<% } else if (_m.layout === 'value-top') { %>
+<div class="flex h-full min-h-0 flex-col gap-2"><%- include('../_metric-head', { label: _label, tile: _tile }) %><div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1"><span data-part="value"><%- include('../_metric', _metric) %></span><% if (_delta) { %><span data-part="change"><%- include('../_delta', _delta) %></span><% } else if (_m.timeText) { %><%- include('../_meta', { text: _m.timeText }) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div><div class="min-h-0 flex-1"><%- include('_spark-chart', { model: _m }) %></div></div>
+<% } else { %>
+<div class="flex h-full min-h-0 flex-col gap-2"><%- include('../_metric-head', { label: _label, tile: _tile }) %><div class="min-h-6 flex-1"><%- include('_spark-chart', { model: _m }) %></div><div class="shrink-0"><div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1"><span data-part="value"><%- include('../_metric', _metric) %></span><% if (_delta) { %><span data-part="change"><%- include('../_delta', _delta) %></span><% } else if (_m.timeText) { %><%- include('../_meta', { text: _m.timeText }) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div></div>
+<% } %>

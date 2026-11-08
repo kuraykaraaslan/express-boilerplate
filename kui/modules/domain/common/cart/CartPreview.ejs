@@ -1,0 +1,72 @@
+<%
+  var _cart        = locals.cart        || {};
+  var _items       = _cart.items        || [];
+  var _totals      = _cart.totals       || {};
+  var _locale      = locals.locale      || 'tr-TR';
+  var _id          = locals.id          || ('cart-preview-' + Math.random().toString(36).substr(2, 9));
+  var _defaultOpen = !!locals.defaultOpen;
+
+  var currency = _totals.currency || 'TRY';
+  var totalQty = _items.reduce(function(s, i) { return s + (i.quantity || 1); }, 0);
+  var itemLabel = totalQty + ' item' + (totalQty !== 1 ? 's' : '');
+%>
+<div class="rounded-xl border border-border bg-surface-raised overflow-hidden<%= locals.className ? ' ' + locals.className : '' %>"
+  id="<%= _id %>">
+
+  <!-- toggle header -->
+  <button type="button"
+    onclick="toggleCartPreview(<%= JSON.stringify(String(_id)) %>)"
+    aria-expanded="<%= _defaultOpen ? 'true' : 'false' %>"
+    class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="w-4 h-4 inline-flex items-center justify-center text-text-secondary" aria-hidden="true">
+        <i class="fa-solid fa-cart-shopping w-4 h-4"></i>
+      </span>
+      <span class="text-sm font-semibold text-text-primary">Your order</span>
+      <span class="text-xs text-text-secondary">(<%= itemLabel %>)</span>
+    </div>
+
+    <div class="flex items-center gap-3 shrink-0">
+      <%- include('../money/PriceDisplay', {
+        amount: _totals.total || 0,
+        currency: currency,
+        locale: _locale,
+        size: 'sm'
+      }) %>
+      <span id="<%= _id %>-chevron" class="h-3.5 w-3.5 inline-flex items-center justify-center text-text-secondary transition-transform duration-200<%= _defaultOpen ? ' rotate-180' : '' %>" aria-hidden="true">
+        <i class="fa-solid fa-chevron-down w-3.5 h-3.5"></i>
+      </span>
+    </div>
+  </button>
+
+  <!-- expanded items -->
+  <div id="<%= _id %>-body" class="border-t border-border px-4 py-3 space-y-3<%= _defaultOpen ? '' : ' hidden' %>">
+    <% if (_items.length === 0) { %>
+    <p class="text-sm text-text-secondary py-2 text-center">No items in cart.</p>
+    <% } else { %>
+    <% _items.forEach(function(item, idx) { %>
+    <%- include('./CartItem', {
+      item: item,
+      compact: true,
+      locale: _locale,
+      className: idx > 0 ? 'border-t border-border pt-3' : ''
+    }) %>
+    <% }); %>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function () {
+  function toggleCartPreview(id) {
+    var body    = document.getElementById(id + '-body');
+    var chevron = document.getElementById(id + '-chevron');
+    var btn     = document.querySelector('#' + id + ' [aria-expanded]');
+    if (!body) return;
+    var nowHidden = body.classList.toggle('hidden');
+    if (chevron) chevron.classList.toggle('rotate-180', !nowHidden);
+    if (btn)     btn.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
+  }
+  window.toggleCartPreview = window.toggleCartPreview || toggleCartPreview;
+})();
+</script>

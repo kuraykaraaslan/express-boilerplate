@@ -1,0 +1,13 @@
+<%#
+  scada.scene: a process diagram on a canvas (kui-react ScadaSceneView). Symbols are placed by coordinates and joined by
+  pipes, hoses, cables, wires and strip lines; the model returns the whole drawing as an SVG tree and `model.svg` is its
+  markup (svgToString). The diagram scales to the card and keeps its proportions. scripts/widget-kit.js pauses the SMIL
+  clock for a viewer who prefers reduced motion. A symbol the page gave an action to (host.elementActions) gets a transparent
+  hit area (model.hits, each with its `gestures`) that scripts/widget-kit.js answers: a click, a double click, a right click
+  and the keyboard become the bubbling `kui:element-gesture` event. Without actions there are no hit areas. A locked hit
+  (`locked`, a symbol in mode lockout) stays a named, focusable `aria-disabled` / `data-locked` rect without
+  `data-wk-gestures`, so nothing runs from it. In full screen the card's zoom pane (scripts/zoom-pane.js, kui-react ZoomPane)
+  holds this svg: Ctrl/Cmd + wheel, a pinch, + - 0 and its toolbar zoom; a drag moves it, and a press that does not move
+  still reaches the hit areas. Locals: model.
+%><%_ var _g = locals.model; _%>
+<svg viewBox="<%= _g.viewBox %>" preserveAspectRatio="xMidYMid meet" class="h-full min-h-0 w-full" role="img" aria-label="<%= _g.ariaLabel %>"<% if (_g.problems) { %> data-problems="<%= _g.problems %>"<% } %>><%- _g.svg %><% (_g.hits || []).forEach(function (h) { %><% if (h.locked) { %><rect x="<%= h.x %>" y="<%= h.y %>" width="<%= h.w %>" height="<%= h.h %>" role="button" tabindex="0" aria-label="<%= h.name %>" data-element="<%= h.id %>" aria-disabled="true" data-locked="true" fill="transparent" class="cursor-not-allowed outline-none focus-visible:stroke-border-focus" stroke-width="2"></rect><% } else { %><rect x="<%= h.x %>" y="<%= h.y %>" width="<%= h.w %>" height="<%= h.h %>" role="button" tabindex="0" aria-label="<%= h.name %>" data-element="<%= h.id %>" data-wk-gestures="<%= h.gestures %>" fill="transparent" class="cursor-pointer outline-none hover:fill-primary/10 focus-visible:stroke-border-focus" stroke-width="2"></rect><% } %><% }); %></svg>

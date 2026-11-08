@@ -1,0 +1,131 @@
+<%
+  // Server-side helpers the Control* partials share. Fills the object passed as `P`:
+  //   include('./_parts', { P: P })
+  //
+  //   P.esc(text)            — HTML-escape for text and attribute values.
+  //   P.cssValue(v)          — a CSS value from settings data (a colour, a size, a font),
+  //                            or '' when it could break out of its declaration
+  //                            (`;`, braces, angle brackets, a backslash, url(), expression()).
+  //   P.styleText(style)     — kui-react's inline `style` objects as CSS text: an object with
+  //                            camelCase keys ({ fontSize: '20px', color: 'var(--primary)' }) or
+  //                            CSS text ('font-size: 20px'). Unsafe declarations are dropped.
+  //                            The result still goes through escaped output.
+  //   P.confirmPrompt(id, mode, confirmText, messages)
+  //                          — the "Are you sure?" step (kui-react ControlConfirmPrompt): a hidden carrier of the
+  //                            ConfirmDialog options; the runtime asks when a write is parked behind a confirmation.
+  //   P.CONFIRM_DEFAULTS     — DEFAULT_CONFIRM_MESSAGES.
+  //   P.button(opts)         — kui-react Button's markup with its className merged as
+  //                            tailwind-merge would (see below).
+  var P = locals.P;
+  P.esc = function (t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  };
+  P.cssValue = function (v) {
+    if (typeof v === 'number' && isFinite(v)) return String(v);
+    if (typeof v !== 'string') return '';
+    var s = v.trim();
+    if (!s || s.length > 200) return '';
+    if (/[;{}<>\\]/.test(s) || /url\s*\(|expression\s*\(|@import/i.test(s)) return '';
+    return s;
+  };
+  P.styleText = function (style) {
+    if (!style) return '';
+    var out = [];
+    if (typeof style === 'string') {
+      style.split(';').forEach(function (decl) {
+        var at = decl.indexOf(':');
+        if (at < 1) return;
+        var name = decl.slice(0, at).trim().toLowerCase();
+        var value = P.cssValue(decl.slice(at + 1));
+        if (/^-{0,2}[a-z][a-z0-9-]*$/.test(name) && value) out.push(name + ': ' + value);
+      });
+    } else if (typeof style === 'object') {
+      Object.keys(style).forEach(function (key) {
+        var name = key.indexOf('--') === 0 ? key : key.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); });
+        var raw = style[key];
+        // React appends px to a bare number for length properties; fontWeight, opacity, lineHeight stay unitless.
+        var value = typeof raw === 'number' && !/^(font-weight|opacity|line-height|z-index|flex|order)$/.test(name) ? raw + 'px' : P.cssValue(raw);
+        if (/^-{0,2}[a-z][a-z0-9-]*$/.test(name) && value) out.push(name + ': ' + value);
+      });
+    }
+    return out.join('; ');
+  };
+  // kui-react Button's classes, merged with a className the way tailwind-merge does for the
+  // groups the controls override (padding, font size, radius, gap, height, width, min height),
+  // so `className="h-9 w-9 text-lg"` replaces the size's `text-sm` instead of fighting it.
+  var BTN_BASE = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+  var BTN_VARIANT = {
+    primary:   'bg-primary text-primary-fg hover:bg-primary-hover',
+    secondary: 'bg-surface-overlay text-text-primary hover:bg-border-strong',
+    accent:    'bg-accent text-accent-fg hover:bg-accent-hover',
+    ghost:     'bg-transparent text-text-primary hover:bg-surface-overlay',
+    danger:    'bg-error text-text-inverse hover:opacity-90',
+    outline:   'border border-border text-text-primary hover:bg-surface-overlay',
+  };
+  var BTN_SIZE = { xs: 'px-2 py-1 text-xs', sm: 'px-3 py-1.5 text-sm', md: 'px-4 py-2 text-sm', lg: 'px-5 py-2.5 text-base', xl: 'px-6 py-3 text-lg' };
+  var BTN_ICON_SIZE = { xs: 'p-1 text-xs', sm: 'p-1.5 text-sm', md: 'p-2 text-sm', lg: 'p-2.5 text-base', xl: 'p-3 text-lg' };
+  function group(c) {
+    var m = /^(p|px|py|h|w|min-h|gap|rounded)-/.exec(c) || /^(rounded)$/.exec(c);
+    if (m) return m[1];
+    if (/^text-(xs|sm|base|lg|xl|[2-9]xl|\[\d)/.test(c)) return 'text-size';
+    return null;
+  }
+  P.mergeClasses = function (base, extra) {
+    var out = base.split(/\s+/).filter(Boolean);
+    String(extra || '').split(/\s+/).filter(Boolean).forEach(function (c) {
+      var g = group(c);
+      if (g) {
+        out = out.filter(function (o) {
+          var og = group(o);
+          if (og === g) return false;
+          // p-* overrides px-* and py-*.
+          if (g === 'p' && (og === 'px' || og === 'py')) return false;
+          return true;
+        });
+      }
+      out.push(c);
+    });
+    return out.join(' ');
+  };
+  // A button with kui-react Button's markup. `attrs` is trusted, pre-escaped attribute text;
+  // `children`, `iconLeft` and `iconRight` are trusted HTML.
+  P.button = function (o) {
+    var variant = BTN_VARIANT[o.variant] ? o.variant : 'primary';
+    var size = BTN_SIZE[o.size] ? o.size : 'md';
+    var cls = P.mergeClasses(
+      BTN_BASE + ' ' + BTN_VARIANT[variant] + ' ' + (o.iconOnly ? BTN_ICON_SIZE[size] : BTN_SIZE[size])
+        + (o.fullWidth ? ' w-full' : '') + (o.selected ? ' ring-2 ring-border-focus' : ''),
+      o.className,
+    );
+    var style = o.style ? P.styleText(o.style) : '';
+    return '<button type="' + (o.type || 'button') + '"'
+      + (o.attrs ? ' ' + o.attrs : '')
+      + (o.loading ? ' aria-busy="true"' : '')
+      + (o.ariaPressed !== undefined ? ' aria-pressed="' + String(o.ariaPressed) + '"' : '')
+      + (o.ariaLabel ? ' aria-label="' + P.esc(o.ariaLabel) + '"' : '')
+      + ' class="' + cls + '"'
+      + (style ? ' style="' + P.esc(style) + '"' : '')
+      + (o.disabled ? ' disabled' : '')
+      + '>'
+      + (o.loading ? '<span class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full shrink-0" aria-hidden="true" data-kui-btn-spinner></span>' : '')
+      + (o.iconLeft ? '<span aria-hidden="true" class="shrink-0" data-kui-btn-icon' + (o.loading ? ' hidden' : '') + '>' + o.iconLeft + '</span>' : '')
+      + (o.children || '')
+      + (o.iconRight ? '<span aria-hidden="true" class="shrink-0" data-kui-btn-icon' + (o.loading ? ' hidden' : '') + '>' + o.iconRight + '</span>' : '')
+      + '</button>';
+  };
+  P.CONFIRM_DEFAULTS = {
+    confirmPrompt: 'Are you sure?', confirm: 'Confirm', cancel: 'Cancel', typeToConfirm: 'Type "{text}" to confirm',
+  };
+  P.confirmPrompt = function (id, mode, confirmText, messages) {
+    if (mode !== 'confirm' && mode !== 'typed') return '';
+    var m = Object.assign({}, P.CONFIRM_DEFAULTS, messages || {});
+    var text = confirmText || '';
+    var typed = mode === 'typed';
+    // The step is the kit's ConfirmDialog (kui-react ControlConfirmPrompt): this hidden carrier only holds its options;
+    // the runtime asks through KuiConfirm.confirmDialog when a write is parked. The phrase gate unlocks only on the exact
+    // (trimmed) text, so that is what the confirmation carries as `typed`.
+    var options = { title: m.confirmPrompt, tone: 'warning', confirmLabel: m.confirm, cancelLabel: m.cancel };
+    if (typed) { options.phrase = text; options.phraseLabel = m.typeToConfirm.replace('{text}', text); }
+    return '<span hidden data-kui-control-ask data-kui-confirm-options="' + P.esc(JSON.stringify(options)) + '"></span>';
+  };
+%>

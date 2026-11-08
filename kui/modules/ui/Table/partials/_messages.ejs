@@ -1,0 +1,67 @@
+<%#
+  DataTable message bundle (kui-react modules/ui/Table/types.ts DEFAULT_MESSAGES). Prints nothing: it
+  fills `out` with the defaults overridden by `messages`, so every Table partial reads one bundle.
+-%>
+<%
+  var _defaults = {
+    empty: 'No results found.',
+    loading: 'Loading…',
+    error: 'Something went wrong.',
+    searchPlaceholder: 'Search…',
+    rowsPerPage: 'Rows per page:',
+    filter: 'Filter',
+    clearFilter: 'Clear',
+    apply: 'Apply',
+    rowActions: 'Row actions',
+    actionsColumn: 'Actions',
+    selectAllRows: 'Select all shown rows',
+    selectRow: 'Select row',
+    selectedCount: '{count} selected',
+    clearSelection: 'Clear selection',
+    expandRow: 'Expand row',
+    collapseRow: 'Collapse row',
+    expandColumn: 'Details',
+    filters: 'Filters',
+    any: 'Any',
+    resetFilters: 'Reset',
+    columnFilter: 'Filter {column}',
+    editColumnFilter: 'Edit filter on {column}',
+    columnFilterAll: 'All',
+    columnFilterContains: 'Contains…',
+    tableLabel: 'Data table',
+    // Accessible name of the toolbar search input (the placeholder is a hint, not a name); kui-react 7a905d7.
+    search: 'Search',
+    showingRange: 'Showing {start}–{end} of {total}',
+    noResults: 'No results',
+    noResultsFor: 'No results for “{search}”',
+    filteredFrom: '(filtered from {total})',
+    retry: 'Retry',
+    sortBy: 'Sort by',
+    sortNone: 'Default order',
+    sortAscending: '{column}, ascending',
+    sortDescending: '{column}, descending',
+    activeFilters: 'Active filters',
+    removeFilter: 'Remove filter {filter}',
+    clearAllFilters: 'Clear all',
+    rangeMin: 'Min',
+    rangeMax: 'Max',
+    presetToday: 'Today',
+    presetLast7Days: 'Last 7 days',
+    presetLast30Days: 'Last 30 days',
+    presetThisMonth: 'This month',
+    presetLastMonth: 'Last month',
+    previousPage: 'Previous page',
+    nextPage: 'Next page',
+    firstPage: 'First page',
+    lastPage: 'Last page',
+    pageNumber: 'Page {page}',
+    pagination: 'Pagination',
+    columns: 'Columns',
+    resetColumns: 'Reset',
+    hiddenColumns: '{count} hidden'
+  };
+  var _in = (locals.messages && typeof locals.messages === 'object') ? locals.messages : {};
+  Object.keys(_defaults).forEach(function (k) {
+    locals.out[k] = typeof _in[k] === 'string' ? _in[k] : _defaults[k];
+  });
+-%>

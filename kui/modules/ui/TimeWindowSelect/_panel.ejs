@@ -1,0 +1,165 @@
+<%
+  // The TimeWindowSelect panel (kui-react: the Popover children). Locals: C (see TimeWindowSelect.ejs).
+  // Everything kui-react renders conditionally is rendered here once and shown / hidden with
+  // `hidden` by scripts/time-window-select.js; the server paints the state the panel opens in.
+  var C = locals.C;
+  var m = C.m;
+  var d = C.d;
+  var P = C.prefix;
+  var FIELD = 'h-8 rounded-md border border-border bg-surface-base px-2 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var CHIP = 'h-7 rounded-md px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var CHIP_ON = 'bg-primary text-primary-fg';
+  var CHIP_OFF = 'bg-surface-sunken text-text-secondary hover:text-text-primary';
+  var TAB = 'flex-1 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var TAB_ON = 'bg-primary text-primary-fg shadow-sm';
+  var TAB_OFF = 'text-text-secondary hover:bg-surface-overlay hover:text-text-primary';
+  var OPTION = 'space-y-2 rounded-md border p-2';
+  function periodName(p) { return m.periods[p] != null ? m.periods[p] : p; }
+  var isCurrentDraft = d.mode === 'calendar' && C.isCurrent(d.period);
+  var isPastDraft = d.mode === 'calendar' && !C.isCurrent(d.period);
+  var showRange = d.mode === 'absolute' && C.hKind === 'range';
+  var zoneName = d.timezone != null ? d.timezone : m.browserZone;
+  var activePreset = C.rtKind === 'last' && d.mode === 'relative' ? d.last : null;
+  var units = m.durationUnits || {};
+  // kui-react: with more than one allowed kind both tabs show; with one, only that kind's panel (no tab list).
+  var many = C.tabs.length > 1;
+  var kinds = many ? ['realtime', 'history'] : [C.tabs[0]];
+  var canApply = C.canApply;
+%>
+<div class="space-y-3" aria-label="<%= m.label %>" role="group" data-kui-tws data-kui-tws-config="<%= JSON.stringify(C.config) %>">
+  <% if (many) { %>
+  <div role="tablist" aria-label="<%= m.label %>" class="flex gap-1 rounded-lg bg-surface-sunken p-1">
+    <% kinds.forEach(function (t) { var on = C.tab === t; %>
+    <button id="<%= P %>-tab-<%= t %>" type="button" role="tab" aria-selected="<%= on ? 'true' : 'false' %>" aria-controls="<%= P %>-panel-<%= t %>" tabindex="<%= on ? '0' : '-1' %>"
+      class="<%= TAB %> <%= on ? TAB_ON : TAB_OFF %>" data-kui-tws-tab="<%= t %>"><%= t === 'realtime' ? m.realtime : m.history %></button>
+    <% }); %>
+  </div>
+  <% } %>
+
+  <% if (kinds.indexOf('realtime') !== -1) { %>
+  <div id="<%= P %>-panel-realtime"<% if (many) { %> role="tabpanel" aria-labelledby="<%= P %>-tab-realtime"<% } %> class="space-y-3" data-kui-tws-panel="realtime"<%= C.tab === 'realtime' ? '' : ' hidden' %>>
+    <div class="<%= OPTION %> <%= C.rtKind === 'last' ? 'border-primary' : 'border-border' %>" data-kui-tws-option="rt-last">
+      <label class="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input type="radio" name="<%= P %>-rt" class="focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-radio="rt-last"<%= C.rtKind === 'last' ? ' checked' : '' %>>
+        <%= m.last %>
+      </label>
+      <div class="flex flex-wrap gap-1" role="radiogroup" aria-label="<%= m.presets %>">
+        <% C.presets.forEach(function (p) { var on = activePreset === p; %>
+        <button type="button" role="radio" aria-checked="<%= on ? 'true' : 'false' %>" class="<%= CHIP %> <%= on ? CHIP_ON : CHIP_OFF %>" data-kui-tws-preset="<%= p %>"><%= p %></button>
+        <% }); %>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <input id="<%= P %>-rt-amount" type="number" inputmode="numeric" min="1" aria-label="<%= m.durationAmount %>" class="<%= FIELD %> w-20" value="<%= C.amount %>" data-kui-tws-amount="rt">
+        <select id="<%= P %>-rt-unit" aria-label="<%= m.durationUnit %>" class="<%= FIELD %>" data-kui-tws-unit="rt">
+          <% C.durationUnits.forEach(function (u) { %>
+          <option value="<%= u %>"<%= u === C.unit ? ' selected' : '' %>><%= units[u] != null ? units[u] : u %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+    <% if (C.currentPeriods.length > 0) { var curSel = isCurrentDraft ? d.period : C.currentPeriods[0]; var curOff = C.rtKind !== 'current'; %>
+    <div class="<%= OPTION %> <%= C.rtKind === 'current' ? 'border-primary' : 'border-border' %>" data-kui-tws-option="rt-current">
+      <label class="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input type="radio" name="<%= P %>-rt" class="focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-radio="rt-current"<%= C.rtKind === 'current' ? ' checked' : '' %>>
+        <%= m.currentPeriod %>
+      </label>
+      <div class="flex items-center gap-2">
+        <select id="<%= P %>-current" aria-label="<%= m.currentPeriod %>" class="<%= FIELD %>" data-kui-tws-current<%= curOff ? ' disabled' : '' %>>
+          <% C.currentPeriods.forEach(function (p) { %>
+          <option value="<%= p %>"<%= p === curSel ? ' selected' : '' %>><%= periodName(p) %></option>
+          <% }); %>
+        </select>
+        <label class="flex items-center gap-1.5 text-xs text-text-secondary">
+          <input type="checkbox" class="rounded border-border focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-so-far<%= d.mode === 'calendar' && d.soFar === true ? ' checked' : '' %><%= curOff ? ' disabled' : '' %>>
+          <%= m.soFar %>
+        </label>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (kinds.indexOf('history') !== -1) { %>
+  <div id="<%= P %>-panel-history"<% if (many) { %> role="tabpanel" aria-labelledby="<%= P %>-tab-history"<% } %> class="space-y-3" data-kui-tws-panel="history"<%= C.tab === 'history' ? '' : ' hidden' %>>
+    <div class="<%= OPTION %> <%= C.hKind === 'last' ? 'border-primary' : 'border-border' %>" data-kui-tws-option="h-last">
+      <label class="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input type="radio" name="<%= P %>-h" class="focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-radio="h-last"<%= C.hKind === 'last' ? ' checked' : '' %>>
+        <%= m.last %>
+      </label>
+      <div class="flex items-center gap-1.5">
+        <input id="<%= P %>-h-amount" type="number" inputmode="numeric" min="1" aria-label="<%= m.durationAmount %>" class="<%= FIELD %> w-20" value="<%= C.amount %>" data-kui-tws-amount="h"<%= C.hKind !== 'last' ? ' disabled' : '' %>>
+        <select id="<%= P %>-h-unit" aria-label="<%= m.durationUnit %>" class="<%= FIELD %>" data-kui-tws-unit="h"<%= C.hKind !== 'last' ? ' disabled' : '' %>>
+          <% C.durationUnits.forEach(function (u) { %>
+          <option value="<%= u %>"<%= u === C.unit ? ' selected' : '' %>><%= units[u] != null ? units[u] : u %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+    <div class="<%= OPTION %> <%= C.hKind === 'range' ? 'border-primary' : 'border-border' %>" data-kui-tws-option="h-range">
+      <label class="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input type="radio" name="<%= P %>-h" class="focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-radio="h-range"<%= C.hKind === 'range' ? ' checked' : '' %>>
+        <%= m.fixedRange %>
+      </label>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" data-kui-tws-range<%= showRange ? '' : ' hidden' %>>
+        <label class="space-y-1 text-xs text-text-secondary">
+          <span data-kui-tws-from-label><%= m.fromIn.replace('{zone}', zoneName) %></span>
+          <input id="<%= P %>-from" type="datetime-local" class="<%= FIELD %> w-full" data-kui-tws-from<% if (d.mode === 'absolute') { %> value="<%= C.toZonedInput(d.from, d.timezone) %>" max="<%= C.toZonedInput(d.to, d.timezone) %>"<% } %>>
+        </label>
+        <label class="space-y-1 text-xs text-text-secondary">
+          <span data-kui-tws-to-label><%= m.toIn.replace('{zone}', zoneName) %></span>
+          <input id="<%= P %>-to" type="datetime-local" class="<%= FIELD %> w-full" data-kui-tws-to<% if (d.mode === 'absolute') { %> value="<%= C.toZonedInput(d.to, d.timezone) %>" min="<%= C.toZonedInput(d.from, d.timezone) %>"<% } %>>
+        </label>
+      </div>
+    </div>
+    <% if (C.pastPeriods.length > 0) { var pastSel = isPastDraft ? d.period : C.pastPeriods[0]; %>
+    <div class="<%= OPTION %> <%= C.hKind === 'period' ? 'border-primary' : 'border-border' %>" data-kui-tws-option="h-period">
+      <label class="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input type="radio" name="<%= P %>-h" class="focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-radio="h-period"<%= C.hKind === 'period' ? ' checked' : '' %>>
+        <%= m.pastPeriod %>
+      </label>
+      <select id="<%= P %>-past" aria-label="<%= m.pastPeriod %>" class="<%= FIELD %>" data-kui-tws-past<%= C.hKind !== 'period' ? ' disabled' : '' %>>
+        <% C.pastPeriods.forEach(function (p) { %>
+        <option value="<%= p %>"<%= p === pastSel ? ' selected' : '' %>><%= periodName(p) %></option>
+        <% }); %>
+      </select>
+    </div>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (C.showAggregation || C.showInterval || C.showTimezone) { var agg = d.aggregation != null ? d.aggregation : (C.aggregations.indexOf('avg') !== -1 ? 'avg' : C.aggregations[0]); var iv = d.interval != null ? d.interval : 'auto'; var tz = d.timezone != null ? d.timezone : ''; var bc = C.bucketCount; %>
+  <div class="space-y-2 border-t border-border pt-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <% if (C.showAggregation) { %>
+      <select aria-label="<%= m.aggregation %>" class="<%= FIELD %>" data-kui-tws-aggregation>
+        <% C.aggregations.forEach(function (a) { %>
+        <option value="<%= a %>"<%= a === agg ? ' selected' : '' %>><%= m.aggregationValue.replace('{value}', C.aggregationText(a, m)) %></option>
+        <% }); %>
+      </select>
+      <% } %>
+      <% if (C.showInterval) { %>
+      <select aria-label="<%= m.interval %>" class="<%= FIELD %>" data-kui-tws-interval>
+        <% C.intervals.forEach(function (i) { %>
+        <option value="<%= i %>"<%= i === iv ? ' selected' : '' %>><%= i === 'auto' ? m.intervalAuto : m.intervalValue.replace('{value}', C.durationText(i, m)) %></option>
+        <% }); %>
+      </select>
+      <% } %>
+      <% if (C.showTimezone) { %>
+      <select aria-label="<%= m.timezone %>" class="<%= FIELD %> max-w-full" data-kui-tws-timezone>
+        <option value=""<%= tz === '' ? ' selected' : '' %>><%= m.timezoneDefault %></option>
+        <% C.zones.forEach(function (z) { %>
+        <option value="<%= z %>"<%= z === tz ? ' selected' : '' %>><%= z %></option>
+        <% }); %>
+      </select>
+      <% } %>
+    </div>
+    <p class="text-xs text-error" role="alert" data-kui-tws-too-long<%= C.tooLong ? '' : ' hidden' %>><%= C.tooLong ? m.tooLong.replace('{days}', String(C.maxSpanDays)) : '' %></p>
+    <p class="text-xs <%= bc !== null && bc > C.maxBuckets ? 'text-warning' : 'text-text-secondary' %>" role="status" data-kui-tws-buckets<%= bc === null ? ' hidden' : '' %>><%= bc === null ? '' : (bc > C.maxBuckets ? m.bucketsTooMany : m.buckets).replace('{count}', String(bc)) %></p>
+  </div>
+  <% } %>
+
+  <div class="flex justify-end gap-2">
+    <button type="button" class="h-8 rounded-md px-3 text-sm text-text-secondary hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-cancel><%= m.cancel %></button>
+    <button type="button" class="h-8 rounded-md bg-primary px-3 text-sm font-medium text-primary-fg hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-tws-update<%= canApply ? '' : ' disabled' %>><%= m.update %></button>
+  </div>
+</div>

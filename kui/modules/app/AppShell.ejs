@@ -1,0 +1,63 @@
+<%
+  var _id = locals.id || ('app-shell-' + Math.random().toString(36).substr(2,6));
+  var _drawerId = _id + '-mobile';
+  var _hasSidebar = !!(locals.sidebarContent);
+  var _hasTopbar  = !!(locals.topbarContent);
+  var _title = locals.mobileSidebarTitle || 'Navigation';
+  var _collapsed = !!locals.sidebarCollapsed;
+  var _logoContent = (_collapsed && locals.compactLogo)
+    ? locals.compactLogo
+    : (locals.logoContent || locals.compactLogo || '');
+  var _logoIsCompact = _collapsed && !!locals.compactLogo;
+  var _asideClassName = locals.asideClassName ? ' ' + locals.asideClassName : '';
+  var _mainClassName  = locals.mainClassName  ? ' ' + locals.mainClassName  : '';
+  // kui-react merges className with tailwind-merge, so a height utility there (h-full) replaces the default
+  // h-screen; appended classes would lose to h-screen, which comes later in the stylesheet.
+  var _className = locals.className || '';
+  var _ownHeight = /(^|\s)!?h-\S+/.test(_className);
+  // embedded: the shell is drawn inside a page that already has its <main> (a showcase preview, a story):
+  // the content area is a <div> without the main-content id, so the page keeps one main landmark and unique ids.
+  var _mainTag = locals.embedded ? 'div' : 'main';
+  // mobileSidebarContent: what the mobile drawer shows (default sidebarContent). Pass a copy rendered with
+  // other ids when the sidebar markup carries ids, so the page does not repeat them.
+  var _mobileSidebar = locals.mobileSidebarContent || locals.sidebarContent || '';
+%>
+<%# `relative`: an absolutely placed element with no positioned ancestor (an sr-only label in a scrolling table) is
+    clipped here instead of widening the page, which on a phone shifted every fixed menu. %>
+<div class="relative flex<%= _ownHeight ? '' : ' h-screen' %> overflow-hidden bg-surface-base<%= _className ? ' ' + _className : '' %>">
+
+  <% if (_hasSidebar) { %>
+  <aside class="relative hidden lg:flex flex-col h-full min-h-0 shrink-0 border-r border-border bg-surface-raised<%= _asideClassName %>">
+    <% if (_logoContent) { %>
+    <div class="absolute inset-x-0 top-0 z-10 flex items-center h-14 border-b border-border bg-surface-raised overflow-hidden <%= _logoIsCompact ? 'justify-center px-2' : 'px-4' %>">
+      <%- _logoContent %>
+    </div>
+    <% } %>
+    <div class="flex min-h-0 flex-1<%= _logoContent ? ' pt-14' : '' %>">
+      <%- locals.sidebarContent %>
+    </div>
+  </aside>
+  <% } %>
+
+  <div class="flex flex-1 flex-col min-w-0 min-h-0">
+    <% if (_hasTopbar) { %>
+    <header class="sticky top-0 z-30 flex items-center h-14 px-4 border-b border-border bg-surface-raised/90 backdrop-blur shrink-0">
+      <% if (_hasSidebar) { %>
+      <button type="button" onclick="openDrawer(<%= JSON.stringify(String(_drawerId)) %>)"
+        aria-label="Open sidebar"
+        class="inline-flex lg:hidden items-center justify-center w-9 h-9 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+        <i class="fa-solid fa-bars" aria-hidden="true"></i>
+      </button>
+      <% } %>
+      <div class="flex min-w-0 flex-1"><%- locals.topbarContent %></div>
+    </header>
+    <% } %>
+    <<%= _mainTag %><% if (!locals.embedded) { %> id="main-content"<% } %> class="flex-1 overflow-y-auto p-4 sm:p-6<%= _mainClassName %>">
+      <%- locals.children || '' %>
+    </<%= _mainTag %>>
+  </div>
+
+  <% if (_hasSidebar) { %>
+  <%- include('../ui/Drawer', { id: _drawerId, title: _title, side: 'left', open: false, className: '!w-72', children: _mobileSidebar }) %>
+  <% } %>
+</div>

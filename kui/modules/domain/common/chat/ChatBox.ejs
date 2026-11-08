@@ -1,0 +1,274 @@
+<%
+  var _title       = locals.title       || 'Support Chat';
+  var _subtitle    = locals.subtitle    || 'We typically reply in a few minutes';
+  var _placeholder = locals.placeholder || 'Type a message…';
+  var _messages    = locals.messages    || [];
+  var _open        = locals.open !== undefined ? !!locals.open : false;
+  var _minimised   = !!locals.minimised;
+  var _id          = locals.id          || ('chatbox-' + Math.random().toString(36).slice(2, 9));
+  var _className   = locals.className   || '';
+  var _youLabel    = locals.youLabel    || 'You';
+  // The message list is the kit's ChatThread, as in kui-react's ChatBox: { id?, role, text, timestamp?, at? } become
+  // thread items (own for the visitor, other for the agent), each with ChatBox's own small avatar. ChatThread includes
+  // a partial from its own folders, so the paths are relative to modules/ui/ChatThread/partials (avatars) and
+  // modules/ui (the empty line).
+  var _avatarPath  = '../../../domain/common/chat/_box-avatar';
+  var _emptyPath   = '../domain/common/chat/_box-empty';
+  var _items = _messages.map(function (msg, i) {
+    var user = msg.role === 'user';
+    return {
+      id: msg.id != null ? msg.id : 'm' + i,
+      side: user ? 'own' : 'other',
+      author: { name: user ? _youLabel : _title, avatarPartial: _avatarPath, avatarLocals: { role: user ? 'user' : 'agent' } },
+      body: msg.text,
+      at: msg.at != null ? msg.at : 0,
+      time: msg.timestamp || ''
+    };
+  });
+
+  var panelHeightClass = _minimised ? 'h-14' : 'h-[480px]';
+%>
+<div id="<%= _id %>"
+     class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3<%= _className ? ' ' + _className : '' %>"
+     role="region"
+     aria-label="Chat support"
+     data-chatbox>
+
+  <!-- Chat panel -->
+  <div id="<%= _id %>-panel"
+       class="w-80 sm:w-96 rounded-2xl shadow-2xl border border-border overflow-hidden bg-surface-base flex flex-col transition-all duration-200 <%= panelHeightClass %><%= _open ? '' : ' hidden' %>"
+       aria-live="polite"
+       data-chatbox-panel>
+
+    <!-- Header -->
+    <div class="flex items-center gap-3 px-4 py-3 bg-primary text-primary-fg flex-shrink-0">
+      <div class="flex items-center justify-center w-8 h-8 rounded-full bg-white/20">
+        <i class="fa-solid fa-robot w-4 h-4" aria-hidden="true"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold leading-tight truncate"><%= _title %></p>
+        <p class="text-xs text-primary-fg/70 truncate<%= _minimised ? ' hidden' : '' %>"
+           data-chatbox-subtitle><%= _subtitle %></p>
+      </div>
+      <button type="button"
+              aria-label="Minimise chat"
+              data-chatbox-minimise
+              class="flex items-center justify-center w-7 h-7 rounded-full hover:bg-white/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <i class="fa-solid fa-minus w-3 h-3" aria-hidden="true"></i>
+      </button>
+      <button type="button"
+              aria-label="Close chat"
+              data-chatbox-close
+              class="flex items-center justify-center w-7 h-7 rounded-full hover:bg-white/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <i class="fa-solid fa-xmark w-3 h-3" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 flex flex-col min-h-0<%= _minimised ? ' hidden' : '' %>"
+         data-chatbox-body>
+
+      <!-- Messages: the kit's ChatThread -->
+      <%- include('../../../ui/ChatThread', { className: 'flex-1', items: _items, showOwnAuthor: false, emptyPartial: _emptyPath, messages: {}, listClassName: '', id: _id + '-thread', loadRuntime: true }) %>
+
+      <!-- Input -->
+      <form class="flex-shrink-0 border-t border-border bg-surface-base px-3 py-2 flex gap-2 items-end"
+            data-chatbox-form
+            onsubmit="return false;">
+        <textarea data-chatbox-input
+                  rows="1"
+                  placeholder="<%= _placeholder %>"
+                  aria-label="Chat message input"
+                  style="height: 38px;"
+                  class="flex-1 resize-none rounded-xl border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed max-h-28 overflow-y-auto leading-snug"></textarea>
+        <button type="submit"
+                aria-label="Send message"
+                data-chatbox-send
+                disabled
+                class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-primary-fg hover:bg-primary-hover active:bg-primary-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed">
+          <i class="fa-solid fa-paper-plane w-3.5 h-3.5" aria-hidden="true"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FAB toggle -->
+  <button type="button"
+          aria-label="<%= _open ? 'Close chat' : 'Open chat' %>"
+          aria-expanded="<%= _open ? 'true' : 'false' %>"
+          data-chatbox-toggle
+          class="relative flex items-center justify-center w-14 h-14 rounded-full shadow-xl bg-primary text-primary-fg hover:bg-primary-hover active:bg-primary-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2">
+    <i class="fa-solid <%= _open ? 'fa-xmark' : 'fa-comment-dots' %> w-6 h-6"
+       aria-hidden="true"
+       data-chatbox-fab-icon></i>
+    <span class="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-error text-white text-[10px] font-bold hidden"
+          data-chatbox-unread>0</span>
+  </button>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../../../ui/_script-json', { value: String(_id) }) %>);
+  if (!root || root.dataset.chatboxInit === '1') return;
+  root.dataset.chatboxInit = '1';
+
+  var panel    = root.querySelector('[data-chatbox-panel]');
+  var body     = root.querySelector('[data-chatbox-body]');
+  var subtitle = root.querySelector('[data-chatbox-subtitle]');
+  var formEl   = root.querySelector('[data-chatbox-form]');
+  var inputEl  = root.querySelector('[data-chatbox-input]');
+  var sendBtn  = root.querySelector('[data-chatbox-send]');
+  var toggle   = root.querySelector('[data-chatbox-toggle]');
+  var fabIcon  = root.querySelector('[data-chatbox-fab-icon]');
+  var unreadEl = root.querySelector('[data-chatbox-unread]');
+  var minBtn   = root.querySelector('[data-chatbox-minimise]');
+  var closeBtn = root.querySelector('[data-chatbox-close]');
+
+  var open      = <%- include('../../../ui/_script-json', { value: !!_open }) %>;
+  var minimised = <%- include('../../../ui/_script-json', { value: !!_minimised }) %>;
+  var loading   = false;
+  var unread    = 0;
+
+  function fmtTime(d) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  var thread   = root.querySelector('[data-chat-root]');
+  var T        = window.KuiChatThread;
+  var youLabel = <%- include('../../../ui/_script-json', { value: String(_youLabel) }) %>;
+  var title    = <%- include('../../../ui/_script-json', { value: String(_title) }) %>;
+  var seq      = 0;
+
+  function scrollToBottom() {
+    var log = thread && thread.querySelector('[data-chat-log]');
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+
+  // ChatBox's small avatar in place of the thread's initials (kui-react's BoxAvatar).
+  function boxAvatar(box, role) {
+    if (!box) return;
+    box.innerHTML = '';
+    var a = document.createElement('div');
+    a.className = 'flex h-6 w-6 items-center justify-center rounded-full text-xs ' + (role === 'user' ? 'bg-primary text-primary-fg' : 'bg-surface-overlay text-text-secondary');
+    a.setAttribute('aria-hidden', 'true');
+    var i = document.createElement('i');
+    i.className = 'fa-solid ' + (role === 'user' ? 'fa-user' : 'fa-robot') + ' w-3 h-3';
+    a.appendChild(i);
+    box.appendChild(a);
+  }
+
+  function applyOpen() {
+    panel.classList.toggle('hidden', !open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close chat' : 'Open chat');
+    if (fabIcon) {
+      fabIcon.classList.toggle('fa-xmark', open);
+      fabIcon.classList.toggle('fa-comment-dots', !open);
+    }
+    if (open) {
+      unread = 0;
+      updateUnread();
+      setTimeout(function () { if (inputEl) inputEl.focus(); }, 120);
+      scrollToBottom();
+    }
+  }
+
+  function applyMinimised() {
+    panel.classList.toggle('h-14', minimised);
+    panel.classList.toggle('h-[480px]', !minimised);
+    if (body) body.classList.toggle('hidden', minimised);
+    if (subtitle) subtitle.classList.toggle('hidden', minimised);
+    minBtn.setAttribute('aria-label', minimised ? 'Expand chat' : 'Minimise chat');
+  }
+
+  function updateUnread() {
+    if (!unreadEl) return;
+    if (!open && unread > 0) {
+      unreadEl.textContent = unread > 9 ? '9+' : String(unread);
+      unreadEl.classList.remove('hidden');
+    } else {
+      unreadEl.classList.add('hidden');
+    }
+  }
+
+  function updateSendDisabled() {
+    if (!sendBtn || !inputEl) return;
+    sendBtn.disabled = loading || !inputEl.value.trim();
+  }
+
+  function appendMessage(role, text, ts) {
+    if (!thread || !T) return;
+    var id = 'c' + Date.now() + '-' + (seq++);
+    var user = role === 'user';
+    T.append(thread, { id: id, side: user ? 'own' : 'other', author: { name: user ? youLabel : title }, body: text, at: new Date(), time: ts });
+    var article = thread.querySelector('article[data-message-id="' + id + '"]');
+    var box = article && article.firstElementChild && article.firstElementChild.classList.contains('w-8') ? article.firstElementChild : null;
+    if (box && !box.classList.contains('invisible')) boxAvatar(box, role);
+  }
+
+  function appendTyping() {
+    if (!thread || !T) return null;
+    T.setTyping(thread, <%- include('../../../ui/_script-json', { value: String(_title) }) %> + ' is typing…', { name: title });
+    var row = thread.querySelector('[data-part="typing"]');
+    var box = row && row.firstElementChild && row.firstElementChild.classList.contains('w-8') ? row.firstElementChild : null;
+    boxAvatar(box, 'agent');
+    return row;
+  }
+
+  function send() {
+    var text = (inputEl.value || '').trim();
+    if (!text || loading) return;
+    inputEl.value = '';
+    inputEl.style.height = '38px';
+    updateSendDisabled();
+
+    appendMessage('user', text, fmtTime(new Date()));
+    loading = true;
+    updateSendDisabled();
+    inputEl.disabled = true;
+    var typing = appendTyping();
+
+    setTimeout(function () {
+      if (typing && T) T.setTyping(thread, null);
+      appendMessage('agent', 'Thanks for your message! We’ll get back to you shortly.', fmtTime(new Date()));
+      loading = false;
+      inputEl.disabled = false;
+      updateSendDisabled();
+      if (!open) { unread++; updateUnread(); }
+    }, 900);
+  }
+
+  toggle.addEventListener('click', function () {
+    open = !open;
+    if (minimised) minimised = false;
+    applyMinimised();
+    applyOpen();
+  });
+  minBtn.addEventListener('click', function () {
+    minimised = !minimised;
+    applyMinimised();
+  });
+  closeBtn.addEventListener('click', function () {
+    open = false;
+    applyOpen();
+  });
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    send();
+  });
+  inputEl.addEventListener('input', function () {
+    inputEl.style.height = '38px';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 112) + 'px';
+    updateSendDisabled();
+  });
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  applyMinimised();
+  applyOpen();
+  scrollToBottom();
+})();
+</script>

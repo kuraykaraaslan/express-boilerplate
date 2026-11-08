@@ -1,0 +1,4 @@
+<%#
+  The address bar of content.embed: the site, an optional hint and the "open" link. Locals: model.
+%><%_ var _m = locals.model; var _t = _m.toolbar; _%>
+<div class="<%= _t.className %>"><%- include('../_meta', { text: _m.host, className: 'shrink-0 font-medium text-text-secondary' }) %><% if (_t.hint) { %><span class="min-w-0 flex-1 truncate" title="<%= _t.hint %>"><%- include('../_meta', { text: _t.hint }) %></span><% } %><a href="<%= _m.url %>" target="_blank" rel="noopener noreferrer nofollow" class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= _t.openLabel %><span aria-hidden="true">↗</span><span class="sr-only"> <%= _t.opensInNewTab %></span></a></div>

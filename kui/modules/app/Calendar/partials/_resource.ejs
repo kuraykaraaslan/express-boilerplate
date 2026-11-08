@@ -1,0 +1,115 @@
+<%
+  // Resource view — parallel of views/ResourceView.tsx
+  // Locals: _id, _date, _events, _today, _L, _resources, _workingHours,
+  //         _slotMinutes, _isSameDay, _pillCls, _fmtTime, _minutesIntoDay
+  var HOUR_HEIGHT = 48;
+  var MIN_EVT_H   = 18;
+
+  if (!_resources.length) {
+%>
+<div role="region" aria-label="<%= _L.messages.resource %>" class="flex flex-col items-center justify-center gap-2 py-16 px-4 text-center">
+  <p class="text-sm font-medium text-text-primary"><%= _L.messages.resource %></p>
+  <p class="text-xs text-text-secondary"><%= _L.messages.noResources %></p>
+</div>
+<%
+    return;
+  }
+
+  var _isToday = _isSameDay(_date, _today);
+  var _isWorkingDay = !_workingHours || _workingHours.days.indexOf(_date.getDay()) !== -1;
+  var _hours = [];
+  for (var h = 0; h < 24; h++) _hours.push(h);
+  var _totalHeight = 24 * HOUR_HEIGHT;
+
+  // Bucket timed events for this day by resourceId.
+  var _buckets = {};
+  for (var i = 0; i < _resources.length; i++) _buckets[_resources[i].id] = [];
+  var _unassigned = [];
+  for (var j = 0; j < _events.length; j++) {
+    var e = _events[j];
+    if (e.allDay || !_isSameDay(e.start, _date)) continue;
+    if (e.resourceId && _buckets[e.resourceId]) _buckets[e.resourceId].push(e);
+    else _unassigned.push(e);
+  }
+
+  var _lanes = [];
+  if (_unassigned.length) _lanes.push({ id: '', label: '—', events: _unassigned });
+  for (var k = 0; k < _resources.length; k++) {
+    _lanes.push({ id: _resources[k].id, label: _resources[k].name, events: _buckets[_resources[k].id] });
+  }
+
+  // Mark overlapping events as conflicting (per lane).
+  var _conflicts = {};
+  for (var li = 0; li < _lanes.length; li++) {
+    var arr = _lanes[li].events;
+    for (var a = 0; a < arr.length; a++) {
+      for (var b = a + 1; b < arr.length; b++) {
+        if (arr[a].start.getTime() < arr[b].end.getTime() && arr[b].start.getTime() < arr[a].end.getTime()) {
+          _conflicts[arr[a].id] = true;
+          _conflicts[arr[b].id] = true;
+        }
+      }
+    }
+  }
+  var _numCls = 'inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold tabular-nums '
+              + (_isToday ? 'bg-primary text-primary-fg' : 'text-text-primary');
+  var _gridCols = '3.5rem repeat(' + _lanes.length + ', minmax(0, 1fr))';
+%>
+<div role="region" aria-label="<%= _L.messages.resource %> — <%= _L.dayLong[_date.getDay()] %> <%= _date.getDate() %> <%= _L.monthNames[_date.getMonth()] %>" class="flex flex-col w-full">
+  <div class="grid border-b border-border bg-surface-raised" style="grid-template-columns: <%= _gridCols %>">
+    <div class="px-2 py-2 text-center"><span class="<%= _numCls %>"><%= _date.getDate() %></span></div>
+    <% _lanes.forEach(function (lane) { %>
+      <div class="px-2 py-2 text-center border-l border-border text-[11px] font-semibold uppercase tracking-wider text-text-secondary truncate" title="<%= lane.label %>"><%= lane.label %></div>
+    <% }); %>
+  </div>
+
+  <div class="flex w-full overflow-x-auto" role="region" aria-label="Time grid">
+    <div class="shrink-0 w-14 border-r border-border bg-surface-base">
+      <div class="h-0" aria-hidden="true"></div>
+      <% _hours.forEach(function (h) { %>
+        <div style="height: <%= HOUR_HEIGHT %>px" class="text-[10px] text-text-secondary text-right pr-2 -mt-2 pt-0">
+          <% if (h !== 0) { %><%= String(h).padStart(2, '0') %>:00<% } %>
+        </div>
+      <% }); %>
+    </div>
+
+    <div class="flex-1 flex min-w-0">
+      <% _lanes.forEach(function (lane) { %>
+        <div class="flex-1 min-w-0 border-r border-border last:border-r-0 relative">
+          <div class="relative" style="height: <%= _totalHeight %>px">
+            <% _hours.forEach(function (h) {
+                 var inWorking = _isWorkingDay && _workingHours && h >= _workingHours.start && h < _workingHours.end;
+                 var cls = 'border-b border-border/60 ' + (inWorking ? 'bg-surface-base' : 'bg-surface-raised/60');
+            %>
+              <div style="height: <%= HOUR_HEIGHT %>px" class="<%= cls %>"></div>
+            <% }); %>
+
+            <% lane.events.forEach(function (e) {
+                 var startMin = _minutesIntoDay(e.start);
+                 var endMin   = Math.min(24*60, _minutesIntoDay(e.end) || 24*60);
+                 var top      = (startMin / 60) * HOUR_HEIGHT;
+                 var height   = Math.max(MIN_EVT_H, ((endMin - startMin) / 60) * HOUR_HEIGHT);
+                 var pill     = _pillCls(e.color || 'primary');
+                 var ringCls  = _conflicts[e.id] ? ' ring-2 ring-error ring-offset-1 ring-offset-surface-base' : '';
+            %>
+              <button type="button"
+                data-event-id="<%= e.id %>"
+                data-event-title="<%= e.title %>"
+                data-event-start="<%= e.start.getTime() %>"
+                data-event-end="<%= e.end.getTime() %>"
+                data-event-color="<%= e.color || 'primary' %>"
+                <% if (e.calendarId) { %>data-event-calendar-id="<%= e.calendarId %>"<% } %>
+                <% if (e.description) { %>data-event-description="<%= e.description %>"<% } %>
+                aria-label="<%= e.title %> <%= _fmtTime(e.start) %> – <%= _fmtTime(e.end) %>"
+                style="top: <%= top %>px; height: <%= height %>px; left: 4px; right: 4px;"
+                class="absolute rounded-md px-2 py-1 text-left text-[11px] leading-tight overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= pill %><%= ringCls %>">
+                <div class="font-semibold truncate"><%= e.title %></div>
+                <div class="opacity-80 text-[10px] tabular-nums"><%= _fmtTime(e.start) %> – <%= _fmtTime(e.end) %></div>
+              </button>
+            <% }); %>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>

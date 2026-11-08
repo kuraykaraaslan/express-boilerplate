@@ -1,0 +1,4 @@
+<%#
+  A 16 × 16 line icon of the data table (toolbar, sort arrows, pager). Locals: d (the path), className.
+%><%_ var _cls = locals.className || ''; var _base = /(^|\s)h-3(\s|$)/.test(_cls) ? 'shrink-0' : 'h-3.5 w-3.5 shrink-0'; _%>
+<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="<%= _base %><%= _cls ? ' ' + _cls : '' %>"><path d="<%= locals.d %>"></path></svg>

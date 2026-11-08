@@ -1,0 +1,8 @@
+<%
+  // The one place the Evidence runtime is inlined. CitationChip, EvidenceList and CitedText include this
+  // after their markup; the script is idempotent (window.KuiEvidence guards). Pass loadRuntime: false when the
+  // host page loads Evidence/scripts/evidence.js once via <script src>.
+%>
+<script>
+<%- include('./scripts/evidence.js') %>
+</script>

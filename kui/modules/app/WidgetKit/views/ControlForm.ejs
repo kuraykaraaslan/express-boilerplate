@@ -1,0 +1,48 @@
+<%#
+  control.form: several fields edited together and saved as one command (kui-react ControlFormView). Save sends ONE
+  request, the bubbling `kui:widget-control` event on the card with `{ placement, kind: 'set', value: { <field key>:
+  <value>, ... }, confirmation, respond(promise) }` (scripts/widget-kit.js turns the ControlTile runtime's
+  `kui:control-commit` into it). An empty or switched-off field is left out of the value, never sent as null; with
+  `saveChangedOnly` only the changed fields are sent. Save is enabled only while something changed, every field passes its
+  check and the change holds no clear (a field the viewer emptied: the form cannot unset a value, so Save stays off with
+  the `clearedNotSaved` note); Reset puts the record's values back; a save the command asks to confirm waits for the same
+  confirm step the other controls use.
+  The fields, their groups and their starting values are the model's; the browser part is scripts/control-form.js (the
+  checks, the dirty state and the payload are the ones of control-form-logic.ts, ported one to one and tested against it).
+  Unlike kui-react the progress / done / failed line is the ControlTile's shared status line (under the buttons).
+  Locals: model (`controlFormModel` plus `id`, `rows`, `texts`).
+%><%_
+  var P = {};
+  include('../../../ui/ControlTile/_parts', { P: P });
+  var _g = locals.model;
+  var _blocked = !!_g.disabledReason;
+  var FIELD = 'h-9 w-full rounded-md border border-border bg-surface-base px-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-60';
+  var _fields = _g.rows.map(function (grp) {
+    return '<fieldset class="m-0 min-w-0 space-y-2 border-0 p-0"' + (_blocked ? ' disabled' : '') + '>'
+      + (grp.name ? '<legend class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">' + P.esc(grp.name) + '</legend>' : '')
+      + grp.fields.map(function (f) { return include('_form-field', { f: f, rid: _g.id, cls: FIELD }); }).join('')
+      + '</fieldset>';
+  }).join('');
+  var _label = include('../_metric-label', { text: _g.label.text, font: _g.label.font, color: _g.label.color, className: '' });
+  var _save = P.button({ type: 'submit', size: 'sm', disabled: true, children: P.esc(_g.saveLabel), attrs: 'data-kui-form-save' });
+  var _reset = _g.showReset ? P.button({ type: 'button', size: 'sm', variant: 'secondary', disabled: true, children: P.esc(_g.resetLabel), attrs: 'data-kui-form-reset' }) : '';
+  var _body = '<form class="flex min-h-0 flex-1 flex-col gap-2" aria-label="' + P.esc(_g.ariaLabel) + '" novalidate data-kui-form>'
+    + _label
+    + '<div class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-0.5">' + _fields + '</div>'
+    + (_blocked ? '<p class="text-xs text-text-secondary" role="note">' + P.esc(_g.disabledReason) + '</p>' : '')
+    + (_blocked ? '' : '<p class="text-xs text-text-secondary" role="note" data-part="cleared-note" hidden>' + P.esc(_g.texts.clearedNotSaved) + '</p>')
+    + '<div class="flex items-center gap-2" data-kui-form-actions>' + _save + _reset + '</div>'
+    + '</form>';
+  var _config = {
+    disabled: _blocked, readOnly: false, confirm: _g.confirm.confirm, confirmText: _g.confirm.confirmText || '',
+    fields: _g.fields.map(function (f) {
+      return { key: f.key, type: f.type, min: f.min, max: f.max, step: f.step, gate: f.gate, required: f.required, readOnly: f.readOnly, options: f.options ? f.options.map(function (o) { return o.value; }) : undefined };
+    }),
+    initial: _g.initial, texts: _g.texts, saveChangedOnly: _g.saveChangedOnly,
+  };
+_%>
+<%- include('../../../ui/ControlTile/ControlTile', {
+  id: _g.id, title: '', kind: 'form', framed: false, className: 'min-h-0 flex-1', readOnly: false, messages: _g.messages || {},
+  body: _body, after: P.confirmPrompt(_g.id, _g.confirm.confirm, _g.confirm.confirmText || '', Object.assign({}, P.CONFIRM_DEFAULTS, _g.messages || {})),
+  disabledReason: '', config: _config
+}) %>

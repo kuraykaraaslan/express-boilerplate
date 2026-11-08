@@ -1,0 +1,130 @@
+<%
+  // InlineEditList — a list whose rows edit in place: add, edit, remove and reorder, all from the keyboard, with a
+  // validation message per row and an async save state per row. Same DOM and classes as kui-react
+  // modules/ui/InlineEditList. The server draws the list as it reads when nothing is being edited; the browser
+  // script (InlineEditList/scripts/, inlined once, idempotent) draws the editor, the saving / error / saved
+  // states and every change to the rows.
+  //
+  // Keys on a row: Up / Down / Home / End move, Enter or F2 edits, Delete removes, Alt + Up / Down reorders.
+  // In the editor: Enter saves, Escape cancels.
+  //
+  // Locals:
+  //   items      — [{ id, text, ...anything }]; ids are strings and stable
+  //   itemPartial — absolute path of a partial that draws a row's content, included with
+  //                 Object.assign({}, itemLocals, { item }) (React's renderItem). Server-side only: a row that is
+  //                 added or edited in the browser shows its `text` as plain escaped text. Default: `text`
+  //   nameKey    — the item field that names a row for screen readers (React's getName; default `text`; an empty
+  //                 name reads as messages.newItem)
+  //   newItem    — a blank item for "Add" (React's createItem): an object whose fields are copied into the new
+  //                 item, which always gets its own id. Needed when items have fields besides id and text
+  //   maxItems, reorderable (true), editable (true), removable (true), readOnly (everything off), disabled
+  //   messages   — { label, add, empty, edit, remove, moveUp, moveDown, save, cancel, saving, saved, required,
+  //                  saveFailed, removeFailed, reorderFailed, editAria, removeAria, moveUpAria, moveDownAria,
+  //                  movedAnnounce, removedAnnounce, addedAnnounce, maxReached, newItem, editorLabel }
+  //   id         — id prefix of the editor's input and error (default: a random one). The root carries no id
+  //   className  — extra classes on the root (appended, no conflict resolution)
+  //   loadRuntime — default true: inline InlineEditList/scripts/*.js (idempotent)
+  //
+  // The list is controlled in React (every change goes through onChange and the parent passes new items). Here the
+  // markup is the starting state and the DOM events carry the contract, each fired on the root and bubbling:
+  //   'kui:inline-edit-validate' { draft, mode: 'add' | 'edit', items, respond }   (React's validate)
+  //       call detail.respond(messageOrNullOrPromise) from the listener to refuse a draft (a message), accept it
+  //       (null) or decide later (a promise: a uniqueness check). Without a response, a draft is refused when its
+  //       text is blank (messages.required)
+  //   'kui:inline-edit-change'   { next, change, respond }                          (React's onChange)
+  //       `next` is the whole next list, `change` is { type: 'add' | 'edit' | 'remove' | 'reorder', id, item,
+  //       from?, to? }. Call detail.respond(promise) to show a saving state; reject it for the row's error (the
+  //       list stays as it was). The list changes only when the promise resolves; without a response the change is
+  //       applied at once
+  // The root also offers root.kuiInlineEditList.items() (a copy of the current list).
+  // Not reproduced: renderEditor (a custom editor for the row's fields) cannot be a server partial that runs in
+  // the browser, so the editor is the one text input bound to `text`.
+  // Hooks of the browser script, not in React: data-iel-root and data-iel-config on the root, data-iel-content on a
+  // row's content, data-iel-act on a button, data-iel-input on the editor's input.
+  var DEFAULTS = {
+    label: 'List', add: 'Add item', empty: 'Nothing here yet.', edit: 'Edit', remove: 'Remove',
+    moveUp: 'Move up', moveDown: 'Move down', save: 'Save', cancel: 'Cancel', saving: 'Saving…', saved: 'Saved',
+    required: 'This field is required.', saveFailed: 'Could not save. Try again.', removeFailed: 'Could not remove. Try again.',
+    reorderFailed: 'Could not move. Try again.', editAria: 'Edit {name}', removeAria: 'Remove {name}',
+    moveUpAria: 'Move {name} up', moveDownAria: 'Move {name} down',
+    movedAnnounce: 'Moved {name} to position {position} of {total}.', removedAnnounce: 'Removed {name}.',
+    addedAnnounce: 'Added {name}.', maxReached: 'At most {max} items.', newItem: 'New item', editorLabel: 'Value'
+  };
+  var _m = locals.messages && typeof locals.messages === 'object' ? locals.messages : {};
+  var _msg = {};
+  Object.keys(DEFAULTS).forEach(function (k) { _msg[k] = _m[k] != null ? _m[k] : DEFAULTS[k]; });
+  function fill(template, values) {
+    return String(template).replace(/\{(\w+)\}/g, function (whole, key) {
+      return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : whole;
+    });
+  }
+  var _items = Array.isArray(locals.items) ? locals.items.filter(Boolean) : [];
+  var _nameKey = typeof locals.nameKey === 'string' && locals.nameKey ? locals.nameKey : 'text';
+  var _readOnly = !!locals.readOnly;
+  var _disabled = !!locals.disabled;
+  var _maxItems = typeof locals.maxItems === 'number' ? locals.maxItems : undefined;
+  var _canEdit = locals.editable !== false && !_readOnly && !_disabled;
+  var _canRemove = locals.removable !== false && !_readOnly && !_disabled;
+  var _canReorder = locals.reorderable !== false && !_readOnly && !_disabled && _items.length > 1;
+  var _canAdd = !_readOnly && !_disabled && (_maxItems === undefined || _items.length < _maxItems);
+  var _active = _items.length ? _items[0].id : null;
+  var _id = locals.id || ('iel-' + Math.random().toString(36).substr(2, 9));
+  var _extra = locals.className ? ' ' + locals.className : '';
+  function nameOf(item) { return (item[_nameKey] != null ? String(item[_nameKey]) : '') || _msg.newItem; }
+
+  var BTN = 'inline-flex items-center rounded border border-border bg-surface-base px-2.5 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var ICON_BTN = 'flex h-7 w-7 items-center justify-center rounded text-text-secondary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+
+  var _cfg = {
+    items: _items,
+    idPrefix: _id,
+    nameKey: _nameKey,
+    newItem: locals.newItem && typeof locals.newItem === 'object' ? locals.newItem : null,
+    maxItems: _maxItems === undefined ? null : _maxItems,
+    reorderable: locals.reorderable !== false,
+    editable: locals.editable !== false,
+    removable: locals.removable !== false,
+    readOnly: _readOnly,
+    disabled: _disabled,
+    messages: _msg
+  };
+%>
+<div class="flex flex-col gap-2<%= _extra %>" data-iel-root data-iel-config="<%= JSON.stringify(_cfg) %>">
+  <ul aria-label="<%= _msg.label %>" class="flex flex-col gap-1.5">
+    <% _items.forEach(function (item, index) {
+      var name = nameOf(item);
+      var isActive = _active === item.id;
+      var tab = isActive ? 0 : -1;
+    %>
+    <li data-row-id="<%= item.id %>" tabindex="<%= tab %>" aria-label="<%= name %>" class="rounded-md border bg-surface-raised px-3 py-2 text-sm border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <div class="flex items-center gap-2">
+        <div class="min-w-0 flex-1 break-words text-text-primary" data-iel-content><% if (locals.itemPartial) { %><%- include(locals.itemPartial, Object.assign({}, locals.itemLocals || {}, { item: item })) %><% } else { %><%= item.text != null ? item.text : '' %><% } %></div>
+        <div class="flex shrink-0 items-center gap-1">
+          <% if (_canReorder) { %>
+          <button type="button" aria-label="<%= fill(_msg.moveUpAria, { name: name }) %>" title="<%= _msg.moveUp %>" tabindex="<%= tab %>"<% if (index === 0) { %> disabled<% } %> data-iel-act="up" class="<%= ICON_BTN %>"><i class="fa-solid fa-arrow-up h-3 w-3" aria-hidden="true"></i></button>
+          <button type="button" aria-label="<%= fill(_msg.moveDownAria, { name: name }) %>" title="<%= _msg.moveDown %>" tabindex="<%= tab %>"<% if (index === _items.length - 1) { %> disabled<% } %> data-iel-act="down" class="<%= ICON_BTN %>"><i class="fa-solid fa-arrow-down h-3 w-3" aria-hidden="true"></i></button>
+          <% } %>
+          <% if (_canEdit) { %><button type="button" aria-label="<%= fill(_msg.editAria, { name: name }) %>" title="<%= _msg.edit %>" tabindex="<%= tab %>" data-iel-act="edit" class="<%= ICON_BTN %>"><i class="fa-solid fa-pen h-3 w-3" aria-hidden="true"></i></button><% } %>
+          <% if (_canRemove) { %><button type="button" aria-label="<%= fill(_msg.removeAria, { name: name }) %>" title="<%= _msg.remove %>" tabindex="<%= tab %>" data-iel-act="remove" class="<%= ICON_BTN %>"><i class="fa-solid fa-trash h-3 w-3" aria-hidden="true"></i></button><% } %>
+        </div>
+      </div>
+    </li>
+    <% }); %>
+  </ul>
+
+  <% if (_items.length === 0) { %><p class="text-sm text-text-secondary"><%= _msg.empty %></p><% } %>
+
+  <% if (!_readOnly) { %>
+  <div class="flex items-center gap-3">
+    <button type="button"<% if (!_canAdd) { %> disabled<% } %> data-iel-act="add" class="<%= BTN %>"><i class="fa-solid fa-plus me-1.5 h-3 w-3" aria-hidden="true"></i><%= _msg.add %></button>
+    <% if (_maxItems !== undefined && _items.length >= _maxItems) { %><span class="text-xs text-text-secondary"><%= fill(_msg.maxReached, { max: _maxItems }) %></span><% } %>
+  </div>
+  <% } %>
+  <div class="sr-only" role="status" aria-live="polite"></div>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./InlineEditList/scripts/inline-edit-list.js') %>
+(function () { if (window.KuiInlineEditList) window.KuiInlineEditList.autoInit(); })();
+</script>
+<% } %>

@@ -1,0 +1,16 @@
+<%
+  // Calendar legend — parallel of parts/CalendarLegend.tsx
+  // Locals: _id, _calendars, _msg, _dotCls
+%>
+<div role="group" aria-label="<%= _msg.calendars %>" data-cal-legend
+     class="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-border bg-surface-base">
+  <span class="text-[11px] font-semibold uppercase tracking-wider text-text-secondary mr-1"><%= _msg.calendars %></span>
+  <% _calendars.forEach(function (cal) { %>
+    <button type="button" role="switch" aria-checked="true"
+      data-cal-toggle="<%= cal.id %>"
+      class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border border-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-surface-base text-text-primary hover:bg-surface-overlay">
+      <span class="w-2.5 h-2.5 rounded-full <%= _dotCls(cal.color) %>" aria-hidden="true"></span>
+      <span><%= cal.name %></span>
+    </button>
+  <% }); %>
+</div>

@@ -1,0 +1,31 @@
+<%_
+  // CitationChip — a numbered evidence chip [n] that links to its evidence row. Same DOM and classes as
+  // kui-react modules/ui/Evidence (CitationChip). The default href is a same-page anchor to the matching
+  // EvidenceList row, so it works without JavaScript. The output has no leading or trailing whitespace: it is
+  // meant to sit inside running text.
+  //
+  // Locals:
+  //   index      — the number shown, [n]
+  //   evidenceId — the evidence row it cites
+  //   title      — the evidence title, for the accessible name and the tooltip (escaped)
+  //   status     — 'cited' (default) | 'dropped' (plain text with a warning icon, not a link)
+  //   href       — link target (default: '#' + idPrefix + '-' + evidenceId)
+  //   idPrefix   — same prefix as the EvidenceList (default 'evidence')
+  //   messages   — { citation, droppedCitation }: '{index}' and '{title}' templates
+  //   className  — extra classes on the chip (appended: unlike React's tailwind-merge it does not resolve conflicts)
+  //   loadRuntime — default true: inline Evidence/scripts/evidence.js (see Evidence/_runtime.ejs)
+  //
+  // React callbacks: `onSelect` is the bubbling DOM event 'kui:citation-select' { evidenceId }, fired on the chip
+  // by the runtime; the link still works. The chip carries data-ev-chip as the runtime's hook.
+  var L = {};
+  include('./Evidence/_logic', { L: L });
+  var _msg = L.messages(locals.messages);
+  var _index = locals.index != null ? locals.index : '';
+  var _evidenceId = locals.evidenceId != null ? String(locals.evidenceId) : '';
+  var _prefix = locals.idPrefix != null ? locals.idPrefix : 'evidence';
+  var _dropped = locals.status === 'dropped';
+  var _base = 'mx-0.5 inline-flex items-center gap-0.5 rounded px-1 align-baseline text-xs font-semibold leading-5';
+  var _extra = locals.className ? ' ' + locals.className : '';
+  var _title = locals.title != null ? String(locals.title) : undefined;
+_%>
+<% if (_dropped) { %><span data-citation="dropped" aria-label="<%= L.fill(_msg.droppedCitation, { index: _index }) %>" class="<%= _base %> border border-dashed border-warning bg-warning-subtle text-warning-fg<%= _extra %>"><i class="fa-solid fa-triangle-exclamation h-2.5 w-2.5" aria-hidden="true"></i>[<%= _index %>]</span><% } else { %><a href="<%= locals.href != null ? locals.href : '#' + L.domId(_prefix, _evidenceId) %>" data-citation="cited" data-ev-chip="<%= _evidenceId %>" aria-label="<%= L.fill(_msg.citation, { index: _index, title: _title != null ? _title : _evidenceId }) %>"<% if (_title !== undefined) { %> title="<%= _title %>"<% } %> class="<%= _base %> bg-primary-subtle text-primary no-underline transition-colors hover:bg-primary hover:text-primary-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _extra %>">[<%= _index %>]</a><% } %><% if (locals.loadRuntime !== false) { %><%- include('./Evidence/_runtime') %><% } -%>

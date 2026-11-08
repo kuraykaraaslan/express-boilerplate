@@ -1,0 +1,124 @@
+<%
+  // ChatThread — one controlled chat thread (phase 11.15). Same DOM, classes, local names, defaults and message
+  // strings as kui-react modules/ui/ChatThread (8a20a5b): messages oldest first (ties keep the given order), consecutive
+  // messages of one author within five minutes folded under one avatar and name, day separators, own / other / system
+  // bubbles with attachments, status, delivery ticks and actions, a streamed last message (`pending`), who is typing,
+  // the empty and loading states, "Load older" and a composer slot, in a polite `role="log"`.
+  //
+  // Locals (kui-react's props; where React takes a node, EJS takes text or a partial):
+  //   items        — [{ id, author: { name, avatarUrl?, avatarPartial?, avatarLocals? }, side: 'own'|'other'|'system',
+  //                  body (text) | bodyPartial + bodyLocals, at, time?, status (text) | statusPartial + statusLocals,
+  //                  delivery?, attachments?: [{ name, href?, size? }], actions?: [{ id, label, icon? (Font Awesome
+  //                  class), destructive?, disabled?, onClick? (global function name, called with (messageId, actionId)) }] }]
+  //   loading, hasOlder, loadingOlder, pending, typing ([{ name, avatarUrl?, avatarPartial?, avatarLocals? }]),
+  //   daySeparators, locale, timeZone, formatTime (function), formatDay (function), emptyMessage (text) | emptyPartial
+  //   + emptyLocals (its root may carry data-chat-empty so append() removes it), showOwnAuthor, groupConsecutive (default true), showAvatars (default true), stickThreshold
+  //   (default 48), composerPartial + composerLocals, messages (partial overrides), className, listClassName, id
+  //   onLoadOlder  — global function name; "Load older" shows when hasOlder and onLoadOlder (a name, or `true` for the
+  //                  event alone). The root also emits 'kui:chat-load-older' (bubbles).
+  //   loadRuntime  — default true: inline ChatThread/scripts/chat-thread.js (false when the page loads it once and
+  //                  calls KuiChatThread.autoInit())
+  //
+  // In the browser (chat-thread.js) the log keeps kui-react's reading position: it sticks to the bottom while the
+  // reader is there, shows "New messages (n)" once they scroll up, scrolls down for their own message, and keeps their
+  // line when an older page lands. The host changes the thread with KuiChatThread.update(root, html) (the HTML of a
+  // freshly rendered ChatThread, e.g. fetched from the server), KuiChatThread.append(root, message) (drawn from the
+  // thread's own templates) and KuiChatThread.setTyping(root, label | null) and
+  // KuiChatThread.setBody(root, id, text, { pending }) (a streamed reply growing in place). Action buttons emit 'kui:chat-action'
+  // { messageId, actionId }. The hidden "New messages" button, the <template> holders and the data-chat-* attributes
+  // are the script's; kui-react renders none of them.
+  var D = {
+    label: 'Conversation', empty: 'No messages yet.', loading: 'Loading…', loadOlder: 'Load older messages',
+    loadingOlder: 'Loading older messages…', newMessages: 'New messages ({count})', typingOne: '{name} is typing…',
+    typingMany: '{names} are typing…', messageLabel: '{author}, {time}', writing: 'Writing…', attachments: 'Attachments',
+    actions: 'Message actions', sent: 'Sent', delivered: 'Delivered', read: 'Read'
+  };
+  var _m = Object.assign({}, D, locals.messages || {});
+  var _fill = function (t, v) { return String(t).replace(/\{(\w+)\}/g, function (a, k) { return k in v ? String(v[k]) : a; }); };
+  var _items = Array.isArray(locals.items) ? locals.items.filter(Boolean) : [];
+  var _loading = locals.loading === true;
+  var _loadingOlder = locals.loadingOlder === true;
+  var _pending = locals.pending === true;
+  var _group = locals.groupConsecutive !== false;
+  var _showAvatars = locals.showAvatars !== false;
+  var _showOwnAuthor = locals.showOwnAuthor === true;
+  var _olderFn = typeof locals.onLoadOlder === 'string' ? locals.onLoadOlder : '';
+  var _olderOn = locals.hasOlder === true && Boolean(locals.onLoadOlder);
+  var GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+  function toTime(at) {
+    var t = (at instanceof Date ? at : new Date(at)).getTime();
+    return isNaN(t) ? Infinity : t;
+  }
+  var sorted = _items
+    .map(function (item, index) { return { item: item, index: index, time: toTime(item.at) }; })
+    .sort(function (a, b) { return a.time === b.time ? a.index - b.index : a.time - b.time; })
+    .map(function (x) { return x.item; });
+
+  var timeFormat = new Intl.DateTimeFormat(locals.locale, { timeZone: locals.timeZone, hour: '2-digit', minute: '2-digit' });
+  var dayFormat = new Intl.DateTimeFormat(locals.locale, { timeZone: locals.timeZone, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  var dayKeyFormat = new Intl.DateTimeFormat('en-CA', { timeZone: locals.timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  var rows = sorted.map(function (item, index) {
+    var at = item.at instanceof Date ? item.at : new Date(item.at);
+    var valid = !isNaN(at.getTime());
+    var time = item.time != null ? item.time : (valid ? (locals.formatTime ? locals.formatTime(at) : timeFormat.format(at)) : '');
+    var dayKey = valid ? dayKeyFormat.format(at) : '';
+    var previous = index > 0 ? sorted[index - 1] : undefined;
+    var previousAt = previous ? toTime(previous.at) : NaN;
+    var previousDayKey = previous && isFinite(previousAt) ? dayKeyFormat.format(new Date(previousAt)) : '';
+    var showDay = locals.daySeparators === true && valid && dayKey !== previousDayKey;
+    var author = item.author || { name: '' };
+    var grouped = _group && !!previous && !showDay && item.side !== 'system' && previous.side === item.side &&
+      (previous.author || {}).name === author.name && valid && isFinite(previousAt) && at.getTime() - previousAt <= GROUP_WINDOW_MS;
+    return {
+      item: item, author: author, time: time, atMs: valid ? at.getTime() : null, dateTime: valid ? at.toISOString() : undefined,
+      dayLabel: showDay ? (locals.formatDay ? locals.formatDay(at) : dayFormat.format(at)) : null, grouped: grouped
+    };
+  });
+
+  var typers = Array.isArray(locals.typing) ? locals.typing : [];
+  var typingLabel = typers.length === 0 ? '' : typers.length === 1
+    ? _fill(_m.typingOne, { name: typers[0].name })
+    : _fill(_m.typingMany, { names: typers.map(function (p) { return p.name; }).join(', ') });
+
+  var showSpinner = _loading && sorted.length === 0;
+  var showEmpty = !_loading && sorted.length === 0;
+  var _busy = _loading || _loadingOlder;
+  var deliveryLabels = { sent: _m.sent, delivered: _m.delivered, read: _m.read };
+  var bubbleFor = function (r, index) {
+    var it = r.item;
+    return {
+      side: it.side, authorName: r.author.name, avatarUrl: r.author.avatarUrl, avatarPartial: r.author.avatarPartial, avatarLocals: r.author.avatarLocals,
+      body: it.body, bodyPartial: it.bodyPartial, bodyLocals: it.bodyLocals, time: r.time, dateTime: r.dateTime,
+      status: it.status, statusPartial: it.statusPartial, statusLocals: it.statusLocals, delivery: it.delivery,
+      deliveryLabels: deliveryLabels, attachments: it.attachments, attachmentsLabel: _m.attachments, actions: it.actions,
+      actionsLabel: _m.actions, grouped: r.grouped, showAuthor: it.side === 'own' ? _showOwnAuthor : true,
+      showAvatar: _showAvatars, pending: _pending && index === rows.length - 1, pendingLabel: _m.writing,
+      ariaLabel: _fill(_m.messageLabel, { author: r.author.name, time: r.time }), messageId: it.id, atMs: r.atMs, className: ''
+    };
+  };
+%>
+<div<% if (locals.id) { %> id="<%= locals.id %>"<% } %> class="flex min-h-0 flex-col<%= locals.className ? ' ' + locals.className : '' %>" data-part="chat-thread" data-chat-root data-chat-stick="<%= typeof locals.stickThreshold === 'number' ? locals.stickThreshold : 48 %>"<% if (_olderFn) { %> data-chat-older-fn="<%= _olderFn %>"<% } %> data-chat-new="<%= _m.newMessages %>" data-chat-label-template="<%= _m.messageLabel %>" data-chat-group="<%= _group ? 'true' : 'false' %>" data-chat-delivery="<%= JSON.stringify(deliveryLabels) %>" data-chat-writing="<%= _m.writing %>">
+  <div class="relative flex min-h-0 flex-1 flex-col">
+    <div role="log" aria-live="polite" aria-relevant="additions" aria-label="<%= _m.label %>"<% if (_busy) { %> aria-busy="true"<% } %> class="min-h-0 flex-1 overflow-y-auto px-4 py-3<%= locals.listClassName ? ' ' + locals.listClassName : '' %>" data-chat-log>
+      <% if (_olderOn) { %><div class="flex justify-center pb-1" data-part="load-older"><button type="button" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm"<% if (_loadingOlder) { %> disabled aria-busy="true"<% } %> data-chat-older><% if (_loadingOlder) { %><span aria-hidden="true" class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent shrink-0"></span><% } %><%= _loadingOlder ? _m.loadingOlder : _m.loadOlder %></button></div><% } %>
+      <% if (showSpinner) { %><div role="status" class="flex justify-center py-10"><span aria-hidden="true" class="inline-block h-6 w-6 rounded-full border-2 border-border border-t-primary animate-spin"></span><span class="sr-only"><%= _m.loading %></span></div><% } %>
+      <% if (showEmpty) { %><% if (locals.emptyPartial) { %><%- include(locals.emptyPartial, locals.emptyLocals || {}) %><% } else if (locals.emptyMessage != null) { %><%= locals.emptyMessage %><% } else { %><p class="py-8 text-center text-sm text-text-secondary" data-chat-empty><%= _m.empty %></p><% } %><% } %>
+      <% rows.forEach(function (r, index) { %><% if (r.dayLabel) { %><div role="separator" aria-label="<%= r.dayLabel %>" class="my-4 flex items-center gap-3 text-[11px] font-medium text-text-secondary"><span aria-hidden="true" class="h-px flex-1 bg-border"></span><span aria-hidden="true"><%= r.dayLabel %></span><span aria-hidden="true" class="h-px flex-1 bg-border"></span></div><% } %><%- include('./ChatThread/partials/_bubble', bubbleFor(r, index)) %><% }); %>
+      <% if (typers.length > 0) { %><%- include('./ChatThread/partials/_typing', { label: typingLabel, name: typers[0].name, avatarUrl: typers[0].avatarUrl, avatarPartial: typers[0].avatarPartial, avatarLocals: typers[0].avatarLocals, showAvatar: _showAvatars }) %><% } %>
+    </div>
+    <div class="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center" hidden data-chat-jump><button type="button" class="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-base px-3 py-1.5 text-xs font-medium text-text-primary shadow-md hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><i class="fa-solid fa-arrow-down h-3 w-3" aria-hidden="true"></i><span data-chat-jump-text></span></button></div>
+  </div>
+  <% if (locals.composerPartial) { %><div class="shrink-0"><%- include(locals.composerPartial, locals.composerLocals || {}) %></div><% } %>
+  <template data-chat-template="other"><%- include('./ChatThread/partials/_bubble', { className: '', side: 'other', authorName: 'AUTHOR', body: 'BODY', time: 'TIME', showAvatar: _showAvatars, showAuthor: true }) %></template>
+  <template data-chat-template="own"><%- include('./ChatThread/partials/_bubble', { className: '', side: 'own', authorName: 'AUTHOR', body: 'BODY', time: 'TIME', delivery: 'sent', deliveryLabels: deliveryLabels, showAvatar: _showAvatars, showAuthor: _showOwnAuthor }) %></template>
+  <template data-chat-template="system"><%- include('./ChatThread/partials/_bubble', { className: '', side: 'system', authorName: 'AUTHOR', body: 'BODY', time: 'TIME' }) %></template>
+  <template data-chat-template="typing"><%- include('./ChatThread/partials/_typing', { label: 'LABEL', name: 'AUTHOR', showAvatar: _showAvatars }) %></template>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./ChatThread/scripts/chat-thread.js') %>
+(function () { if (window.KuiChatThread) window.KuiChatThread.autoInit(); })();
+</script>
+<% } %>

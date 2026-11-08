@@ -1,0 +1,56 @@
+<%
+// MapView toolbar: add-marker, zones toggle, routes toggle.
+// Mirrors NextJS modules/ui/MapView/parts/Toolbar.tsx.
+//
+// Expects locals:
+//   _id        — root MapView id
+//   _zones     — zone array (length controls visibility)
+//   _routes    — route array (length controls visibility)
+//   btnBase    — shared Button base class string
+//   btnPrimary — Button primary variant class string
+//   btnOutline — Button outline variant class string
+%>
+<div class="px-4 py-2.5 bg-surface-raised border-b border-border">
+  <div class="flex items-center gap-2 flex-wrap">
+
+    <button type="button" id="<%= _id %>-add-btn"
+      class="<%= btnBase %> <%= btnOutline %>"
+      title="Haritaya işaretçi ekle"
+      aria-pressed="false">
+      <span aria-hidden="true" class="shrink-0" data-add-left><i class="fa-solid fa-plus"></i></span>
+      <span data-add-label>İşaretçi Ekle</span>
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-location-dot"></i></span>
+    </button>
+
+    <% if (_zones.length > 0) { %>
+    <button type="button" id="<%= _id %>-zones-btn"
+      class="<%= btnBase %> <%= btnPrimary %>"
+      title="Bölgeleri gizle"
+      aria-pressed="true">
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-eye"></i></span>
+      <span>Bölgeler</span>
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-layer-group"></i></span>
+    </button>
+    <% } %>
+
+    <% if (_routes.length > 0) { %>
+    <button type="button" id="<%= _id %>-routes-btn"
+      class="<%= btnBase %> <%= btnPrimary %>"
+      title="Rotaları gizle"
+      aria-pressed="true">
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-eye"></i></span>
+      <span>Rotalar</span>
+      <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-route"></i></span>
+    </button>
+    <% } %>
+
+    <%# TODO M3: search bar (geocoder) partial — see _search.ejs (M3 only). %>
+    <%# TODO M4: locate-me / layer-toggle / draw partials. %>
+
+    <span id="<%= _id %>-hint"
+      class="text-xs text-primary font-medium animate-pulse hidden"
+      aria-live="polite">
+      Haritaya tıklayarak işaretçi ekleyin
+    </span>
+  </div>
+</div>

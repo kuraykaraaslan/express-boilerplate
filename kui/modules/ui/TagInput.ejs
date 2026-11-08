@@ -1,0 +1,190 @@
+<%
+  var _id          = locals.id          || 'taginput-' + Math.random().toString(36).substr(2, 9);
+  var _label       = locals.label       || '';
+  var _hint        = locals.hint        || '';
+  var _error       = locals.error       || '';
+  var _value       = locals.value       || [];
+  var _placeholder = locals.placeholder || 'Type and press Enter or comma…';
+  var _dis         = !!locals.disabled;
+  var _className   = locals.className   || '';
+
+  var hintId      = _hint  ? (_id + '-hint')  : '';
+  var errorId     = _error ? (_id + '-error') : '';
+  var describedBy = [hintId, errorId].filter(Boolean).join(' ');
+
+  var shellClass = 'flex flex-wrap gap-1.5 min-h-10 w-full rounded-md border px-3 py-2 transition-colors cursor-text focus-within:ring-2 focus-within:ring-border-focus focus-within:border-border-focus';
+  if (_dis) shellClass += ' opacity-50 cursor-not-allowed bg-surface-sunken border-border';
+  else shellClass += ' bg-surface-base border-border';
+  if (_error) shellClass += ' border-error ring-1 ring-error bg-error-subtle';
+%>
+<div
+  id="<%= _id %>-root"
+  class="space-y-1<%= _className ? ' ' + _className : '' %>"
+  data-taginput-root
+>
+  <label for="<%= _id %>" class="block text-sm font-medium text-text-primary"><%= _label %></label>
+  <div data-taginput-shell class="<%= shellClass %>">
+    <span data-taginput-chips class="contents">
+      <% _value.forEach(function(tag) { %>
+        <span
+          data-taginput-chip
+          data-value="<%= tag %>"
+          title="Double-click to edit"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-subtle text-primary"
+        >
+          <span data-taginput-chip-label><%= tag %></span>
+          <% if (!_dis) { %>
+            <button
+              type="button"
+              aria-label="Remove <%= tag %>"
+              data-taginput-chip-remove
+              class="hover:opacity-70 focus-visible:outline-none rounded-full"
+            >
+              <i class="fa-solid fa-xmark w-2.5 h-2.5" aria-hidden="true"></i>
+            </button>
+          <% } %>
+        </span>
+      <% }); %>
+    </span>
+    <% if (!_dis) { %>
+      <input
+        id="<%= _id %>"
+        type="text"
+        data-taginput-input
+        <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>
+        <% if (_value.length === 0) { %>placeholder="<%= _placeholder %>"<% } %>
+        class="flex-1 min-w-24 bg-transparent text-sm text-text-primary placeholder:text-text-disabled outline-none"
+      />
+    <% } %>
+  </div>
+  <% if (_hint && !_error) { %><p id="<%= hintId %>" class="text-xs text-text-secondary"><%= _hint %></p><% } %>
+  <% if (!_hint && !_error && _value.length > 0) { %><p class="text-xs text-text-disabled">Double-click a tag to edit it</p><% } %>
+  <% if (_error) { %><p id="<%= errorId %>" class="text-xs text-error" role="alert"><%= _error %></p><% } %>
+</div>
+
+<script>
+(function () {
+  var rootId = <%- include('./_script-json', { value: _id + '-root' }) %>;
+  var root = document.getElementById(rootId);
+  if (!root || root.dataset.tiInit === '1') return;
+  root.dataset.tiInit = '1';
+
+  var shell  = root.querySelector('[data-taginput-shell]');
+  var chips  = root.querySelector('[data-taginput-chips]');
+  var input  = root.querySelector('[data-taginput-input]');
+  var placeholderText = <%- include('./_script-json', { value: _placeholder }) %>;
+  if (!shell || !chips) return;
+
+  var tags = Array.prototype.slice.call(chips.querySelectorAll('[data-taginput-chip]')).map(function (el) { return el.dataset.value; });
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function render() {
+    chips.innerHTML = '';
+    tags.forEach(function (tag, i) {
+      var span = document.createElement('span');
+      span.setAttribute('data-taginput-chip', '');
+      span.setAttribute('data-value', tag);
+      span.setAttribute('title', 'Double-click to edit');
+      span.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-subtle text-primary';
+      span.innerHTML = '<span data-taginput-chip-label>' + escapeHtml(tag) + '</span>' +
+        (input ? '<button type="button" aria-label="Remove ' + escapeHtml(tag) + '" data-taginput-chip-remove class="hover:opacity-70 focus-visible:outline-none rounded-full">' +
+          '<i class="fa-solid fa-xmark w-2.5 h-2.5" aria-hidden="true"></i></button>' : '');
+      attachChipHandlers(span, i);
+      chips.appendChild(span);
+    });
+    if (input) {
+      if (tags.length === 0) input.setAttribute('placeholder', placeholderText);
+      else input.removeAttribute('placeholder');
+    }
+  }
+
+  function attachChipHandlers(span, idx) {
+    var removeBtn = span.querySelector('[data-taginput-chip-remove]');
+    if (removeBtn) removeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      tags.splice(idx, 1);
+      render();
+    });
+    span.addEventListener('dblclick', function () {
+      if (!input) return;
+      startEditing(idx);
+    });
+  }
+
+  function startEditing(idx) {
+    var chipEl = chips.querySelectorAll('[data-taginput-chip]')[idx];
+    if (!chipEl) return;
+    var current = tags[idx];
+    var editor = document.createElement('input');
+    editor.type = 'text';
+    editor.value = current;
+    editor.className = 'inline-block w-24 rounded border border-border-focus bg-surface-base px-1.5 py-0.5 text-xs text-text-primary outline-none';
+    chipEl.replaceWith(editor);
+    editor.focus();
+    editor.select();
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      var trimmed = editor.value.trim();
+      if (trimmed) {
+        var next = tags.slice();
+        next[idx] = trimmed;
+        var unique = [];
+        next.forEach(function (t) { if (unique.indexOf(t) === -1) unique.push(t); });
+        tags = unique;
+      }
+      render();
+    }
+    editor.addEventListener('blur', finish);
+    editor.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(); }
+      if (e.key === 'Escape') { done = true; render(); }
+    });
+  }
+
+  function addTags(raw) {
+    var pieces = raw.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    pieces.forEach(function (p) { if (tags.indexOf(p) === -1) tags.push(p); });
+    if (input) input.value = '';
+    render();
+  }
+
+  // initial event wiring for server-rendered chips
+  Array.prototype.slice.call(chips.querySelectorAll('[data-taginput-chip]')).forEach(function (el, i) {
+    attachChipHandlers(el, i);
+  });
+
+  if (shell) shell.addEventListener('click', function () { if (input) input.focus(); });
+
+  if (input) {
+    input.addEventListener('input', function (e) {
+      var v = e.target.value;
+      if (v.indexOf(',') !== -1) {
+        var parts = v.split(',');
+        for (var i = 0; i < parts.length - 1; i++) {
+          if (parts[i].trim()) addTags(parts[i]);
+        }
+        input.value = parts[parts.length - 1];
+      }
+    });
+    input.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+        e.preventDefault();
+        addTags(input.value);
+      } else if (e.key === 'Backspace' && !input.value && tags.length) {
+        tags.pop();
+        render();
+      }
+    });
+    input.addEventListener('blur', function () {
+      if (input.value.trim()) addTags(input.value);
+    });
+  }
+})();
+</script>

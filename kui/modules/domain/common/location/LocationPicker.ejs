@@ -1,0 +1,53 @@
+<%
+  var _action     = locals.action     || '#';
+  var _method     = locals.method     || 'post';
+  var _initial    = locals.initial    || {};
+  var _cancelHref = locals.cancelHref || null;
+  var _error      = locals.error      || '';
+  var _countries  = locals.countries  || [];
+
+  var countryOpts = [{ value: '', label: 'Select country…' }].concat(_countries.map(function (c) {
+    return { value: c.value, label: c.label };
+  }));
+
+  var fieldsHtml = ''
+    + include('../../../ui/Select', {
+        id: 'loc-country',
+        label: 'Country',
+        name: 'countryCode',
+        value: _initial.countryCode || '',
+        options: countryOpts
+      })
+    + include('../../../ui/Input', {
+        id: 'loc-city',   label: 'City',             name: 'city',       value: _initial.city || ''
+      })
+    + include('../../../ui/Input', {
+        id: 'loc-state',  label: 'State / Province', name: 'state',      value: _initial.state || ''
+      })
+    + include('../../../ui/Input', {
+        id: 'loc-postal', label: 'Postal Code',      name: 'postalCode', value: _initial.postalCode || ''
+      })
+    + include('../../../ui/Input', {
+        id: 'loc-lat',    label: 'Latitude',         name: 'latitude',  type: 'number',
+        value: (_initial.latitude !== null && _initial.latitude !== undefined) ? _initial.latitude : ''
+      })
+    + include('../../../ui/Input', {
+        id: 'loc-lng',    label: 'Longitude',        name: 'longitude', type: 'number',
+        value: (_initial.longitude !== null && _initial.longitude !== undefined) ? _initial.longitude : ''
+      });
+
+  var actionsHtml = ''
+    + (_cancelHref
+        ? include('../../../ui/Button', { element: 'a', variant: 'outline', children: 'Cancel', href: _cancelHref })
+        : '')
+    + include('../../../ui/Button', { type: 'submit', children: 'Save Location' });
+%>
+<%- include('../../../app/Form', {
+  action: _action,
+  method: _method,
+  columns: 2,
+  error: _error,
+  className: locals.className || '',
+  children: fieldsHtml,
+  actionsContent: actionsHtml
+}) %>

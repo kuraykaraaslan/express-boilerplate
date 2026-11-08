@@ -1,0 +1,217 @@
+<%
+  var _action     = locals.action     || '#';
+  var _method     = locals.method     || 'post';
+  var _cancelHref = locals.cancelHref || null;
+  var _error      = locals.error      || '';
+  var _errors     = locals.errors     || {};
+  var _initial    = locals.initial    || {};
+  var _formId     = locals.formId     || ('credit-card-form-' + Math.random().toString(36).substr(2, 9));
+
+  var _brand      = (_initial.brand || 'UNKNOWN').toUpperCase();
+  var _isAmex     = _brand === 'AMEX';
+  var _maxCvv     = _isAmex ? 4 : 3;
+%>
+<form
+  id="<%= _formId %>"
+  action="<%= _action %>"
+  method="<%= _method %>"
+  novalidate
+  class="space-y-4<%= locals.className ? ' ' + locals.className : '' %>"
+  data-credit-card-form
+>
+  <% if (_error) { %>
+  <div role="alert" class="flex items-start gap-3 rounded-lg border p-3 bg-error-subtle border-error text-error-fg text-sm">
+    <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i>
+    <span><%= _error %></span>
+  </div>
+  <% } %>
+
+  <div class="flex justify-center mb-2" data-cc-visual-slot>
+    <%- include('./CreditCardVisual', {
+      brand:          _initial.brand          || 'UNKNOWN',
+      cardNumber:     _initial.cardNumber     || '',
+      cardholderName: _initial.cardholderName || '',
+      expiryMonth:    _initial.expiryMonth    || 'MM',
+      expiryYear:     _initial.expiryYear     || 'YY',
+      cvv:            _initial.cvv            || ''
+    }) %>
+  </div>
+
+  <%- include('../../../ui/Input', {
+    id: 'card-number', label: 'Card Number', name: 'cardNumber',
+    placeholder: '1234 5678 9012 3456',
+    value: _initial.cardNumber || '',
+    error: _errors.cardNumber
+  }) %>
+
+  <%- include('../../../ui/Input', {
+    id: 'cardholder-name', label: 'Cardholder Name', name: 'cardholderName',
+    placeholder: 'Name on card',
+    value: _initial.cardholderName || '',
+    error: _errors.cardholderName
+  }) %>
+
+  <div class="grid grid-cols-2 gap-4">
+    <%- include('../../../ui/Input', {
+      id: 'expiry', label: 'Expiry', name: 'expiry',
+      placeholder: 'MM/YY',
+      value: _initial.expiry || '',
+      error: _errors.expiry
+    }) %>
+    <%- include('../../../ui/Input', {
+      id: 'cvv', label: 'CVV', name: 'cvv', type: 'password',
+      placeholder: '•'.repeat(_maxCvv),
+      value: '',
+      error: _errors.cvv
+    }) %>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-2">
+    <% if (_cancelHref) { %>
+    <%- include('../../../ui/Button', { variant: 'outline', children: 'Cancel', href: _cancelHref }) %>
+    <% } %>
+    <%- include('../../../ui/Button', { type: 'submit', children: 'Add Card' }) %>
+  </div>
+</form>
+
+<script>
+(function () {
+  var formId = <%- include('../../../ui/_script-json', { value: String(_formId) }) %>;
+  var form = document.getElementById(formId);
+  if (!form || form.dataset.ccInit === '1') return;
+  form.dataset.ccInit = '1';
+
+  var numberInput = form.querySelector('#card-number');
+  var nameInput   = form.querySelector('#cardholder-name');
+  var expiryInput = form.querySelector('#expiry');
+  var cvvInput    = form.querySelector('#cvv');
+  var visualSlot  = form.querySelector('[data-cc-visual-slot]');
+  if (!numberInput || !nameInput || !expiryInput || !cvvInput || !visualSlot) return;
+
+  function detectBrand(raw) {
+    var n = String(raw || '').replace(/\D/g, '');
+    if (!n) return 'UNKNOWN';
+    var len = n.length;
+    var p2 = len >= 2 ? Number(n.slice(0, 2)) : 0;
+    var p3 = len >= 3 ? Number(n.slice(0, 3)) : 0;
+    var p4 = len >= 4 ? Number(n.slice(0, 4)) : 0;
+    var p6 = len >= 6 ? Number(n.slice(0, 6)) : 0;
+    if (n.indexOf('9792') === 0) return 'TROY';
+    if (p4 >= 2200 && p4 <= 2204) return 'MIR';
+    if (n.indexOf('62') === 0) return 'UNIONPAY';
+    if (p4 >= 3528 && p4 <= 3589) return 'JCB';
+    if (n.charAt(0) === '4') return 'VISA';
+    if (p2 >= 51 && p2 <= 55) return 'MASTERCARD';
+    if (p4 >= 2221 && p4 <= 2720) return 'MASTERCARD';
+    if (p2 === 34 || p2 === 37) return 'AMEX';
+    if (n.indexOf('6011') === 0 || n.indexOf('65') === 0) return 'DISCOVER';
+    if (p3 >= 644 && p3 <= 649) return 'DISCOVER';
+    if (p6 >= 622126 && p6 <= 622925) return 'DISCOVER';
+    return 'UNKNOWN';
+  }
+
+  function formatNumber(raw, brand) {
+    var digits = String(raw || '').replace(/\D/g, '');
+    var maxLen = brand === 'AMEX' ? 15 : 16;
+    var trimmed = digits.slice(0, maxLen);
+    if (brand === 'AMEX') {
+      return trimmed.replace(/(\d{4})(\d{0,6})(\d{0,5})/, function (_, a, b, c) {
+        return [a, b, c].filter(Boolean).join(' ');
+      });
+    }
+    return trimmed.replace(/(\d{4})(?=\d)/g, '$1 ');
+  }
+
+  function formatExpiry(raw) {
+    var digits = String(raw || '').replace(/\D/g, '').slice(0, 4);
+    return digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+  }
+
+  var state = {
+    brand:    detectBrand(numberInput.value),
+    flipped:  false,
+  };
+
+  function maxCvv() { return state.brand === 'AMEX' ? 4 : 3; }
+
+  function syncCvvPlaceholder() {
+    cvvInput.setAttribute('placeholder', new Array(maxCvv() + 1).join('•'));
+  }
+
+  function updateVisual() {
+    var expiry = expiryInput.value;
+    var parts  = expiry.split('/');
+    var detail = {
+      brand:          state.brand,
+      cardNumber:     numberInput.value,
+      cardholderName: nameInput.value,
+      expiryMonth:    parts[0] || 'MM',
+      expiryYear:     parts[1] || 'YY',
+      cvv:            cvvInput.value,
+      flipped:        state.flipped,
+    };
+    var visual = visualSlot.querySelector('[data-credit-card-visual]') || visualSlot.firstElementChild;
+    if (visual) {
+      // Toggle flip via data attribute consumed by CreditCardVisual auto-script (and as a backup we tweak transform directly).
+      visual.setAttribute('data-flipped', state.flipped ? 'true' : 'false');
+      var inner = visual.querySelector(':scope > div');
+      if (inner) inner.style.transform = state.flipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+    }
+    // Dispatch event so a smart CreditCardVisual script (if present) can fully re-render.
+    visualSlot.dispatchEvent(new CustomEvent('vp:update', { detail: detail, bubbles: true }));
+    visualSlot.dispatchEvent(new CustomEvent('vp:flip',   { detail: { flipped: state.flipped }, bubbles: true }));
+
+    // Best-effort live update of the visible card text without a full rerender.
+    if (visual) {
+      var digits = detail.cardNumber.replace(/\D/g, '');
+      var isAmex = detail.brand === 'AMEX';
+      var maxLen = isAmex ? 15 : 16;
+      var padded = digits.padEnd ? digits.padEnd(maxLen, '•') : (function (s) { while (s.length < maxLen) s += '•'; return s; })(digits);
+      var masked = isAmex
+        ? padded.slice(0,4) + ' ' + padded.slice(4,10) + ' ' + padded.slice(10,15)
+        : padded.slice(0,4) + ' ' + padded.slice(4,8) + ' ' + padded.slice(8,12) + ' ' + padded.slice(12,16);
+
+      var fronts = visual.querySelectorAll('.font-mono');
+      if (fronts[0]) fronts[0].textContent = masked;
+      var nameEl = visual.querySelectorAll('p.text-xs.font-medium')[0];
+      if (nameEl) nameEl.textContent = detail.cardholderName || '••••• •••••';
+      var expEls = visual.querySelectorAll('p.text-xs.font-medium.font-mono');
+      if (expEls[0]) expEls[0].textContent = detail.expiryMonth + '/' + detail.expiryYear;
+      var cvvEl  = visual.querySelector('.font-mono.text-sm');
+      if (cvvEl) cvvEl.textContent = detail.cvv ? new Array(detail.cvv.length + 1).join('•') : '•••';
+    }
+  }
+
+  numberInput.addEventListener('input', function () {
+    state.brand = detectBrand(numberInput.value);
+    numberInput.value = formatNumber(numberInput.value, state.brand);
+    // re-clamp CVV length if brand changed
+    cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, maxCvv());
+    syncCvvPlaceholder();
+    updateVisual();
+  });
+
+  nameInput.addEventListener('input', function () {
+    var pos = nameInput.selectionStart;
+    nameInput.value = nameInput.value.toUpperCase();
+    try { nameInput.setSelectionRange(pos, pos); } catch (e) {}
+    updateVisual();
+  });
+
+  expiryInput.addEventListener('input', function () {
+    expiryInput.value = formatExpiry(expiryInput.value);
+    updateVisual();
+  });
+
+  cvvInput.addEventListener('input', function () {
+    cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, maxCvv());
+    updateVisual();
+  });
+
+  cvvInput.addEventListener('focus', function () { state.flipped = true;  updateVisual(); });
+  cvvInput.addEventListener('blur',  function () { state.flipped = false; updateVisual(); });
+
+  syncCvvPlaceholder();
+  updateVisual();
+})();
+</script>

@@ -1,0 +1,5 @@
+<%#
+  An icon in a tinted tile (`IconTile`). Locals: name, color, background, size.
+%><%_ if (locals.name) { var _t = widgetKit.ui.iconTileModel({ color: locals.color, background: locals.background, size: locals.size }); _%>
+<span class="inline-flex shrink-0 items-center justify-center rounded-lg" style="<%= widgetKit.style(_t.tileStyle) %>"><%- include('_icon', { name: locals.name, className: '', style: _t.iconStyle }) %></span>
+<%_ } _%>

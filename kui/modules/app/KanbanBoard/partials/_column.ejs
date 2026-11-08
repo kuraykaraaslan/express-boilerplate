@@ -1,0 +1,42 @@
+<%
+  // ── Column partial ───────────────────────────────────────────────────
+  // Pixel-identical to modules/app/KanbanBoard/parts/Column.tsx +
+  // ColumnHeader.tsx + ColumnDropIndicator.tsx in 01_NextJS_Components.
+  var _id   = _id;
+  var col   = col;
+  var cards = cards || [];
+%>
+<section
+  role="region"
+  aria-label="Column <%= col.title %>"
+  data-column-id="<%= col.id %>"
+  data-kanban-column="1"
+  class="kb-col flex flex-col min-w-[16rem] w-72 max-w-xs shrink-0 rounded-lg border border-border bg-surface-overlay transition-colors"
+>
+  <!-- ── ColumnHeader ────────────────────────────────────────────── -->
+  <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-surface-raised rounded-t-lg">
+    <h3 class="text-sm font-semibold text-text-primary truncate"><%= col.title %></h3>
+    <span
+      class="kb-col-count inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 text-[11px] font-medium rounded-full bg-surface-overlay text-text-secondary"
+      aria-label="<%= cards.length %> cards"
+    ><%= cards.length %></span>
+  </div>
+
+  <!-- ── Card list ───────────────────────────────────────────────── -->
+  <ul
+    role="list"
+    aria-label="<%= col.title %> cards"
+    data-kanban-list="<%= col.id %>"
+    class="kb-col-list flex-1 flex flex-col gap-1 p-2 min-h-[4rem] overflow-y-auto"
+  >
+    <div aria-hidden="true" class="kb-drop-indicator mx-1 my-0.5 h-0.5 rounded-full transition-colors bg-transparent" data-slot-index="0"></div>
+    <% cards.forEach(function (card, i) { %>
+      <%- include('./_card', { _id: _id, card: card }) %>
+      <div aria-hidden="true" class="kb-drop-indicator mx-1 my-0.5 h-0.5 rounded-full transition-colors bg-transparent" data-slot-index="<%= i + 1 %>"></div>
+    <% }); %>
+    <% if (cards.length === 0) { %>
+      <li aria-hidden="true" class="kb-col-empty text-xs text-text-disabled italic text-center py-6 border border-dashed border-border rounded-md">Drop cards here</li>
+    <% } %>
+  </ul>
+  <%# TODO M4: include('./_add-card') here for inline "+ Add card" form. %>
+</section>

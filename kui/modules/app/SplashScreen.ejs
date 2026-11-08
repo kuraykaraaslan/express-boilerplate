@@ -1,0 +1,35 @@
+<%
+  var _visible  = locals.visible !== false;
+  var _progress = (locals.progress !== undefined && locals.progress !== null) ? locals.progress : null;
+%>
+<div
+  role="status"
+  aria-live="polite"
+  aria-label="<%= locals.message || 'Loading' %>"
+  aria-busy="<%= _visible %>"
+  class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-surface-base transition-opacity duration-500<%= _visible ? ' opacity-100 pointer-events-auto' : ' opacity-0 pointer-events-none' %><%= locals.className ? ' '+locals.className : '' %>"
+>
+  <% if (locals.logoContent) { %>
+  <div class="flex items-center justify-center"><%- locals.logoContent %></div>
+  <%- include('../ui/Spinner', { size: 'lg' }) %>
+  <% } else { %>
+  <%- include('../ui/Spinner', { size: 'xl' }) %>
+  <% } %>
+
+  <% if (_progress !== null) { %>
+  <div class="w-48 h-1 rounded-full bg-surface-sunken overflow-hidden">
+    <div class="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+      style="width:<%= Math.min(100,Math.max(0,_progress)) %>%"
+      role="progressbar"
+      aria-valuenow="<%= _progress %>"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Loading progress">
+    </div>
+  </div>
+  <% } %>
+
+  <% if (locals.message) { %>
+  <p class="text-sm text-text-secondary animate-pulse"><%= locals.message %></p>
+  <% } %>
+</div>

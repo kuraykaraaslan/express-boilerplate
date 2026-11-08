@@ -1,0 +1,16 @@
+<%
+  // The problems list under the field (M3) — sibling of the list in kui-react index.tsx. A row
+  // jumps to its spot. scripts/view.js problemsHtml is the browser's twin
+  // (tests/code-editor.test.ts compares them).
+  var sorted = locals._sorted || [];
+  var m = locals._m;
+  var ICON = { error: 'fa-circle-exclamation', warning: 'fa-triangle-exclamation', info: 'fa-circle-info', hint: 'fa-circle-info' };
+  var TONE = { error: 'text-error', warning: 'text-warning-fg', info: 'text-info', hint: 'text-text-secondary' };
+  function fill(t, v) { return String(t).replace(/\{(\w+)\}/g, function (all, k) { return Object.prototype.hasOwnProperty.call(v, k) ? String(v[k]) : all; }); }
+  function say(mk) {
+    return mk.column ? fill(m.markerAtColumn, { line: mk.line, column: mk.column, message: mk.message }) : fill(m.markerAt, { line: mk.line, message: mk.message });
+  }
+-%>
+<% if (sorted.length) { -%>
+<ul id="<%= _id %>" aria-label="<%= m.problems %>" data-kui-codeeditor-problems class="mt-1 space-y-0.5"><% sorted.forEach(function (mk) { var who = [mk.source, mk.code].filter(Boolean).join(' '); %><li><button type="button" data-severity="<%= mk.severity %>" data-line="<%= Number(mk.line) %>" data-column="<%= Number(mk.column || 1) %>" class="flex w-full items-start gap-1.5 rounded px-1 py-0.5 text-left text-xs hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= TONE[mk.severity] %>"><i class="fa-solid <%= ICON[mk.severity] %> mt-0.5 h-3 w-3 shrink-0 text-center leading-3" aria-hidden="true"></i><span><%= say(mk) %><% if (who) { %><span class="text-text-secondary"><%= ' (' + who + ')' %></span><% } %></span></button></li><% }) %></ul>
+<% } -%>

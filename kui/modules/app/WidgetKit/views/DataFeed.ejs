@@ -1,0 +1,8 @@
+<%#
+  data.feed: events as a timeline, a list, compact lines or cards (kui-react DataFeedView). Locals: model.
+%><%_ var _m = locals.model; _%>
+<% if (!_m.grouped) { %>
+<ol class="<%= _m.olClass %>"><% _m.groups[0].entries.forEach(function (e) { %><%- include('_feed-entry', { entry: e, model: _m }) %><% }); %></ol>
+<% } else { %>
+<div class="flex flex-col gap-3"><% _m.groups.forEach(function (g) { %><section class="flex flex-col gap-1.5"><h4 class="text-[11px] font-semibold uppercase tracking-wide text-text-secondary"><%= g.heading %></h4><ol class="<%= _m.olClass %>"><% g.entries.forEach(function (e) { %><%- include('_feed-entry', { entry: e, model: _m }) %><% }); %></ol></section><% }); %></div>
+<% } %>

@@ -1,0 +1,132 @@
+<%
+  // OrgChart — a top-down tree of cards joined by connector lines (phase 11.10). Same DOM, classes, local names,
+  // defaults and message strings as kui-react modules/ui/OrgChart.tsx.
+  //
+  // Nodes are nested (`roots` + `getChildren`) or flat with a parent id (`rows` + `getParentId`, React's
+  // buildOrgTree). Each card is the host's own partial (`nodePartial`); the chart draws the connectors, collapses and
+  // expands subtrees (`defaultExpandedDepth`), opens the path to every node `highlight` matches (search), zooms
+  // (−, fit, +) and is a keyboard tree: Arrow Up goes to the parent, Arrow Down to the first child (opening it),
+  // Arrow Left / Right to the siblings, Enter or Space runs `onNodeClick`, `*` opens every child of the focused node.
+  // No chart library: the layout is nested flex boxes. OrgChart/scripts/org-chart.js (inlined, idempotent) does the
+  // collapsing, zoom, keyboard and click in the browser.
+  //
+  // Locals:
+  //   roots        — nested nodes, e.g. [{ id, name, children: [...] }]
+  //   rows         — flat rows instead of `roots`: rows whose parent is missing become roots
+  //   getId        — function (node) → id (default node.id)
+  //   getChildren  — function (node) → children (default node.children || [])
+  //   getParentId  — function (row) → parent id, with `rows` (default row.parentId)
+  //   nodePartial  — absolute path of the partial drawing one card (React's renderNode). Its locals are
+  //                  { node, highlighted, depth, childCount } plus `nodeLocals`; `node` is the row itself (with
+  //                  `rows` too, where React hands over the buildOrgTree wrapper). Without it the card is the
+  //                  escaped `node.name || node.label || id` in a plain bordered box (an EJS-only fallback).
+  //   nodeLocals   — extra locals for every card
+  //   onNodeClick  — global function name called with the node id on a click, Enter or Space; the root also emits
+  //                  'kui:org-node-click' { id } (bubbles). `clickable: true` gives the cursor and the event without a
+  //                  function
+  //   highlight    — function (node) → boolean: marks matching nodes (a search) and opens the path to each match
+  //   highlightIds — the same as a list of ids
+  //   defaultExpandedDepth — levels open on first render (0 = only the roots; default 2)
+  //   zoomable     — the zoom buttons (default true)
+  //   ariaLabel    — the tree's accessible name
+  //   messages     — { zoomIn, zoomOut, zoomReset, expand, collapse, hiddenChildren } (`{count}` = the child count)
+  //   className    — extra classes on the root
+  //   loadRuntime  — default true: inline the browser script (false when the page loads org-chart.js once and calls
+  //                  KuiOrgChart.autoInit())
+  //
+  // Collapsed subtrees are drawn too, as hidden groups (React leaves them out), so the browser can open them without
+  // a round trip. In the browser KuiOrgChart.setHighlight(root, ids | function (treeitem, id)) marks matches and
+  // opens their path like a new `highlight` does in React; the card partial is not drawn again, so a card styles its
+  // highlighted state from the treeitem's `data-highlighted` attribute.
+  var _m = Object.assign({
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomReset: 'Reset zoom', expand: 'Expand', collapse: 'Collapse',
+    hiddenChildren: '{count} more'
+  }, locals.messages || {});
+  var _depth     = typeof locals.defaultExpandedDepth === 'number' ? locals.defaultExpandedDepth : 2;
+  var _zoomable  = locals.zoomable !== false;
+  var _className = locals.className || '';
+  var _onClick   = typeof locals.onNodeClick === 'string' ? locals.onNodeClick : '';
+  var _clickable = Boolean(_onClick) || locals.clickable === true;
+
+  var _getId = typeof locals.getId === 'function' ? locals.getId : function (n) { return n && n.id != null ? String(n.id) : ''; };
+  var _getChildren = typeof locals.getChildren === 'function' ? locals.getChildren : function (n) { return (n && n.children) || []; };
+  var _roots = Array.isArray(locals.roots) ? locals.roots : [];
+  var _unwrap = function (n) { return n; };
+
+  // Flat rows → nested wrappers, like React's buildOrgTree.
+  if (Array.isArray(locals.rows)) {
+    var rowId = _getId;
+    var parentOf = typeof locals.getParentId === 'function' ? locals.getParentId : function (r) { return r ? r.parentId : null; };
+    var byId = {};
+    locals.rows.forEach(function (r) { byId[rowId(r)] = { node: r, children: [] }; });
+    _roots = [];
+    locals.rows.forEach(function (r) {
+      var me = byId[rowId(r)];
+      var pid = parentOf(r);
+      var parent = pid ? byId[pid] : undefined;
+      if (parent && parent !== me) parent.children.push(me);
+      else _roots.push(me);
+    });
+    _getId = function (w) { return rowId(w.node); };
+    _getChildren = function (w) { return w.children; };
+    _unwrap = function (w) { return w.node; };
+  }
+
+  // One flat index of the tree: parent and depth per id, for the open levels and the highlight paths.
+  var _flat = {};
+  (function walk(list, parentId, depth) {
+    list.forEach(function (n) {
+      var id = String(_getId(n));
+      var kids = _getChildren(n) || [];
+      _flat[id] = { parentId: parentId, depth: depth };
+      walk(kids, id, depth + 1);
+    });
+  })(_roots, null, 0);
+
+  var _expanded = {};
+  Object.keys(_flat).forEach(function (id) { if (_flat[id].depth < _depth) _expanded[id] = true; });
+
+  var _matched = {};
+  if (typeof locals.highlight === 'function' || Array.isArray(locals.highlightIds)) {
+    var hl = typeof locals.highlight === 'function' ? locals.highlight : null;
+    var ids = Array.isArray(locals.highlightIds) ? locals.highlightIds.map(String) : [];
+    (function walk(list) {
+      list.forEach(function (n) {
+        var id = String(_getId(n));
+        if (hl ? hl(_unwrap(n)) : ids.indexOf(id) !== -1) _matched[id] = true;
+        walk(_getChildren(n) || []);
+      });
+    })(_roots);
+    Object.keys(_matched).forEach(function (id) {
+      var p = _flat[id] ? _flat[id].parentId : null;
+      while (p) { _expanded[p] = true; p = _flat[p] ? _flat[p].parentId : null; }
+    });
+  }
+
+  var _ctx = {
+    getId: _getId, getChildren: _getChildren, unwrap: _unwrap, expanded: _expanded, matched: _matched,
+    tabId: _roots[0] ? String(_getId(_roots[0])) : null, clickable: _clickable, m: _m,
+    nodePartial: locals.nodePartial || '', nodeLocals: locals.nodeLocals || {}
+  };
+  var _zoomButton = 'inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface-raised text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+%>
+<div class="relative w-full<%= _className ? ' ' + _className : '' %>" data-part="org-chart" data-org-root data-org-expand="<%= _m.expand %>" data-org-collapse="<%= _m.collapse %>" data-org-more="<%= _m.hiddenChildren %>"<% if (_clickable) { %> data-org-clickable<% } %><% if (_onClick) { %> data-org-click="<%= _onClick %>"<% } %>>
+  <% if (_zoomable) { %>
+  <div class="absolute right-2 top-2 z-10 flex gap-1" data-part="org-zoom">
+    <button type="button" class="<%= _zoomButton %>" aria-label="<%= _m.zoomOut %>" data-org-zoom="out"><i class="fa-solid fa-minus h-3 w-3" aria-hidden="true"></i></button>
+    <button type="button" class="<%= _zoomButton %>" aria-label="<%= _m.zoomReset %>" data-org-zoom="reset"><i class="fa-solid fa-expand h-3 w-3" aria-hidden="true"></i></button>
+    <button type="button" class="<%= _zoomButton %>" aria-label="<%= _m.zoomIn %>" data-org-zoom="in"><i class="fa-solid fa-plus h-3 w-3" aria-hidden="true"></i></button>
+  </div>
+  <% } %>
+  <div class="w-full overflow-auto rounded-lg border border-border bg-surface-base p-6" data-part="org-viewport">
+    <ul role="tree"<% if (locals.ariaLabel) { %> aria-label="<%= locals.ariaLabel %>"<% } %> class="mx-auto flex w-max list-none justify-center origin-top">
+      <% _roots.forEach(function (r) { %><%- include('./OrgChart/partials/_branch', { node: r, depth: 0, single: _roots.length === 1, ctx: _ctx }) %><% }); %>
+    </ul>
+  </div>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./OrgChart/scripts/org-chart.js') %>
+(function () { if (window.KuiOrgChart) window.KuiOrgChart.autoInit(); })();
+</script>
+<% } %>

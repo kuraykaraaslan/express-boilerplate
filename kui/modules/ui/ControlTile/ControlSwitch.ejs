@@ -1,0 +1,162 @@
+<%
+  // ControlSwitch — a bound boolean written on toggle; shows the requested value
+  // while pending, rolls back on failure. Mirror of kui-react ControlSwitch.
+  //
+  // Locals:
+  //   id, title
+  //   value       — the bound state. Anything asBoolean cannot read is "unknown" and shows off.
+  //   reported    — the state the other side reports, if it reports one; "pending"
+  //                 lasts until it matches. Omit it when nothing reports back.
+  //   onCommit    — NAME of a global function (next: boolean, confirmation?) => Promise, the write.
+  //                 Reject to fail and roll the thumb back. Or listen for the DOM event
+  //                 'kui:control-commit' (detail.respond(promise)) — see scripts/control-bind.js.
+  //   confirm     — 'none' (default) | 'confirm' ("Are you sure?") | 'typed' (also type `confirmText`);
+  //                 the write then carries { confirmed: true, typed? } as its second argument.
+  //   confirmText — the text to type when confirm = 'typed'
+  //   onLabel ('On'), offLabel ('Off'), unknownLabel ('State unknown')
+  //   label       — text naming what the switch controls, beside it (also its accessible name).
+  //                 Without it the on / off text stands alone.
+  //   labelStyle  — inline style of `label` (object with camelCase keys, or CSS text)
+  //   icon        — trusted HTML of an icon before the label (e.g. '<i class="fa-solid fa-fan"></i>')
+  //   layout      — 'left' (default): switch, then text. 'right': text, switch at the far end.
+  //                 'centered': stacked, large switch.
+  //   showStateText — show the on / off text (default true). The unknown text is always shown.
+  //   stateStyles — { on, off, unknown }: inline styles of the state text per state
+  //   colors      — { on, off, disabled, thumb, thumbOn, thumbOff, thumbDisabled }: any CSS colour
+  //                 or theme token; unset parts use the theme (primary on, sunken off)
+  //   size        — 'sm' | 'md' | 'lg' (default md; lg for the centered layout)
+  //   renderLayout — a server-side function (parts) => HTML that arranges the parts itself:
+  //                 { control, state: 'on'|'off'|'unknown', stateText, stateId, pending, locked }.
+  //                 Put `stateId` on the element showing the state: the switch is described by it
+  //                 and the runtime keeps its text live. The status line, the confirmation step
+  //                 and the disabled tooltip stay the control's.
+  //   layoutPartial, layoutLocals — the same as a partial: the path of an EJS partial (relative to this file) that is
+  //                 included with `layoutLocals` and `parts` (the object above) and returns the arrangement. Used when
+  //                 there is no `renderLayout`.
+  //   stateViews  — true: the layout draws every state's own view (an element per state marked
+  //                 `data-kui-state="on|off|unknown"`, the others `hidden`) and the runtime only shows the one that
+  //                 matches, instead of writing the state text into the `stateId` element. For a layout whose
+  //                 look (colour, icon, pill) changes with the state.
+  //   readOnly    — the user may not use the control
+  //   disabled, disabledReason (a tooltip over the switch; implies disabled)
+  //   framed      — draw the tile frame (default true)
+  //   timeoutMs (10000), messages, className
+  //   loadRuntime — default true (see _runtime.ejs)
+  //
+  // Runtime: document.getElementById(id).__kuiControl.setValue(v) / .setReported(v) / .onCommit = fn
+  var L = {};
+  include('./_logic', { L: L });
+  var P = {};
+  include('./_parts', { P: P });
+  var esc = P.esc;
+  var _id = locals.id || ('control-switch-' + Math.random().toString(36).substr(2, 9));
+  var _bound = L.asBoolean(locals.value);
+  var _known = _bound !== null;
+  var _shown = _bound === null ? false : _bound;
+  var _onLabel = locals.onLabel || 'On';
+  var _offLabel = locals.offLabel || 'Off';
+  var _unknownLabel = locals.unknownLabel || 'State unknown';
+  var _readOnly = !!locals.readOnly;
+  var _disabled = !!locals.disabled;
+  var _reason = typeof locals.disabledReason === 'string' && locals.disabledReason ? locals.disabledReason : '';
+  var _locked = _disabled || _readOnly || !!_reason;
+  var _confirm = ['confirm', 'typed'].indexOf(locals.confirm) !== -1 ? locals.confirm : 'none';
+  var _layout = ['right', 'centered'].indexOf(locals.layout) !== -1 ? locals.layout : 'left';
+  var _label = typeof locals.label === 'string' ? locals.label : '';
+  var _showStateText = locals.showStateText !== false;
+  var _render = typeof locals.renderLayout === 'function' ? locals.renderLayout
+    : typeof locals.layoutPartial === 'string' && locals.layoutPartial
+      ? function (parts) { return include(locals.layoutPartial, Object.assign({}, locals.layoutLocals || {}, { parts: parts })); }
+      : null;
+  var _inputId = _id + '-input';
+  var _hintId = _id + '-hint';
+
+  var SIZES = {
+    sm: { track: 'h-4 w-7', thumb: 'h-3 w-3', on: 'translate-x-3' },
+    md: { track: 'h-5 w-9', thumb: 'h-4 w-4', on: 'translate-x-4' },
+    lg: { track: 'h-7 w-12', thumb: 'h-6 w-6', on: 'translate-x-5' },
+  };
+  var _size = SIZES[locals.size] ? locals.size : (_layout === 'centered' ? 'lg' : 'md');
+  var sz = SIZES[_size];
+  var _colors = {};
+  var _rawColors = locals.colors || {};
+  ['on', 'off', 'disabled', 'thumb', 'thumbOn', 'thumbOff', 'thumbDisabled'].forEach(function (k) {
+    var c = P.cssValue(_rawColors[k]);
+    if (c) _colors[k] = c;
+  });
+  var _stateStyles = {};
+  ['on', 'off', 'unknown'].forEach(function (k) {
+    var s = P.styleText((locals.stateStyles || {})[k]);
+    if (s) _stateStyles[k] = s;
+  });
+
+  var _trackColor = _locked ? _colors.disabled : _shown ? _colors.on : _colors.off;
+  var _thumbColor = (_locked ? _colors.thumbDisabled : _shown ? _colors.thumbOn : _colors.thumbOff) || _colors.thumb;
+  var _stateText = !_known ? _unknownLabel : _shown ? _onLabel : _offLabel;
+  var _stateKey = !_known ? 'unknown' : _shown ? 'on' : 'off';
+  var _showState = _showStateText || !_known || !!_render;
+  var _cursor = _locked ? 'cursor-not-allowed' : 'cursor-pointer';
+  var _aria = _label || locals.title || '';
+
+  var _trackClass = 'block rounded-full transition-colors duration-200'
+    + ' peer-focus-visible:ring-2 peer-focus-visible:ring-border-focus peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-surface-base'
+    + ' ' + sz.track
+    + (_trackColor ? '' : (_shown ? ' bg-primary' : ' border border-border bg-surface-sunken'))
+    + (_locked && !_colors.disabled ? ' opacity-50' : '');
+  var _thumbClass = 'absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full shadow-sm transition-transform duration-200'
+    + (_thumbColor ? '' : ' bg-primary-fg')
+    + ' ' + sz.thumb
+    + (_shown ? ' ' + sz.on : '');
+
+  var control = '<span class="relative inline-flex shrink-0 items-center">'
+    + '<input id="' + esc(_inputId) + '" type="checkbox" role="switch" data-kui-control-switch'
+    +   (_shown ? ' checked' : '') + (_locked ? ' disabled' : '')
+    +   ' aria-checked="' + String(_shown) + '"'
+    +   (_aria ? ' aria-label="' + esc(_aria) + '"' : '')
+    +   (_showState ? ' aria-describedby="' + esc(_hintId) + '"' : '')
+    +   ' class="peer sr-only">'
+    + '<span aria-hidden="true" data-kui-control-track class="' + _trackClass + '"'
+    +   (_trackColor ? ' style="background: ' + esc(_trackColor) + '"' : '') + '></span>'
+    + '<span aria-hidden="true" data-kui-control-thumb class="' + _thumbClass + '"'
+    +   (_thumbColor ? ' style="background: ' + esc(_thumbColor) + '"' : '') + '></span>'
+    + '</span>';
+
+  var _stateClass = (_label && _layout !== 'centered' ? 'text-xs' : 'text-sm font-medium')
+    + ' ' + (!_known || _label ? 'text-text-secondary' : 'text-text-primary');
+  var iconEl = locals.icon ? '<span aria-hidden="true" class="inline-flex shrink-0 items-center">' + locals.icon + '</span>' : '';
+  var _labelStyle = P.styleText(locals.labelStyle);
+  var labelEl = _label ? '<span class="truncate text-sm font-medium text-text-primary"' + (_labelStyle ? ' style="' + esc(_labelStyle) + '"' : '') + '>' + esc(_label) + '</span>' : '';
+  // Always in the page so the runtime can show it when the state becomes unknown; hidden when not shown.
+  var stateEl = '<span id="' + esc(_hintId) + '" class="' + _stateClass + '" data-kui-control-state'
+    + (_stateStyles[_stateKey] ? ' style="' + esc(_stateStyles[_stateKey]) + '"' : '')
+    + (_showState ? '' : ' hidden') + '>' + esc(_stateText) + '</span>';
+  var text = '<span class="flex min-w-0 items-center gap-2">' + iconEl + '<span class="flex min-w-0 flex-col">' + labelEl + stateEl + '</span></span>';
+
+  var body;
+  if (_render) {
+    body = _render({
+      control: '<label for="' + esc(_inputId) + '" class="inline-flex ' + _cursor + '" data-kui-control-label>' + control + '</label>',
+      state: _stateKey, stateText: _stateText, stateId: _hintId, pending: false, locked: _locked,
+    });
+  } else {
+    var _wrapClass = _layout === 'centered'
+      ? 'flex items-center flex-col justify-center gap-2'
+      : 'flex items-center gap-3' + (_layout === 'right' ? ' justify-between' : '');
+    body = '<label for="' + esc(_inputId) + '" class="' + _wrapClass + ' ' + _cursor + '" data-kui-control-label>'
+      + (_layout === 'right' ? text + control : _layout === 'centered' ? iconEl + labelEl + control + stateEl : control + text)
+      + '</label>';
+  }
+%>
+<%- include('./ControlTile', {
+  id: _id, title: locals.title, kind: 'switch', readOnly: _readOnly, messages: Object.assign({}, P.CONFIRM_DEFAULTS, locals.messages || {}),
+  className: locals.className, framed: locals.framed, disabledReason: _reason,
+  body: body, after: P.confirmPrompt(_id, _confirm, locals.confirmText, locals.messages),
+  config: {
+    value: locals.value, reported: locals.reported, timeoutMs: locals.timeoutMs, readOnly: _readOnly,
+    disabled: _disabled || !!_reason, onLabel: _onLabel, offLabel: _offLabel, unknownLabel: _unknownLabel,
+    onCommit: locals.onCommit, confirm: _confirm, confirmText: locals.confirmText || '',
+    colors: _colors, stateStyles: _stateStyles, size: _size, showStateText: _showStateText,
+    custom: !!_render, stateViews: !!_render && locals.stateViews === true, labelled: !!_label, centered: _layout === 'centered',
+  },
+}) %>
+<% if (locals.loadRuntime !== false) { %><%- include('./_runtime') %><% } %>

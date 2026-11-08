@@ -1,0 +1,15 @@
+<%# modules/ui/Slider/partials/_arrows.ejs — prev/next nav buttons (FontAwesome chevrons). %>
+<% if (_showArrows && _total > 1) { %>
+<button
+  type="button"
+  aria-label="Previous slide"
+  data-slider-prev
+  class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+><i class="fa-solid fa-chevron-left w-3 h-3" aria-hidden="true"></i></button>
+<button
+  type="button"
+  aria-label="Next slide"
+  data-slider-next
+  class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+><i class="fa-solid fa-chevron-right w-3 h-3" aria-hidden="true"></i></button>
+<% } %>

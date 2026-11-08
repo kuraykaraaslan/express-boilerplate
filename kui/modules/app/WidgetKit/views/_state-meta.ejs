@@ -1,0 +1,5 @@
+<%#
+  The line under the state: how long it has been in it, and the raw value (kui-react StateView's `meta`). Locals: model.
+%><%_ var _m = locals.model; var _s = _m.s; if (_m.since || _m.showValue) { _%>
+<span class="text-[11px] leading-snug text-text-secondary/80 flex items-center gap-1.5<%= _m.center ? ' justify-center' : '' %>"><% if (_m.since) { %><span data-part="since"><%= _m.since %></span><% } %><% if (_m.since && _m.showValue) { %><span aria-hidden="true">·</span><% } %><% if (_m.showValue) { var _vs = widgetKit.style(widgetKit.fontStyle(_s.valueFont, _s.valueColor)); %><span class="tabular-nums"<% if (_vs) { %> style="<%= _vs %>"<% } %> data-part="value"><%= String(_m.raw) %></span><% } %></span>
+<%_ } _%>

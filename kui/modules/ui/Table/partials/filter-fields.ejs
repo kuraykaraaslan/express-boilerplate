@@ -1,0 +1,125 @@
+<%
+  // The controls of the DataTable filter panel (`filterFields`), one grid cell per field, built from
+  // kui-ejs's own atoms the way kui-react modules/ui/Table/parts/FilterPanel.tsx builds them from its own.
+  // Also the fragment a host renders to change the field list at runtime
+  // (`include('modules/ui/Table/FilterFields', { id: tableId, fields, values })`, then
+  // `tableRoot.kuiDataTable.setFilterFields(html)`).
+  //
+  // Locals: id (the table id), fields, values (the values shown, by field id), messages.
+  //
+  // A field: { id, label, type, hint?, defaultValue? (the value before anyone changes it, and what Reset
+  // returns to), required? (select / radio: always set, no "Any"), placement? ('toolbar': drawn in the toolbar by
+  // ./toolbar-filters.ejs, not here), formatChip? (name of a global function (value) => text of the field's active-filter chip),
+  // match? (static / paginated modes: name of a global function (row, value) => boolean) } plus, by type:
+  //   text { placeholder } · number { placeholder, min, max, step } · select { options, placeholder }
+  //   multiselect { options, placeholder } · checkboxes { options } · radio { options, anyLabel }
+  //   checkbox · date { locale } · daterange { locale, presets } · range { min, max, step }
+  //   numberrange { min, max, step } (two number inputs; the value is { min, max }, either may be null)
+  //   custom { partial (absolute path, included with { id, field, value }) | html }
+  // `presets: true` puts Today, Last 7 days, Last 30 days, This month and Last month under a date range;
+  // a list of { label, from, to } (YYYY-MM-DD) gives your own.
+  // A custom control reports its value by dispatching 'kui:dt-filter-input' (bubbles, detail { value })
+  // and receives one as 'kui:dt-filter-set' (detail { value }) on its cell [data-dt-filter-field].
+  var _tableId = locals.id || 'dt';
+  var _fields  = Array.isArray(locals.fields) ? locals.fields : [];
+  var _values  = (locals.values && typeof locals.values === 'object') ? locals.values : {};
+  var _m = {};
+%><%- include('./_messages', { out: _m, messages: locals.messages }) -%><%
+  var _panelId = _tableId + '-filters';
+  // EJS hands every include the caller's locals too; blank them so a table's own locals (searchable,
+  // columns, messages, className, …) never reach an atom as one of its options.
+  function _atom(own) {
+    var o = {};
+    Object.keys(locals).forEach(function (k) { o[k] = undefined; });
+    return Object.assign(o, own);
+  }
+  // What the browser needs about each field: plain JSON (a custom field's partial / html stay here).
+  var _withOptions = { select: 1, radio: 1, multiselect: 1, checkboxes: 1 };
+  var _defs = _fields.map(function (f) {
+    var d = { id: f.id, type: f.type, label: f.label };
+    if (f.type === 'range') { d.min = Number(f.min); d.max = Number(f.max); }
+    if (_withOptions[f.type]) d.options = (f.options || []).map(function (o) { return { label: o.label, value: o.value }; });
+    if (f.defaultValue !== undefined) d.defaultValue = f.defaultValue;
+    if (typeof f.match === 'string') d.match = f.match;
+    if (typeof f.formatChip === 'string') d.formatChip = f.formatChip;
+    if (f.required === true) d.required = true;
+    if (f.placement === 'toolbar') d.placement = 'toolbar';
+    return d;
+  });
+
+  // Date-range presets (kui-react builtInDatePresets): relative to the day the page is drawn.
+  function _toDay(d) {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  function _presetsOf(field) {
+    if (Array.isArray(field.presets)) return field.presets;
+    if (field.presets !== true) return [];
+    var t = new Date();
+    var y = t.getFullYear(), mo = t.getMonth(), da = t.getDate();
+    var today = _toDay(t);
+    return [
+      { label: _m.presetToday, from: today, to: today },
+      { label: _m.presetLast7Days, from: _toDay(new Date(y, mo, da - 6)), to: today },
+      { label: _m.presetLast30Days, from: _toDay(new Date(y, mo, da - 29)), to: today },
+      { label: _m.presetThisMonth, from: _toDay(new Date(y, mo, 1)), to: today },
+      { label: _m.presetLastMonth, from: _toDay(new Date(y, mo - 1, 1)), to: _toDay(new Date(y, mo, 0)) }
+    ];
+  }
+  // The class of a preset button (the Button atom, size xs) while it is (or is not) the field's value;
+  // the browser swaps them.
+  var _presetOn = (include('../../Button', _atom({ size: 'xs', variant: 'primary', children: 'x' })).match(/class="([^"]*)"/) || [])[1] || '';
+  var _presetOff = (include('../../Button', _atom({ size: 'xs', variant: 'ghost', children: 'x' })).match(/class="([^"]*)"/) || [])[1] || '';
+%>
+<div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]" data-dt-filter-grid data-dt-filter-defs="<%= JSON.stringify(_defs) %>">
+  <% _fields.forEach(function (field) {
+       // A toolbar field (`placement: 'toolbar'`) is drawn by ./toolbar-filters.ejs; its definition stays above.
+       if (field.placement === 'toolbar' && (field.type === 'select' || field.type === 'radio')) return;
+       var fid = _panelId + '-' + field.id;
+       var v = _values[field.id];
+  %>
+  <div class="min-w-0<%= field.type === 'checkbox' ? ' self-end pb-2' : '' %>" data-dt-filter-field="<%= field.id %>" data-dt-filter-type="<%= field.type %>">
+    <% if (field.type === 'text') { %>
+      <%- include('../../Input', _atom({ id: fid, label: field.label, hint: field.hint, placeholder: field.placeholder, value: typeof v === 'string' ? v : '' })) %>
+    <% } else if (field.type === 'number') { %>
+      <%- include('../../Input', _atom({ id: fid, type: 'number', label: field.label, hint: field.hint, placeholder: field.placeholder, min: field.min, max: field.max, step: field.step, value: typeof v === 'number' ? v : '' })) %>
+    <% } else if (field.type === 'select') { %>
+      <%- include('../../Select', _atom({ id: fid, label: field.label, hint: field.hint, options: field.options || [], placeholder: field.required ? undefined : (field.placeholder || _m.any), value: typeof v === 'string' ? v : '' })) %>
+    <% } else if (field.type === 'multiselect') { %>
+      <%- include('../../MultiSelect', _atom({ id: fid, label: field.label, hint: field.hint, options: field.options || [], placeholder: field.placeholder || _m.any, value: Array.isArray(v) ? v : [] })) %>
+    <% } else if (field.type === 'checkboxes') { %>
+      <%- include('../../CheckboxGroup', _atom({ legend: field.label, options: field.options || [], selected: Array.isArray(v) ? v : [] })) %>
+    <% } else if (field.type === 'radio') { %>
+      <%- include('../../RadioGroup', _atom({ name: fid, legend: field.label, options: (field.required ? [] : [{ value: '', label: field.anyLabel || _m.any }]).concat(field.options || []), value: typeof v === 'string' ? v : '' })) %>
+    <% } else if (field.type === 'checkbox') { %>
+      <%- include('../../Checkbox', _atom({ id: fid, label: field.label, hint: field.hint, checked: v === true })) %>
+    <% } else if (field.type === 'date') { %>
+      <%- include('../../DatePicker', _atom({ id: fid, label: field.label, hint: field.hint, locale: field.locale, value: typeof v === 'string' ? v : '' })) %>
+    <% } else if (field.type === 'daterange') { var _presets = _presetsOf(field); %>
+      <div class="min-w-0 space-y-2">
+      <%- include('../../DateRangePicker', _atom({ id: fid, label: field.label, hint: field.hint, locale: field.locale, value: { start: v && v.from ? v.from : '', end: v && v.to ? v.to : '' } })) %>
+      <% if (_presets.length > 0) { %>
+        <div class="flex flex-wrap gap-1" data-part="date-presets" data-dt-preset-on="<%= _presetOn %>" data-dt-preset-off="<%= _presetOff %>">
+          <% _presets.forEach(function (p) { var _on = !!v && v.from === p.from && v.to === p.to; %>
+          <button type="button" class="<%= _on ? _presetOn : _presetOff %>" aria-pressed="<%= _on ? 'true' : 'false' %>" data-dt-preset-from="<%= p.from || '' %>" data-dt-preset-to="<%= p.to || '' %>"><%= p.label %></button>
+          <% }); %>
+        </div>
+      <% } %>
+      </div>
+    <% } else if (field.type === 'range') { %>
+      <%- include('../../RangeSlider', _atom({ id: fid, range: true, label: field.label, hint: field.hint, min: field.min, max: field.max, step: field.step, value: Array.isArray(v) ? v : [field.min, field.max] })) %>
+    <% } else if (field.type === 'numberrange') { var _nr = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; %>
+      <fieldset class="min-w-0" data-part="number-range">
+        <legend class="mb-1.5 block text-sm font-medium text-text-primary"><%= field.label %></legend>
+        <div class="grid grid-cols-2 gap-2">
+          <%- include('../../Input', _atom({ id: fid + '-min', type: 'number', label: _m.rangeMin, min: field.min, max: field.max, step: field.step, value: typeof _nr.min === 'number' ? _nr.min : '' })) %>
+          <%- include('../../Input', _atom({ id: fid + '-max', type: 'number', label: _m.rangeMax, min: field.min, max: field.max, step: field.step, value: typeof _nr.max === 'number' ? _nr.max : '' })) %>
+        </div>
+        <% if (field.hint) { %><p class="mt-1.5 text-xs text-text-secondary"><%= field.hint %></p><% } %>
+      </fieldset>
+    <% } else if (field.type === 'custom') { %>
+      <% if (field.partial) { %><%- include(field.partial, _atom({ id: fid, field: field, value: v === undefined ? null : v })) %><% } else if (field.html) { %><%- field.html %><% } %>
+    <% } %>
+  </div>
+  <% }); %>
+</div>

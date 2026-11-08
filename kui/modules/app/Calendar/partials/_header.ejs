@@ -1,0 +1,60 @@
+<%
+  // Header bar — parallel of parts/HeaderBar.tsx
+  // Locals: _id, _view, _label, _msg
+  var _viewLabel = {
+    month:    _msg.month,
+    week:     _msg.week,
+    day:      _msg.day,
+    agenda:   _msg.agenda,
+    resource: _msg.resource
+  };
+  var _views = ['month', 'week', 'day', 'agenda', 'resource'];
+%>
+<div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-border bg-surface-raised">
+  <div class="flex items-center gap-2">
+    <button type="button"
+      data-kui-cal-nav="today"
+      aria-label="<%= _msg.today %>"
+      class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium border border-border bg-surface-base text-text-primary hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <i class="fa-solid fa-arrows-rotate w-3 h-3 w-3 h-3" aria-hidden="true"></i>
+      <span><%= _msg.today %></span>
+    </button>
+
+    <div class="inline-flex items-center rounded-md border border-border bg-surface-base">
+      <button type="button"
+        data-kui-cal-nav="prev"
+        aria-label="<%= _msg.previous %>"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-l-md text-text-secondary hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+        <i class="fa-solid fa-chevron-left w-3 h-3 w-3 h-3" aria-hidden="true"></i>
+      </button>
+      <button type="button"
+        data-kui-cal-nav="next"
+        aria-label="<%= _msg.next %>"
+        class="inline-flex items-center justify-center w-8 h-8 rounded-r-md border-l border-border text-text-secondary hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+        <i class="fa-solid fa-chevron-right w-3 h-3 w-3 h-3" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 text-text-primary">
+    <i class="fa-solid fa-calendar w-3.5 h-3.5 text-text-secondary w-3.5 h-3.5" aria-hidden="true"></i>
+    <h2 data-kui-cal-label class="text-base font-semibold tabular-nums"><%= _label %></h2>
+  </div>
+
+  <div role="tablist" aria-label="Calendar view" class="inline-flex items-center rounded-md border border-border bg-surface-base p-0.5">
+    <% _views.forEach(function (v) {
+         var active = v === _view;
+         var cls = active
+           ? 'bg-primary text-primary-fg'
+           : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay';
+    %>
+      <button type="button"
+        role="tab"
+        aria-selected="<%= active ? 'true' : 'false' %>"
+        data-kui-cal-view="<%= v %>"
+        class="px-2.5 py-1 text-xs font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= cls %>">
+        <%= _viewLabel[v] %>
+      </button>
+    <% }); %>
+  </div>
+</div>

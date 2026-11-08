@@ -1,0 +1,17 @@
+<!-- ── Gallery grid ─────────────────────────────────────────────────────── -->
+<div
+  id="<%= _id %>-grid"
+  role="list"
+  aria-label="Image gallery"
+  class="grid <%= _colClass %> <%= _gapClass %>"
+  data-gallery-id="<%= _id %>"
+></div>
+
+<!-- ── Shared context menu (populated by JS per image) ──────────────────── -->
+<div
+  id="<%= _id %>-ctx"
+  role="menu"
+  aria-label="Image options"
+  style="position:fixed;z-index:9999;display:none;min-width:13rem"
+  class="rounded-xl border border-border bg-surface-raised shadow-2xl py-1.5 outline-none"
+></div>

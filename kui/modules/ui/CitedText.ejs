@@ -1,0 +1,35 @@
+<%_
+  // CitedText — answer text with its [n] markers turned into CitationChip chips. A marker whose number matches no
+  // evidence row becomes a 'dropped' chip: the reader sees that the claim is unsupported instead of a link that
+  // goes nowhere. Same DOM and classes as kui-react modules/ui/Evidence (CitedText).
+  //
+  // Locals:
+  //   text      — answer text with [n] markers (escaped)
+  //   evidence  — [{ id, index?, kind, title, ... }] the same items as the EvidenceList; a marker matches an item's
+  //               `index` (default: position + 1), not its position when they differ
+  //   idPrefix  — same prefix as the list (default 'evidence')
+  //   messages  — passed to each chip ({ citation, droppedCitation })
+  //   className — extra classes on the paragraph (appended, no conflict resolution)
+  //   loadRuntime — default true: inline Evidence/scripts/evidence.js once, after the paragraph
+  //
+  // (An EJS include inherits its parent's locals, so every chip local is passed explicitly: `className` and
+  // `title` must not leak from the paragraph into the chips.)
+  // `onSelect` is the DOM event 'kui:citation-select' { evidenceId }, see CitationChip. The output carries no
+  // whitespace of its own, so the text reads exactly as given.
+  var L = {};
+  include('./Evidence/_logic', { L: L });
+  var _text = locals.text != null ? String(locals.text) : '';
+  var _evidence = Array.isArray(locals.evidence) ? locals.evidence : [];
+  var _prefix = locals.idPrefix != null ? locals.idPrefix : 'evidence';
+  var _byIndex = {};
+  _evidence.forEach(function (e, i) { _byIndex[e.index != null ? e.index : i + 1] = e; });
+  var _parts = _text.split(/(\[\d+\])/g);
+_%>
+<p class="text-sm leading-6 text-text-primary<%= locals.className ? ' ' + locals.className : '' %>"><% _parts.forEach(function (part) {
+  var m = /^\[(\d+)\]$/.exec(part);
+  if (!m) { %><%= part %><% return; }
+  var n = Number(m[1]);
+  var ev = _byIndex[n];
+  if (ev) { %><%- include('./CitationChip', { index: n, evidenceId: ev.id, title: ev.title, status: 'cited', href: undefined, idPrefix: _prefix, messages: locals.messages, className: '', loadRuntime: false }) %><% }
+  else { %><%- include('./CitationChip', { index: n, evidenceId: String(n), title: undefined, status: 'dropped', href: undefined, idPrefix: _prefix, messages: locals.messages, className: '', loadRuntime: false }) %><% }
+}); %></p><% if (locals.loadRuntime !== false) { %><%- include('./Evidence/_runtime') %><% } -%>

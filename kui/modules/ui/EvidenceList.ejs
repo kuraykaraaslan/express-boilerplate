@@ -1,0 +1,86 @@
+<%
+  // EvidenceList — the rows an AI answer cites: a number, a kind icon and label, a title that opens the row, a
+  // summary, source and time; claims dropped for citing nothing openable are listed apart. Same DOM and classes as
+  // kui-react modules/ui/Evidence (EvidenceList).
+  //
+  // Locals:
+  //   items         — [{ id, index?, kind, title, summary?, href?, timestamp?, source? }]
+  //     index       — the number a chip cites (default: position + 1)
+  //     kind        — log | trace | metric | alert | incident | deploy | config | doc | query | other, or any text
+  //                   (shown as is, with the generic icon)
+  //     href        — where the row opens (a link)
+  //     timestamp   — epoch ms or an ISO string
+  //   droppedClaims — [{ id, text, reason? }] claims removed for citing nothing openable
+  //   activeId      — the row to highlight (the :target of the page highlights too)
+  //   onOpen        — truthy gives a row without an href an Open button (React takes a callback there); links and the
+  //                   button fire the bubbling DOM event 'kui:evidence-open' { id, href } on themselves
+  //   idPrefix      — same prefix as the chips (default 'evidence'); a row's id is idPrefix + '-' + item.id
+  //   heading       — heading text (default messages.heading); false hides it
+  //   locale, timeZone — for the timestamps (a server formats in its own zone unless timeZone is given)
+  //   messages      — { heading, empty, open, openNamed, droppedHeading, droppedSummary, droppedHint, reason,
+  //                     kinds: { log, ... } }; '{title}' and '{count}' are placeholders
+  //   className     — extra classes on the root (appended, no conflict resolution)
+  //   loadRuntime   — default true: inline Evidence/scripts/evidence.js (see Evidence/_runtime.ejs)
+  //
+  // Hooks for the runtime (not in React): data-ev-row on a row, data-ev-open on a link or Open button.
+  var L = {};
+  include('./Evidence/_logic', { L: L });
+  var _msg = L.messages(locals.messages);
+  var _items = Array.isArray(locals.items) ? locals.items : [];
+  var _dropped = Array.isArray(locals.droppedClaims) ? locals.droppedClaims : [];
+  var _prefix = locals.idPrefix != null ? locals.idPrefix : 'evidence';
+  var _headingText = locals.heading === undefined ? _msg.heading : locals.heading;
+  var _activeId = locals.activeId != null ? locals.activeId : null;
+  var _onOpen = !!locals.onOpen;
+  var _extra = locals.className ? ' ' + locals.className : '';
+  var _btn = 'inline-flex items-center rounded border border-border bg-surface-base px-2.5 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+%>
+<section<% if (_headingText === false) { %> aria-label="<%= _msg.heading %>"<% } %> class="flex flex-col gap-3<%= _extra %>">
+  <% if (_headingText !== false) { %><h3 class="text-sm font-semibold text-text-primary"><%= _headingText %></h3><% } %>
+  <% if (_items.length === 0) { %>
+  <p class="text-sm text-text-secondary"><%= _msg.empty %></p>
+  <% } else { %>
+  <ol class="flex flex-col gap-2">
+    <% _items.forEach(function (item, i) {
+      var n = item.index != null ? item.index : i + 1;
+      var known = L.isKnownKind(item.kind);
+      var kindLabel = known ? _msg.kinds[item.kind] : item.kind;
+      var when = L.timeText(item.timestamp, locals.locale, locals.timeZone);
+      var active = _activeId === item.id;
+      var meta = [item.source, when].filter(Boolean).join(' · ');
+    %>
+    <li id="<%= L.domId(_prefix, item.id) %>"<% if (active) { %> data-active="true"<% } %> data-kind="<%= item.kind %>" data-ev-row="<%= item.id %>" tabindex="-1" class="flex gap-3 rounded-md border <%= active ? '' : 'border-border bg-surface-raised ' %>p-3 text-sm target:border-primary target:bg-primary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= active ? ' border-primary bg-primary-subtle' : '' %>">
+      <span class="mt-0.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-primary-subtle px-1 text-xs font-semibold text-primary">[<%= n %>]</span>
+      <div class="flex min-w-0 flex-1 flex-col gap-1">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="inline-flex items-center gap-1 rounded-full bg-surface-sunken px-2 py-0.5 text-xs text-text-secondary"><i class="<%= L.KIND_ICON[known ? item.kind : 'other'] %> h-3 w-3" aria-hidden="true"></i><%= kindLabel %></span>
+          <% if (item.href) { %>
+          <a href="<%= item.href %>" data-ev-open="<%= item.id %>" class="inline-flex min-w-0 items-center gap-1 font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><span class="truncate"><%= item.title %></span><i class="fa-solid fa-arrow-up-right-from-square h-3 w-3 shrink-0 rtl:-scale-x-100" aria-hidden="true"></i></a>
+          <% } else { %>
+          <span class="min-w-0 truncate font-medium text-text-primary"><%= item.title %></span>
+          <% } %>
+        </div>
+        <% if (item.summary) { %><p class="break-words text-text-secondary"><%= item.summary %></p><% } %>
+        <% if (when || item.source) { %><p class="text-xs text-text-disabled"><%= meta %></p><% } %>
+      </div>
+      <% if (!item.href && _onOpen) { %>
+      <button type="button" aria-label="<%= L.fill(_msg.openNamed, { title: item.title }) %>" data-ev-open="<%= item.id %>" class="h-fit shrink-0 rounded border border-border bg-surface-base px-2 py-1 text-xs transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= _msg.open %></button>
+      <% } %>
+    </li>
+    <% }); %>
+  </ol>
+  <% } %>
+
+  <% if (_dropped.length > 0) { %>
+  <div role="status" data-part="dropped" class="flex flex-col gap-2 rounded-md border border-dashed border-warning bg-warning-subtle p-3 text-sm text-warning-fg">
+    <p class="flex items-center gap-2 font-medium"><i class="fa-solid fa-ban h-3.5 w-3.5" aria-hidden="true"></i><span><%= _msg.droppedHeading %>: <%= L.fill(_msg.droppedSummary, { count: _dropped.length }) %></span></p>
+    <p class="text-xs"><%= _msg.droppedHint %></p>
+    <ul class="flex flex-col gap-1.5">
+      <% _dropped.forEach(function (c) { %>
+      <li class="rounded bg-surface-base/60 p-2 text-text-primary"><span class="line-through decoration-warning"><%= c.text %></span><% if (c.reason) { %><span class="ms-2 text-xs text-text-secondary">(<%= _msg.reason %>: <%= c.reason %>)</span><% } %></li>
+      <% }); %>
+    </ul>
+  </div>
+  <% } %>
+</section>
+<% if (locals.loadRuntime !== false) { %><%- include('./Evidence/_runtime') %><% } %>

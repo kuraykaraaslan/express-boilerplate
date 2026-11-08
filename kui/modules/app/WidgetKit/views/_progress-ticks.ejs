@@ -1,0 +1,4 @@
+<%#
+  The scale under a progress bar: zero, the ticks, the target. Locals: model.
+%><%_ var _p = locals.model; var _ts = widgetKit.style(_p.ticksStyle); _%>
+<div class="relative mt-1 h-3 text-[11px] leading-none tabular-nums text-text-secondary"<% if (_ts) { %> style="<%= _ts %>"<% } %> data-part="ticks"><span class="absolute left-0"><%= _p.zeroText %></span><% _p.ticks.forEach(function (t) { %><span class="absolute -translate-x-1/2" style="left:<%= t.left %>"><%= t.text %></span><% }); %><span class="absolute right-0"><%= _p.targetStr %></span></div>

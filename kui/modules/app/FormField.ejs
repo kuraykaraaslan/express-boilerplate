@@ -1,0 +1,67 @@
+<%
+  // ─── FormField (EJS) ────────────────────────────────────────────────────────
+  //
+  // NextJS counterpart uses react-hook-form: it pulls `errors[name]` from the
+  // form context and exposes id/aria attributes via a render-prop child.
+  //
+  // EJS has no form context and no render-prop pattern, so:
+  //   • Callers pass static `error` / `hint` props per render (no live validation).
+  //   • The caller embeds the input markup directly inside `children`; this
+  //     template wraps it in a slot whose root element carries the computed
+  //     `id`, `aria-describedby`, and `aria-invalid` attributes via a
+  //     `data-form-field` data-attribute pattern. Real inputs should mirror
+  //     these on themselves (id equal to the `name` local) — the surrounding
+  //     wrapper exposes them for tests / scripts that walk the DOM.
+  //
+  //   Usage — do not write a literal EJS closing delimiter (percent then
+  //   greater-than, no space between) anywhere inside this scriptlet's own
+  //   comment. EJS's tokenizer scans for that two-character sequence raw,
+  //   with no awareness of // comments or JS strings, so writing it here
+  //   (even quoted, even describing this very rule) closes *this*
+  //   scriptlet early and silently turns the real code below into literal
+  //   output text instead of running it. That happened twice while writing
+  //   this file — caught by tests/partials.render.test.ts, not by eye.
+  //     include FormField with locals: name 'email', label 'Email',
+  //     error errors.email, children set to an <input> whose id matches
+  //     name and whose aria-invalid mirrors whether there is an error.
+  //
+  // The computed `_inputId` (== `name`) is mirrored onto the slot wrapper as
+  // `data-input-id` so consumers can locate the input without re-deriving it.
+
+  var _name      = locals.name      || locals.id || ('field-' + Math.random().toString(36).substr(2, 6));
+  var _label     = locals.label     || '';
+  var _hint      = locals.hint      || '';
+  var _error     = locals.error     || '';
+  var _required  = !!locals.required;
+  var _className = locals.className || '';
+
+  var _inputId     = _name;
+  var _hintId      = _hint  ? (_inputId + '-hint')  : '';
+  var _errorId     = _error ? (_inputId + '-error') : '';
+  var _describedBy = [_hintId, _errorId].filter(Boolean).join(' ');
+%>
+<div class="flex flex-col gap-1.5<%= _className ? ' ' + _className : '' %>">
+  <label
+    for="<%= _inputId %>"
+    class="text-sm font-medium text-text-primary<%= _required ? " after:content-['*'] after:ml-0.5 after:text-error" : '' %>"
+  >
+    <%= _label %>
+  </label>
+
+  <div
+    data-form-field
+    data-input-id="<%= _inputId %>"
+    <% if (_describedBy) { %>aria-describedby="<%= _describedBy %>"<% } %>
+    aria-invalid="<%= _error ? 'true' : 'false' %>"
+  >
+    <%- locals.children || '' %>
+  </div>
+
+  <% if (_hint && !_error) { %>
+  <p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= _hint %></p>
+  <% } %>
+
+  <% if (_error) { %>
+  <p id="<%= _errorId %>" role="alert" class="text-xs text-error"><%= _error %></p>
+  <% } %>
+</div>

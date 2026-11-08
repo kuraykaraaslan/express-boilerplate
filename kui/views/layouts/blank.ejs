@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="<%= locals.theme === 'dark' ? 'dark' : '' %>">
+  <%- include('../partials/_head') %>
+  <body class="font-sans bg-surface-base text-text-primary antialiased min-h-screen flex flex-col">
+
+    <!-- Skip to main content — first focusable element -->
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50
+              focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-fg focus:rounded-md
+              focus:text-sm focus:font-medium focus:ring-2 focus:ring-border-focus">
+      Skip to main content
+    </a>
+
+    <!-- Flash message (server-side) -->
+    <%- include('../partials/_flash') %>
+
+    <!-- Main content -->
+    <main id="main-content" class="flex-1" tabindex="-1">
+      <%- body %>
+    </main>
+
+    <!-- Toast region (client-side AJAX feedback) -->
+    <div id="toast-region"
+         class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"
+         aria-live="polite"
+         aria-atomic="false">
+    </div>
+
+    <!-- Confirmations (KuiConfirm.confirmDialog), once per page -->
+    <%- include('../../modules/ui/ConfirmHost') %>
+
+    <script src="/assets/js/main.js" defer></script>
+    <%- locals.extraScripts || '' %>
+  </body>
+</html>

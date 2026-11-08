@@ -1,0 +1,16 @@
+<%#
+  One event of the feed (kui-react DataFeedView's `entry`). Locals: entry, model.
+%><%_
+  var _e = locals.entry; var _m = locals.model; var _k = _e.marker;
+  var _titleStyle = widgetKit.style(_m.titleStyle); var _descStyle = widgetKit.style(_m.descStyle);
+  var _es = widgetKit.style(_e.style);
+_%>
+<li class="<%= _e.className %>"<% if (_es) { %> style="<%= _es %>"<% } %> data-feed-item="true">
+<% if (_e.line) { %><span class="absolute bottom-0 w-px bg-border" style="<%= widgetKit.style(_e.line.style) %>" aria-hidden="true"></span><% } %>
+<% if (_k && _e.showMarker) { %><% if (_k.kind === 'tile') { %><span data-part="marker" aria-hidden="true"><%- include('../_icon-tile', { name: _k.icon, color: _k.color, size: _k.size }) %></span><% } else { %><span data-part="marker" aria-hidden="true" class="<%= _k.className %>"><span class="h-2 w-2 rounded-full" style="background:<%= _k.color %>;box-shadow:<%= _k.shadow %>"></span></span><% } %><% } %>
+<% if (_e.layout === 'compact') { %>
+<span data-part="title" class="<%= _m.compactTitleClass %>"<% if (_titleStyle) { %> style="<%= _titleStyle %>"<% } %>><%= _e.title %></span><%- include('_feed-time', { entry: _e, timeStyle: _m.timeStyle, extra: 'shrink-0' }) %>
+<% } else { %>
+<div class="min-w-0 flex-1"><% if (_e.timeBelow) { %><p data-part="title" class="min-w-0 break-words text-[13px] font-medium leading-snug text-text-primary"<% if (_titleStyle) { %> style="<%= _titleStyle %>"<% } %>><%= _e.title %></p><% } else { %><div class="flex items-baseline justify-between gap-3"><p data-part="title" class="min-w-0 break-words text-[13px] font-medium leading-snug text-text-primary"<% if (_titleStyle) { %> style="<%= _titleStyle %>"<% } %>><%= _e.title %></p><%- include('_feed-time', { entry: _e, timeStyle: _m.timeStyle, extra: 'shrink-0' }) %></div><% } %><% if (_e.description) { %><p data-part="description" class="mt-0.5 break-words text-xs leading-snug text-text-secondary"<% if (_descStyle) { %> style="<%= _descStyle %>"<% } %>><%= _e.description %></p><% } %><% if (_e.timeBelow) { %><%- include('_feed-time', { entry: _e, timeStyle: _m.timeStyle, extra: 'mt-0.5 block' }) %><% } %></div>
+<% } %>
+</li>

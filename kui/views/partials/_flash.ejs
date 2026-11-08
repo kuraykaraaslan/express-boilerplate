@@ -1,0 +1,35 @@
+<% if (locals.flash) { %>
+<div
+  role="alert"
+  aria-live="assertive"
+  class="fixed top-4 right-4 z-50 max-w-sm w-full rounded-lg border p-4 shadow-lg
+         flex items-start gap-3
+         <%= flash.type === 'success' ? 'bg-success-subtle border-success text-success-fg' :
+             flash.type === 'warning' ? 'bg-warning-subtle border-warning text-warning-fg' :
+             flash.type === 'error'   ? 'bg-error-subtle border-error text-error-fg'       :
+                                        'bg-info-subtle border-info text-info-fg' %>"
+  data-toast
+>
+  <i class="fa-solid <%= flash.type === 'success' ? 'fa-circle-check'         :
+                         flash.type === 'warning' ? 'fa-triangle-exclamation' :
+                         flash.type === 'error'   ? 'fa-circle-exclamation'   :
+                                                    'fa-circle-info' %> mt-0.5 shrink-0"
+     aria-hidden="true"></i>
+  <p class="text-sm font-medium flex-1"><%= flash.message %></p>
+  <button type="button" aria-label="Dismiss notification"
+          class="shrink-0 hover:opacity-70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+          onclick="this.closest('[data-toast]').remove()">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+</div>
+<script>
+  (function () {
+    var _toast = document.querySelector('[data-toast]');
+    if (_toast) {
+      <% if (flash.type !== 'error') { %>
+      setTimeout(function () { _toast.remove(); }, 5000);
+      <% } %>
+    }
+  })();
+</script>
+<% } %>

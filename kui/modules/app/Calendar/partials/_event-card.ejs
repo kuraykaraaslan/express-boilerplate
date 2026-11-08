@@ -1,0 +1,43 @@
+<%
+  // Event card — parallel of parts/EventCard.tsx
+  // Locals: _event, _variant (pill | bar | stack), _pillCls, _fmtTime
+  var _color    = _event.color || 'primary';
+  var _baseCls  = _pillCls(_color);
+  var _variant  = _variant || 'pill';
+  var _hasTime  = !_event.allDay;
+  var _icon     = _event.icon || '';
+  var _ariaLbl  = _event.allDay
+    ? _event.title + ' (all-day)'
+    : _event.title + ' — ' + _fmtTime(_event.start) + ' to ' + _fmtTime(_event.end);
+
+  var _sizeCls;
+  if (_variant === 'pill')  _sizeCls = 'px-1.5 py-0.5 text-[11px] leading-tight';
+  if (_variant === 'bar')   _sizeCls = 'px-2 py-1 text-xs font-medium';
+  if (_variant === 'stack') _sizeCls = 'px-2 py-1.5 text-xs items-start flex-col gap-0.5';
+%>
+<button type="button"
+  data-event-id="<%= _event.id %>"
+  data-event-title="<%= _event.title %>"
+  data-event-start="<%= _event.start.getTime() %>"
+  data-event-end="<%= _event.end.getTime() %>"
+  data-event-color="<%= _color %>"
+  <% if (_event.calendarId) { %>data-event-calendar-id="<%= _event.calendarId %>"<% } %>
+  <% if (_event.allDay) { %>data-event-all-day="1"<% } %>
+  <% if (_event.description) { %>data-event-description="<%= _event.description %>"<% } %>
+  aria-label="<%= _ariaLbl %>"
+  class="flex items-center gap-1.5 w-full text-left truncate rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors <%= _sizeCls %> <%= _baseCls %>">
+  <% if (_icon) { %>
+    <i class="fa-solid <%= _icon %> w-3 h-3 shrink-0<%= _variant === 'stack' ? ' mt-0.5' : '' %>" aria-hidden="true" style="font-size:0.75rem"></i>
+  <% } %>
+  <% if (_variant === 'stack') { %>
+    <span class="font-semibold truncate w-full"><%= _event.title %></span>
+    <% if (_hasTime) { %>
+      <span class="opacity-90 text-[10px]"><%= _fmtTime(_event.start) %> – <%= _fmtTime(_event.end) %></span>
+    <% } %>
+  <% } else { %>
+    <% if (_hasTime) { %>
+      <span class="opacity-90 tabular-nums shrink-0"><%= _fmtTime(_event.start) %></span>
+    <% } %>
+    <span class="truncate"><%= _event.title %></span>
+  <% } %>
+</button>

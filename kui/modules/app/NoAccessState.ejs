@@ -1,0 +1,36 @@
+<%
+  var _title       = locals.title       || 'Access denied';
+  var _description = locals.description || "You don't have permission to view this content.";
+  var _onRequestAccess = locals.onRequestAccess || '';
+  var _isHref = _onRequestAccess && typeof _onRequestAccess === 'string' && (
+    _onRequestAccess.charAt(0) === '/' ||
+    _onRequestAccess.charAt(0) === '#' ||
+    _onRequestAccess.indexOf('http://') === 0 ||
+    _onRequestAccess.indexOf('https://') === 0 ||
+    _onRequestAccess.indexOf('mailto:') === 0
+  );
+%>
+<%# EmptyState parity: matches EmptyState.ejs class output %>
+<div class="flex flex-col items-center justify-center text-center py-16 px-6<%= locals.className ? ' '+locals.className : '' %>">
+  <div class="h-12 w-12 rounded-full bg-surface-sunken flex items-center justify-center text-text-disabled text-2xl mb-4" aria-hidden="true">
+    <i class="fa-solid fa-lock"></i>
+  </div>
+  <h3 class="text-base font-semibold text-text-primary"><%= _title %></h3>
+  <% if (_description) { %>
+  <p class="mt-1 text-sm text-text-secondary max-w-xs"><%= _description %></p>
+  <% } %>
+  <% if (_onRequestAccess) { %>
+  <div class="mt-5">
+    <%# Button variant="primary" size="sm" %>
+    <% if (_isHref) { %>
+    <a href="<%= _onRequestAccess %>" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-primary text-primary-fg hover:bg-primary-hover px-3 py-1.5 text-sm">
+      Request access
+    </a>
+    <% } else { %>
+    <button type="button" onclick="<%= _onRequestAccess %>" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-fg hover:bg-primary-hover px-3 py-1.5 text-sm">
+      Request access
+    </button>
+    <% } %>
+  </div>
+  <% } %>
+</div>

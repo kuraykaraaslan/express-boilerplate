@@ -1,0 +1,16 @@
+<%
+  // The TimeWindowSelect trigger (kui-react: the Popover `trigger` button). Locals: C (see TimeWindowSelect.ejs).
+  var C = locals.C;
+%>
+<button
+  id="<%= C.prefix %>-trigger"
+  type="button"
+  aria-haspopup="dialog"
+  aria-expanded="false"
+  aria-label="<%= C.m.open %>: <%= C.summary %>"
+  class="inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-surface-base px-3 text-sm text-text-primary hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= C.className ? ' ' + C.className : '' %>"
+  data-kui-tws-trigger
+>
+  <i class="fa-regular fa-clock w-4 shrink-0 text-center text-xs text-text-secondary" aria-hidden="true"></i>
+  <span class="truncate" data-kui-tws-summary><%= C.summary %></span>
+</button>

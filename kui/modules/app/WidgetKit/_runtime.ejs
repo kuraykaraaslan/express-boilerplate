@@ -1,0 +1,57 @@
+<%
+  // The one place the WidgetKit browser runtime is inlined. PlacementCard includes this AFTER its markup; the scripts
+  // are idempotent (window.KuiWidgetKit guards) and autoInit() mounts every [data-wk-card] not mounted yet, now and (for
+  // cards the page draws after the first) once the document is parsed.
+  // A control placement (control.button / switch / slider / setpoint / form) also inlines the ControlTile runtime
+  // (ui/ControlTile/_runtime), which mounts its controls the same way; control.form adds scripts/control-form.js (its
+  // binder, registered with the ControlTile runtime) and the map adds scripts/map-replay.js (route replay). A kind whose
+  // full screen zooms (widgetKit.zoomable, scada.scene) adds scripts/zoom-pane.js (window.KuiZoomPane).
+  // Pass loadRuntime: false when the host page loads scripts/export.js and scripts/widget-kit.js (and, for controls,
+  // the three ControlTile scripts, scripts/control-form.js for a form, scripts/map-replay.js for a map, scripts/zoom-pane.js
+  // for a diagram) once via <script src>, map-replay.js and control-form.js before widget-kit.js.
+  // `runtimeOnce` is a per-request object (res.locals) so a page with many placements inlines the scripts once.
+  if (locals.loadRuntime === false) return;
+  var _wk = true;
+  var _ctl = /^control\./.test(String(locals.kind || ''));
+  var _form = locals.kind === 'control.form';
+  var _map = locals.kind === 'map';
+  var _zoom = !!(locals.widgetKit && locals.widgetKit.zoomable && locals.widgetKit.zoomable(locals.kind));
+  if (locals.runtimeOnce) {
+    if (locals.runtimeOnce.widgetKit) _wk = false; else locals.runtimeOnce.widgetKit = true;
+    if (_ctl) { if (locals.runtimeOnce.control) _ctl = false; else locals.runtimeOnce.control = true; }
+    if (_form) { if (locals.runtimeOnce.form) _form = false; else locals.runtimeOnce.form = true; }
+    if (_map) { if (locals.runtimeOnce.replay) _map = false; else locals.runtimeOnce.replay = true; }
+    if (_zoom) { if (locals.runtimeOnce.zoom) _zoom = false; else locals.runtimeOnce.zoom = true; }
+  }
+  if (!_wk && !_ctl && !_form && !_map && !_zoom) return;
+%>
+<% if (_ctl) { %><%- include('../../ui/ControlTile/_runtime') %><% } %>
+<% if (_form) { %>
+<script>
+<%- include('./scripts/control-form.js') %>
+</script>
+<% } %>
+<% if (_map) { %>
+<script>
+<%- include('./scripts/map-replay.js') %>
+</script>
+<% } %>
+<% if (_zoom) { %>
+<script>
+<%- include('./scripts/zoom-pane.js') %>
+</script>
+<% } %>
+<% if (_wk) { %>
+<script>
+<%- include('./scripts/export.js') %>
+<%- include('./scripts/widget-kit.js') %>
+(function () {
+  function init() {
+    if (window.KuiWidgetKit && window.KuiWidgetKit.autoInit) window.KuiWidgetKit.autoInit();
+    if (window.KuiControl && window.KuiControl.autoInit) window.KuiControl.autoInit();
+  }
+  init();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+<% } %>

@@ -1,0 +1,44 @@
+<%
+  var _title     = locals.title     || '';
+  var _subtitle  = locals.subtitle  || '';
+  var _badge     = locals.badge     || '';
+  var _actions   = locals.actions   || [];
+  var _className = locals.className || '';
+
+  var vMap = {
+    primary:   'bg-primary text-primary-fg hover:bg-primary-hover',
+    // As Button: `secondary` is neutral, `accent` carries the brand's second colour.
+    secondary: 'bg-surface-overlay text-text-primary hover:bg-border-strong',
+    accent:    'bg-accent text-accent-fg hover:bg-accent-hover',
+    outline:   'border border-border text-text-primary hover:bg-surface-overlay',
+    danger:    'bg-error text-text-inverse hover:opacity-90',
+    ghost:     'bg-transparent text-text-primary hover:bg-surface-overlay',
+  };
+%>
+<div class="flex items-center justify-between gap-4 pb-3<%= _className ? ' ' + _className : '' %>">
+  <div class="min-w-0">
+    <div class="flex items-center gap-2 flex-wrap">
+      <h1 class="text-xl font-semibold text-text-primary leading-tight"><%= _title %></h1>
+      <% if (_badge) { %><%- _badge %><% } %>
+    </div>
+    <% if (_subtitle) { %>
+    <p class="text-sm text-text-secondary mt-0.5"><%= _subtitle %></p>
+    <% } %>
+  </div>
+
+  <% if (_actions && _actions.length > 0) { %>
+  <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+    <% _actions.forEach(function (action) { %>
+    <%
+      var actVariant = action.variant || 'primary';
+      var actCls = 'inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed ' + (vMap[actVariant] || vMap.primary);
+    %>
+    <% if (action.href) { %>
+    <a href="<%= action.href %>" class="<%= actCls %>"><%- action.label %></a>
+    <% } else { %>
+    <button type="button" <%= action.disabled ? 'disabled' : '' %><% if (action.onClick) { %> onclick="<%= action.onClick %>"<% } %> class="<%= actCls %>"><%- action.label %></button>
+    <% } %>
+    <% }); %>
+  </div>
+  <% } %>
+</div>

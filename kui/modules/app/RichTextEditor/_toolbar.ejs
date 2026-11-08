@@ -1,0 +1,97 @@
+<%
+  // Toolbar partial — receives _id, _readOnly via include locals.
+  // Same toolbar markup as the React Toolbar.tsx sibling.
+  function btn(cls, label, icon, title, extra) {
+    return '<button type="button" class="kui-rte-btn inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors ' + cls + '" aria-label="' + label + '" title="' + (title || label) + '"' + (extra || '') + '>' +
+      '<i class="fa-solid ' + icon + ' w-3.5 h-3.5" aria-hidden="true"></i>' +
+    '</button>';
+  }
+  function plainBtn(idAttr, label, icon, title) {
+    return '<button type="button" id="' + idAttr + '" class="kui-rte-btn inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors" aria-label="' + label + '" title="' + (title || label) + '">' +
+      '<i class="fa-solid ' + icon + ' w-3.5 h-3.5" aria-hidden="true"></i>' +
+    '</button>';
+  }
+  var _divider = '<span class="w-px h-5 bg-border mx-1 self-center" aria-hidden="true"></span>';
+%>
+<div id="<%= _id %>-toolbar" class="ql-toolbar ql-snow flex flex-wrap items-center gap-0.5<%= _readOnly ? ' hidden' : '' %>">
+  <select class="ql-header" aria-label="Heading level" title="Heading">
+    <option value="1">H1</option>
+    <option value="2">H2</option>
+    <option value="3">H3</option>
+    <option value="" selected>Paragraph</option>
+  </select>
+  <select class="ql-font" aria-label="Font" title="Font family">
+    <option value="" selected>Sans</option>
+    <option value="serif">Serif</option>
+    <option value="monospace">Mono</option>
+  </select>
+  <select class="ql-size" aria-label="Size" title="Font size">
+    <option value="10px">10</option>
+    <option value="12px">12</option>
+    <option value="" selected>14</option>
+    <option value="16px">16</option>
+    <option value="18px">18</option>
+    <option value="20px">20</option>
+    <option value="24px">24</option>
+    <option value="32px">32</option>
+  </select>
+  <%- btn('ql-blockquote', 'Blockquote', 'fa-quote-right', 'Blockquote') %>
+  <%- btn('ql-code-block', 'Code block', 'fa-code-branch', 'Code block') %>
+
+  <%- _divider %>
+
+  <%- btn('ql-bold',      'Bold',          'fa-bold',          'Bold (Ctrl+B)') %>
+  <%- btn('ql-italic',    'Italic',        'fa-italic',        'Italic (Ctrl+I)') %>
+  <%- btn('ql-underline', 'Underline',     'fa-underline',     'Underline (Ctrl+U)') %>
+  <%- btn('ql-strike',    'Strikethrough', 'fa-strikethrough', 'Strikethrough') %>
+  <%- btn('ql-code',      'Inline code',   'fa-code',          'Inline code') %>
+
+  <%- _divider %>
+
+  <%# Explicit blanks for label/name/value/error/hint suppress inheritance from
+      the parent editor's locals (EJS include merges parent locals into the
+      child by default, which otherwise leaks the editor's <label> text and
+      HTML value into the ColorPicker trigger). %>
+  <%- include('../../ui/ColorPicker', { id: _id + '-cp-color', label: '', name: '', value: '', error: '', hint: '', iconOnly: true, icon: 'fa-palette',     triggerLabel: 'Text color', showNoColor: true, align: 'left' }) %>
+  <%- include('../../ui/ColorPicker', { id: _id + '-cp-bg',    label: '', name: '', value: '', error: '', hint: '', iconOnly: true, icon: 'fa-highlighter', triggerLabel: 'Highlight',  showNoColor: true, align: 'left' }) %>
+
+  <%- _divider %>
+
+  <%- btn('ql-list',   'Bullet list',     'fa-list-ul', 'Bullet list',     ' value="bullet"') %>
+  <%- btn('ql-list',   'Numbered list',   'fa-list-ol', 'Numbered list',   ' value="ordered"') %>
+  <%- btn('ql-indent', 'Decrease indent', 'fa-outdent', 'Decrease indent', ' value="-1"') %>
+  <%- btn('ql-indent', 'Increase indent', 'fa-indent',  'Increase indent', ' value="+1"') %>
+
+  <%- _divider %>
+
+  <%- btn('ql-script', 'Subscript',   'fa-subscript',   'Subscript',   ' value="sub"') %>
+  <%- btn('ql-script', 'Superscript', 'fa-superscript', 'Superscript', ' value="super"') %>
+
+  <%- _divider %>
+
+  <%- btn('ql-link',  'Insert link',  'fa-link',  'Insert link') %>
+  <%- btn('ql-image', 'Insert image', 'fa-image', 'Insert image') %>
+  <%- plainBtn(_id + '-tbl-btn',   'Insert table',           'fa-table',      'Insert table') %>
+  <%- plainBtn(_id + '-hr-btn',    'Insert horizontal rule', 'fa-minus',      'Insert horizontal rule') %>
+  <%- plainBtn(_id + '-emoji-btn', 'Insert emoji',           'fa-face-smile', 'Insert emoji') %>
+
+  <%- _divider %>
+
+  <%- btn('ql-align', 'Align left',   'fa-align-left',   'Align left',   ' value=""') %>
+  <%- btn('ql-align', 'Align center', 'fa-align-center', 'Align center', ' value="center"') %>
+  <%- btn('ql-align', 'Align right',  'fa-align-right',  'Align right',  ' value="right"') %>
+
+  <%- _divider %>
+
+  <%- btn('ql-clean', 'Clear formatting', 'fa-remove-format', 'Clear formatting') %>
+
+  <%- _divider %>
+
+  <%- plainBtn(_id + '-undo', 'Undo', 'fa-rotate-left',  'Undo (Ctrl+Z)') %>
+  <%- plainBtn(_id + '-redo', 'Redo', 'fa-rotate-right', 'Redo (Ctrl+Shift+Z)') %>
+
+  <%- _divider %>
+
+  <%- plainBtn(_id + '-html', 'Toggle HTML source', 'fa-file-code', 'Edit HTML source') %>
+  <%- plainBtn(_id + '-full', 'Fullscreen',         'fa-expand',    'Fullscreen') %>
+</div>

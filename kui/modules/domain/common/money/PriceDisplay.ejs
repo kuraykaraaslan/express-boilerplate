@@ -1,0 +1,17 @@
+<%
+  var _amount   = locals.amount   || 0;
+  var _currency = locals.currency || 'TRY';
+  var _locale   = locals.locale   || 'tr-TR';
+  var _size     = locals.size     || 'md';
+  var _strike   = locals.strikethrough || false;
+
+  var sizeClass = {
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-xl font-semibold',
+    xl: 'text-3xl font-bold',
+  }[_size] || 'text-base';
+%>
+<span class="tabular-nums <%= sizeClass %><%= _strike ? ' line-through text-text-secondary' : '' %><%= locals.className ? ' ' + locals.className : '' %>">
+  <%= _amount.toLocaleString(_locale, { style: 'currency', currency: _currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+</span>

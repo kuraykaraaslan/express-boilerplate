@@ -1,0 +1,19 @@
+<%
+  var _status   = (locals.status   || '').toUpperCase();
+  var _size     = locals.size     || 'md';
+  var _showIcon = locals.showIcon !== false;
+
+  var statusMeta = {
+    DRAFT:     { children: 'Draft',     variant: 'warning', icon: '<i class="fa-solid fa-pen-to-square w-3 h-3" aria-hidden="true"></i>' },
+    PUBLISHED: { children: 'Published', variant: 'success', icon: '<i class="fa-solid fa-globe w-3 h-3" aria-hidden="true"></i>' },
+    ARCHIVED:  { children: 'Archived',  variant: 'neutral', icon: '<i class="fa-solid fa-box-archive w-3 h-3" aria-hidden="true"></i>' },
+  };
+  var meta = statusMeta[_status] || { children: locals.status || _status, variant: 'neutral', icon: '' };
+  var label = (_showIcon && meta.icon ? meta.icon + ' ' : '') + meta.children;
+%>
+<%- include('../../../ui/Badge', {
+  variant:  meta.variant,
+  size:     _size,
+  children: label,
+  className: 'gap-1' + (locals.className ? ' ' + locals.className : '')
+}) %>

@@ -1,0 +1,24 @@
+<%
+  var _point     = locals.point     || {};
+  var _label     = locals.label     || null;
+  var _showLink  = locals.showMapLink !== false;
+  var _precision = locals.precision  || 6;
+
+  var lat = typeof _point.latitude  === 'number' ? _point.latitude.toFixed(_precision)  : '';
+  var lng = typeof _point.longitude === 'number' ? _point.longitude.toFixed(_precision) : '';
+  var mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+%>
+<div class="inline-flex items-center gap-2 text-sm<%= locals.className ? ' ' + locals.className : '' %>">
+  <i class="fa-solid fa-location-dot text-text-disabled shrink-0 w-3.5 h-3.5" aria-hidden="true"></i>
+  <div class="min-w-0">
+    <% if (_label) { %><p class="text-xs text-text-secondary mb-0.5"><%= _label %></p><% } %>
+    <p class="font-mono text-text-primary tabular-nums"><%= lat %>, <%= lng %></p>
+  </div>
+  <% if (_showLink && lat && lng) { %>
+  <a href="<%= mapsUrl %>" target="_blank" rel="noopener noreferrer"
+    aria-label="Open <%= lat %>, <%= lng %> in Google Maps"
+    class="text-xs text-primary hover:text-primary-hover underline shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded">
+    Map
+  </a>
+  <% } %>
+</div>

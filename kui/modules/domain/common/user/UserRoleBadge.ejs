@@ -1,0 +1,16 @@
+<%
+  var _role = (locals.role || '').toUpperCase();
+  var _size = locals.size || 'md';
+
+  var roleMeta = {
+    ADMIN:  { children: 'Admin',  variant: 'error' },
+    AUTHOR: { children: 'Author', variant: 'primary' },
+    USER:   { children: 'User',   variant: 'neutral' },
+  };
+  var meta = roleMeta[_role] || { children: locals.role || _role, variant: 'neutral' };
+%>
+<%- include('../../../ui/Badge', {
+  variant:  meta.variant,
+  size:     _size,
+  children: meta.children
+}) %>

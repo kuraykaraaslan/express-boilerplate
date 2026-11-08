@@ -1,0 +1,212 @@
+<% var _id = ctx.id;
+   var _qualities = ctx.qualities;
+   var _subtitles = ctx.subtitles;
+   var _audioTracks = ctx.audioTracks;
+   var _defaultQuality = ctx.defaultQuality;
+   var _defaultQualityLabel = ctx.defaultQualityLabel;
+   var _hasQualities = ctx.hasQualities;
+   var _hasSubs = ctx.hasSubs;
+   var _hasAudio = ctx.hasAudio;
+   var _speeds = ctx.speeds;
+%>
+
+<%/* ── Settings panel ── */%>
+<div id="<%= _id %>-settings"
+  class="absolute bottom-14 right-4 w-60 bg-black/90 rounded-xl border border-white/10 shadow-2xl overflow-hidden z-20 hidden">
+
+  <%/* Main view */%>
+  <div id="<%= _id %>-view-main">
+    <div class="px-4 py-2.5 border-b border-white/10 flex items-center gap-2">
+      <i class="fa-solid fa-gear text-white/50 text-xs" aria-hidden="true"></i>
+      <p class="text-white/70 text-xs font-semibold uppercase tracking-wider">Ayarlar</p>
+    </div>
+    <div class="py-1">
+
+      <% if (_hasQualities) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('quality')"
+        class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/10 transition-colors group">
+        <span class="text-white/85 text-sm">Kalite</span>
+        <div class="flex items-center gap-1.5 text-white/45 text-xs group-hover:text-white/65 transition-colors">
+          <span id="<%= _id %>-lbl-quality"><%= _defaultQualityLabel %></span>
+          <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
+        </div>
+      </button>
+      <% } %>
+
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('speed')"
+        class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/10 transition-colors group">
+        <span class="text-white/85 text-sm">Oynatma Hızı</span>
+        <div class="flex items-center gap-1.5 text-white/45 text-xs group-hover:text-white/65 transition-colors">
+          <span id="<%= _id %>-lbl-speed">Normal</span>
+          <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
+        </div>
+      </button>
+
+      <% if (_hasSubs) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('subtitles')"
+        class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/10 transition-colors group">
+        <span class="text-white/85 text-sm">Altyazı</span>
+        <div class="flex items-center gap-1.5 text-white/45 text-xs group-hover:text-white/65 transition-colors">
+          <span id="<%= _id %>-lbl-subtitle">Kapalı</span>
+          <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
+        </div>
+      </button>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('subtitle-size')"
+        class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/10 transition-colors group">
+        <span class="text-white/85 text-sm">Altyazı Boyutu</span>
+        <div class="flex items-center gap-1.5 text-white/45 text-xs group-hover:text-white/65 transition-colors">
+          <span id="<%= _id %>-lbl-subtitle-size">Orta</span>
+          <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
+        </div>
+      </button>
+      <% } %>
+
+      <% if (_hasAudio) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('language')"
+        class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/10 transition-colors group">
+        <span class="text-white/85 text-sm">Ses Dili</span>
+        <div class="flex items-center gap-1.5 text-white/45 text-xs group-hover:text-white/65 transition-colors">
+          <span id="<%= _id %>-lbl-language"><%= _audioTracks.length > 0 ? _audioTracks[0].label : '' %></span>
+          <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
+        </div>
+      </button>
+      <% } %>
+
+    </div>
+  </div>
+
+  <%/* Quality sub-view */%>
+  <% if (_hasQualities) { %>
+  <div id="<%= _id %>-view-quality" class="hidden">
+    <button type="button" onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('main')"
+      class="w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors">
+      <i class="fa-solid fa-chevron-left text-white/50 text-xs" aria-hidden="true"></i>
+      <span class="text-white text-sm font-semibold">Kalite</span>
+    </button>
+    <div class="py-1">
+      <% _qualities.forEach(function(q) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setQuality(<%= JSON.stringify(String(q.value)) %>, <%= JSON.stringify(String(q.label)) %>)"
+        data-vp-quality="<%= q.value %>"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span><%= q.label %></span>
+        <i class="fa-solid fa-check text-primary text-xs<%= q.value !== _defaultQuality ? ' hidden' : '' %>"
+          data-vp-check aria-hidden="true"></i>
+      </button>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+
+  <%/* Speed sub-view */%>
+  <div id="<%= _id %>-view-speed" class="hidden">
+    <button type="button" onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('main')"
+      class="w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors">
+      <i class="fa-solid fa-chevron-left text-white/50 text-xs" aria-hidden="true"></i>
+      <span class="text-white text-sm font-semibold">Oynatma Hızı</span>
+    </button>
+    <div class="py-1">
+      <% _speeds.forEach(function(s) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setSpeed(<%= s %>)"
+        data-vp-speed="<%= s %>"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span><%= s === 1 ? '1× (Normal)' : s + '×' %></span>
+        <i class="fa-solid fa-check text-primary text-xs<%= s !== 1 ? ' hidden' : '' %>"
+          data-vp-check aria-hidden="true"></i>
+      </button>
+      <% }); %>
+    </div>
+  </div>
+
+  <%/* Subtitles sub-view */%>
+  <% if (_hasSubs) { %>
+  <div id="<%= _id %>-view-subtitles" class="hidden">
+    <button type="button" onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('main')"
+      class="w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors">
+      <i class="fa-solid fa-chevron-left text-white/50 text-xs" aria-hidden="true"></i>
+      <span class="text-white text-sm font-semibold">Altyazı</span>
+    </button>
+    <div class="py-1">
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setSubtitle(null, 'Kapalı')"
+        data-vp-sub="null"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span>Kapalı</span>
+        <i class="fa-solid fa-check text-primary text-xs" data-vp-check aria-hidden="true"></i>
+      </button>
+      <% _subtitles.forEach(function(sub, i) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setSubtitle(<%= i %>, <%= JSON.stringify(String(sub.label)) %>)"
+        data-vp-sub="<%= i %>"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span><%= sub.label %></span>
+        <i class="fa-solid fa-check text-primary text-xs hidden" data-vp-check aria-hidden="true"></i>
+      </button>
+      <% }); %>
+    </div>
+  </div>
+
+  <%/* Subtitle size sub-view */%>
+  <div id="<%= _id %>-view-subtitle-size" class="hidden">
+    <button type="button" onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('main')"
+      class="w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors">
+      <i class="fa-solid fa-chevron-left text-white/50 text-xs" aria-hidden="true"></i>
+      <span class="text-white text-sm font-semibold">Altyazı Boyutu</span>
+    </button>
+    <div class="py-1">
+      <% var _fontSizes = [
+           { key: 'sm', label: 'Küçük',     size: '0.8rem'  },
+           { key: 'md', label: 'Orta',       size: '1rem'    },
+           { key: 'lg', label: 'Büyük',      size: '1.3rem'  },
+           { key: 'xl', label: 'Çok Büyük',  size: '1.65rem' }
+         ];
+         _fontSizes.forEach(function(fs) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setSubtitleSize(<%= JSON.stringify(String(fs.key)) %>, <%= JSON.stringify(String(fs.label)) %>, <%= JSON.stringify(String(fs.size)) %>)"
+        data-vp-sub-size="<%= fs.key %>"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span class="flex flex-col items-start gap-0.5">
+          <span><%= fs.label %></span>
+          <span class="text-xs text-white/35 font-normal"><%= fs.size %></span>
+        </span>
+        <i class="fa-solid fa-check text-primary text-xs<%= fs.key !== 'md' ? ' hidden' : '' %>"
+          data-vp-check aria-hidden="true"></i>
+      </button>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+
+  <%/* Language sub-view */%>
+  <% if (_hasAudio) { %>
+  <div id="<%= _id %>-view-language" class="hidden">
+    <button type="button" onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].showView('main')"
+      class="w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-white/10 hover:bg-white/5 transition-colors">
+      <i class="fa-solid fa-chevron-left text-white/50 text-xs" aria-hidden="true"></i>
+      <span class="text-white text-sm font-semibold">Ses Dili</span>
+    </button>
+    <div class="py-1">
+      <% _audioTracks.forEach(function(track, i) { %>
+      <button type="button"
+        onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].setAudioTrack(<%= i %>, <%= JSON.stringify(String(track.label)) %>)"
+        data-vp-audio="<%= i %>"
+        class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-white/10 text-white/80">
+        <span class="flex flex-col items-start gap-0.5">
+          <span><%= track.label %></span>
+          <% if (track.language) { %><span class="text-xs text-white/35 font-normal"><%= track.language %></span><% } %>
+        </span>
+        <i class="fa-solid fa-check text-primary text-xs<%= i !== 0 ? ' hidden' : '' %>"
+          data-vp-check aria-hidden="true"></i>
+      </button>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
+
+</div><%/* end settings panel */%>

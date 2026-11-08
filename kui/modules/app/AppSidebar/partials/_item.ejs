@@ -1,0 +1,69 @@
+<%
+  // One AppSidebar nav item and, recursively, its children — parity with
+  // kui-react AppSidebar's renderItem(). Locals: item, depth, sid, activeId,
+  // collapsed, expandedIds (ids whose branch starts open).
+  var _item      = locals.item;
+  var _depth     = locals.depth || 0;
+  var _sid       = String(locals.sid);
+  var _activeId  = locals.activeId || '';
+  var _collapsed = !!locals.collapsed;
+  var _kids      = _item.children || [];
+  var _hasKids   = _kids.length > 0;
+  var _key       = String(_item.id).replace(/[^A-Za-z0-9_-]/g, '_');
+  var _expanded  = _hasKids && !!(locals.expandedIds && locals.expandedIds[_item.id]);
+  function _contains(it, id) {
+    if (!id) return false;
+    return it.id === id || (it.children || []).some(function (c) { return _contains(c, id); });
+  }
+  var _isActive    = _item.id === _activeId;
+  // Icon-only mode shows top-level items only, so the one holding the active page lights up.
+  var _holdsActive = !_isActive && _depth === 0 && _hasKids && _contains(_item, _activeId);
+  var _activeCls   = 'bg-primary-subtle text-primary font-medium';
+  var _idleCls     = 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay';
+  var _cls = 'w-full flex items-center gap-2.5 rounded-lg text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus '
+    + (_collapsed ? 'justify-center px-2 py-2 ' : 'px-3 text-left ' + (_depth > 0 ? 'py-1.5 ' : 'py-2 '))
+    + (_isActive || (_collapsed && _holdsActive) ? _activeCls : _idleCls);
+  // No text-xs: in kui-react, Font Awesome's own 1em sizing wins over the svg's w-3 h-3, so
+  // the chevron follows the surrounding font size; inheriting here measures the same.
+  var _chevronCls = 'fa-solid fa-chevron-down transition-transform' + (_expanded ? '' : ' -rotate-90');
+  var _badgeIsCount = typeof _item.badge === 'number' || (typeof _item.badge === 'string' && _item.badge.trim() !== '' && !isNaN(Number(_item.badge)));
+%>
+<div data-nav-item data-item-key="<%= _key %>" data-search-title="<%= (_item.label||'').toLowerCase() %>"<% if (_hasKids) { %> data-expanded="<%= _expanded %>"<% } %><% if (_holdsActive) { %> data-holds-active<% } %>>
+  <% if (_hasKids && _item.href) { %><div class="flex items-center gap-0.5"><div class="min-w-0 flex-1"><% } %>
+  <% if (_item.href) { %>
+  <a href="<%= _item.href %>"<% if (_isActive) { %> aria-current="page"<% } %><% if (_collapsed && _item.label) { %> title="<%= _item.label %>"<% } %> class="<%= _cls %>">
+  <% } else if (_hasKids) { %>
+  <button type="button" data-nav-toggle onclick="toggleSidebarItem(<%= JSON.stringify(_sid) %>,<%= JSON.stringify(_key) %>)" aria-expanded="<%= _expanded ? 'true' : 'false' %>"<% if (_isActive) { %> aria-current="page"<% } %><% if (_collapsed && _item.label) { %> title="<%= _item.label %>"<% } %> class="<%= _cls %>">
+  <% } else { %>
+  <button type="button"<% if (_isActive) { %> aria-current="page"<% } %><% if (_collapsed && _item.label) { %> title="<%= _item.label %>"<% } %> class="<%= _cls %>">
+  <% } %>
+    <% if (_item.icon) { %><span class="shrink-0 w-5 text-center text-[15px] leading-none" aria-hidden="true"><%- _item.icon %></span><% } %>
+    <% if (!_collapsed) { %><span class="flex-1 truncate"><%= _item.label %></span><% } %>
+    <% if (!_collapsed && _badgeIsCount && Number(_item.badge) > 0) { %>
+    <%# Badge variant="primary" size="sm" %>
+    <span class="inline-flex items-center gap-1 rounded-full font-medium bg-primary-subtle text-primary px-1.5 py-0 text-[10px]"><%= _item.badge %></span>
+    <% } else if (!_collapsed && !_badgeIsCount && _item.badge) { %>
+    <%# Any badge HTML (a status Badge, a dot); parity with kui-react node badges %>
+    <span class="shrink-0"><%- _item.badge %></span>
+    <% } %>
+    <%# A parent with no page of its own: the whole row is its disclosure toggle. %>
+    <% if (_hasKids && !_item.href) { %><i class="<%= _chevronCls %><%= _collapsed ? ' hidden' : '' %>" data-nav-chevron aria-hidden="true"></i><% } %>
+  <% if (_item.href) { %></a><% } else { %></button><% } %>
+  <% if (_hasKids && _item.href) { %>
+    </div>
+    <%# A parent page keeps its link; the chevron beside it opens and closes the branch. %>
+    <button type="button" data-nav-toggle onclick="toggleSidebarItem(<%= JSON.stringify(_sid) %>,<%= JSON.stringify(_key) %>)"
+      aria-expanded="<%= _expanded ? 'true' : 'false' %>" aria-label="<%= (_expanded ? 'Collapse ' : 'Expand ') + _item.label %>" data-label="<%= _item.label %>"
+      class="<%= _collapsed ? 'hidden ' : '' %>shrink-0 rounded-md p-2 text-text-disabled hover:text-text-primary hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <i class="<%= _chevronCls %>" data-nav-chevron aria-hidden="true"></i>
+    </button>
+  </div>
+  <% } %>
+  <% if (_hasKids) { %>
+  <div role="group" aria-label="<%= _item.label %>" data-nav-children class="ml-3 mt-0.5 space-y-0.5 border-l border-border pl-2<%= (_expanded && !_collapsed) ? '' : ' hidden' %>">
+    <% _kids.forEach(function (child) { %>
+      <%- include('_item', { item: child, depth: _depth + 1, sid: _sid, activeId: _activeId, collapsed: _collapsed, expandedIds: locals.expandedIds }) %>
+    <% }); %>
+  </div>
+  <% } %>
+</div>

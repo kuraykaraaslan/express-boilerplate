@@ -1,0 +1,27 @@
+<%#
+  chart.line / chart.area / chart.bar: every source bound to the `series` slot (or, for a bar in category mode, one bar
+  per table row) on a time or band axis, optionally with a right value axis, thresholds, value labels and the per-series
+  rules (kui-react SeriesChartView). Number formats are data (NumberFormatSpec) the browser rebuilds. When the page listens
+  for a range (`host.hasRangeSelect`) a drag selects one for it instead of zooming (on a band axis of timestamps through
+  `categoryTimes`), and scripts/widget-kit.js turns the chart's `kui:chart-range-select` into `kui:widget-range-select`.
+  Locals: model (seriesChartModel + id, locale, rangeSelect, categoryTimes, resetZoomLabel via model.line).
+%><%_
+  var _m = locals.model;
+  var _l = _m.line;
+  var _props = Object.assign({
+    id: _m.id, series: _m.series, yFormat: _m.yFormat, y2Format: _m.y2Format, yIncludeZero: _m.yIncludeZero,
+    tooltipValueFormat: _m.tooltipValueFormat || undefined, thresholds: _m.thresholds, animate: _m.animate,
+    showValues: _m.showValues, valueLabelStyle: _m.valueLabelStyle, ariaLabel: _m.ariaLabel, locale: _m.locale, stacked: _m.stacked
+  }, _m.legend, _m.axis, _m.tooltip);
+  if (_m.rangeSelect) { _props.rangeSelect = true; _props.categoryTimes = _m.categoryTimes; }
+  if (_m.bar) {
+    Object.assign(_props, _m.bar);
+  } else {
+    Object.assign(_props, {
+      curve: _l.curve, strokeWidth: _l.strokeWidth, xAxis: _m.xAxis, zoom: _l.zoom, resetZoomLabel: _l.resetZoomLabel,
+      timeZone: _l.timeZone, pointShape: _l.pointShape, pointSize: _l.pointSize, valueLabelPosition: _l.valueLabelPosition
+    });
+    if (_m.preset === 'area') _props.fillOpacity = _l.fillOpacity;
+  }
+_%>
+<%- include('_chart', { type: _m.preset, props: _props, runtimeOnce: locals.runtimeOnce, loadChartScripts: locals.loadChartScripts }) %>

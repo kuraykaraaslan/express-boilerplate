@@ -1,0 +1,176 @@
+<%
+  // Recursive partial. When called as a child (locals._isChild=true) it only
+  // renders the comment <li>s — the wrapping <section>+composer is skipped.
+  var _isChild        = !!locals._isChild;
+  var _depth          = (typeof locals._depth === 'number') ? locals._depth : 0;
+  var _comments       = locals.comments       || [];
+  var _currentUserId  = locals.currentUserId  || '';
+  var _maxDepth       = (typeof locals.maxDepth === 'number') ? locals.maxDepth : 3;
+  var _replyAction    = locals.replyAction    || '#';
+  var _replyMethod    = locals.replyMethod    || 'post';
+  var _deleteAction   = locals.deleteAction   || '#';
+  var _emptyMessage   = locals.emptyMessage   || 'No comments yet. Be the first to comment.';
+  var _placeholder    = locals.placeholder    || 'Write a comment…';
+  var _showComposer   = (locals.showComposer === undefined) ? true : !!locals.showComposer;
+  var _className      = locals.className      ? ' ' + locals.className : '';
+
+  function _initials(name) {
+    if (!name) return '?';
+    var parts = String(name).trim().split(/\s+/);
+    return (parts.slice(0,2).map(function(p){ return p[0]; }).join('') || '?').toUpperCase();
+  }
+  function _relative(value) {
+    var d = (value instanceof Date) ? value : new Date(value);
+    if (isNaN(d.getTime())) return '';
+    var diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60)    return Math.floor(diff) + 's';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+    return d.toLocaleDateString();
+  }
+  function _iso(value) {
+    var d = (value instanceof Date) ? value : new Date(value);
+    return isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+%>
+
+<% if (!_isChild) { %>
+<section class="space-y-4<%= _className %>" aria-label="Comments">
+  <% if (_showComposer) { %>
+  <form action="<%= _replyAction %>" method="<%= _replyMethod %>" class="flex flex-col gap-2" data-comment-form>
+    <input type="hidden" name="parentId" value="" />
+    <label for="comment-root" class="sr-only">New comment</label>
+    <textarea
+      id="comment-root"
+      name="body"
+      placeholder="<%= _placeholder %>"
+      rows="3"
+      required
+      class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:border-border-focus"
+    ></textarea>
+    <div class="flex items-center justify-end">
+      <button
+        type="submit"
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-primary text-primary-fg hover:bg-primary-hover px-4 py-2 text-sm"
+      >
+        <i class="fa-solid fa-paper-plane w-3.5 h-3.5" aria-hidden="true"></i>
+        Post Comment
+      </button>
+    </div>
+  </form>
+  <% } %>
+
+  <% if (_comments.length === 0) { %>
+  <p class="rounded-md border border-dashed border-border bg-surface-base px-4 py-6 text-center text-sm text-text-secondary">
+    <%= _emptyMessage %>
+  </p>
+  <% } else { %>
+  <ul class="space-y-4">
+<% } %>
+
+<% _comments.forEach(function(comment) {
+  var canReply = _depth < _maxDepth;
+  var isOwn = _currentUserId && comment.author && comment.author.id === _currentUserId;
+%>
+    <li class="flex gap-3">
+      <% if (comment.author && comment.author.avatarUrl) { %>
+        <img src="<%= comment.author.avatarUrl %>" alt="<%= comment.author.name %>" class="h-8 w-8 rounded-full object-cover border border-border shrink-0" />
+      <% } else { %>
+        <span aria-label="<%= comment.author ? comment.author.name : '?' %>" class="h-8 w-8 rounded-full bg-primary-subtle text-primary font-semibold text-xs flex items-center justify-center shrink-0 border border-primary-subtle select-none">
+          <%= _initials(comment.author && comment.author.name) %>
+        </span>
+      <% } %>
+      <div class="flex-1 min-w-0">
+        <div class="rounded-lg bg-surface-overlay px-3 py-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-text-primary truncate"><%= comment.author && comment.author.name %></span>
+            <time datetime="<%= _iso(comment.createdAt) %>" class="text-xs text-text-disabled shrink-0">
+              <%= _relative(comment.createdAt) %>
+            </time>
+          </div>
+          <p class="mt-1 text-sm text-text-primary whitespace-pre-wrap break-words"><%= comment.body %></p>
+        </div>
+
+        <div class="mt-1 flex items-center gap-3 px-1 text-xs text-text-secondary">
+          <button type="button" data-comment-like="<%= comment.id %>" aria-pressed="<%= comment.likedByMe ? 'true' : 'false' %>" class="inline-flex items-center gap-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded<%= comment.likedByMe ? ' text-primary' : '' %>">
+            <i class="fa-solid fa-heart w-3 h-3" aria-hidden="true"></i>
+            <span data-like-count="<%= comment.id %>"><%= comment.likeCount || 0 %></span>
+          </button>
+          <% if (canReply) { %>
+          <button type="button" data-comment-reply-toggle="<%= comment.id %>" class="inline-flex items-center gap-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded">
+            <i class="fa-solid fa-reply w-3 h-3" aria-hidden="true"></i>
+            Reply
+          </button>
+          <% } %>
+          <% if (isOwn) { %>
+          <form action="<%= _deleteAction %>" method="post" class="ml-auto" data-comment-delete>
+            <input type="hidden" name="id" value="<%= comment.id %>" />
+            <button type="submit" class="inline-flex items-center gap-1 transition-colors hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded">
+              <i class="fa-solid fa-trash w-3 h-3" aria-hidden="true"></i>
+              Delete
+            </button>
+          </form>
+          <% } %>
+        </div>
+
+        <% if (canReply) { %>
+        <form action="<%= _replyAction %>" method="<%= _replyMethod %>" data-comment-reply-form="<%= comment.id %>" class="mt-2 flex flex-col gap-2 hidden">
+          <input type="hidden" name="parentId" value="<%= comment.id %>" />
+          <textarea name="body" rows="2" placeholder="<%= _placeholder %>" required class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:border-border-focus"></textarea>
+          <div class="flex items-center justify-end gap-2">
+            <button type="button" data-comment-reply-cancel="<%= comment.id %>" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-transparent text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm">
+              <i class="fa-solid fa-xmark w-3 h-3" aria-hidden="true"></i>
+              Cancel
+            </button>
+            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus bg-primary text-primary-fg hover:bg-primary-hover px-3 py-1.5 text-sm">
+              <i class="fa-solid fa-paper-plane w-3 h-3" aria-hidden="true"></i>
+              Reply
+            </button>
+          </div>
+        </form>
+        <% } %>
+
+        <% if (comment.replies && comment.replies.length > 0) { %>
+        <ul class="mt-3 space-y-3 border-l border-border pl-4">
+          <%- include('CommentThread', {
+            _isChild: true,
+            _depth: _depth + 1,
+            comments: comment.replies,
+            currentUserId: _currentUserId,
+            maxDepth: _maxDepth,
+            replyAction: _replyAction,
+            replyMethod: _replyMethod,
+            deleteAction: _deleteAction,
+            placeholder: _placeholder,
+            showComposer: false
+          }) %>
+        </ul>
+        <% } %>
+      </div>
+    </li>
+<% }); %>
+
+<% if (!_isChild) { %>
+  </ul>
+  <% } %>
+</section>
+
+<script>
+  (function () {
+    document.querySelectorAll('[data-comment-reply-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-comment-reply-toggle');
+        var form = document.querySelector('[data-comment-reply-form="' + id + '"]');
+        if (form) form.classList.toggle('hidden');
+      });
+    });
+    document.querySelectorAll('[data-comment-reply-cancel]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-comment-reply-cancel');
+        var form = document.querySelector('[data-comment-reply-form="' + id + '"]');
+        if (form) form.classList.add('hidden');
+      });
+    });
+  })();
+</script>
+<% } %>

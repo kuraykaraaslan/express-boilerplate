@@ -1,0 +1,41 @@
+<%#
+  The rows of TraceWaterfall: markup of kui-react's WaterfallRow. Included by TraceWaterfall.ejs twice (the rows
+  drawn now, and the rows the browser script inserts later, inside a <template>), so one loop writes both.
+  Locals: rows = [{ node, posInSet, setSize, fi }], c = the context object built by TraceWaterfall.ejs.
+-%>
+<% locals.rows.forEach(function (row) {
+  var node = row.node, span = node.span, id = span.id;
+  var hasKids = node.children.length > 0;
+  var collapsed = c.collapsed.has(id);
+  var isSelected = c.selected === id;
+  var isActive = c.activeId === id;
+  var isError = span.status === 'error';
+  var isCritical = c.criticalOn && c.critical.has(id);
+  var box = c.M.barBox(span, c.tree);
+  var durationText = c.F.formatDurationMs(Math.max(0, span.duration));
+  // As kui-react draws it before it has measured the track; the script places it for the measured width
+  // (durationLabelSide), from data-tw-box.
+  var labelAfter = c.M.durationLabelSide(box, durationText, 0) === 'after';
+  var name = span.service ? span.name + ' (' + span.service + ')' : span.name;
+  var label = name + ', ' + durationText + (isError ? ', ' + c.msg.error : '');
+  var color = c.colorOf(span);
+  var ring = isError ? ' ring-1 ring-error' : (isCritical ? ' ring-2 ring-warning' : '');
+  var background = isError ? 'repeating-linear-gradient(135deg, ' + color + ' 0 4px, color-mix(in srgb, ' + color + ' 55%, transparent) 4px 8px)' : color;
+%>
+<div id="<%= c.rowId(id) %>" role="treeitem" aria-level="<%= node.depth + 1 %>" aria-setsize="<%= row.setSize %>" aria-posinset="<%= row.posInSet %>"<% if (hasKids) { %> aria-expanded="<%= collapsed ? 'false' : 'true' %>"<% } %> aria-selected="<%= isSelected ? 'true' : 'false' %>" aria-label="<%= label + (isCritical ? ', ' + c.msg.onCriticalPath : '') %>" data-span-id="<%= id %>"<% if (isCritical) { %> data-critical="true"<% } %><% if (isError) { %> data-error="true"<% } %> data-tw-i="<%= row.fi %>" data-tw-name="<%= span.name %>" data-tw-label="<%= label %>"<% if (c.critical.has(id)) { %> data-tw-critical<% } %> class="relative flex cursor-pointer items-center border-b border-border/50 <%= isSelected ? 'bg-primary-subtle' : 'hover:bg-surface-overlay' %><%= isActive ? ' outline-2 -outline-offset-2 outline-border-focus' : '' %>" style="height: <%= c.rowHeight %>px">
+  <div class="flex min-w-0 shrink-0 items-center gap-1 pe-2<%= isCritical ? ' border-s-2 border-warning' : '' %>" style="width: <%= c.labelWidth %>px; padding-inline-start: <%= 8 + node.depth * 14 %>px">
+    <% if (hasKids) { %>
+    <button type="button" tabindex="-1" aria-label="<%= c.F.fillMessage(collapsed ? c.msg.expand : c.msg.collapse, { name: span.name }) %>" data-tw-toggle class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-secondary hover:bg-surface-sunken"><i class="fa-solid fa-chevron-right h-3 w-3 transition-transform motion-reduce:transition-none <%= collapsed ? 'rtl:rotate-180' : 'rotate-90 rtl:-rotate-90' %>" aria-hidden="true"></i></button>
+    <% } else { %>
+    <span class="h-5 w-5 shrink-0" aria-hidden="true"></span>
+    <% } %>
+    <% if (isError) { %><i class="fa-solid fa-circle-exclamation h-3.5 w-3.5 shrink-0 text-error" aria-hidden="true"></i><span class="sr-only"><%= c.msg.error %></span><% } %>
+    <span class="truncate<%= isError ? ' font-medium text-error-fg' : '' %>"><%= span.name %></span>
+    <% if (span.service) { %><span class="truncate text-xs text-text-secondary"><%= span.service %></span><% } %>
+  </div>
+  <div class="relative h-full min-w-0 flex-1" aria-hidden="true">
+    <div class="absolute top-1/2 -translate-y-1/2 rounded-sm<%= ring %>" style="inset-inline-start: <%= box.left %>%; width: <%= box.width %>%; height: <%= Math.max(6, c.rowHeight - 14) %>px; background: <%= background %>"></div>
+    <span class="absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-xs text-text-secondary" data-tw-box="<%= box.left %> <%= box.width %>" style="<%= labelAfter ? 'inset-inline-start: calc(' + (box.left + box.width) + '% + 4px)' : 'inset-inline-end: calc(' + (100 - box.left) + '% + 4px)' %>"><%= durationText %></span>
+  </div>
+</div>
+<% }); %>

@@ -1,0 +1,235 @@
+<%
+  var _id         = locals.id        || ('app-drawer-' + Math.random().toString(36).substr(2, 6));
+  var _title      = locals.title     || 'Navigation';
+  var _side       = locals.side      || 'left';
+  var _open       = !!locals.open;
+  var _searchable = locals.searchable !== false;
+  var _navGroups  = locals.navGroups || (locals.navItems ? [{ items: locals.navItems }] : []);
+  var _activeId   = locals.activeId  || '';
+  var _triggerLabel = locals.triggerLabel || 'Open Navigation';
+
+  var overlayClass = _open ? 'opacity-100' : 'opacity-0 pointer-events-none';
+  var panelBase = 'relative flex flex-col w-80 max-w-full h-full bg-surface-raised border-border shadow-xl transition-transform duration-200 focus-visible:outline-none';
+  var panelSide = _side === 'right' ? 'ml-auto border-l' : 'mr-auto border-r';
+  var panelTranslate = _open ? 'translate-x-0' : (_side === 'right' ? 'translate-x-full' : '-translate-x-full');
+%>
+
+<%# Trigger — fallback matches <Button variant="outline" size="sm" iconLeft={faBars}> %>
+<% if (locals.triggerContent) { %>
+<div role="none" onclick="openDrawer(<%= JSON.stringify(String(_id)) %>)"><%- locals.triggerContent %></div>
+<% } else { %>
+<button
+  type="button"
+  onclick="openDrawer(<%= JSON.stringify(String(_id)) %>)"
+  class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed border border-border text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm"
+>
+  <span aria-hidden="true" class="shrink-0"><i class="fa-solid fa-bars w-3.5 h-3.5"></i></span>
+  <%= _triggerLabel %>
+</button>
+<% } %>
+
+<%# Drawer container %>
+<div
+  id="<%= _id %>"
+  class="fixed inset-0 z-[100] flex transition-opacity duration-200 <%= overlayClass %>"
+  role="dialog"
+  aria-modal="true"
+  aria-label="<%= _title %>"
+>
+  <div
+    id="<%= _id %>-backdrop"
+    class="absolute inset-0 bg-black/50"
+    aria-hidden="true"
+    onclick="closeDrawer(<%= JSON.stringify(String(_id)) %>)"
+  ></div>
+
+  <div
+    id="<%= _id %>-panel"
+    tabindex="-1"
+    class="<%= panelBase %> <%= panelSide %> <%= panelTranslate %><%= locals.className ? ' ' + locals.className : '' %>"
+  >
+    <div class="flex items-center justify-between gap-3 px-4 py-4 border-b border-border shrink-0">
+      <h2 class="text-base font-semibold text-text-primary"><%= _title %></h2>
+      <button
+        type="button"
+        aria-label="Close drawer"
+        onclick="closeDrawer(<%= JSON.stringify(String(_id)) %>)"
+        class="text-text-disabled hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+      >
+        <i class="fa-solid fa-xmark w-4 h-4" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <% if (locals.header) { %>
+      <div class="mb-4"><%- locals.header %></div>
+      <% } %>
+
+      <% if (_searchable) { %>
+      <div class="relative flex items-center mb-4">
+        <span aria-hidden="true" class="absolute left-3 text-text-disabled pointer-events-none">
+          <i class="fa-solid fa-magnifying-glass w-3.5 h-3.5"></i>
+        </span>
+        <input
+          id="<%= _id %>-search"
+          type="text"
+          role="searchbox"
+          autocomplete="off"
+          data-testid="searchbar-<%= _id %>-search"
+          placeholder="Search navigation…"
+          oninput="filterAppDrawer(<%= JSON.stringify(String(_id)) %>, this.value); (function(inp){var btn=document.getElementById(<%= JSON.stringify(_id + '-search-clear') %>); if(btn) btn.classList.toggle('hidden', !inp.value);})(this)"
+          class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 pl-8 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:border-border-focus transition-colors"
+        />
+        <button
+          id="<%= _id %>-search-clear"
+          type="button"
+          aria-label="Clear search"
+          onclick="(function(){var i=document.getElementById(<%= JSON.stringify(_id + '-search') %>); if(!i) return; i.value=''; filterAppDrawer(<%= JSON.stringify(String(_id)) %>,''); var b=document.getElementById(<%= JSON.stringify(_id + '-search-clear') %>); if(b) b.classList.add('hidden'); i.focus();})()"
+          class="hidden absolute right-2 text-text-disabled hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+        >
+          <i class="fa-solid fa-xmark w-3 h-3" aria-hidden="true"></i>
+        </button>
+      </div>
+      <% } %>
+
+      <div id="<%= _id %>-groups" class="space-y-4">
+        <% _navGroups.forEach(function(group, gi) { %>
+        <div data-group-index="<%= gi %>">
+          <% if (group.label) { %>
+          <p class="text-xs font-semibold text-text-disabled uppercase tracking-wider mb-1 px-1"><%= group.label %></p>
+          <% } %>
+          <div class="space-y-0.5">
+            <% (group.items || []).forEach(function(item) {
+              var isActive = item.id === _activeId;
+            %>
+            <button
+              type="button"
+              data-item-label="<%= (item.label || '').toLowerCase() %>"
+              data-item-id="<%= item.id || '' %>"
+              <% if (isActive) { %>aria-current="page"<% } %>
+              onclick="appDrawerSelect(<%= JSON.stringify(String(_id)) %>, <%= JSON.stringify(String(item.id || '')) %>)"
+              class="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= isActive ? 'bg-primary-subtle text-primary font-semibold' : 'text-text-primary hover:bg-surface-overlay' %>"
+            >
+              <span class="flex items-center gap-2">
+                <% if (item.iconClass) { %>
+                <span aria-hidden="true"><i class="fa-solid <%= item.iconClass %>" style="width:0.875rem;height:0.875rem"></i></span>
+                <% } else if (item.icon) { %>
+                <span aria-hidden="true"><%- item.icon %></span>
+                <% } %>
+                <%= item.label %>
+              </span>
+              <% if (item.badge != null && Number(item.badge) > 0) { %>
+              <span class="inline-flex items-center justify-center rounded-md bg-surface-overlay text-text-secondary text-xs font-medium px-1.5 py-0.5"><%= item.badge %></span>
+              <% } %>
+            </button>
+            <% }); %>
+          </div>
+        </div>
+        <% }); %>
+
+        <p id="<%= _id %>-empty" class="hidden text-sm text-text-secondary text-center py-4">
+          No results for ""
+        </p>
+      </div>
+
+      <% if (locals.footer) { %>
+      <div class="mt-4 pt-4 border-t border-border"><%- locals.footer %></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var FOCUSABLE = 'button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
+  var drawerId = <%- include('../ui/_script-json', { value: String(_id) }) %>;
+
+  function openDrawer(id) {
+    var el    = document.getElementById(id);
+    var panel = document.getElementById(id + '-panel');
+    if (!el || !panel) return;
+    el.classList.remove('opacity-0', 'pointer-events-none');
+    el.classList.add('opacity-100');
+    panel.classList.remove('translate-x-full', '-translate-x-full');
+    panel.classList.add('translate-x-0');
+    var first = panel.querySelectorAll(FOCUSABLE)[0];
+    if (first) first.focus(); else panel.focus();
+  }
+
+  function closeDrawer(id) {
+    var el    = document.getElementById(id);
+    var panel = document.getElementById(id + '-panel');
+    if (!el || !panel) return;
+    var isRight = panel.classList.contains('ml-auto');
+    el.classList.add('opacity-0', 'pointer-events-none');
+    el.classList.remove('opacity-100');
+    panel.classList.remove('translate-x-0');
+    panel.classList.add(isRight ? 'translate-x-full' : '-translate-x-full');
+    var search = document.getElementById(id + '-search');
+    if (search) { search.value = ''; filterAppDrawer(id, ''); }
+  }
+
+  function filterAppDrawer(id, value) {
+    var root = document.getElementById(id + '-groups');
+    if (!root) return;
+    var q = String(value || '').trim().toLowerCase();
+    var groups = root.querySelectorAll('[data-group-index]');
+    var anyVisible = false;
+    groups.forEach(function (g) {
+      var visibleInGroup = 0;
+      g.querySelectorAll('[data-item-label]').forEach(function (btn) {
+        var label = btn.getAttribute('data-item-label') || '';
+        var show = !q || label.indexOf(q) !== -1;
+        btn.style.display = show ? '' : 'none';
+        if (show) visibleInGroup++;
+      });
+      g.style.display = visibleInGroup > 0 ? '' : 'none';
+      if (visibleInGroup > 0) anyVisible = true;
+    });
+    var empty = document.getElementById(id + '-empty');
+    if (empty) {
+      empty.classList.toggle('hidden', anyVisible || !q);
+      if (!anyVisible && q) empty.textContent = 'No results for "' + value + '"';
+    }
+  }
+
+  function appDrawerSelect(id, itemId) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.dispatchEvent(new CustomEvent('appdrawer:select', {
+        detail: { id: itemId },
+        bubbles: true
+      }));
+    }
+    closeDrawer(id);
+  }
+
+  window.openDrawer       = window.openDrawer       || openDrawer;
+  window.closeDrawer      = window.closeDrawer      || closeDrawer;
+  window.filterAppDrawer  = window.filterAppDrawer  || filterAppDrawer;
+  window.appDrawerSelect  = window.appDrawerSelect  || appDrawerSelect;
+
+  document.addEventListener('keydown', function (e) {
+    var el = document.getElementById(drawerId);
+    if (!el || el.classList.contains('opacity-0')) return;
+
+    if (e.key === 'Escape') { closeDrawer(drawerId); return; }
+
+    if (e.key === 'Tab') {
+      var panel = document.getElementById(drawerId + '-panel');
+      if (!panel) return;
+      var focusable = Array.from(panel.querySelectorAll(FOCUSABLE)).filter(function(n){
+        return n.offsetParent !== null;
+      });
+      if (focusable.length === 0) return;
+      var first = focusable[0];
+      var last  = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+      }
+    }
+  });
+})();
+</script>

@@ -1,0 +1,18 @@
+<%#
+  gauge: one number on an arc, a donut, a bar or a level; a bound min / max wins over the typed one (kui-react GaugeView).
+  Locals: model.
+%><%_
+  var _g = locals.model;
+  var _c = _g.chart;
+  var _scale = widgetKit.style(_c.scaleStyle);
+_%>
+<div class="flex h-full min-h-0 w-full flex-col gap-2"><%- include('../_metric-head', { label: _g.head.label, tile: _g.head.tile }) %><div class="min-h-0 w-full flex-1"><%- include('../../../ui/Chart/Chart', {
+  type: 'gauge', value: _g.value, min: _g.min, max: _g.max, layout: _c.layout, size: 'fill', bands: _g.bands, bandEdges: _c.bandEdges,
+  bandDisplay: _c.bandDisplay, bandStyle: _c.bandStyle, bandOpacity: _c.bandOpacity, format: _g.format, formatScale: _g.formatScale,
+  valueContentPartial: '../../../app/WidgetKit/views/_gauge-metric',
+  valueContentLocals: { text: _g.valueText, unit: _g.unit, unitPosition: _g.unitPosition, font: _g.valueMetric.font, color: _g.valueMetric.color, style: _g.valueMetric.style },
+  label: _c.label, needle: _c.needle, needleStyle: _c.needleStyle, needleColor: _c.needleColor, color: _c.color, trackColor: _c.trackColor,
+  thickness: _c.thickness, roundedCaps: _c.roundedCaps, ticks: _c.ticks, tickLabels: _c.tickLabels, tickColor: _c.tickColor,
+  showMinMax: _c.showMinMax, showValue: _c.showValue, startAngle: _c.startAngle, endAngle: _c.endAngle, animate: _c.animate,
+  scaleStyle: _scale, scaleColor: _c.scaleColor, ariaLabel: _g.ariaLabel
+}) %></div></div>

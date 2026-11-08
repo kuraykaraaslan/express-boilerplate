@@ -1,0 +1,5 @@
+<%#
+  An icon at an end of the slider's track (kui-react's `iconEl`). Locals: icon ({ name, style } or null).
+%><%_ if (locals.icon) { _%>
+<span aria-hidden="true" class="inline-flex shrink-0 items-center"><%- include('../_icon', { name: locals.icon.name, className: '', style: locals.icon.style }) %></span>
+<%_ } _%>

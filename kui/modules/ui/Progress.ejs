@@ -1,0 +1,123 @@
+<%
+  // Progress — a bar, a ring or a half ring. Pixel-identical sibling of kui-react
+  // modules/ui/Progress.tsx.
+  //
+  // Locals:
+  //   value      — 0..100 (clamped)
+  //   variant    — 'primary' (default) | 'success' | 'warning' | 'error'
+  //   size       — 'sm' | 'md' (default) | 'lg'
+  //   shape      — 'bar' (default) | 'circle' | 'semicircle' (a half ring opening downwards)
+  //   showLabel  — show the "NN%" text (under the bar, in the ring, at the bottom of the half ring)
+  //   label      — accessible name (default "NN% complete")
+  //   labelContent — text that replaces the "NN%" text (escaped)
+  //   labelPartial / labelLocals — a partial (path relative to this file) drawn instead of the text: kui-react's
+  //                  `labelContent` is a React node, this is its counterpart for markup (the WidgetKit ring puts a
+  //                  metric and its meta there)
+  //   color      — fill colour (any CSS colour or theme token); wins over `variant`
+  //   gradient   — [start, end]: a two-colour fill along the scale; wins over `color`
+  //   trackColor — track colour (default the sunken surface)
+  //   segments   — [{ from, to, color }] coloured stretches of the track, in percent (a warning zone)
+  //   segmentOpacity — opacity of the segments, 0–1 (default 0.3)
+  //   marks      — [{ at, color?, label? }] marks across the track (a target, the expected pace)
+  //   thickness  — bar height or ring stroke in px (drawing units when diameter is 'fill'); wins over size
+  //   rounded    — rounded ends (default true)
+  //   diameter   — circle / semicircle: px, or 'fill' to scale to the parent (keeping the aspect)
+  //   className  — extra classes on the root
+  //
+  // Colours come from settings data: a value that could leave its CSS declaration
+  // (`;`, braces, angle brackets, url(), expression()) is ignored.
+  function clamp(n) { return Math.min(100, Math.max(0, n)); }
+  function cssValue(v) {
+    if (typeof v !== 'string') return '';
+    var s = v.trim();
+    if (!s || s.length > 200 || /[;{}<>\\"]/.test(s) || /url\s*\(|expression\s*\(|@import/i.test(s)) return '';
+    return s;
+  }
+  function num(v, d) { var n = Number(v); return isFinite(n) ? n : d; }
+  var _raw       = Number(locals.value);
+  var _value     = isNaN(_raw) ? 0 : clamp(_raw);
+  var _variant   = ['success', 'warning', 'error'].indexOf(locals.variant) !== -1 ? locals.variant : 'primary';
+  var _size      = ['sm', 'lg'].indexOf(locals.size) !== -1 ? locals.size : 'md';
+  var _shape     = ['circle', 'semicircle'].indexOf(locals.shape) !== -1 ? locals.shape : 'bar';
+  var _showLabel = !!locals.showLabel;
+  var _label     = locals.label || (Math.round(_value) + '% complete');
+  var _text      = locals.labelContent != null && locals.labelContent !== '' ? String(locals.labelContent) : Math.round(_value) + '%';
+  var _className = locals.className || '';
+  var _color     = cssValue(locals.color);
+  var _gradient  = Array.isArray(locals.gradient) && locals.gradient.length === 2 && cssValue(locals.gradient[0]) && cssValue(locals.gradient[1])
+    ? [cssValue(locals.gradient[0]), cssValue(locals.gradient[1])] : null;
+  var _track     = cssValue(locals.trackColor);
+  var _segOpacity = typeof locals.segmentOpacity === 'number' ? locals.segmentOpacity : 0.3;
+  var _segments  = (Array.isArray(locals.segments) ? locals.segments : []).filter(function (s) { return s && cssValue(s.color); });
+  var _marks     = (Array.isArray(locals.marks) ? locals.marks : []).filter(function (m) { return m && isFinite(Number(m.at)); });
+  var _thickness = typeof locals.thickness === 'number' && isFinite(locals.thickness) ? locals.thickness : undefined;
+  var _rounded   = locals.rounded !== false;
+  var _gid       = 'kp' + (locals.id ? String(locals.id).replace(/[^a-zA-Z0-9_-]/g, '') : Math.random().toString(36).substr(2, 9));
+
+  var barColor  = { primary: 'bg-primary', success: 'bg-success', warning: 'bg-warning', error: 'bg-error' }[_variant];
+  var barHeight = { sm: 'h-1.5', md: 'h-2.5', lg: 'h-4' }[_size];
+  var strokeVar = { primary: 'var(--primary)', success: 'var(--success)', warning: 'var(--warning)', error: 'var(--error)' }[_variant];
+  var circleDim = { sm: 40, md: 64, lg: 96 }[_size];
+  var circleStroke = { sm: 4, md: 6, lg: 8 }[_size];
+
+  if (_shape !== 'bar') {
+    var fill = locals.diameter === 'fill';
+    var dim = fill ? 100 : (typeof locals.diameter === 'number' && isFinite(locals.diameter) ? locals.diameter : circleDim);
+    var stroke = Math.min(dim / 3, _thickness !== undefined ? _thickness : (fill ? 10 : circleStroke));
+    var radius = (dim - stroke) / 2;
+    var c = dim / 2;
+    var half = _shape === 'semicircle';
+    // Angles clockwise from 12 o'clock: a ring starts at the top, a semicircle runs 9 → 3 o'clock.
+    var a0 = half ? -90 : 0;
+    var sweep = half ? 180 : 360;
+    var pt = function (deg, r) {
+      if (r === undefined) r = radius;
+      return { x: c + r * Math.sin((deg * Math.PI) / 180), y: c - r * Math.cos((deg * Math.PI) / 180) };
+    };
+    var arc = function (f0, f1, r) {
+      if (r === undefined) r = radius;
+      var s = a0 + sweep * clamp(f0) / 100;
+      var e = a0 + sweep * clamp(f1) / 100;
+      var p, q;
+      if (e - s >= 359.99) {
+        p = pt(s, r); q = pt(s + 180, r);
+        return 'M' + p.x + ' ' + p.y + ' A' + r + ' ' + r + ' 0 1 1 ' + q.x + ' ' + q.y + ' A' + r + ' ' + r + ' 0 1 1 ' + p.x + ' ' + p.y;
+      }
+      p = pt(s, r); q = pt(e, r);
+      return 'M' + p.x.toFixed(3) + ' ' + p.y.toFixed(3) + ' A' + r + ' ' + r + ' 0 ' + (e - s > 180 ? 1 : 0) + ' 1 ' + q.x.toFixed(3) + ' ' + q.y.toFixed(3);
+    };
+    var height = half ? c + (_rounded ? stroke / 2 : 0) : dim;
+    var fillColor = _gradient ? 'url(#' + _gid + ')' : (_color || strokeVar);
+    var cap = _rounded ? 'round' : 'butt';
+  }
+%>
+<% if (_shape !== 'bar') { %>
+<div role="progressbar" aria-valuenow="<%= _value %>" aria-valuemin="0" aria-valuemax="100" aria-label="<%= _label %>" class="relative inline-flex items-center justify-center<%= fill ? ' h-full w-full' : '' %><%= _className ? ' ' + _className : '' %>"<% if (!fill) { %> style="width: <%= dim %>px; height: <%= height %>px"<% } %> data-shape="<%= _shape %>">
+  <svg viewBox="0 0 <%= dim %> <%= height %>" width="<%= fill ? '100%' : dim %>" height="<%= fill ? '100%' : height %>" class="overflow-visible" aria-hidden="true">
+    <% if (_gradient) { %><defs><linearGradient id="<%= _gid %>" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="<%= _gradient[0] %>"></stop><stop offset="100%" stop-color="<%= _gradient[1] %>"></stop></linearGradient></defs><% } %>
+    <path d="<%= arc(0, 100) %>" fill="none" stroke-width="<%= stroke %>" stroke-linecap="<%= cap %>" style="stroke: <%= _track || 'var(--surface-sunken)' %>" data-part="track"></path>
+    <% _segments.forEach(function (s) { %><path d="<%= arc(num(s.from, 0), num(s.to, 0)) %>" fill="none" stroke-width="<%= stroke %>" style="stroke: <%= cssValue(s.color) %>" stroke-opacity="<%= _segOpacity %>" data-part="segment"></path><% }) %>
+    <% if (_value > 0) { %><path d="<%= arc(0, 100) %>" pathLength="100" fill="none" stroke-width="<%= stroke %>" stroke-linecap="<%= cap %>" stroke-dasharray="<%= _value %> 100" class="transition-[stroke-dasharray] duration-300 ease-out" style="stroke: <%= fillColor %>" data-part="fill"></path><% } %>
+    <% _marks.forEach(function (m) { var deg = a0 + sweep * clamp(Number(m.at)) / 100; var p = pt(deg, radius + stroke / 2 + 2); var q = pt(deg, radius - stroke / 2 - 2); %><line x1="<%= p.x %>" y1="<%= p.y %>" x2="<%= q.x %>" y2="<%= q.y %>" stroke-width="<%= Math.max(1.5, dim / 60) %>" stroke-linecap="round" style="stroke: <%= cssValue(m.color) || 'var(--text-primary)' %>" data-part="mark"><title><%= m.label || '' %></title></line><% }) %>
+  </svg>
+  <% if (_showLabel) { %><span class="absolute inset-x-0 flex justify-center text-xs font-semibold tabular-nums text-text-primary <%= half ? 'bottom-0' : 'top-1/2 -translate-y-1/2' %>"><% if (locals.labelPartial) { %><%- include(locals.labelPartial, locals.labelLocals || {}) %><% } else { %><%= _text %><% } %></span><% } %>
+</div>
+<% } else {
+  // The gradient spans the whole track, so a half-full bar shows the first half of it.
+  var fillStyle = 'width: ' + _value + '%'
+    + (_gradient
+      ? '; background-image: linear-gradient(90deg, ' + _gradient[0] + ', ' + _gradient[1] + ')' + (_value > 0 ? '; background-size: ' + ((100 / _value) * 100) + '% 100%' : '')
+      : (_color ? '; background: ' + _color : ''));
+  var trackStyle = [_thickness !== undefined ? 'height: ' + _thickness + 'px' : '', _track ? 'background: ' + _track : ''].filter(Boolean).join('; ');
+%>
+<div class="w-full<%= _className ? ' ' + _className : '' %>">
+  <div class="relative">
+    <div role="progressbar" aria-valuenow="<%= _value %>" aria-valuemin="0" aria-valuemax="100" aria-label="<%= _label %>" class="relative w-full overflow-hidden bg-surface-sunken <%= _rounded ? 'rounded-full' : 'rounded-none' %><%= _thickness === undefined ? ' ' + barHeight : '' %>"<% if (trackStyle) { %> style="<%= trackStyle %>"<% } %>>
+      <% _segments.forEach(function (s) { var f = clamp(num(s.from, 0)), t = clamp(num(s.to, 0)); %><span aria-hidden="true" class="absolute inset-y-0" data-part="segment" style="left: <%= f %>%; width: <%= Math.max(0, t - f) %>%; background: <%= cssValue(s.color) %>; opacity: <%= _segOpacity %>"></span><% }) %>
+      <div class="relative h-full transition-[width] duration-300 ease-out <%= _rounded ? 'rounded-full' : 'rounded-none' %><%= !_color && !_gradient ? ' ' + barColor : '' %>" style="<%= fillStyle %>"></div>
+    </div>
+    <% _marks.forEach(function (m) { %><span aria-hidden="true"<% if (m.label) { %> title="<%= m.label %>"<% } %> data-part="mark" class="absolute -top-1 -bottom-1 w-0.5 -translate-x-1/2 rounded-full" style="left: <%= clamp(Number(m.at)) %>%; background: <%= cssValue(m.color) || 'var(--text-primary)' %>"></span><% }) %>
+  </div>
+  <% if (_showLabel) { %><p class="mt-1 text-xs tabular-nums text-text-secondary"><% if (locals.labelPartial) { %><%- include(locals.labelPartial, locals.labelLocals || {}) %><% } else { %><%= _text %><% } %></p><% } %>
+</div>
+<% } %>

@@ -1,0 +1,219 @@
+<%
+  var _value       = locals.value       || '';
+  var _name        = locals.name        || 'countryCode';
+  var _id          = locals.id          || ('country-selector-' + Math.random().toString(36).slice(2, 9));
+  var _label       = locals.label !== undefined ? locals.label : 'Country';
+  var _placeholder = locals.placeholder || 'Select country…';
+  var _disabled    = !!locals.disabled;
+  var _hint        = locals.hint        || '';
+  var _error       = locals.error       || '';
+  var _required    = !!locals.required;
+  var _className   = locals.className   || '';
+  var _countries   = locals.countries   || [];
+
+  var selected = null;
+  for (var i = 0; i < _countries.length; i++) {
+    if (_countries[i].iso2 === _value) { selected = _countries[i]; break; }
+  }
+
+  var hintId  = _hint ? (_id + '-hint') : '';
+  var errorId = _error ? (_id + '-error') : '';
+  var describedBy = [hintId, errorId].filter(Boolean).join(' ');
+
+  var triggerClass = 'inline-flex items-center justify-between gap-2 w-full rounded-md border text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed ' +
+                    (_error ? 'border-error ring-1 ring-error' : 'border-border');
+%>
+<div id="<%= _id %>-wrap" class="space-y-1<%= _className ? ' ' + _className : '' %>" data-country-selector>
+  <% if (_label) { %>
+  <label for="<%= _id %>" class="block text-sm font-medium text-text-primary">
+    <%= _label %><% if (_required) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only">(required)</span><% } %>
+  </label>
+  <% } %>
+
+  <div class="relative w-full" data-cs-trigger-wrap>
+    <button id="<%= _id %>"
+            type="button"
+            class="<%= triggerClass %>"
+            <%= _disabled ? 'disabled' : '' %>
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>
+            aria-invalid="<%= _error ? 'true' : 'false' %>"
+            aria-required="<%= _required ? 'true' : 'false' %>"
+            data-cs-trigger>
+      <span class="flex items-center gap-2 min-w-0">
+        <% if (selected) { %>
+        <span class="inline-flex items-center justify-center h-3.5 min-w-[1.25rem] px-1 rounded-[2px] bg-surface-overlay text-[9px] font-mono font-bold text-text-secondary shadow-sm shrink-0"
+              data-cs-current-flag><%= selected.iso2 %></span>
+        <span class="truncate" data-cs-current-label><%= selected.name %></span>
+        <% } else { %>
+        <span class="inline-flex items-center justify-center h-3.5 min-w-[1.25rem] px-1 rounded-[2px] bg-surface-overlay text-[9px] font-mono font-bold text-text-secondary shadow-sm shrink-0 hidden"
+              data-cs-current-flag></span>
+        <span class="text-text-disabled truncate" data-cs-current-label><%= _placeholder %></span>
+        <% } %>
+      </span>
+      <i class="fa-solid fa-chevron-down w-3 h-3 text-text-disabled shrink-0" aria-hidden="true"></i>
+    </button>
+
+    <!-- Panel (portal-style: position fixed, anchored to trigger on open) -->
+    <div role="listbox"
+         aria-label="Select country"
+         class="hidden z-[9999] rounded-lg border border-border bg-surface-raised shadow-lg"
+         style="position: fixed; top: 0; left: 0; width: 0;"
+         data-cs-panel>
+      <div class="p-2 border-b border-border">
+        <input type="text"
+               placeholder="Search country…"
+               class="w-full rounded-md border border-border bg-surface-base px-2.5 py-1.5 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+               data-cs-search>
+      </div>
+      <ul class="max-h-56 overflow-y-auto py-1" data-cs-list>
+        <% _countries.forEach(function(opt) {
+          var active = opt.iso2 === _value;
+          var optClass = 'flex w-full items-center gap-2 px-3 py-2 text-sm text-left transition-colors focus-visible:outline-none focus-visible:bg-surface-overlay ' +
+                         (active ? 'bg-primary-subtle text-primary font-medium' : 'text-text-primary hover:bg-surface-overlay');
+        %>
+        <li data-cs-item
+            data-iso2="<%= opt.iso2 %>"
+            data-name="<%= opt.name.toLowerCase() %>"
+            data-iso2-lower="<%= opt.iso2.toLowerCase() %>">
+          <button type="button"
+                  role="option"
+                  aria-selected="<%= active ? 'true' : 'false' %>"
+                  class="<%= optClass %>"
+                  data-cs-option
+                  data-value="<%= opt.iso2 %>"
+                  data-label="<%= opt.name %>">
+            <span class="inline-flex items-center justify-center h-3.5 min-w-[1.25rem] px-1 rounded-[2px] bg-surface-overlay text-[9px] font-mono font-bold text-text-secondary shadow-sm shrink-0"><%= opt.iso2 %></span>
+            <span class="flex-1 truncate"><%= opt.name %></span>
+            <span class="text-xs text-text-secondary shrink-0"><%= opt.iso2 %></span>
+            <i class="fa-solid fa-check w-3 h-3 text-primary shrink-0<%= active ? '' : ' hidden' %>"
+               aria-hidden="true"
+               data-cs-check></i>
+          </button>
+        </li>
+        <% }); %>
+        <li class="px-3 py-2 text-sm text-text-secondary hidden" data-cs-empty>No results</li>
+      </ul>
+    </div>
+
+    <input type="hidden" name="<%= _name %>" value="<%= _value %>" data-cs-value<% if (_required) { %> required<% } %>>
+  </div>
+
+  <% if (_hint && !_error) { %>
+  <p id="<%= hintId %>" class="text-xs text-text-secondary"><%= _hint %></p>
+  <% } %>
+  <% if (_error) { %>
+  <p id="<%= errorId %>" class="text-xs text-error" role="alert"><%= _error %></p>
+  <% } %>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../../../ui/_script-json', { value: _id + '-wrap' }) %>);
+  if (!root || root.dataset.csInit === '1') return;
+  root.dataset.csInit = '1';
+
+  var trigger      = root.querySelector('[data-cs-trigger]');
+  var panel        = root.querySelector('[data-cs-panel]');
+  var searchInput  = root.querySelector('[data-cs-search]');
+  var items        = Array.prototype.slice.call(root.querySelectorAll('[data-cs-item]'));
+  var emptyEl      = root.querySelector('[data-cs-empty]');
+  var hiddenInput  = root.querySelector('[data-cs-value]');
+  var currentLabel = root.querySelector('[data-cs-current-label]');
+  var currentFlag  = root.querySelector('[data-cs-current-flag]');
+  var placeholder  = <%- include('../../../ui/_script-json', { value: String(_placeholder) }) %>;
+
+  function positionPanel() {
+    if (!trigger || !panel) return;
+    var r = trigger.getBoundingClientRect();
+    panel.style.top   = (r.bottom + 4) + 'px';
+    panel.style.left  = r.left + 'px';
+    panel.style.width = r.width + 'px';
+  }
+
+  function setOpen(open) {
+    if (open) positionPanel();
+    panel.classList.toggle('hidden', !open);
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      setTimeout(function () { searchInput.focus(); }, 0);
+    } else {
+      searchInput.value = '';
+      filter('');
+    }
+  }
+
+  function filter(q) {
+    var query = (q || '').toLowerCase().trim();
+    var visible = 0;
+    items.forEach(function (li) {
+      var match = !query ||
+        li.dataset.name.indexOf(query) !== -1 ||
+        li.dataset.iso2Lower.indexOf(query) !== -1;
+      li.classList.toggle('hidden', !match);
+      if (match) visible++;
+    });
+    if (emptyEl) emptyEl.classList.toggle('hidden', visible !== 0);
+  }
+
+  function select(value, label) {
+    hiddenInput.value = value;
+    if (currentLabel) {
+      currentLabel.textContent = label;
+      currentLabel.classList.remove('text-text-disabled');
+    }
+    if (currentFlag) {
+      currentFlag.textContent = value;
+      currentFlag.classList.remove('hidden');
+    }
+    items.forEach(function (li) {
+      var btn   = li.querySelector('[data-cs-option]');
+      var check = li.querySelector('[data-cs-check]');
+      var active = li.dataset.iso2 === value;
+      if (btn) {
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        if (active) {
+          btn.classList.add('bg-primary-subtle', 'text-primary', 'font-medium');
+          btn.classList.remove('text-text-primary', 'hover:bg-surface-overlay');
+        } else {
+          btn.classList.remove('bg-primary-subtle', 'text-primary', 'font-medium');
+          btn.classList.add('text-text-primary', 'hover:bg-surface-overlay');
+        }
+      }
+      if (check) check.classList.toggle('hidden', !active);
+    });
+    setOpen(false);
+    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  trigger.addEventListener('click', function () {
+    if (trigger.disabled) return;
+    var isOpen = trigger.getAttribute('aria-expanded') === 'true';
+    setOpen(!isOpen);
+  });
+  searchInput.addEventListener('input', function () { filter(searchInput.value); });
+  searchInput.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+
+  items.forEach(function (li) {
+    var btn = li.querySelector('[data-cs-option]');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      select(btn.dataset.value, btn.dataset.label);
+    });
+  });
+
+  document.addEventListener('mousedown', function (e) {
+    if (!root.contains(e.target) && !panel.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') setOpen(false);
+  });
+  window.addEventListener('scroll', function () {
+    if (trigger.getAttribute('aria-expanded') === 'true') positionPanel();
+  }, true);
+  window.addEventListener('resize', function () {
+    if (trigger.getAttribute('aria-expanded') === 'true') positionPanel();
+  });
+})();
+</script>

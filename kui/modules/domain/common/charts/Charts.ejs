@@ -1,0 +1,149 @@
+<%
+/*
+  Charts.ejs — Chart.js chart wrapper with preset variants
+  Props:
+    chartId    {string}  unique canvas id (auto-generated when omitted)
+    preset     {string?} one of: 'RevenueBarChart' | 'UserActivityLineChart'
+                         | 'SalesByCategoryDoughnut' | 'ProductComparisonRadar'
+                         | 'RegionalSalesPolar'. When set, hardcoded dataset
+                         + title/subtitle/options/type are used.
+    type       {string?} 'bar' | 'line' | 'doughnut' | 'radar' | 'polarArea'
+                         (used only when preset is omitted)
+    title      {string?} card title (overridden by preset defaults)
+    subtitle   {string?} card subtitle
+    data       {object?} Chart.js data object (used only when preset is omitted)
+    options    {object?} Chart.js options override
+    className  {string?}
+    wrapClass  {string?} wrapper around canvas (e.g. "mx-auto max-w-xs")
+*/
+var _preset    = (typeof preset    !== 'undefined') ? preset    : (locals && locals.preset)    || null;
+var _chartId   = (typeof chartId   !== 'undefined') ? chartId   : (locals && locals.chartId)   || ('chart-' + Math.random().toString(36).substr(2, 9));
+var _title     = (typeof title     !== 'undefined') ? title     : (locals && locals.title)     || '';
+var _subtitle  = (typeof subtitle  !== 'undefined') ? subtitle  : (locals && locals.subtitle)  || '';
+var _type      = (typeof type      !== 'undefined') ? type      : (locals && locals.type)      || 'bar';
+var _data      = (typeof data      !== 'undefined') ? data      : (locals && locals.data)      || { labels: [], datasets: [] };
+var _options   = (typeof options   !== 'undefined') ? options   : (locals && locals.options)   || {};
+var _className = (typeof className !== 'undefined') ? className : (locals && locals.className) || '';
+var _wrapClass = (typeof wrapClass !== 'undefined') ? wrapClass : (locals && locals.wrapClass) || '';
+
+var PRESETS = {
+  RevenueBarChart: {
+    title: 'Revenue vs Expenses',
+    subtitle: 'Monthly comparison (USD)',
+    type: 'bar',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [
+        { label: 'Revenue',  data: [4200, 5800, 4900, 7100, 6300, 8400], backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 6 },
+        { label: 'Expenses', data: [2800, 3200, 3600, 4100, 3900, 4700], backgroundColor: 'rgba(139, 92, 246, 0.8)', borderRadius: 6 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+  },
+  UserActivityLineChart: {
+    title: 'User Activity',
+    subtitle: 'Daily active users vs new signups',
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [
+        { label: 'Active Users', data: [1200, 1900, 1500, 2300, 2100, 2800, 1700], borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
+        { label: 'New Signups',  data: [300, 480, 220, 560, 410, 690, 320],         borderColor: 'rgb(34, 197, 94)',  backgroundColor: 'rgba(34, 197, 94, 0.1)',  fill: true, tension: 0.4 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+  },
+  SalesByCategoryDoughnut: {
+    title: 'Sales by Category',
+    subtitle: 'Percentage share of total revenue',
+    type: 'doughnut',
+    wrapClass: 'mx-auto max-w-xs',
+    data: {
+      labels: ['Electronics', 'Clothing', 'Food', 'Books', 'Other'],
+      datasets: [{
+        data: [35, 25, 20, 12, 8],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.85)',
+          'rgba(139, 92, 246, 0.85)',
+          'rgba(34, 197, 94, 0.85)',
+          'rgba(245, 158, 11, 0.85)',
+          'rgba(107, 114, 128, 0.85)'
+        ],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+  },
+  ProductComparisonRadar: {
+    title: 'Product Comparison',
+    subtitle: 'Our product vs competitor across 6 dimensions',
+    type: 'radar',
+    data: {
+      labels: ['Speed', 'Reliability', 'Support', 'Price', 'Features', 'UX'],
+      datasets: [
+        { label: 'Our Product', data: [88, 92, 78, 70, 85, 90], borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.2)', pointBackgroundColor: 'rgb(59, 130, 246)' },
+        { label: 'Competitor',  data: [72, 80, 65, 85, 75, 68], borderColor: 'rgb(139, 92, 246)', backgroundColor: 'rgba(139, 92, 246, 0.2)', pointBackgroundColor: 'rgb(139, 92, 246)' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { r: { beginAtZero: true, max: 100 } } }
+  },
+  RegionalSalesPolar: {
+    title: 'Regional Sales',
+    subtitle: 'Units sold per region',
+    type: 'polarArea',
+    wrapClass: 'mx-auto max-w-xs',
+    data: {
+      labels: ['North', 'South', 'East', 'West', 'Central'],
+      datasets: [{
+        data: [42, 28, 35, 19, 56],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.75)',
+          'rgba(34, 197, 94, 0.75)',
+          'rgba(245, 158, 11, 0.75)',
+          'rgba(239, 68, 68, 0.75)',
+          'rgba(139, 92, 246, 0.75)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  }
+};
+
+if (_preset && PRESETS[_preset]) {
+  var p = PRESETS[_preset];
+  _title    = _title    || p.title;
+  _subtitle = _subtitle || p.subtitle;
+  _type     = p.type;
+  _data     = p.data;
+  _options  = p.options;
+  _wrapClass = _wrapClass || (p.wrapClass || '');
+}
+%>
+<div class="rounded-xl border border-border bg-surface-raised p-5 shadow-sm<%= _className ? ' ' + _className : '' %>">
+  <div class="mb-4">
+    <h3 class="text-sm font-semibold text-text-primary"><%= _title %></h3>
+    <% if (_subtitle) { %>
+      <p class="mt-0.5 text-xs text-text-secondary"><%= _subtitle %></p>
+    <% } %>
+  </div>
+  <% if (_wrapClass) { %>
+  <div class="<%= _wrapClass %>">
+    <canvas id="<%= _chartId %>"></canvas>
+  </div>
+  <% } else { %>
+    <canvas id="<%= _chartId %>"></canvas>
+  <% } %>
+</div>
+<script>
+(function () {
+  var canvas = document.getElementById(<%- include('../../../ui/_script-json', { value: String(_chartId) }) %>);
+  if (!canvas || !window.Chart) return;
+  new Chart(canvas, {
+    type: '<%- _type %>',
+    data: <%- include('../../../ui/_script-json', { value: _data }) %>,
+    options: <%- include('../../../ui/_script-json', { value: _options }) %>
+  });
+})();
+</script>

@@ -180,3 +180,11 @@ The generic kit is therefore almost complete in kui-ejs. The real work is the 20
 | webhook | 3 | 15 | 9 |
 
 Build order for E5: auth (13 pages, login first), account, tenant and members, then the platform modules by page count (observability 18 last, it is the largest).
+
+## E5 start: pages (2026-11-08)
+
+- `kui/` is the vendored kui-ejs view layer (`scripts/sync-kui-ejs.mjs`; partials keep their relative layout, so `kui/modules` and `kui/views` stay siblings). Express's own pages live in `views/`, routes in `pages/`, hand-written browser scripts in `public/js/`.
+- The browser uses NB's own API client: `client/api.ts` is bundled by `scripts/build-client.mjs` (esbuild, tsconfig paths) into `public/js/kui-api.js` (`window.Kui`: `api` with CSRF mint/replay and refresh queue, `tenantPath`, `authErrorText`). The server injects `window.__TENANCY__` as NB's `<TenancyScript/>` does.
+- First page: `/auth/login` (also `/tenant/{id}/auth/login`, `/t/{id}/auth/login`). Ported: password sign-in, SSO and ACS provider lists, safe redirect, account-only redirect, must-change-password, session-ended and SSO-error banners, sign-up link when registration is open.
+- Not ported yet on login: the one-time-code step (`LoginOtpStep`): an account with code methods is signed out again with a message; tenant branding (name, logos, sign-in title); the `auth.login.methods` slot (passkey, e-signature); translations (English literals only).
+- Build steps the owner runs after `npm install`: `npm run build:css`, `npm run build:client`. Nothing here has been rendered or run.

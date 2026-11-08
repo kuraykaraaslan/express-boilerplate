@@ -1,0 +1,13 @@
+<%
+  var _name   = locals.name   || (locals.user && (locals.user.name || locals.user.email)) || 'User';
+  var _src    = locals.src    || (locals.user && locals.user.profilePicture) || null;
+  var _size   = locals.size   || 'md';
+  var _status = locals.status || '';
+%>
+<%- include('../../../ui/Avatar', {
+  name:      _name,
+  src:       _src,
+  size:      _size,
+  status:    _status,
+  className: locals.className || ''
+}) %>

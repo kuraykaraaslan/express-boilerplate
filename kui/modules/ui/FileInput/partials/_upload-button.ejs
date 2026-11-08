@@ -1,0 +1,18 @@
+<%# FileInput upload button + status row partial. %>
+<%# Receives: _hasUpload, _uploadLbl %>
+<% if (_hasUpload) { %>
+<div class="flex justify-end hidden" data-fi-upload-wrap>
+  <button
+    type="button"
+    data-fi-upload-btn
+    class="rounded-md px-4 py-2 text-sm font-medium text-primary-fg bg-primary hover:bg-primary-hover active:bg-primary-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+  ><%= _uploadLbl %></button>
+</div>
+<% } %>
+
+<p class="text-sm text-error hidden" data-fi-error role="alert"></p>
+<p class="text-sm text-success-fg hidden" data-fi-success role="status">Files uploaded successfully.</p>
+
+<% if (locals.error) { %>
+  <p class="text-sm text-error" role="alert"><%= locals.error %></p>
+<% } %>

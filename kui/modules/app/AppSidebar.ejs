@@ -1,0 +1,225 @@
+<%
+  var _id         = locals.id || ('sidebar-' + Math.random().toString(36).substr(2,6));
+  var _activeId   = locals.activeId || '';
+  var _collapsed  = !!locals.collapsed;
+  var _groups     = locals.navGroups || (locals.navItems ? [{ items: locals.navItems }] : []);
+  var _searchable = locals.searchable !== false;
+  var _searchId   = _id + '-search';
+  // headerContent: HTML (or a function of { collapsed } returning HTML) above the nav groups,
+  // below the collapse toggle; parity with kui-react AppSidebar `header`.
+  var _header     = typeof locals.headerContent === 'function'
+    ? locals.headerContent({ collapsed: _collapsed })
+    : locals.headerContent;
+  // footerContent: HTML (or a function of { collapsed } returning HTML) below the nav; parity with
+  // kui-react AppSidebar `footer`.
+  var _footer     = typeof locals.footerContent === 'function'
+    ? locals.footerContent({ collapsed: _collapsed })
+    : locals.footerContent;
+  // headerClassName / footerClassName: classes on the slots' bordered wrappers, e.g. `md:hidden`
+  // to drop the whole strip at a breakpoint; parity with kui-react AppSidebar.
+  var _headerCls  = locals.headerClassName ? ' ' + locals.headerClassName : '';
+  var _footerCls  = locals.footerClassName ? ' ' + locals.footerClassName : '';
+  // Nested items (item.children): the branch holding the active item, the active item's own
+  // branch (a parent page shows its children while it is open) and any item with
+  // defaultExpanded start open; parity with kui-react AppSidebar.
+  function _containsId(it, id) {
+    if (!id) return false;
+    return it.id === id || (it.children || []).some(function (c) { return _containsId(c, id); });
+  }
+  var _expandedIds = {};
+  (function seed(items, trail) {
+    (items || []).forEach(function (it) {
+      if (it.defaultExpanded && (it.children || []).length) _expandedIds[it.id] = true;
+      if (it.id === _activeId) trail.concat([it.id]).forEach(function (a) { _expandedIds[a] = true; });
+      if ((it.children || []).length) seed(it.children, trail.concat([it.id]));
+    });
+  })(_groups.reduce(function (all, g) { return all.concat(g.items || []); }, []), []);
+%>
+<div id="<%= _id %>"
+  data-collapsed="<%= _collapsed %>"
+  class="flex flex-col flex-1 min-h-0 transition-all duration-200 w-full<%= _collapsed ? ' lg:w-14' : ' lg:w-56' %>">
+
+  <!-- Collapse toggle (desktop only) -->
+  <div class="hidden lg:flex items-center px-2 py-2 border-b border-border shrink-0 <%= _collapsed ? 'justify-center' : 'justify-end' %>">
+    <button type="button" onclick="toggleAppSidebar(<%= JSON.stringify(String(_id)) %>)"
+      aria-label="<%= _collapsed ? 'Expand sidebar' : 'Collapse sidebar' %>"
+      class="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <i class="fa-solid fa-chevron-left<%= _collapsed ? ' rotate-180' : '' %> transition-transform" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <% if (_header) { %>
+  <div class="shrink-0 border-b border-border px-2 py-2<%= _collapsed ? ' flex justify-center' : '' %><%= _headerCls %>">
+    <%- _header %>
+  </div>
+  <% } %>
+
+  <% if (_searchable) { %>
+  <div class="<%= _collapsed ? 'hidden' : '' %> px-3 py-2 border-b border-border shrink-0" id="<%= _searchId %>-wrap">
+    <div class="relative">
+      <%# kui-react's svg carries w-3 h-3, but Font Awesome's own 1.25em x 1em wins there; the bare <i> measures the same. %>
+      <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-text-disabled" aria-hidden="true"></i>
+      <input
+        id="<%= _searchId %>"
+        type="search"
+        placeholder="Search…"
+        autocomplete="off"
+        class="w-full rounded-md border border-border bg-surface-base pl-7 pr-3 py-1.5 text-xs text-text-primary placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-border-focus"
+        aria-label="Search navigation"
+      />
+    </div>
+  </div>
+  <% } %>
+
+  <%# .sidebar-scrollbar-hover reserves a scrollbar gutter (scrollbar-gutter: stable); icon-only mode is too
+      narrow to spare it or a classic scrollbar (Windows), so the collapsed nav has neither (parity with kui-react). %>
+  <nav class="flex-1 min-h-0 overflow-y-auto px-2 py-3 space-y-4 sidebar-scrollbar-hover<% if (_collapsed) { %> sidebar-scrollbar-none<% } %>"<% if (_collapsed) { %> style="scrollbar-gutter: auto"<% } %> aria-label="Sidebar navigation">
+    <% _groups.forEach(function(group, gi) {
+      var gKey = (group.label || String(gi)).replace(/\s+/g,'_');
+      var hasActive = (group.items||[]).some(function(i){ return _containsId(i, _activeId); });
+      var _expanded = group.collapsible ? (!!group.defaultExpanded || hasActive) : true;
+    %>
+    <div data-group-section data-group-key="<%= gKey %>">
+      <% if (group.label && !_collapsed) { %>
+        <% if (group.collapsible) { %>
+        <button type="button" onclick="toggleSidebarGroup(<%= JSON.stringify(String(_id)) %>,<%= JSON.stringify(String(gKey)) %>)"
+          aria-expanded="<%= _expanded ? 'true' : 'false' %>"
+          class="w-full flex items-center justify-between px-3 py-1 rounded-md mb-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= hasActive ? 'text-text-primary' : 'text-text-disabled hover:text-text-secondary' %>">
+          <span class="text-[10px] font-semibold uppercase tracking-widest"><%= group.label %></span>
+          <i class="fa-solid fa-chevron-down text-xs transition-transform<%= _expanded ? '' : ' -rotate-90' %>" id="<%= _id %>-gicon-<%= gKey %>" aria-hidden="true"></i>
+        </button>
+        <% } else { %>
+        <p class="text-[10px] font-semibold uppercase tracking-widest text-text-disabled px-3 mb-1"><%= group.label %></p>
+        <% } %>
+      <% } %>
+      <div class="space-y-0.5<%= _expanded ? '' : ' hidden' %>" id="<%= _id %>-gitems-<%= gKey %>">
+        <% (group.items||[]).forEach(function(item) { %>
+          <%- include('./AppSidebar/partials/_item', { item: item, depth: 0, sid: _id, activeId: _activeId, collapsed: _collapsed, expandedIds: _expandedIds }) %>
+        <% }); %>
+      </div>
+    </div>
+    <% }); %>
+  </nav>
+
+  <% if (_footer) { %>
+  <div class="border-t border-border shrink-0<%= _collapsed ? ' flex justify-center px-2 py-3' : '' %><%= _footerCls %>">
+    <%- _footer %>
+  </div>
+  <% } %>
+</div>
+<script>
+(function(){
+  function toggleAppSidebar(id){
+    var el=document.getElementById(id);if(!el)return;
+    var c=el.dataset.collapsed==='true';
+    el.dataset.collapsed=c?'false':'true';
+    el.classList.toggle('lg:w-14',!c);el.classList.toggle('lg:w-56',c);
+    var btn=el.querySelector('[aria-label]');
+    if(btn)btn.setAttribute('aria-label',c?'Collapse sidebar':'Expand sidebar');
+    el.querySelectorAll('.fa-chevron-left').forEach(function(i){i.classList.toggle('rotate-180',!c);});
+    el.querySelectorAll('[id$="-gitems-"]').forEach(function(d){
+      var labels=d.querySelectorAll('span.flex-1');
+      labels.forEach(function(l){l.classList.toggle('hidden',!c);});
+    });
+    // Hide search when collapsed
+    var sw=document.getElementById(id+'-search-wrap');
+    if(sw)sw.classList.toggle('hidden',!c);
+    // Collapsed, the nav reserves no scrollbar gutter and shows no scrollbar, so the icons stay centered
+    var nav=el.querySelector('nav');
+    if(nav){nav.style.scrollbarGutter=c?'':'auto';nav.classList.toggle('sidebar-scrollbar-none',!c);}
+    // Icon-only mode shows top-level items only: nested branches and their toggles hide,
+    // and a top-level item holding the active page takes the active look (parity with kui-react).
+    el.querySelectorAll('[data-nav-children]').forEach(function(d){
+      var open=d.parentElement&&d.parentElement.dataset.expanded==='true';
+      d.classList.toggle('hidden',!c||!open);
+    });
+    el.querySelectorAll('[data-nav-toggle][aria-label],[data-nav-chevron]').forEach(function(t){
+      if(t.matches('[data-nav-chevron]')&&t.closest('[data-nav-toggle][aria-label]'))return;
+      t.classList.toggle('hidden',!c);
+    });
+    el.querySelectorAll('[data-holds-active]').forEach(function(item){
+      var row=item.querySelector('a,button');if(!row)return;
+      ['bg-primary-subtle','text-primary','font-medium'].forEach(function(k){row.classList.toggle(k,!c);});
+      ['text-text-secondary','hover:text-text-primary','hover:bg-surface-overlay'].forEach(function(k){row.classList.toggle(k,c);});
+    });
+  }
+  // keep=true shows a branch open or shut without recording it (a search does this).
+  function setSidebarItem(item,open,keep){
+    if(!keep)item.dataset.expanded=open?'true':'false';
+    var kids=item.querySelector(':scope > [data-nav-children]');
+    if(kids)kids.classList.toggle('hidden',!open);
+    item.querySelectorAll(':scope > [data-nav-toggle], :scope > div > [data-nav-toggle]').forEach(function(t){
+      t.setAttribute('aria-expanded',open?'true':'false');
+      if(t.dataset.label)t.setAttribute('aria-label',(open?'Collapse ':'Expand ')+t.dataset.label);
+      var i=t.querySelector('[data-nav-chevron]');if(i)i.classList.toggle('-rotate-90',!open);
+    });
+  }
+  function toggleSidebarItem(sid,key){
+    var el=document.getElementById(sid);if(!el)return;
+    var item=el.querySelector('[data-nav-item][data-item-key="'+key+'"]');if(!item)return;
+    setSidebarItem(item,item.dataset.expanded!=='true');
+  }
+  function toggleSidebarGroup(sid,key){
+    var items=document.getElementById(sid+'-gitems-'+key);
+    var icon=document.getElementById(sid+'-gicon-'+key);
+    if(!items)return;
+    var hidden=items.classList.toggle('hidden');
+    if(icon)icon.classList.toggle('-rotate-90',hidden);
+  }
+  // Sidebar search
+  (function initSidebarSearch(id){
+    var input=document.getElementById(id+'-search');
+    if(!input)return;
+    var sidebar=document.getElementById(id);
+    var timer=null;
+    // An item stays when its label matches (with its whole subtree) or when a descendant
+    // matches; every surviving branch shows open while searching and goes back to the
+    // reader's own state when the query clears (parity with kui-react AppSidebar).
+    function showAll(item){
+      item.style.display='';
+      item.querySelectorAll('[data-nav-item]').forEach(function(d){d.style.display='';});
+      [item].concat([].slice.call(item.querySelectorAll('[data-nav-item][data-expanded]'))).forEach(function(it){
+        if(it.dataset.expanded!==undefined)setSidebarItem(it,true,true);
+      });
+    }
+    function filterItem(item,q){
+      var kids=item.querySelectorAll(':scope > [data-nav-children] > [data-nav-item]');
+      var self=(item.getAttribute('data-search-title')||'').includes(q);
+      var any=false;
+      if(self){showAll(item);any=true;}
+      else kids.forEach(function(k){if(filterItem(k,q))any=true;});
+      item.style.display=any?'':'none';
+      if(any&&item.dataset.expanded!==undefined)setSidebarItem(item,true,true);
+      return any;
+    }
+    function filter(q){
+      q=q.trim().toLowerCase();
+      var nav=sidebar.querySelector('nav');
+      var scope=nav||sidebar;
+      if(!q){
+        scope.querySelectorAll('[data-nav-item]').forEach(function(el){el.style.display='';});
+        scope.querySelectorAll('[data-group-section]').forEach(function(el){el.style.display='';});
+        scope.querySelectorAll('[data-nav-item][data-expanded]').forEach(function(it){setSidebarItem(it,it.dataset.expanded==='true');});
+        return;
+      }
+      scope.querySelectorAll('[data-group-section]').forEach(function(g){
+        var visible=false;
+        g.querySelectorAll(':scope > div > [data-nav-item]').forEach(function(item){
+          if(filterItem(item,q))visible=true;
+        });
+        g.style.display=visible?'':'none';
+      });
+    }
+    input.addEventListener('input',function(){
+      clearTimeout(timer);
+      timer=setTimeout(function(){filter(input.value);},150);
+    });
+    input.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){input.value='';filter('');}
+    });
+  })(<%- include('../ui/_script-json', { value: String(_id) }) %>);
+  window.toggleAppSidebar=window.toggleAppSidebar||toggleAppSidebar;
+  window.toggleSidebarGroup=window.toggleSidebarGroup||toggleSidebarGroup;
+  window.toggleSidebarItem=window.toggleSidebarItem||toggleSidebarItem;
+})();
+</script>

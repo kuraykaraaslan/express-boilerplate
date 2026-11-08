@@ -1,0 +1,5 @@
+<%#
+  A change chip: ▲ +12 % in the colour of what the change means (`Delta`).
+  Locals: text, direction ('up'|'down'|'flat'), meaning ('good'|'bad'|'neutral'), color, label.
+%><%_ var _d = widgetKit.ui.deltaModel({ direction: locals.direction, meaning: locals.meaning, color: locals.color }); var _st = widgetKit.style({ color: _d.color, background: _d.background }); _%>
+<span class="inline-flex items-center gap-1.5 text-xs"><span class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium tabular-nums" style="<%= _st %>"><span aria-hidden="true" class="text-[0.7em]"><%= _d.arrow %></span><%= locals.text %></span><% if (locals.label) { %><span class="text-text-secondary"><%= locals.label %></span><% } %></span>

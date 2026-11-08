@@ -1,0 +1,363 @@
+<%
+  // TimeWindowPicker — relative presets ("1h", "7d"), an optional custom "last N minutes /
+  // hours / days", calendar periods ("today", "previous month", optionally "so far"), an
+  // absolute UTC range, and the interval / aggregation / time zone that go with a window.
+  // The inline dashboard / telemetry sibling of the day-granularity DateRangePicker (no
+  // presets, no times there). Mirror of kui-react modules/ui/TimeWindowPicker.tsx.
+  //
+  // The value is a TimeWindowValue (ISO strings, UTC):
+  //   { mode: 'relative', last: '1h', interval?, aggregation?, timezone? }
+  //   { mode: 'absolute', from: ISO, to: ISO, interval?, aggregation?, timezone? }
+  //   { mode: 'calendar', period: 'current.day', soFar?, interval?, aggregation?, timezone? }
+  //
+  // Locals:
+  //   value         — initial TimeWindowValue, or null (no preset active)
+  //   presets       — default ['15m','1h','6h','24h','7d','30d','90d','365d']
+  //   intervals     — default ['auto','1m','5m','1h','1d']
+  //   aggregations  — default ['avg','min','max','sum','count','none']
+  //   allowAbsolute (true), showInterval (true), showAggregation (true)
+  //   allowDuration (false) — a custom "Last <n> minutes / hours / days" (`<n>m|h|d`)
+  //   calendarPeriods ([]) — the calendar periods to offer; empty = no Calendar option.
+  //                   All 18: current.* / previous.* x hour, day, week, isoWeek, month,
+  //                   quarter, halfYear, year, then dayBeforeYesterday, thisDayLastWeek
+  //                   (pass `true` as a shorthand for all of them)
+  //   showTimezone (false) — an explicit time zone; no zone = the consumer's default
+  //   idPrefix      — prefix of the From / To input ids (auto-generated when omitted;
+  //                   kui-react defaults to 'tw', which is not unique per page)
+  //   onChange      — NAME of a global function called with the next TimeWindowValue
+  //   messages      — partial of DEFAULT_TIME_WINDOW_MESSAGES below; `{value}` is replaced. The optional
+  //                   aggregationNames / shortUnits name the aggregation and interval choices in the host's
+  //                   words ("Aggregate: ortalama", "Interval: 5 dk"); without them the codes are shown
+  //   className
+  //
+  // Instead of onChange({...}) the component dispatches the DOM event
+  // 'kui:timewindow-change' on its root (bubbles, detail: the next value).
+  // Runtime: root.__timeWindow.getValue() / .setValue(value)
+  // The messages, period list, duration pattern and zone list are shared with TimeWindowSelect.
+  var S = {};
+  include('./TimeWindowPicker/_shared', { S: S });
+  var DEFAULT_MESSAGES = S.DEFAULT_MESSAGES;
+  var DEFAULT_CALENDAR_PERIODS = S.DEFAULT_CALENDAR_PERIODS;
+  var DURATION = S.DURATION;
+  var DURATION_UNITS = S.DURATION_UNITS;
+  var zoneChoices = S.zoneChoices;
+  var _m = Object.assign({}, DEFAULT_MESSAGES, locals.messages || {});
+  var _value = locals.value || null;
+  var _presets = Array.isArray(locals.presets) ? locals.presets : ['15m', '1h', '6h', '24h', '7d', '30d', '90d', '365d'];
+  var _intervals = Array.isArray(locals.intervals) ? locals.intervals : ['auto', '1m', '5m', '1h', '1d'];
+  var _aggregations = Array.isArray(locals.aggregations) ? locals.aggregations : ['avg', 'min', 'max', 'sum', 'count', 'none'];
+  var _allowAbsolute = locals.allowAbsolute === false ? false : true;
+  var _showInterval = locals.showInterval === false ? false : true;
+  var _showAggregation = locals.showAggregation === false ? false : true;
+  var _prefix = locals.idPrefix || ('tw-' + Math.random().toString(36).substr(2, 6));
+  var _allowDuration = locals.allowDuration === true;
+  var _calendarPeriods = locals.calendarPeriods === true ? DEFAULT_CALENDAR_PERIODS : (Array.isArray(locals.calendarPeriods) ? locals.calendarPeriods : []);
+  var _showTimezone = locals.showTimezone === true;
+  function periodName(p) {
+    var own = _m.periods || {};
+    return own[p] != null ? own[p] : (DEFAULT_MESSAGES.periods[p] != null ? DEFAULT_MESSAGES.periods[p] : p);
+  }
+  function isCurrent(p) { return String(p).indexOf('current.') === 0; }
+  // Which segment is active: 'preset' | 'duration' | 'calendar' | 'absolute' (kui-react panelOf).
+  var _panel = !_value ? 'preset'
+    : _value.mode === 'absolute' ? 'absolute'
+      : _value.mode === 'calendar' ? 'calendar'
+        : _presets.indexOf(_value.last) !== -1 ? 'preset' : 'duration';
+  var _absolute = _panel === 'absolute';
+  var _calendar = _panel === 'calendar' && !!_value && _value.mode === 'calendar';
+  var _dur = _value && _value.mode === 'relative' ? DURATION.exec(_value.last) : null;
+  var _amount = _dur ? _dur[1] : '';
+  var _unit = _dur ? _dur[2] : 'h';
+  var _periodOptions = _calendar && _calendarPeriods.indexOf(_value.period) === -1 ? _calendarPeriods.concat([_value.period]) : _calendarPeriods;
+  var _periodNames = {};
+  _calendarPeriods.forEach(function (p) { _periodNames[p] = periodName(p); });
+  Object.keys(DEFAULT_MESSAGES.periods).concat(Object.keys(_m.periods || {})).forEach(function (p) { _periodNames[p] = periodName(p); });
+  var _onChange = typeof locals.onChange === 'string' ? locals.onChange : '';
+
+  var FIELD = 'h-8 rounded-md border border-border bg-surface-base px-2 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var BTN = 'h-8 shrink-0 px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus';
+  var ACTIVE = 'bg-primary text-primary-fg';
+  var INACTIVE = 'bg-surface-base text-text-secondary hover:bg-surface-sunken';
+  function toInput(iso) { return String(iso).slice(0, 16); }
+  var _curInterval = (_value && _value.interval) || 'auto';
+  var _curAgg = (_value && _value.aggregation) || 'avg';
+%>
+<div
+  data-kui-timewindow
+  data-kui-timewindow-config="<%= JSON.stringify({ value: _value, presets: _presets, onChange: _onChange, defaultLast: _presets.indexOf('24h') !== -1 ? '24h' : _presets[0], calendarPeriods: _calendarPeriods, periodNames: _periodNames }) %>"
+  class="flex flex-wrap items-center gap-2<%= locals.className ? ' ' + locals.className : '' %>"
+  role="group"
+  aria-label="<%= _m.label %>"
+>
+  <%# max-w-full overflow-x-auto: in a container narrower than the segments, they scroll inside the control. %>
+  <div class="inline-flex max-w-full overflow-x-auto rounded-md border border-border [scrollbar-width:thin]" role="radiogroup" aria-label="<%= _m.presets %>">
+    <% _presets.forEach(function (p) {
+      var active = _panel === 'preset' && !!_value && _value.mode === 'relative' && _value.last === p;
+    %>
+    <button type="button" role="radio" aria-checked="<%= active ? 'true' : 'false' %>" data-kui-timewindow-preset="<%= p %>"
+      class="<%= BTN %> <%= active ? ACTIVE : INACTIVE %>"><%= p %></button>
+    <% }); %>
+    <% if (_allowDuration) { %>
+    <button type="button" role="radio" aria-checked="<%= _panel === 'duration' ? 'true' : 'false' %>" data-kui-timewindow-duration
+      class="<%= BTN %> <%= _panel === 'duration' ? ACTIVE : INACTIVE %>"><%= _m.duration %></button>
+    <% } %>
+    <% if (_calendarPeriods.length > 0) { %>
+    <button type="button" role="radio" aria-checked="<%= _panel === 'calendar' ? 'true' : 'false' %>" data-kui-timewindow-calendar
+      class="<%= BTN %> <%= _panel === 'calendar' ? ACTIVE : INACTIVE %>"><%= _m.calendar %></button>
+    <% } %>
+    <% if (_allowAbsolute) { %>
+    <button type="button" role="radio" aria-checked="<%= _absolute ? 'true' : 'false' %>" data-kui-timewindow-custom
+      class="<%= BTN %> <%= _absolute ? ACTIVE : INACTIVE %>"><%= _m.custom %></button>
+    <% } %>
+  </div>
+
+  <% if (_allowDuration) { %>
+  <div class="flex items-center gap-1.5" data-kui-timewindow-duration-panel<%= _panel === 'duration' ? '' : ' hidden' %>>
+    <input id="<%= _prefix %>-amount" type="number" inputmode="numeric" min="1" aria-label="<%= _m.durationAmount %>" class="<%= FIELD %> w-20" data-kui-timewindow-amount value="<%= _amount %>">
+    <select id="<%= _prefix %>-unit" aria-label="<%= _m.durationUnit %>" class="<%= FIELD %>" data-kui-timewindow-unit>
+      <% DURATION_UNITS.forEach(function (u) { var names = _m.durationUnits || {}; %>
+      <option value="<%= u %>"<%= u === _unit ? ' selected' : '' %>><%= names[u] != null ? names[u] : u %></option>
+      <% }); %>
+    </select>
+  </div>
+  <% } %>
+
+  <% if (_calendarPeriods.length > 0) { %>
+  <div class="flex items-center gap-2" data-kui-timewindow-calendar-panel<%= _calendar ? '' : ' hidden' %>>
+    <select id="<%= _prefix %>-period" aria-label="<%= _m.calendarPeriod %>" class="<%= FIELD %>" data-kui-timewindow-period>
+      <% _periodOptions.forEach(function (p) { %>
+      <option value="<%= p %>"<%= _calendar && p === _value.period ? ' selected' : '' %>><%= periodName(p) %></option>
+      <% }); %>
+    </select>
+    <label class="flex items-center gap-1.5 text-xs <%= !_calendar || isCurrent(_value.period) ? 'text-text-secondary' : 'text-text-disabled' %>" data-kui-timewindow-so-far-label>
+      <input id="<%= _prefix %>-so-far" type="checkbox" class="rounded border-border focus-visible:ring-2 focus-visible:ring-border-focus" data-kui-timewindow-so-far<%= _calendar && _value.soFar === true ? ' checked' : '' %><%= _calendar && !isCurrent(_value.period) ? ' disabled' : '' %>>
+      <%= _m.soFar %>
+    </label>
+  </div>
+  <% } %>
+
+  <% if (_allowAbsolute) { %>
+  <div class="flex items-center gap-1.5" data-kui-timewindow-range<%= _absolute ? '' : ' hidden' %>>
+    <input id="<%= _prefix %>-from" type="datetime-local" aria-label="<%= _m.from %>" class="<%= FIELD %>" data-kui-timewindow-from
+      <% if (_absolute) { %>value="<%= toInput(_value.from) %>" max="<%= toInput(_value.to) %>"<% } %>>
+    <span aria-hidden="true" class="text-text-secondary">–</span>
+    <input id="<%= _prefix %>-to" type="datetime-local" aria-label="<%= _m.to %>" class="<%= FIELD %>" data-kui-timewindow-to
+      <% if (_absolute) { %>value="<%= toInput(_value.to) %>" min="<%= toInput(_value.from) %>"<% } %>>
+  </div>
+  <% } %>
+
+  <% if (_showInterval) { %>
+  <select aria-label="<%= _m.interval %>" class="<%= FIELD %>" data-kui-timewindow-interval>
+    <% _intervals.forEach(function (i) { %>
+    <option value="<%= i %>"<%= i === _curInterval ? ' selected' : '' %>><%= i === 'auto' ? _m.intervalAuto : _m.intervalValue.replace('{value}', S.durationText(i, _m)) %></option>
+    <% }); %>
+  </select>
+  <% } %>
+  <% if (_showTimezone) { var _tz = (_value && _value.timezone) || ''; %>
+  <select aria-label="<%= _m.timezone %>" class="<%= FIELD %>" data-kui-timewindow-timezone>
+    <option value=""<%= _tz === '' ? ' selected' : '' %>><%= _m.timezoneDefault %></option>
+    <% zoneChoices(_tz).forEach(function (z) { %>
+    <option value="<%= z %>"<%= z === _tz ? ' selected' : '' %>><%= z %></option>
+    <% }); %>
+  </select>
+  <% } %>
+  <% if (_showAggregation) { %>
+  <select aria-label="<%= _m.aggregation %>" class="<%= FIELD %>" data-kui-timewindow-aggregation>
+    <% _aggregations.forEach(function (a) { %>
+    <option value="<%= a %>"<%= a === _curAgg ? ' selected' : '' %>><%= _m.aggregationValue.replace('{value}', S.aggregationText(a, _m)) %></option>
+    <% }); %>
+  </select>
+  <% } %>
+</div>
+<script>
+(function () {
+  var roots = document.querySelectorAll('[data-kui-timewindow]');
+  var ACTIVE = <%- include('./_script-json', { value: ACTIVE.split(' ') }) %>;
+  var INACTIVE = <%- include('./_script-json', { value: INACTIVE.split(' ') }) %>;
+  var DURATION = /^([1-9]\d{0,5})([mhd])$/;
+
+  function toInput(iso) { return String(iso).slice(0, 16); }
+  function fromInput(v) { return new Date(v + ':00.000Z').toISOString(); }
+  function isCurrent(p) { return String(p).indexOf('current.') === 0; }
+
+  function mount(root) {
+    if (root.__timeWindow) return;
+    var cfg;
+    try { cfg = JSON.parse(root.getAttribute('data-kui-timewindow-config') || '{}'); } catch (e) { cfg = {}; }
+    var presetList = cfg.presets || [];
+    var calendarPeriods = cfg.calendarPeriods || [];
+    var periodNames = cfg.periodNames || {};
+    var value = cfg.value || null;
+    function panelOf(v) {
+      return !v ? 'preset'
+        : v.mode === 'absolute' ? 'absolute'
+          : v.mode === 'calendar' ? 'calendar'
+            : presetList.indexOf(v.last) !== -1 ? 'preset' : 'duration';
+    }
+    var panel = panelOf(value);
+    var presets = root.querySelectorAll('[data-kui-timewindow-preset]');
+    var durationBtn = root.querySelector('[data-kui-timewindow-duration]');
+    var calendarBtn = root.querySelector('[data-kui-timewindow-calendar]');
+    var custom = root.querySelector('[data-kui-timewindow-custom]');
+    var durationPanel = root.querySelector('[data-kui-timewindow-duration-panel]');
+    var amountInput = root.querySelector('[data-kui-timewindow-amount]');
+    var unitSel = root.querySelector('[data-kui-timewindow-unit]');
+    var calendarPanel = root.querySelector('[data-kui-timewindow-calendar-panel]');
+    var periodSel = root.querySelector('[data-kui-timewindow-period]');
+    var soFarLabel = root.querySelector('[data-kui-timewindow-so-far-label]');
+    var soFarBox = root.querySelector('[data-kui-timewindow-so-far]');
+    var range = root.querySelector('[data-kui-timewindow-range]');
+    var from = root.querySelector('[data-kui-timewindow-from]');
+    var to = root.querySelector('[data-kui-timewindow-to]');
+    var intervalSel = root.querySelector('[data-kui-timewindow-interval]');
+    var tzSel = root.querySelector('[data-kui-timewindow-timezone]');
+    var aggSel = root.querySelector('[data-kui-timewindow-aggregation]');
+    var dur = value && value.mode === 'relative' ? DURATION.exec(value.last) : null;
+    var amount = dur ? dur[1] : '';
+    var unit = dur ? dur[2] : 'h';
+
+    function paintBtn(btn, on) {
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      (on ? INACTIVE : ACTIVE).forEach(function (c) { btn.classList.remove(c); });
+      (on ? ACTIVE : INACTIVE).forEach(function (c) { btn.classList.add(c); });
+    }
+    // A value the server did not render an option for (setValue) still shows.
+    function ensureOption(sel, val, text) {
+      for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === val) return;
+      var o = document.createElement('option'); o.value = val; o.textContent = text; sel.appendChild(o);
+    }
+    function paint() {
+      for (var i = 0; i < presets.length; i++) {
+        var last = presets[i].getAttribute('data-kui-timewindow-preset');
+        paintBtn(presets[i], panel === 'preset' && !!value && value.mode === 'relative' && value.last === last);
+      }
+      if (durationBtn) paintBtn(durationBtn, panel === 'duration');
+      if (calendarBtn) paintBtn(calendarBtn, panel === 'calendar');
+      if (custom) paintBtn(custom, panel === 'absolute');
+      if (durationPanel) durationPanel.hidden = panel !== 'duration';
+      if (amountInput && amountInput.value !== amount) amountInput.value = amount;
+      if (unitSel) unitSel.value = unit;
+      var cal = panel === 'calendar' && !!value && value.mode === 'calendar';
+      if (calendarPanel) calendarPanel.hidden = !cal;
+      if (cal && periodSel) {
+        ensureOption(periodSel, value.period, periodNames[value.period] != null ? periodNames[value.period] : value.period);
+        periodSel.value = value.period;
+        var current = isCurrent(value.period);
+        if (soFarBox) { soFarBox.checked = value.soFar === true; soFarBox.disabled = !current; }
+        if (soFarLabel) {
+          soFarLabel.classList.remove(current ? 'text-text-disabled' : 'text-text-secondary');
+          soFarLabel.classList.add(current ? 'text-text-secondary' : 'text-text-disabled');
+        }
+      }
+      var abs = panel === 'absolute' && !!value && value.mode === 'absolute';
+      if (range) range.hidden = !abs;
+      if (abs && from && to) {
+        from.value = toInput(value.from); from.max = toInput(value.to);
+        to.value = toInput(value.to); to.min = toInput(value.from);
+      }
+      if (intervalSel) intervalSel.value = (value && value.interval) || 'auto';
+      if (tzSel) {
+        var tz = (value && value.timezone) || '';
+        if (tz) ensureOption(tzSel, tz, tz);
+        tzSel.value = tz;
+      }
+      if (aggSel) aggSel.value = (value && value.aggregation) || 'avg';
+    }
+    function emit(next) {
+      value = next;
+      paint();
+      root.dispatchEvent(new CustomEvent('kui:timewindow-change', { bubbles: true, detail: next }));
+      if (cfg.onChange && typeof window[cfg.onChange] === 'function') window[cfg.onChange](next);
+    }
+    function extras() {
+      return value ? { interval: value.interval, aggregation: value.aggregation, timezone: value.timezone } : {};
+    }
+    function merge(base, patch) {
+      var out = {};
+      Object.keys(base).forEach(function (k) { if (base[k] !== undefined) out[k] = base[k]; });
+      Object.keys(patch).forEach(function (k) { if (patch[k] !== undefined) out[k] = patch[k]; });
+      return out;
+    }
+    function without(base, key) {
+      var out = merge(base, {});
+      delete out[key];
+      return out;
+    }
+    function fallback() { return { mode: 'relative', last: cfg.defaultLast }; }
+    function emitDuration(n, u) {
+      if (DURATION.test(n + u)) emit(merge({ mode: 'relative', last: n + u }, extras()));
+      else paint();
+    }
+
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].addEventListener('click', function (e) {
+        panel = 'preset';
+        emit(merge({ mode: 'relative', last: e.currentTarget.getAttribute('data-kui-timewindow-preset') }, extras()));
+      });
+    }
+    if (durationBtn) durationBtn.addEventListener('click', function () {
+      panel = 'duration';
+      if (amount) emitDuration(amount, unit); else paint();
+    });
+    if (amountInput) amountInput.addEventListener('input', function () {
+      amount = amountInput.value;
+      emitDuration(amount, unit);
+    });
+    if (unitSel) unitSel.addEventListener('change', function () {
+      unit = unitSel.value;
+      emitDuration(amount, unit);
+    });
+    if (calendarBtn) calendarBtn.addEventListener('click', function () {
+      panel = 'calendar';
+      if (!value || value.mode !== 'calendar') emit(merge({ mode: 'calendar', period: calendarPeriods[0] }, extras()));
+      else paint();
+    });
+    if (periodSel) periodSel.addEventListener('change', function () {
+      if (!value || value.mode !== 'calendar') return;
+      var period = periodSel.value;
+      var next = merge(value, { period: period });
+      emit(isCurrent(period) ? next : without(next, 'soFar'));
+    });
+    if (soFarBox) soFarBox.addEventListener('change', function () {
+      if (!value || value.mode !== 'calendar') return;
+      emit(soFarBox.checked ? merge(value, { soFar: true }) : without(value, 'soFar'));
+    });
+    if (custom) custom.addEventListener('click', function () {
+      panel = 'absolute';
+      if (!value || value.mode !== 'absolute') {
+        var end = new Date(); end.setMinutes(0, 0, 0);
+        emit(merge({ mode: 'absolute', from: new Date(end.getTime() - 24 * 3600000).toISOString(), to: end.toISOString() }, extras()));
+      } else {
+        paint();
+      }
+    });
+    if (from) from.addEventListener('change', function () {
+      if (from.value && value && value.mode === 'absolute') emit(merge(value, { from: fromInput(from.value) }));
+    });
+    if (to) to.addEventListener('change', function () {
+      if (to.value && value && value.mode === 'absolute') emit(merge(value, { to: fromInput(to.value) }));
+    });
+    function setExtra(patch) {
+      emit(merge(value || fallback(), patch));
+    }
+    if (intervalSel) intervalSel.addEventListener('change', function () { setExtra({ interval: intervalSel.value }); });
+    if (aggSel) aggSel.addEventListener('change', function () { setExtra({ aggregation: aggSel.value }); });
+    if (tzSel) tzSel.addEventListener('change', function () {
+      var rest = without(value || fallback(), 'timezone');
+      emit(tzSel.value ? merge(rest, { timezone: tzSel.value }) : rest);
+    });
+
+    root.__timeWindow = {
+      getValue: function () { return value; },
+      setValue: function (v) {
+        value = v || null;
+        panel = panelOf(value);
+        var d = value && value.mode === 'relative' ? DURATION.exec(value.last) : null;
+        if (d) { amount = d[1]; unit = d[2]; }
+        paint();
+      },
+    };
+  }
+  for (var r = 0; r < roots.length; r++) mount(roots[r]);
+})();
+</script>

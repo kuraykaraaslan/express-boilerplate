@@ -1,0 +1,20 @@
+<%#
+  One field of control.form (kui-react ControlFormView `renderField`): the label, the input and an (empty) place for the
+  field's error, which the runtime (scripts/control-form.js) fills. Locals: f (a model field with `off` and `value`),
+  rid (the form's DOM id), cls (the input classes).
+%><%_
+  var _f = locals.f;
+  var _id = locals.rid + '-f-' + _f.key;
+  var _v = _f.value;
+_%>
+<div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-start gap-2" data-field="<%= _f.key %>"><label for="<%= _id %>" class="pt-2 text-xs font-medium text-text-secondary"><%= _f.label %><% if (_f.required) { %><span aria-hidden="true"> *</span><% } %></label><div class="min-w-0">
+<%_ if (_f.type === 'boolean') { _%>
+<input type="checkbox" class="h-4 w-4 rounded border-border" id="<%= _id %>" data-kui-form-field="<%= _f.key %>"<% if (_f.off) { %> disabled<% } %><% if (_v === true) { %> checked<% } %>>
+<%_ } else if (_f.type === 'enum') { _%>
+<select class="<%= locals.cls %>" id="<%= _id %>" data-kui-form-field="<%= _f.key %>"<% if (_f.off) { %> disabled<% } %>><option value=""<% if (String(_v === null || _v === undefined ? '' : _v) === '') { %> selected<% } %>><%= _f.placeholder || '' %></option><% (_f.options || []).forEach(function (o) { %><option value="<%= o.value %>"<% if (String(_v) === o.value) { %> selected<% } %>><%= o.label %></option><% }); %></select>
+<%_ } else if (_f.type === 'number') { _%>
+<span class="flex items-center gap-1.5"><input type="number" inputmode="decimal" class="<%= locals.cls %>" id="<%= _id %>" data-kui-form-field="<%= _f.key %>" value="<%= _v === null || _v === undefined ? '' : _v %>"<% if (_f.min !== undefined) { %> min="<%= _f.min %>"<% } %><% if (_f.max !== undefined) { %> max="<%= _f.max %>"<% } %> step="<%= _f.step !== undefined ? _f.step : 'any' %>"<% if (_f.placeholder) { %> placeholder="<%= _f.placeholder %>"<% } %><% if (_f.off) { %> disabled<% } %>><% if (_f.unit) { %><span class="shrink-0 text-xs text-text-secondary"><%= _f.unit %></span><% } %></span>
+<%_ } else { _%>
+<input type="text" class="<%= locals.cls %>" id="<%= _id %>" data-kui-form-field="<%= _f.key %>" value="<%= _v === null || _v === undefined ? '' : _v %>"<% if (_f.placeholder) { %> placeholder="<%= _f.placeholder %>"<% } %><% if (_f.off) { %> disabled<% } %>>
+<%_ } _%>
+<div data-kui-form-error="<%= _f.key %>"></div></div></div>

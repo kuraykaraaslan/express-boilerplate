@@ -1,0 +1,6 @@
+<%
+  // Re-export shim — keeps `include('modules/ui/ComboBox')` working.
+  // The real implementation lives in modules/ui/ComboBox/ComboBox.ejs alongside
+  // its partials/ and scripts/ siblings (see PLANS/23-MultiSelect-ComboBox.md).
+%>
+<%- include('./ComboBox/ComboBox', locals) %>

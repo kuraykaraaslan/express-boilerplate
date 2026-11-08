@@ -1,0 +1,58 @@
+<%
+  var _variant   = locals.variant   || 'line';
+  var _className = locals.className || '';
+  var _width     = locals.width     || 'w-full';
+  var _size      = locals.size      || 'md';
+  var _lines     = (typeof locals.lines === 'number') ? locals.lines : 3;
+  var _cols      = (typeof locals.cols  === 'number') ? locals.cols  : 4;
+  // Accessible name of the busy region ('text' and 'card').
+  var _label     = locals.label     || 'Loading content';
+
+  var base = 'animate-pulse bg-surface-sunken';
+
+  var avatarSize = {
+    sm: 'h-8 w-8',
+    md: 'h-10 w-10',
+    lg: 'h-12 w-12',
+  }[_size] || 'h-10 w-10';
+
+  var colWidths = ['w-28', 'w-40', 'w-20', 'w-16'];
+%>
+<% if (_variant === 'line') { %>
+  <div class="<%= base %> h-3 rounded <%= _width %><%= _className ? ' ' + _className : '' %>"></div>
+<% } else if (_variant === 'avatar') { %>
+  <div class="<%= base %> rounded-full shrink-0 <%= avatarSize %><%= _className ? ' ' + _className : '' %>"></div>
+<% } else if (_variant === 'text') { %>
+  <div class="space-y-2<%= _className ? ' ' + _className : '' %>" role="status" aria-busy="true" aria-label="<%= _label %>">
+    <% for (var i = 0; i < _lines; i++) { %>
+      <div class="<%= base %> h-3 rounded <%= (i === _lines - 1) ? 'w-4/5' : 'w-full' %>"></div>
+    <% } %>
+  </div>
+<% } else if (_variant === 'card') { %>
+  <div class="bg-surface-raised border border-border rounded-xl p-6 space-y-4<%= _className ? ' ' + _className : '' %>" role="status" aria-busy="true" aria-label="<%= _label %>">
+    <div class="flex items-center gap-3">
+      <div class="<%= base %> rounded-full shrink-0 h-10 w-10"></div>
+      <div class="flex-1 space-y-2">
+        <div class="<%= base %> h-3 rounded w-2/3"></div>
+        <div class="<%= base %> h-3 rounded w-1/2"></div>
+      </div>
+    </div>
+    <div class="space-y-2" role="status" aria-busy="true" aria-label="<%= _label %>">
+      <div class="<%= base %> h-3 rounded w-full"></div>
+      <div class="<%= base %> h-3 rounded w-full"></div>
+      <div class="<%= base %> h-3 rounded w-4/5"></div>
+    </div>
+    <div class="flex justify-between">
+      <div class="<%= base %> h-6 w-16 rounded"></div>
+      <div class="<%= base %> h-6 w-20 rounded"></div>
+    </div>
+  </div>
+<% } else if (_variant === 'tableRow') { %>
+  <tr class="border-b border-border<%= _className ? ' ' + _className : '' %>">
+    <% for (var j = 0; j < _cols; j++) { %>
+      <td class="px-4 py-3">
+        <div class="<%= base %> h-4 rounded <%= colWidths[j] || 'w-24' %>"></div>
+      </td>
+    <% } %>
+  </tr>
+<% } %>

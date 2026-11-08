@@ -1,0 +1,138 @@
+<%
+  // Optional controlled open state (kui-react Popover `open` / `onOpenChange`):
+  //   open          — a boolean makes the popover controlled: it renders in that state, and the
+  //                   trigger, outside clicks and Escape only ASK to change it. The host opens and
+  //                   closes it with window.openPopover(id) / window.closePopover(id) (e.g. from an
+  //                   Apply button inside). Omit it for the uncontrolled default.
+  //   onOpenChange  — NAME of a global function called with (open, id) on every requested change.
+  // Every requested change also dispatches 'kui:popover-openchange' on the root
+  // (bubbles, detail: { id, open }), controlled or not.
+  //   shrinkTrigger — let the trigger shrink to the popover's container (kui-react `shrinkTrigger`).
+  //                   The wrapper is an inline-block that sizes itself to the whole trigger, so a
+  //                   trigger's own max-w-full and truncate never apply; with shrinkTrigger the
+  //                   wrapper is capped at its container's width (max-w-full). Off by default.
+  var _id        = locals.id        || 'popover-' + Math.random().toString(36).substr(2, 9);
+  var _controlled = typeof locals.open === 'boolean';
+  var _open       = _controlled && locals.open === true;
+  var _onOpenChange = typeof locals.onOpenChange === 'string' ? locals.onOpenChange : '';
+  var _placement = locals.placement || 'bottom';
+  var _trigger   = locals.trigger   || '';
+  var _className = locals.className || '';
+  var _shrinkTrigger = locals.shrinkTrigger === true;
+
+  var placementClass = {
+    bottom: 'top-full left-0 mt-2',
+    top:    'bottom-full left-0 mb-2',
+    left:   'right-full top-0 mr-2',
+    right:  'left-full top-0 ml-2',
+  }[_placement] || 'top-full left-0 mt-2';
+%>
+<%- include('../shared/focus-trap.js') %>
+<%- include('../shared/dismiss.js') %>
+<%- include('../shared/keep-in-viewport.js') %>
+<div id="<%= _id %>" class="relative inline-block<%= _shrinkTrigger ? ' max-w-full' : '' %>"<% if (_controlled) { %> data-popover-controlled<% } %><% if (_onOpenChange) { %> data-on-open-change="<%= _onOpenChange %>"<% } %>>
+  <div data-popover-trigger-wrap>
+    <%- _trigger %>
+  </div>
+  <div
+    id="<%= _id %>-panel"
+    role="dialog"
+    aria-label="<%= locals.label || 'Popover' %>"
+    tabindex="-1"
+    <%= _open ? '' : 'hidden' %>
+    data-state="<%= _open ? 'open' : 'closed' %>"
+    class="absolute z-[70] min-w-[12rem] rounded-lg border border-border bg-surface-raised shadow-xl focus-visible:outline-none <%= placementClass %><%= _className ? ' ' + _className : '' %>"
+  >
+    <%- locals.children || '' %>
+  </div>
+</div>
+
+<script>
+(function () {
+  function getEls(id) {
+    return {
+      root:    document.getElementById(id),
+      trigger: document.getElementById(id + '-trigger'),
+      panel:   document.getElementById(id + '-panel'),
+    };
+  }
+
+  function openPopover(id) {
+    var e = getEls(id);
+    if (!e.root || !e.panel || !e.trigger) return;
+    e.panel.hidden = false;
+    if (window.__keepInViewport) window.__keepInViewport(e.panel);
+    e.panel.setAttribute('data-state', 'open');
+    e.trigger.setAttribute('aria-expanded', 'true');
+    if (window.__overlayFocusTrap) window.__overlayFocusTrap.activate(id, e.panel);
+    else e.panel.focus();
+  }
+
+  function closePopover(id) {
+    var e = getEls(id);
+    if (!e.root || !e.panel || !e.trigger) return;
+    e.panel.hidden = true;
+    if (e.panel.__kivStop) e.panel.__kivStop();
+    e.panel.setAttribute('data-state', 'closed');
+    e.trigger.setAttribute('aria-expanded', 'false');
+    if (window.__overlayFocusTrap) window.__overlayFocusTrap.deactivate(id);
+  }
+
+  function togglePopover(id) {
+    var e = getEls(id);
+    if (!e.panel) return;
+    if (e.panel.hidden) openPopover(id); else closePopover(id);
+  }
+
+  window.openPopover   = window.openPopover   || openPopover;
+  window.closePopover  = window.closePopover  || closePopover;
+  window.togglePopover = window.togglePopover || togglePopover;
+
+  var popoverId = <%- include('../../_script-json', { value: String(_id) }) %>;
+  var root = document.getElementById(popoverId);
+  if (!root) return;
+  var controlled = root.hasAttribute('data-popover-controlled');
+  var onOpenChange = root.getAttribute('data-on-open-change');
+
+  // Uncontrolled: change it, then tell. Controlled: only tell; the host decides.
+  function requestOpen(next) {
+    if (!controlled) { if (next) openPopover(popoverId); else closePopover(popoverId); }
+    root.dispatchEvent(new CustomEvent('kui:popover-openchange', { bubbles: true, detail: { id: popoverId, open: next } }));
+    if (onOpenChange && typeof window[onOpenChange] === 'function') window[onOpenChange](next, popoverId);
+  }
+
+  // The trigger prop is caller-supplied HTML (usually a real <button>) —
+  // wire the widget's ARIA/id onto that real element instead of the
+  // wrapper div, so aria-haspopup/aria-expanded land on something with
+  // a role that actually allows them.
+  var triggerWrap = root.querySelector('[data-popover-trigger-wrap]');
+  var triggerEl = triggerWrap && triggerWrap.firstElementChild;
+  if (triggerEl) {
+    triggerEl.id = popoverId + '-trigger';
+    triggerEl.setAttribute('aria-haspopup', 'dialog');
+    var initialPanel = document.getElementById(popoverId + '-panel');
+    triggerEl.setAttribute('aria-expanded', initialPanel && !initialPanel.hidden ? 'true' : 'false');
+    triggerEl.setAttribute('aria-controls', popoverId + '-panel');
+    triggerEl.addEventListener('click', function () {
+      var panel = document.getElementById(popoverId + '-panel');
+      requestOpen(!!panel && panel.hidden);
+    });
+  }
+
+  document.addEventListener('pointerdown', function (ev) {
+    var panel = document.getElementById(popoverId + '-panel');
+    if (!panel || panel.hidden) return;
+    if (!root.contains(ev.target)) requestOpen(false);
+  }, true);
+
+  document.addEventListener('keydown', function (ev) {
+    var panel = document.getElementById(popoverId + '-panel');
+    if (!panel || panel.hidden) return;
+    var ft = window.__overlayFocusTrap;
+    if (ft && !ft.isTop(popoverId)) return;
+    // An Escape an inner control already handled (an open ComboBox / Select list) closes that control, not the overlay.
+    if (ev.key === 'Escape') { if (!ev.defaultPrevented) requestOpen(false); return; }
+    if (ft) ft.handleKey(popoverId, panel, ev);
+  });
+})();
+</script>

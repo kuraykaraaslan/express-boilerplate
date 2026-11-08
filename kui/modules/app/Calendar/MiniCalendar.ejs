@@ -1,0 +1,165 @@
+<%
+  // ─── MiniCalendar — standalone sibling of parts/MiniCalendar.tsx ──────────
+  //
+  // Compact 6×7 month grid (240px). Click a day → fires a CustomEvent the
+  // caller listens to:
+  //   document.getElementById('mini-cal')
+  //     .addEventListener('kui-minicalendar:change',
+  //                       function (ev) { console.log(ev.detail.date); });
+  //
+  // Composes freely outside <Calendar>; doesn't touch the calendar store.
+
+  var _id    = locals.id     || ('mini-' + Math.random().toString(36).substr(2, 6));
+  var _value = locals.value ? new Date(locals.value) : new Date();
+  var _locale = (locals.locale || 'tr').toLowerCase().slice(0, 2);
+  var _className = locals.className || '';
+
+  var LOCALES = {
+    tr: { previous: 'Önceki', next: 'Sonraki', weekStart: 1,
+      monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+      dayShort:   ['P','P','S','Ç','P','C','C'] },
+    en: { previous: 'Previous', next: 'Next', weekStart: 0,
+      monthNames: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      dayShort:   ['S','M','T','W','T','F','S'] }
+  };
+  var L = LOCALES[_locale] || LOCALES.tr;
+
+  function startOfDay(d) { var x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+  function isSameMonth(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth(); }
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function startOfWeek(d, ws) { var x = startOfDay(d); var diff = (x.getDay() - ws + 7) % 7; return addDays(x, -diff); }
+  function monthGrid(d, ws) {
+    var first = new Date(d.getFullYear(), d.getMonth(), 1);
+    var s = startOfWeek(first, ws);
+    var out = [];
+    for (var i = 0; i < 42; i++) out.push(addDays(s, i));
+    return out;
+  }
+
+  var _today = new Date();
+  var _cells = monthGrid(_value, L.weekStart);
+  var _headerOrder = [];
+  for (var _i = 0; _i < 7; _i++) _headerOrder.push((_i + L.weekStart) % 7);
+%>
+<div
+  id="<%= _id %>"
+  data-kui-minicalendar
+  data-anchor="<%= _value.toISOString() %>"
+  data-locale="<%= _locale %>"
+  data-week-start="<%= L.weekStart %>"
+  role="application"
+  aria-label="<%= L.monthNames[_value.getMonth()] %> <%= _value.getFullYear() %>"
+  class="inline-flex flex-col w-60 rounded-lg border border-border bg-surface-base overflow-hidden<%= _className ? ' ' + _className : '' %>"
+>
+  <div class="flex items-center justify-between px-2 py-1.5 border-b border-border bg-surface-raised">
+    <button type="button" data-mini-nav="prev" aria-label="<%= L.previous %>"
+      class="inline-flex items-center justify-center w-6 h-6 rounded text-text-secondary hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <i class="fa-solid fa-chevron-left w-2.5 h-2.5" aria-hidden="true"></i>
+    </button>
+    <span data-mini-label class="text-xs font-semibold text-text-primary tabular-nums"><%= L.monthNames[_value.getMonth()] %> <%= _value.getFullYear() %></span>
+    <button type="button" data-mini-nav="next" aria-label="<%= L.next %>"
+      class="inline-flex items-center justify-center w-6 h-6 rounded text-text-secondary hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <i class="fa-solid fa-chevron-right w-2.5 h-2.5" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-7 px-1 py-1">
+    <% _headerOrder.forEach(function (dayIdx) { %>
+      <div class="text-[10px] font-semibold uppercase tracking-wider text-text-secondary text-center"><%= L.dayShort[dayIdx] %></div>
+    <% }); %>
+  </div>
+
+  <div data-mini-grid role="grid" aria-label="<%= L.monthNames[_value.getMonth()] %> <%= _value.getFullYear() %>" class="grid grid-cols-7 px-1 pb-1 gap-0.5">
+    <% for (var _mw = 0; _mw < _cells.length; _mw += 7) { %>
+    <div role="row" style="display: contents">
+    <% _cells.slice(_mw, _mw + 7).forEach(function (cell) {
+         var inMonth = isSameMonth(cell, _value);
+         var isToday = isSameDay(cell, _today);
+         var isSelected = isSameDay(cell, _value);
+         var cls = 'inline-flex items-center justify-center h-6 w-6 mx-auto rounded-full text-[11px] tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors';
+         if (isSelected) cls += ' bg-primary text-primary-fg font-semibold';
+         else if (isToday) cls += ' text-primary font-semibold ring-1 ring-primary';
+         else if (!inMonth) cls += ' text-text-disabled';
+         else cls += ' text-text-primary hover:bg-surface-overlay';
+    %>
+      <button type="button" role="gridcell" aria-selected="<%= isSelected %>"
+        data-mini-day="<%= cell.toISOString() %>"
+        class="<%= cls %>"><%= cell.getDate() %></button>
+    <% }); %>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+if (!window.__KuiMiniCalendarLoaded) {
+  window.__KuiMiniCalendarLoaded = true;
+  (function () {
+    var MONTHS = {
+      tr: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+      en: ['January','February','March','April','May','June','July','August','September','October','November','December']
+    };
+    function addMonths(d, n) { var x = new Date(d); x.setMonth(x.getMonth() + n); return x; }
+    function startOfDay(d) { var x = new Date(d); x.setHours(0,0,0,0); return x; }
+    function isSameDay(a, b) { return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+    function isSameMonth(a, b) { return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth(); }
+    function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+    function startOfWeek(d, ws) { var x = startOfDay(d); var diff = (x.getDay()-ws+7)%7; return addDays(x, -diff); }
+    function monthGrid(d, ws) {
+      var first = new Date(d.getFullYear(), d.getMonth(), 1);
+      var s = startOfWeek(first, ws);
+      var out = []; for (var i=0;i<42;i++) out.push(addDays(s,i));
+      return out;
+    }
+    function rerender(root, anchor) {
+      var loc = root.getAttribute('data-locale') || 'tr';
+      var ws  = Number(root.getAttribute('data-week-start')) || 0;
+      root.setAttribute('data-anchor', anchor.toISOString());
+      root.setAttribute('aria-label', MONTHS[loc][anchor.getMonth()] + ' ' + anchor.getFullYear());
+      root.querySelector('[data-mini-label]').textContent = MONTHS[loc][anchor.getMonth()] + ' ' + anchor.getFullYear();
+      var grid = root.querySelector('[data-mini-grid]');
+      var today = new Date();
+      // Recreate cells.
+      grid.innerHTML = '';
+      monthGrid(anchor, ws).forEach(function (cell) {
+        var inMonth = isSameMonth(cell, anchor);
+        var isToday = isSameDay(cell, today);
+        var isSelected = isSameDay(cell, anchor);
+        var cls = 'inline-flex items-center justify-center h-6 w-6 mx-auto rounded-full text-[11px] tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors';
+        if (isSelected) cls += ' bg-primary text-primary-fg font-semibold';
+        else if (isToday) cls += ' text-primary font-semibold ring-1 ring-primary';
+        else if (!inMonth) cls += ' text-text-disabled';
+        else cls += ' text-text-primary hover:bg-surface-overlay';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('role', 'gridcell');
+        btn.setAttribute('aria-selected', String(isSelected));
+        btn.setAttribute('data-mini-day', cell.toISOString());
+        btn.className = cls;
+        btn.textContent = String(cell.getDate());
+        grid.appendChild(btn);
+      });
+    }
+    document.addEventListener('click', function (ev) {
+      var root = ev.target.closest && ev.target.closest('[data-kui-minicalendar]');
+      if (!root) return;
+      var nav = ev.target.closest('[data-mini-nav]');
+      if (nav) {
+        var direction = nav.getAttribute('data-mini-nav');
+        var anchor = new Date(root.getAttribute('data-anchor'));
+        rerender(root, addMonths(anchor, direction === 'next' ? 1 : -1));
+        return;
+      }
+      var day = ev.target.closest('[data-mini-day]');
+      if (day) {
+        var d = new Date(day.getAttribute('data-mini-day'));
+        rerender(root, d);
+        root.dispatchEvent(new CustomEvent('kui-minicalendar:change', { detail: { date: d }, bubbles: true }));
+      }
+    });
+  })();
+}
+</script>

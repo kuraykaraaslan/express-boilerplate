@@ -1,0 +1,28 @@
+<%#
+  state: a bound value mapped to a labelled, coloured state, in the single-value family's order: label top-left,
+  the state's icon top-right, the state where Stat's number sits, meta under it (kui-react StateView). The label is the
+  model's `caption`: left out when it only repeats the card's title shown in the header (`captionOf`).
+  Locals: model.
+%><%_
+  var _m = locals.model;
+  var _s = _m.s;
+  var _layout = _m.layout;
+  var _label = _m.caption ? { text: _m.caption, font: _s.labelFont, color: _s.labelColor } : null;
+  // big and tile: the state word sits where Stat's number does and its icon goes top-right.
+  var _headTile = null;
+  if ((_layout === 'big' || _layout === 'tile' || (_layout !== 'badge' && _layout !== 'dot' && _layout !== 'lamp' && _layout !== 'icon')) && _m.out.icon) {
+    _headTile = { name: _m.out.icon, size: Math.round(_m.iconSize * 1.8), color: _m.out.color, background: _m.out.background, wrap: { className: 'inline-flex' + (_m.pulse ? ' motion-safe:animate-pulse' : ''), part: 'icon' } };
+  }
+  var _surface = _layout === 'tile' ? widgetKit.style({ background: _m.bg }) : '';
+  var _tileCls = _layout === 'tile' ? ' rounded-lg p-2.5' + (_m.pulse ? ' motion-safe:animate-pulse' : '') : '';
+_%>
+<div class="flex h-full min-h-0 flex-col gap-2<%= _tileCls %>"<% if (_surface) { %> style="<%= _surface %>"<% } %> role="status" aria-live="polite" data-layout="<%= _layout %>">
+<% if (_layout === 'tile' && !_label && !_m.center) { %>
+<div class="mt-auto flex min-w-0 items-center justify-between gap-3"><div class="flex min-w-0 flex-col items-start gap-1.5"><%- include('_state-main', { model: _m }) %><%- include('_state-meta', { model: _m }) %></div><% if (_headTile) { %><span class="<%= _headTile.wrap.className %>" data-part="icon"><%- include('../_icon-tile', _headTile) %></span><% } %></div>
+<% } else if (_m.center) { %>
+<% if (_label) { %><div class="text-center"><%- include('../_metric-label', _label) %></div><% } %>
+<div class="flex min-h-0 flex-1 flex-col items-center justify-center-safe gap-2 text-center"><% if (_headTile) { %><span class="<%= _headTile.wrap.className %>" data-part="icon"><%- include('../_icon-tile', _headTile) %></span><% } %><%- include('_state-main', { model: _m }) %><%- include('_state-meta', { model: _m }) %></div>
+<% } else { %>
+<%- include('../_metric-head', { label: _label, tile: _headTile }) %><div class="mt-auto flex min-w-0 flex-col items-start gap-1.5"><%- include('_state-main', { model: _m }) %><%- include('_state-meta', { model: _m }) %></div>
+<% } %>
+</div>

@@ -1,0 +1,144 @@
+<%
+  // AccessibilityKit re-exports SkipLink, LiveRegion, Announcer, and Tooltip
+  // from the underlying ui/ primitives. This EJS file renders any of them
+  // based on `locals.part` ('skip' | 'live' | 'announcer' | 'tooltip'),
+  // and by default renders SkipLink + LiveRegion (matching the typical
+  // top-of-document usage) and exposes window.announce for ad-hoc updates.
+  var _part        = locals.part        || 'all';
+  var _skipHref    = locals.skipHref    || locals.href  || '#main-content';
+  var _skipLabel   = locals.skipLabel   || locals.label || 'Skip to main content';
+  var _politeness  = locals.politeness  || 'polite';
+  var _message     = locals.message     || '';
+  var _liveId      = locals.liveId      || 'a11y-live-region';
+  var _className   = locals.className   || '';
+
+  // Tooltip locals
+  var _tipContent   = locals.content     || '';
+  var _tipPlacement = locals.placement   || 'top';
+  var _tipTheme     = locals.theme       || 'default';
+  var _tipArrow     = !!locals.arrow;
+  var _tipDelay     = Number(locals.delay || 0);
+  var _tipId        = locals.tooltipId   || ('tooltip-' + Math.random().toString(36).slice(2, 8));
+
+  var _themeMap = {
+    'default': 'bg-surface-overlay text-text-primary border border-border',
+    'dark':    'bg-gray-900 text-white border-transparent',
+    'light':   'bg-white text-gray-900 border border-border shadow-md'
+  };
+  var _placementMap = {
+    'top':    'bottom-full left-1/2 -translate-x-1/2 mb-2',
+    'bottom': 'top-full left-1/2 -translate-x-1/2 mt-2',
+    'left':   'right-full top-1/2 -translate-y-1/2 mr-2',
+    'right':  'left-full top-1/2 -translate-y-1/2 ml-2'
+  };
+  var _arrowPlacement = {
+    'top':    'bottom-[-5px] left-1/2 -translate-x-1/2 border-t-0 border-l-0',
+    'bottom': 'top-[-5px] left-1/2 -translate-x-1/2 border-b-0 border-r-0',
+    'left':   'right-[-5px] top-1/2 -translate-y-1/2 border-l-0 border-b-0',
+    'right':  'left-[-5px] top-1/2 -translate-y-1/2 border-r-0 border-t-0'
+  };
+  var _arrowTheme = {
+    'default': 'bg-surface-overlay',
+    'dark':    'bg-gray-900 border-transparent',
+    'light':   'bg-white'
+  };
+  var _tipThemeCls     = _themeMap[_tipTheme] || _themeMap['default'];
+  var _tipPlacementCls = _placementMap[_tipPlacement] || _placementMap['top'];
+  var _tipArrowPlace   = _arrowPlacement[_tipPlacement] || _arrowPlacement['top'];
+  var _tipArrowTheme   = _arrowTheme[_tipTheme] || _arrowTheme['default'];
+%>
+
+<% if (_part === 'all' || _part === 'skip') { %>
+<a
+  href="<%= _skipHref %>"
+  class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _className ? ' ' + _className : '' %>"
+>
+  <%= _skipLabel %>
+</a>
+<% } %>
+
+<% if (_part === 'all' || _part === 'live' || _part === 'announcer') { %>
+<div
+  id="<%= _liveId %>"
+  role="status"
+  aria-live="<%= _politeness %>"
+  aria-atomic="true"
+  class="sr-only<%= (_part !== 'live' && _part !== 'announcer' && _className) ? '' : (_className ? ' ' + _className : '') %>"
+><%= _message %></div>
+<% } %>
+
+<% if (_part === 'tooltip') { %>
+<span
+  class="relative inline-flex items-center<%= _className ? ' ' + _className : '' %>"
+  data-tooltip-host="<%= _tipId %>"
+  data-tooltip-delay="<%= _tipDelay %>"
+>
+  <span aria-describedby="<%= _tipId %>"><%- locals.children || '' %></span>
+  <span
+    id="<%= _tipId %>"
+    role="tooltip"
+    class="absolute z-[80] whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium shadow-md transition-opacity duration-150 pointer-events-none opacity-0 <%= _tipThemeCls %> <%= _tipPlacementCls %>"
+  >
+    <%- _tipContent %>
+    <% if (_tipArrow) { %>
+    <span aria-hidden="true" class="absolute w-2 h-2 rotate-45 border border-border <%= _tipArrowPlace %> <%= _tipArrowTheme %>"></span>
+    <% } %>
+  </span>
+</span>
+<% } %>
+
+<script>
+(function () {
+  var liveId = <%- include('../ui/_script-json', { value: String(_liveId) }) %>;
+  function announce(msg, politeness) {
+    var el = document.getElementById(liveId);
+    if (!el) return;
+    if (politeness === 'assertive' || politeness === 'polite') {
+      el.setAttribute('aria-live', politeness);
+    }
+    // Clear then set to force AT re-announcement
+    el.textContent = '';
+    setTimeout(function () { el.textContent = String(msg == null ? '' : msg); }, 30);
+  }
+  window.announce = window.announce || announce;
+
+  // Tooltip show/hide on hover + focus (matches Tooltip.tsx behavior).
+  if (!window.__a11yTooltipInit) {
+    window.__a11yTooltipInit = true;
+    var timers = {};
+    function show(host) {
+      var id = host.getAttribute('data-tooltip-host');
+      var delay = Number(host.getAttribute('data-tooltip-delay') || 0);
+      var tip = document.getElementById(id);
+      if (!tip) return;
+      if (delay > 0) {
+        timers[id] = setTimeout(function () { tip.classList.remove('opacity-0'); tip.classList.add('opacity-100'); }, delay);
+      } else {
+        tip.classList.remove('opacity-0'); tip.classList.add('opacity-100');
+      }
+    }
+    function hide(host) {
+      var id = host.getAttribute('data-tooltip-host');
+      var tip = document.getElementById(id);
+      if (timers[id]) { clearTimeout(timers[id]); delete timers[id]; }
+      if (tip) { tip.classList.add('opacity-0'); tip.classList.remove('opacity-100'); }
+    }
+    document.addEventListener('mouseover', function (e) {
+      var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+      if (host) show(host);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+      if (host && !host.contains(e.relatedTarget)) hide(host);
+    });
+    document.addEventListener('focusin', function (e) {
+      var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+      if (host) show(host);
+    });
+    document.addEventListener('focusout', function (e) {
+      var host = e.target && e.target.closest && e.target.closest('[data-tooltip-host]');
+      if (host && !host.contains(e.relatedTarget)) hide(host);
+    });
+  }
+})();
+</script>

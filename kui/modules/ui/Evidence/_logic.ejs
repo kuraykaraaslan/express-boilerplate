@@ -1,0 +1,69 @@
+<%
+  // Server-side helpers shared by CitationChip, EvidenceList and CitedText (kui-react modules/ui/Evidence/index.tsx).
+  // Fills the object passed as `L`:  include('./Evidence/_logic', { L: L })
+  var L = locals.L;
+
+  L.DEFAULT_MESSAGES = {
+    citation: 'Evidence {index}: {title}',
+    droppedCitation: 'Citation {index}: no matching evidence, claim dropped',
+    heading: 'Evidence',
+    empty: 'No evidence was cited.',
+    open: 'Open',
+    openNamed: 'Open {title}',
+    droppedHeading: 'Dropped claims',
+    droppedSummary: '{count} claims removed: they cited no evidence you can open.',
+    droppedHint: 'These statements are not part of the answer.',
+    reason: 'Reason',
+    kinds: {
+      log: 'Log', trace: 'Trace', metric: 'Metric', alert: 'Alert', incident: 'Incident', deploy: 'Deploy',
+      config: 'Config', doc: 'Document', query: 'Query', other: 'Other'
+    }
+  };
+
+  /** The default messages with the caller's overrides on top (`kinds` merges key by key). */
+  L.messages = function (overrides) {
+    var o = overrides && typeof overrides === 'object' ? overrides : {};
+    var out = {};
+    Object.keys(L.DEFAULT_MESSAGES).forEach(function (k) { out[k] = o[k] != null ? o[k] : L.DEFAULT_MESSAGES[k]; });
+    out.kinds = Object.assign({}, L.DEFAULT_MESSAGES.kinds, o.kinds || {});
+    return out;
+  };
+
+  /** Replace `{name}` placeholders; an unknown placeholder stays as it is. */
+  L.fill = function (template, values) {
+    return String(template).replace(/\{(\w+)\}/g, function (whole, key) {
+      return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : whole;
+    });
+  };
+
+  // Font Awesome classes of the kind icons (React draws the same icons as inline SVG).
+  L.KIND_ICON = {
+    log: 'fa-solid fa-file-lines',
+    trace: 'fa-solid fa-diagram-project',
+    metric: 'fa-solid fa-chart-line',
+    alert: 'fa-solid fa-bell',
+    incident: 'fa-solid fa-circle-exclamation',
+    deploy: 'fa-solid fa-rocket',
+    config: 'fa-solid fa-sliders',
+    doc: 'fa-solid fa-book',
+    query: 'fa-solid fa-magnifying-glass',
+    other: 'fa-solid fa-circle-info'
+  };
+  L.isKnownKind = function (k) { return typeof k === 'string' && Object.prototype.hasOwnProperty.call(L.KIND_ICON, k); };
+
+  /** The DOM id of an evidence row, which a chip's default anchor points at. */
+  L.domId = function (idPrefix, evidenceId) { return idPrefix + '-' + evidenceId; };
+
+  L.timeText = function (ts, locale, timeZone) {
+    if (ts === undefined || ts === null) return null;
+    var ms = typeof ts === 'number' ? ts : Date.parse(ts);
+    if (isNaN(ms)) return null;
+    try {
+      var opts = { dateStyle: 'medium', timeStyle: 'medium' };
+      if (timeZone) opts.timeZone = timeZone;
+      return new Intl.DateTimeFormat(locale || undefined, opts).format(new Date(ms));
+    } catch (e) {
+      return new Date(ms).toISOString();
+    }
+  };
+%>

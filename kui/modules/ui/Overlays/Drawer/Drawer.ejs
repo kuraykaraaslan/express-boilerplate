@@ -1,0 +1,122 @@
+<%
+var _id    = locals.id    || 'drawer-' + Math.random().toString(36).substr(2, 9);
+var _title = locals.title || '';
+var _side  = locals.side  || 'right';
+var _open  = locals.open  || false;
+// The close button's accessible name (kui-react `closeLabel`).
+var _closeLabel = typeof locals.closeLabel === 'string' ? locals.closeLabel : 'Close drawer';
+
+var wrapperPointer = _open ? '' : 'pointer-events-none';
+var backdropOpacity = _open ? 'opacity-100' : 'opacity-0';
+
+var panelBase = 'relative z-[101] flex flex-col w-80 max-w-full h-full bg-surface-raised border-border shadow-xl transition-transform duration-200 focus-visible:outline-none';
+var panelSide = _side === 'right'
+  ? 'ml-auto border-l'
+  : 'mr-auto border-r';
+var panelTranslate = _open
+  ? 'translate-x-0'
+  : (_side === 'right' ? 'translate-x-full' : '-translate-x-full');
+%>
+<%- include('../shared/focus-trap.js') %>
+<%- include('../shared/scroll-lock.js') %>
+<%- include('../shared/dismiss.js') %>
+
+<div
+  id="<%= _id %>"
+  data-state="<%= _open ? 'open' : 'closed' %>"
+  class="fixed inset-0 z-[100] flex <%= wrapperPointer %>"
+  role="dialog"
+  aria-modal="true"
+  aria-label="<%= _title %>"
+>
+  <!-- Backdrop -->
+  <div
+    id="<%= _id %>-backdrop"
+    class="absolute inset-0 bg-black/50 transition-opacity duration-200 <%= backdropOpacity %>"
+    aria-hidden="true"
+    onclick="closeDrawer(<%= JSON.stringify(String(_id)) %>)"
+  ></div>
+
+  <!-- Panel -->
+  <div
+    id="<%= _id %>-panel"
+    tabindex="-1"
+    class="<%= panelBase %> <%= panelSide %> <%= panelTranslate %><%= locals.className ? ' ' + locals.className : '' %>"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3 px-4 py-4 border-b border-border shrink-0">
+      <h2 class="text-base font-semibold text-text-primary"><%= _title %></h2>
+      <button
+        type="button"
+        aria-label="<%= _closeLabel %>"
+        onclick="closeDrawer(<%= JSON.stringify(String(_id)) %>)"
+        class="text-text-disabled hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" style="font-size:1rem"><i class="fa-solid fa-xmark w-4 h-4" aria-hidden="true"></i></span>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <%- locals.children || '' %>
+    </div>
+
+    <% if (locals.footer) { %>
+    <!-- Footer -->
+    <div class="px-4 py-4 border-t border-border shrink-0">
+      <%- locals.footer %>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function () {
+  var drawerId = <%- include('../../_script-json', { value: String(_id) }) %>;
+
+  function openDrawer(id) {
+    var el       = document.getElementById(id);
+    var backdrop = document.getElementById(id + '-backdrop');
+    var panel    = document.getElementById(id + '-panel');
+    if (!el || !panel) return;
+    el.classList.remove('pointer-events-none');
+    el.setAttribute('data-state', 'open');
+    if (backdrop) { backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100'); }
+    panel.classList.remove('translate-x-full', '-translate-x-full');
+    panel.classList.add('translate-x-0');
+    if (window.__overlayScrollLock) window.__overlayScrollLock.lock();
+    if (window.__overlayFocusTrap)  window.__overlayFocusTrap.activate(id, panel);
+  }
+
+  function closeDrawer(id) {
+    var el       = document.getElementById(id);
+    var backdrop = document.getElementById(id + '-backdrop');
+    var panel    = document.getElementById(id + '-panel');
+    if (!el || !panel) return;
+    var isRight = panel.classList.contains('ml-auto');
+    el.classList.add('pointer-events-none');
+    el.setAttribute('data-state', 'closed');
+    if (backdrop) { backdrop.classList.add('opacity-0'); backdrop.classList.remove('opacity-100'); }
+    panel.classList.remove('translate-x-0');
+    panel.classList.add(isRight ? 'translate-x-full' : '-translate-x-full');
+    if (window.__overlayScrollLock) window.__overlayScrollLock.unlock();
+    if (window.__overlayFocusTrap)  window.__overlayFocusTrap.deactivate(id);
+  }
+
+  window.openDrawer  = window.openDrawer  || openDrawer;
+  window.closeDrawer = window.closeDrawer || closeDrawer;
+
+  document.addEventListener('keydown', function (e) {
+    var el = document.getElementById(drawerId);
+    if (!el || el.getAttribute('data-state') !== 'open') return;
+    var panel = document.getElementById(drawerId + '-panel');
+    if (!panel) return;
+    var ft = window.__overlayFocusTrap;
+    if (!ft) return;
+    if (!ft.isTop(drawerId)) return;
+    // An Escape an inner control already handled (an open ComboBox / Select list) closes that control, not the overlay.
+    if (e.key === 'Escape') { if (!e.defaultPrevented) closeDrawer(drawerId); return; }
+    ft.handleKey(drawerId, panel, e);
+  });
+})();
+</script>

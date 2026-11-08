@@ -1,0 +1,65 @@
+<%# modules/ui/Toast/partials/_toast-item.ejs %>
+<%#
+  Server-rendered single toast card (matches the dynamic JS template
+  generated in scripts/store.js exactly — pixel-perfect parity required).
+
+  Locals:
+    variant      'info'|'success'|'warning'|'error'|'loading' (default 'info')
+    title        string
+    message      string
+    actionLabel  string  — single-button shortcut
+    actionHref   string  — if set, renders an <a> instead of <button>
+    persistent   bool    — hides the close × button
+    position     string  — unused server-side (region picks position)
+
+  M1 milestone — see PLANS/26-Toast.md.
+  TODO M2: actions[] array support (multiple buttons).
+%>
+<%
+  var _v           = locals.variant     || 'info';
+  var _title       = locals.title       || '';
+  var _message     = locals.message     || '';
+  var _actionLabel = locals.actionLabel || '';
+  var _actionHref  = locals.actionHref  || '';
+  var _persistent  = !!locals.persistent;
+
+  var variantMap = {
+    success: { container: 'bg-success-subtle border-success', iconColor: 'text-success-fg',     progressColor: 'bg-success', icon: 'fa-circle-check',         spin: false, role: 'status', live: 'polite'    },
+    warning: { container: 'bg-warning-subtle border-warning', iconColor: 'text-warning',         progressColor: 'bg-warning', icon: 'fa-triangle-exclamation', spin: false, role: 'alert',  live: 'assertive' },
+    error:   { container: 'bg-error-subtle border-error',     iconColor: 'text-error',           progressColor: 'bg-error',   icon: 'fa-circle-xmark',         spin: false, role: 'alert',  live: 'assertive' },
+    info:    { container: 'bg-info-subtle border-info',       iconColor: 'text-info',            progressColor: 'bg-info',    icon: 'fa-circle-info',          spin: false, role: 'status', live: 'polite'    },
+    loading: { container: 'bg-surface-raised border-border',  iconColor: 'text-text-secondary',  progressColor: 'bg-primary', icon: 'fa-spinner',              spin: true,  role: 'status', live: 'polite'    },
+  };
+  var vm = variantMap[_v] || variantMap.info;
+%>
+<div class="relative w-80 rounded-xl border shadow-lg overflow-hidden pointer-events-auto <%= vm.container %>"
+  role="<%= vm.role %>" aria-live="<%= vm.live %>">
+  <div class="flex items-start gap-3 px-4 pt-4 pb-3">
+    <span class="mt-0.5 <%= vm.iconColor %>" aria-hidden="true">
+      <i class="fa-solid <%= vm.icon %><%= vm.spin ? ' animate-spin' : '' %> shrink-0"></i>
+    </span>
+    <div class="flex-1 min-w-0">
+      <% if (_title) { %><p class="text-sm font-semibold text-text-primary leading-snug"><%= _title %></p><% } %>
+      <p class="text-sm text-text-secondary leading-snug<%= _title ? ' mt-0.5' : '' %>"><%= _message %></p>
+      <% if (_actionLabel) { %>
+      <div class="flex flex-wrap gap-x-3 gap-y-1 mt-2.5">
+        <% if (_actionHref) { %>
+        <a href="<%= _actionHref %>" class="text-xs font-semibold rounded underline underline-offset-2 text-text-primary hover:opacity-70"><%= _actionLabel %></a>
+        <% } else { %>
+        <button type="button" class="text-xs font-semibold rounded underline underline-offset-2 text-text-primary hover:opacity-70"><%= _actionLabel %></button>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+    <% if (!_persistent) { %>
+    <button
+      type="button"
+      aria-label="Dismiss"
+      onclick="this.closest('.rounded-xl').style.display='none'"
+      class="shrink-0 mt-0.5 rounded text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    >
+      <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+    </button>
+    <% } %>
+  </div>
+</div>

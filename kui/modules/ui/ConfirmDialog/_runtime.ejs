@@ -1,0 +1,15 @@
+<%
+  // The one place the ConfirmDialog runtime (scripts/confirm-dialog.js: window.KuiConfirm, window.confirmDialog) is
+  // inlined, with the shared focus trap and scroll lock it uses. ConfirmHost, ConfirmDialog and every partial that asks
+  // include this; `runtimeOnce` (a per-request res.locals object) keeps it to one copy per page, and a second copy on
+  // a page without it joins the first one's queue (Symbol.for('kui.confirmDialog')).
+  if (locals.runtimeOnce) {
+    if (locals.runtimeOnce.confirm) return;
+    locals.runtimeOnce.confirm = true;
+  }
+%>
+<%- include('../Overlays/shared/focus-trap.js') %>
+<%- include('../Overlays/shared/scroll-lock.js') %>
+<script>
+<%- include('./scripts/confirm-dialog.js') %>
+</script>

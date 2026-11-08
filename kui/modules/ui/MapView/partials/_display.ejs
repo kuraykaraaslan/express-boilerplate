@@ -1,0 +1,29 @@
+<%
+// The display options MapCanvas and MapView share (kui-react MapDisplayOptions), as a
+// JSON-safe object for the Leaflet runtime. Fills `D.value`:  include('./partials/_display', { D: D, src: locals })
+//   minZoom, maxZoom      — lowest / highest zoom the viewer may reach
+//   cluster               — group overlapping markers into a count bubble (default false)
+//   clusterRadius         — pixel distance within which markers group (default 40, 10..200)
+//   showLabels            — each marker's `label` as a permanent chip (default false: on hover); a marker's own `permanentLabel` wins
+//   tooltipTrigger        — 'hover' (default) | 'click' (stays open, links usable) | 'none'
+//   scrollWheelZoom       — zoom with the mouse wheel (default true)
+//   zoomControl           — show the + / − buttons (default true)
+//   controlsPosition      — 'topleft' (default) | 'topright' | 'bottomleft' | 'bottomright'
+//   fitMaxZoom            — the closest zoom a fit may reach (default 15)
+// kui-react's renderLink (a React render function) has no EJS counterpart: a tooltip
+// `href` is a plain anchor.
+var s = locals.src || {};
+var num = function (v) { return typeof v === 'number' && isFinite(v) ? v : undefined; };
+locals.D.value = {
+  minZoom: num(s.minZoom),
+  maxZoom: num(s.maxZoom),
+  cluster: !!s.cluster,
+  clusterRadius: num(s.clusterRadius),
+  showLabels: !!s.showLabels,
+  tooltipTrigger: ['click', 'none'].indexOf(s.tooltipTrigger) !== -1 ? s.tooltipTrigger : 'hover',
+  scrollWheelZoom: s.scrollWheelZoom !== false,
+  zoomControl: s.zoomControl !== false,
+  controlsPosition: ['topright', 'bottomleft', 'bottomright'].indexOf(s.controlsPosition) !== -1 ? s.controlsPosition : 'topleft',
+  fitMaxZoom: num(s.fitMaxZoom),
+};
+%>

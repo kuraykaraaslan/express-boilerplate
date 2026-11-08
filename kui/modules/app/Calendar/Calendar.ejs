@@ -1,0 +1,378 @@
+<%
+  // ─── Calendar — M1 + M2 + M3 ────────────────────────────────────────────────
+  //
+  // Folder-scoped sibling of
+  //   /home/kuray/01_NextJS_Components/modules/app/Calendar/index.tsx
+  //
+  // File-for-file parallels:
+  //   partials/_header.ejs       ← parts/HeaderBar.tsx
+  //   partials/_month.ejs        ← views/MonthView.tsx
+  //   partials/_week.ejs         ← views/WeekView.tsx
+  //   partials/_day.ejs          ← views/DayView.tsx
+  //   partials/_agenda.ejs       ← views/AgendaView.tsx (M5 stub)
+  //   partials/_event-card.ejs   ← parts/EventCard.tsx
+  //   scripts/calendar.js        ← view-state + nav (parallel of index.tsx state)
+  //   scripts/keyboard.js        ← hooks/useKeyboardNav.ts
+  //   scripts/popover.js         ← parts/EventPopover.tsx          (M2)
+  //   scripts/drag.js            ← hooks/useDragMove + useResize + useDragCreate (M2)
+  //   RRULE expander (inline)    ← rrule.ts + hooks/useRecurrence.ts (M3, server-side)
+  //   partials/_legend.ejs       ← parts/CalendarLegend.tsx                       (M4)
+  //   partials/_resource.ejs     ← views/ResourceView.tsx                         (M4)
+  //   scripts/legend.js          ← multi-calendar visibility toggle               (M4)
+  //
+  // M5-M6 still stubbed.
+
+  var _id           = locals.id           || ('cal-' + Math.random().toString(36).substr(2, 6));
+  var _events       = locals.events       || [];
+  var _view         = locals.view         || 'month';
+  var _defaultDate  = locals.defaultDate  ? new Date(locals.defaultDate) : new Date();
+  var _locale       = (locals.locale      || 'tr').toLowerCase().slice(0, 2);
+  var _workingHours = locals.workingHours || null;
+  var _slotMinutes  = Number(locals.slotMinutes) > 0 ? Number(locals.slotMinutes) : 30;
+  var _className    = locals.className    || '';
+  var _resources    = Array.isArray(locals.resources) ? locals.resources : [];
+  var _calendars    = Array.isArray(locals.calendars) ? locals.calendars : [];
+  var _hideLegend   = !!locals.hideCalendarLegend;
+
+  // Normalise events — accept ISO strings or Date instances; preserve rrule + exceptions.
+  _events = _events.map(function (e) {
+    return Object.assign({}, e, {
+      start: e.start instanceof Date ? e.start : new Date(e.start),
+      end:   e.end   instanceof Date ? e.end   : new Date(e.end),
+      exceptions: Array.isArray(e.exceptions)
+        ? e.exceptions.map(function (x) { return x instanceof Date ? x : new Date(x); })
+        : undefined
+    });
+  });
+
+  // ── Locale bundles (mirror locale/tr.ts + en.ts) ──────────────────────────
+  var LOCALES = {
+    tr: {
+      messages: {
+        today: 'Bugün', previous: 'Önceki', next: 'Sonraki',
+        month: 'Ay', week: 'Hafta', day: 'Gün',
+        agenda: 'Ajanda', resource: 'Kaynak',
+        allDay: 'Tüm gün', noEvents: 'Etkinlik yok',
+        edit: 'Düzenle', delete: 'Sil', confirmDelete: 'Silinsin mi?', close: 'Kapat',
+        calendars: 'Takvimler', noResources: 'Kaynak tanımlı değil',
+        search: 'Etkinliklerde ara…',
+        showing: function (label) { return label + ' gösteriliyor'; },
+        cellLabel: function (date, count) {
+          return count > 0 ? date + ', ' + count + ' etkinlik' : date + ', etkinlik yok';
+        }
+      },
+      weekStart: 1,
+      monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+      dayShort:   ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
+      dayLong:    ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi']
+    },
+    en: {
+      messages: {
+        today: 'Today', previous: 'Previous', next: 'Next',
+        month: 'Month', week: 'Week', day: 'Day',
+        agenda: 'Agenda', resource: 'Resource',
+        allDay: 'All-day', noEvents: 'No events',
+        edit: 'Edit', delete: 'Delete', confirmDelete: 'Confirm delete?', close: 'Close',
+        calendars: 'Calendars', noResources: 'No resources defined',
+        search: 'Search events…',
+        showing: function (label) { return 'Showing ' + label; },
+        cellLabel: function (date, count) {
+          return count === 0 ? date + ', no events'
+               : count === 1 ? date + ', 1 event'
+               : date + ', ' + count + ' events';
+        }
+      },
+      weekStart: 0,
+      monthNames: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      dayShort:   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+      dayLong:    ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    }
+  };
+  var L = LOCALES[_locale] || LOCALES.tr;
+  if (locals.messages) {
+    L = Object.assign({}, L, { messages: Object.assign({}, L.messages, locals.messages) });
+  }
+
+  // ── Date helpers (mirror date-utils.ts) ───────────────────────────────────
+  function startOfDay(d) { var x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function endOfDay(d)   { var x = new Date(d); x.setHours(23,59,59,999); return x; }
+  function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+  function isSameMonth(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth(); }
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function addMonths(d, n) { var x = new Date(d); x.setMonth(x.getMonth() + n); return x; }
+  function startOfWeek(d, ws) { var x = startOfDay(d); var diff = (x.getDay() - ws + 7) % 7; return addDays(x, -diff); }
+  function endOfWeek(d, ws) { return addDays(startOfWeek(d, ws), 6); }
+  function rangeDays(from, n) { var out = []; for (var i = 0; i < n; i++) out.push(addDays(from, i)); return out; }
+  function monthGrid(d, ws) {
+    var first = new Date(d.getFullYear(), d.getMonth(), 1);
+    return rangeDays(startOfWeek(first, ws), 42);
+  }
+  function eventOnDay(e, day) {
+    var ds = startOfDay(day).getTime();
+    return e.start.getTime() < ds + 24*60*60*1000 && e.end.getTime() > ds;
+  }
+  function fmtTime(d) {
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function minutesIntoDay(d) { return d.getHours() * 60 + d.getMinutes(); }
+
+  // ── RRULE expander (mirror rrule.ts) ──────────────────────────────────────
+  // Supports FREQ (DAILY/WEEKLY/MONTHLY/YEARLY) + INTERVAL + COUNT + UNTIL + BYDAY.
+  var DAY_MAP = { SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6 };
+  function parseRRule(input) {
+    var parts = String(input).trim().split(';').map(function (p) { return p.trim(); }).filter(Boolean);
+    var map = {};
+    for (var i = 0; i < parts.length; i++) {
+      var eq = parts[i].indexOf('=');
+      if (eq < 0) continue;
+      map[parts[i].slice(0, eq).toUpperCase()] = parts[i].slice(eq + 1);
+    }
+    var freq = map.FREQ;
+    if (!freq || ['DAILY','WEEKLY','MONTHLY','YEARLY'].indexOf(freq) < 0) {
+      throw new Error('Invalid RRULE: ' + input);
+    }
+    var until;
+    if (map.UNTIL) {
+      var v = map.UNTIL.trim();
+      if (/^\d{8}$/.test(v)) {
+        until = new Date(+v.slice(0,4), +v.slice(4,6)-1, +v.slice(6,8), 23,59,59,999);
+      } else if (/^\d{8}T\d{6}Z?$/.test(v)) {
+        until = new Date(v.slice(0,4)+'-'+v.slice(4,6)+'-'+v.slice(6,8)+'T'+v.slice(9,11)+':'+v.slice(11,13)+':'+v.slice(13,15)+(v.endsWith('Z')?'Z':''));
+      } else { until = new Date(v); }
+    }
+    var byDay;
+    if (map.BYDAY) {
+      byDay = map.BYDAY.split(',').map(function (d) { return DAY_MAP[d.trim().toUpperCase()]; }).filter(function (n) { return Number.isInteger(n); });
+    }
+    return {
+      freq: freq,
+      interval: Math.max(1, Number(map.INTERVAL || '1') || 1),
+      count: map.COUNT ? Math.max(1, Number(map.COUNT)) : undefined,
+      until: until,
+      byDay: byDay
+    };
+  }
+  function stepFreq(d, freq, interval) {
+    if (freq === 'DAILY')  return addDays(d, interval);
+    if (freq === 'WEEKLY') return addDays(d, 7 * interval);
+    if (freq === 'MONTHLY') return addMonths(d, interval);
+    var x = new Date(d); x.setFullYear(x.getFullYear() + interval); return x;
+  }
+  function withTimeOfDay(day, time) {
+    var x = new Date(day);
+    x.setHours(time.getHours(), time.getMinutes(), time.getSeconds(), time.getMilliseconds());
+    return x;
+  }
+  function expandRRule(rule, dtstart, winStart, winEnd, hardCap) {
+    hardCap = hardCap || 1000;
+    var out = [];
+    var stopAt = (rule.until && rule.until.getTime() < winEnd.getTime()) ? rule.until : winEnd;
+    var produced = 0;
+    function emit(d) {
+      produced += 1;
+      if (d.getTime() >= winStart.getTime() && d.getTime() <= stopAt.getTime()) out.push(d);
+    }
+    if (rule.freq === 'WEEKLY' && rule.byDay && rule.byDay.length) {
+      var weekDays = rule.byDay.slice().sort(function (a,b){ return a-b; });
+      var anchor = addDays(startOfDay(dtstart), -dtstart.getDay());
+      while (out.length < hardCap && (!rule.count || produced < rule.count)) {
+        for (var j = 0; j < weekDays.length; j++) {
+          var occ = withTimeOfDay(addDays(anchor, weekDays[j]), dtstart);
+          if (occ.getTime() < dtstart.getTime()) continue;
+          if (occ.getTime() > stopAt.getTime()) return out;
+          emit(occ);
+          if (rule.count && produced >= rule.count) return out;
+        }
+        anchor = addDays(anchor, 7 * rule.interval);
+        if (anchor.getTime() > stopAt.getTime()) return out;
+      }
+      return out;
+    }
+    var cursor = new Date(dtstart);
+    while (out.length < hardCap && cursor.getTime() <= stopAt.getTime()) {
+      emit(cursor);
+      if (rule.count && produced >= rule.count) return out;
+      cursor = stepFreq(cursor, rule.freq, rule.interval);
+    }
+    return out;
+  }
+  function isException(d, exceptions) {
+    if (!exceptions || !exceptions.length) return false;
+    for (var i = 0; i < exceptions.length; i++) if (isSameDay(exceptions[i], d)) return true;
+    return false;
+  }
+
+  // ── Visible window + recurrence expansion (mirror useRecurrence + visibleWindow) ──
+  function visibleWindow(view, date, ws) {
+    if (view === 'month' || view === 'agenda' || view === 'resource') {
+      var cells = monthGrid(date, ws);
+      return [startOfDay(cells[0]), endOfDay(cells[cells.length - 1])];
+    }
+    if (view === 'week') {
+      var s = startOfWeek(date, ws);
+      return [startOfDay(s), endOfDay(rangeDays(s, 7)[6])];
+    }
+    return [startOfDay(date), endOfDay(date)];
+  }
+  var _win   = visibleWindow(_view, _defaultDate, L.weekStart);
+  var _wStart = _win[0], _wEnd = _win[1];
+  var _visibleEvents = [];
+  for (var _ei = 0; _ei < _events.length; _ei++) {
+    var _ev = _events[_ei];
+    if (!_ev.rrule) { _visibleEvents.push(_ev); continue; }
+    var _parsed;
+    try { _parsed = parseRRule(_ev.rrule); } catch (_err) { _visibleEvents.push(_ev); continue; }
+    var _dur  = _ev.end.getTime() - _ev.start.getTime();
+    var _occs = expandRRule(_parsed, _ev.start, _wStart, _wEnd);
+    for (var _oi = 0; _oi < _occs.length; _oi++) {
+      if (isException(_occs[_oi], _ev.exceptions)) continue;
+      _visibleEvents.push(Object.assign({}, _ev, {
+        id: _ev.id + '::' + _occs[_oi].toISOString(),
+        start: _occs[_oi],
+        end:   new Date(_occs[_oi].getTime() + _dur),
+        parentId: _ev.id,
+        isRecurrence: true
+      }));
+    }
+  }
+  _events = _visibleEvents;
+
+  // Period label
+  function periodLabel() {
+    var d = _defaultDate;
+    var mn = L.monthNames[d.getMonth()];
+    if (_view === 'month' || _view === 'agenda' || _view === 'resource') {
+      return mn + ' ' + d.getFullYear();
+    }
+    if (_view === 'week') {
+      var s = startOfWeek(d, L.weekStart), e = endOfWeek(d, L.weekStart);
+      if (s.getMonth() === e.getMonth()) {
+        return s.getDate() + ' – ' + e.getDate() + ' ' + L.monthNames[s.getMonth()] + ' ' + s.getFullYear();
+      }
+      return s.getDate() + ' ' + L.monthNames[s.getMonth()] + ' – ' + e.getDate() + ' ' + L.monthNames[e.getMonth()] + ' ' + e.getFullYear();
+    }
+    return d.getDate() + ' ' + mn + ' ' + d.getFullYear();
+  }
+
+  var _today = new Date();
+
+  // ── Color tokens (mirror colors.ts) ───────────────────────────────────────
+  var COLOR_PILL = {
+    primary:   'bg-primary text-primary-fg',
+    success:   'bg-success text-success-fg',
+    warning:   'bg-warning text-text-primary',
+    error:     'bg-error text-primary-fg',
+    info:      'bg-info text-primary-fg',
+    secondary: 'bg-secondary text-primary-fg',
+    neutral:   'bg-surface-overlay text-text-primary border border-border'
+  };
+  var COLOR_DOT = {
+    primary:'bg-primary', success:'bg-success', warning:'bg-warning',
+    error:'bg-error', info:'bg-info', secondary:'bg-secondary', neutral:'bg-text-secondary'
+  };
+  function pillCls(c) { return COLOR_PILL[c || 'primary'] || COLOR_PILL.primary; }
+  function dotCls(c)  { return COLOR_DOT[c || 'primary'] || COLOR_DOT.primary; }
+
+  // ── effectiveColor (mirror colors.ts) — event.color → calendar.color → 'primary'
+  function calendarById(id) {
+    for (var i = 0; i < _calendars.length; i++) if (_calendars[i].id === id) return _calendars[i];
+    return null;
+  }
+  function effectiveColor(e) {
+    if (e.color) return e.color;
+    if (e.calendarId) {
+      var c = calendarById(e.calendarId);
+      if (c && c.color) return c.color;
+    }
+    return 'primary';
+  }
+  // Resolve each event's effective color once so downstream partials don't
+  // need access to the _calendars list.
+  _events = _events.map(function (e) { return Object.assign({}, e, { color: effectiveColor(e) }); });
+%>
+<div
+  id="<%= _id %>"
+  data-kui-calendar
+  data-view="<%= _view %>"
+  data-locale="<%= _locale %>"
+  data-slot-minutes="<%= _slotMinutes %>"
+  data-msg-edit="<%= L.messages.edit %>"
+  data-msg-delete="<%= L.messages.delete %>"
+  data-msg-confirm-delete="<%= L.messages.confirmDelete %>"
+  data-msg-close="<%= L.messages.close %>"
+  data-msg-all-day="<%= L.messages.allDay %>"
+  data-msg-showing-prefix="<%= L.messages.showing('') %>"
+  tabindex="0"
+  aria-label="Calendar"
+  class="flex flex-col w-full rounded-lg border border-border bg-surface-base overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _className ? ' ' + _className : '' %>"
+>
+  <%- include('./partials/_header', {
+    _id: _id, _view: _view, _label: periodLabel(), _msg: L.messages
+  }) %>
+
+  <%# Live regions for screen-reader nav announcements (M6) %>
+  <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-cal-live="a"></div>
+  <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-cal-live="b"></div>
+
+  <% if (!_hideLegend && _calendars.length > 0) { %>
+    <%- include('./partials/_legend', { _id: _id, _calendars: _calendars, _msg: L.messages, _dotCls: dotCls }) %>
+  <% } %>
+
+  <% if (_view === 'month') { %>
+    <%- include('./partials/_month', {
+      _id: _id, _date: _defaultDate, _events: _events, _today: _today, _L: L,
+      _isSameDay: isSameDay, _isSameMonth: isSameMonth, _eventOnDay: eventOnDay,
+      _monthGrid: monthGrid, _pillCls: pillCls, _fmtTime: fmtTime
+    }) %>
+  <% } else if (_view === 'week') { %>
+    <%- include('./partials/_week', {
+      _id: _id, _date: _defaultDate, _events: _events, _today: _today, _L: L,
+      _workingHours: _workingHours, _slotMinutes: _slotMinutes,
+      _isSameDay: isSameDay, _eventOnDay: eventOnDay, _rangeDays: rangeDays,
+      _startOfWeek: startOfWeek, _pillCls: pillCls, _fmtTime: fmtTime,
+      _minutesIntoDay: minutesIntoDay
+    }) %>
+  <% } else if (_view === 'day') { %>
+    <%- include('./partials/_day', {
+      _id: _id, _date: _defaultDate, _events: _events, _today: _today, _L: L,
+      _workingHours: _workingHours, _slotMinutes: _slotMinutes,
+      _isSameDay: isSameDay, _eventOnDay: eventOnDay,
+      _pillCls: pillCls, _fmtTime: fmtTime, _minutesIntoDay: minutesIntoDay
+    }) %>
+  <% } else if (_view === 'agenda') { %>
+    <%- include('./partials/_agenda', {
+      _id: _id, _events: _events, _today: _today, _L: L,
+      _windowStart: _wStart, _windowEnd: _wEnd,
+      _isSameDay: isSameDay, _fmtTime: fmtTime
+    }) %>
+  <% } else if (_view === 'resource') { %>
+    <%- include('./partials/_resource', {
+      _id: _id, _date: _defaultDate, _events: _events, _today: _today, _L: L,
+      _resources: _resources, _workingHours: _workingHours, _slotMinutes: _slotMinutes,
+      _isSameDay: isSameDay, _pillCls: pillCls, _fmtTime: fmtTime,
+      _minutesIntoDay: minutesIntoDay
+    }) %>
+  <% } %>
+</div>
+
+<script>
+if (!window.__KuiCalendarLoaded) {
+  window.__KuiCalendarLoaded = true;
+  <%- include('./scripts/calendar.js') %>
+  <%- include('./scripts/keyboard.js') %>
+  <%- include('./scripts/popover.js') %>
+  <%- include('./scripts/drag.js') %>
+  <%- include('./scripts/legend.js') %>
+  <%- include('./scripts/agenda.js') %>
+}
+(function () {
+  function go() {
+    if (!window.__KuiCalendar || !window.__KuiCalendar.boot) return setTimeout(go, 30);
+    window.__KuiCalendar.boot(<%- include('../../ui/_script-json', { value: _id }) %>);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+})();
+</script>

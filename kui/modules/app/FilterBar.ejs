@@ -1,0 +1,90 @@
+<%
+  var _fields     = locals.fields     || [];
+  var _values     = locals.values     || {};
+  var _applyLabel = locals.applyLabel || 'Apply';
+  var _resetLabel = locals.resetLabel || 'Reset';
+  var _className  = locals.className  || '';
+  var _filterId   = locals.id || ('filterbar-' + Math.random().toString(36).slice(2, 8));
+%>
+<div
+  id="<%= _filterId %>"
+  class="flex flex-wrap items-end gap-3 p-4 bg-surface-raised border border-border rounded-xl<%= _className ? ' ' + _className : '' %>"
+>
+  <% _fields.forEach(function (f) {
+       var val      = _values[f.id];
+       var fieldId  = 'filter-' + f.id;
+  %>
+    <% if (f.type === 'select') { %>
+      <div class="min-w-36 flex-1">
+        <%- include('../ui/Select', {
+          id:          fieldId,
+          label:       f.label,
+          options:     f.options || [],
+          placeholder: f.placeholder || 'All',
+          value:       (val == null ? '' : val),
+        }) %>
+      </div>
+
+    <% } else if (f.type === 'multiselect') { %>
+      <div class="min-w-44 flex-1">
+        <%- include('../ui/MultiSelect', {
+          id:          fieldId,
+          label:       f.label,
+          options:     f.options || [],
+          value:       Array.isArray(val) ? val : [],
+          placeholder: f.placeholder || 'Any',
+        }) %>
+      </div>
+
+    <% } else if (f.type === 'daterange') { %>
+      <div class="min-w-56 flex-1">
+        <%- include('../ui/DateRangePicker', {
+          id:    fieldId,
+          label: f.label,
+          value: val || { start: null, end: null },
+        }) %>
+      </div>
+
+    <% } else if (f.type === 'tags') { %>
+      <div class="min-w-44 flex-1">
+        <%- include('../ui/TagInput', {
+          id:          fieldId,
+          label:       f.label,
+          value:       Array.isArray(val) ? val : [],
+          placeholder: f.placeholder || 'Add tag…',
+        }) %>
+      </div>
+    <% } %>
+  <% }); %>
+
+  <div class="flex items-center gap-2 shrink-0 self-end pb-0.5">
+    <span data-filterbar-reset>
+      <%- include('../ui/Button', {
+        variant: 'ghost',
+        size:    'sm',
+        children: _resetLabel,
+      }) %>
+    </span>
+    <span data-filterbar-apply>
+      <%- include('../ui/Button', {
+        variant: 'primary',
+        size:    'sm',
+        children: _applyLabel,
+      }) %>
+    </span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../ui/_script-json', { value: String(_filterId) }) %>);
+  if (!root) return;
+  function fire(name) {
+    root.dispatchEvent(new CustomEvent(name, { bubbles: true }));
+  }
+  var apply = root.querySelector('[data-filterbar-apply] button, [data-filterbar-apply] a');
+  var reset = root.querySelector('[data-filterbar-reset] button, [data-filterbar-reset] a');
+  if (apply) apply.addEventListener('click', function () { fire('filterbar:submit'); });
+  if (reset) reset.addEventListener('click', function () { fire('filterbar:reset'); });
+})();
+</script>

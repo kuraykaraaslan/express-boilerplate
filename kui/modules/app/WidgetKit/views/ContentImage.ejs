@@ -1,0 +1,9 @@
+<%#
+  content.image: an image from an allow-listed address (internal path, https, http; never data:) (kui-react ContentImageView).
+  Locals: model.
+%><%_ var _m = locals.model; var _linkCls = widgetKit.imageLinkClass; _%>
+<% if (!_m) { %>
+<p class="flex h-full items-center justify-center p-4 text-center text-sm text-text-secondary">Set a valid image address in this widget’s settings.</p>
+<% } else { %>
+<figure class="flex h-full min-h-0 flex-col"><% if (_m.placement === 'above' && _m.caption && !_m.caption.onImage) { var _as = widgetKit.style(_m.caption.style); %><figcaption class="<%= _m.caption.className %>"<% if (_as) { %> style="<%= _as %>"<% } %>><%= _m.caption.text %></figcaption><% } %><div class="min-h-0 flex-1"><% if (_m.link) { %><a href="<%= _m.link.href %>" class="<%= _linkCls %>"<% if (_m.anchor && _m.anchor.target) { %> target="<%= _m.anchor.target %>"<% } %><% if (_m.anchor && _m.anchor.rel) { %> rel="<%= _m.anchor.rel %>"<% } %>><%- include('_image-picture', { model: _m }) %></a><% } else { %><%- include('_image-picture', { model: _m }) %><% } %></div><% if (_m.placement === 'below' && _m.caption && !_m.caption.onImage) { var _bs = widgetKit.style(_m.caption.style); %><figcaption class="<%= _m.caption.className %>"<% if (_bs) { %> style="<%= _bs %>"<% } %>><%= _m.caption.text %></figcaption><% } %></figure>
+<% } %>

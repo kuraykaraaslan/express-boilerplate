@@ -1,0 +1,76 @@
+<%
+  var _id        = locals.id || ('theme-switcher-' + Math.random().toString(36).slice(2, 8));
+  var _className = locals.className || '';
+  var _menuId    = _id + '-menu';
+
+  // Trigger label/icon are placeholders; the IIFE rewrites them from
+  // localStorage on mount.
+  var triggerHtml =
+    '<span class="w-4 flex items-center justify-center shrink-0" aria-hidden="true">' +
+      '<i data-theme-icon-light  class="fa-solid fa-sun w-4 h-4 hidden"></i>' +
+      '<i data-theme-icon-dark   class="fa-solid fa-moon w-4 h-4 hidden"></i>' +
+      '<i data-theme-icon-system class="fa-solid fa-display w-4 h-4"></i>' +
+    '</span>' +
+    '<span data-theme-label>System</span>' +
+    '<i class="fa-solid fa-chevron-down w-3 h-3 text-text-disabled" aria-hidden="true"></i>';
+%>
+<%- include('../ui/DropdownMenu', {
+  id:      _id,
+  align:   'right',
+  className: _className,
+  trigger: '<span data-theme-trigger-slot>' + include('../ui/Button', {
+    variant: 'outline',
+    size:    'sm',
+    className: 'gap-2',
+    children: triggerHtml,
+  }) + '</span>',
+  items: [
+    { type: 'item', label: 'Light',  icon: '<i class="fa-solid fa-sun"></i>',     onClick: "window.__themeSwitcher_set && window.__themeSwitcher_set('" + _id + "', 'light')" },
+    { type: 'item', label: 'Dark',   icon: '<i class="fa-solid fa-moon"></i>',    onClick: "window.__themeSwitcher_set && window.__themeSwitcher_set('" + _id + "', 'dark')" },
+    { type: 'item', label: 'System', icon: '<i class="fa-solid fa-display"></i>', onClick: "window.__themeSwitcher_set && window.__themeSwitcher_set('" + _id + "', 'system')" },
+  ],
+}) %>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../ui/_script-json', { value: String(_id) }) %>);
+  if (!root) return;
+
+  var label   = root.querySelector('[data-theme-label]');
+  var iLight  = root.querySelector('[data-theme-icon-light]');
+  var iDark   = root.querySelector('[data-theme-icon-dark]');
+  var iSystem = root.querySelector('[data-theme-icon-system]');
+  var html    = document.documentElement;
+  var mq      = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function readTheme() {
+    var t = null;
+    try { t = localStorage.getItem('theme'); } catch (e) {}
+    if (t === 'light' || t === 'dark' || t === 'system') return t;
+    return 'system';
+  }
+
+  function apply(theme) {
+    var isDark = theme === 'dark' || (theme === 'system' && mq.matches);
+    html.classList.toggle('dark', isDark);
+    try { localStorage.setItem('theme', theme); } catch (e) {}
+
+    if (iLight)  iLight.classList.toggle('hidden',  theme !== 'light');
+    if (iDark)   iDark.classList.toggle('hidden',   theme !== 'dark');
+    if (iSystem) iSystem.classList.toggle('hidden', theme !== 'system');
+    if (label)   label.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+  }
+
+  // Expose a setter that the DropdownMenu items can invoke via inline onClick.
+  window.__themeSwitcher_set = window.__themeSwitcher_set || function (id, theme) {
+    if (id !== <%- include('../ui/_script-json', { value: String(_id) }) %>) return;
+    apply(theme);
+  };
+
+  mq.addEventListener('change', function () {
+    if (readTheme() === 'system') apply('system');
+  });
+
+  apply(readTheme());
+})();
+</script>

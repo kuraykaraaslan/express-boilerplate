@@ -1,0 +1,101 @@
+<%
+  // UnavailableContribution — parity with kui-react modules/ui/UnavailableContribution.tsx.
+  // The placeholder admins and editors see where a contributed piece of UI (a slot item,
+  // tab, widget, page-builder block) cannot be shown. End users should see nothing: the
+  // host decides who gets it.
+  //
+  // locals:
+  //   reason   disabled | unentitled | blocked | retired | banned | quarantined | failed | missing | no-access
+  //   size     inline | card (default) | tab | node
+  //   title    what is unavailable (the reason then shows as a badge)
+  //   label    overrides the reason's short text (i18n)
+  //   detail   overrides the reason's explanation; null hides it
+  //   icon     HTML overriding the reason's icon
+  //   tone     neutral | primary | info | warning | error (overrides the reason's)
+  //   action   { label, href?, onClick? (JS string), icon? (HTML) }
+  //   framed   false drops the dashed frame of card / node (inside a host with its own frame)
+  //   id, className
+  var REASONS = {
+    'disabled':    { icon: 'fa-power-off',            tone: 'neutral', label: 'Disabled',       detail: 'The module that provides this is turned off.' },
+    'unentitled':  { icon: 'fa-gem',                  tone: 'primary', label: 'Not in plan',    detail: 'Your current plan does not include this.' },
+    'blocked':     { icon: 'fa-ban',                  tone: 'warning', label: 'Blocked',        detail: 'An administrator has blocked this.' },
+    'retired':     { icon: 'fa-box-archive',          tone: 'neutral', label: 'Retired',        detail: 'This is no longer offered.' },
+    'banned':      { icon: 'fa-gavel',                tone: 'error',   label: 'Banned',         detail: 'This was banned and can no longer run.' },
+    'quarantined': { icon: 'fa-shield-halved',        tone: 'warning', label: 'Quarantined',    detail: 'Paused automatically after repeated errors.' },
+    'failed':      { icon: 'fa-triangle-exclamation', tone: 'error',   label: 'Failed to load', detail: 'Something went wrong while showing this.' },
+    'missing':     { icon: 'fa-puzzle-piece',         tone: 'neutral', label: 'Missing',        detail: 'What provided this is not installed.' },
+    'no-access':   { icon: 'fa-lock',                 tone: 'neutral', label: 'No access',      detail: 'You do not have permission to see this.' }
+  };
+  var _reason  = REASONS[locals.reason] ? locals.reason : 'missing';
+  var _meta    = REASONS[_reason];
+  var _size    = ({ inline: 1, card: 1, tab: 1, node: 1 })[locals.size] ? locals.size : 'card';
+  var _tone    = locals.tone || _meta.tone;
+  var _text    = locals.label || _meta.label;
+  var _detail  = locals.detail === undefined ? _meta.detail : locals.detail;
+  var _title   = locals.title || '';
+  var _action  = locals.action || null;
+  var _framed  = locals.framed !== false;
+  var _cls     = locals.className ? ' ' + locals.className : '';
+
+  // Badge variants (same classes as modules/ui/Badge.ejs).
+  var BADGE = {
+    neutral: 'bg-surface-sunken text-text-secondary',
+    primary: 'bg-primary-subtle text-primary',
+    info:    'bg-info-subtle text-info-fg',
+    warning: 'bg-warning-subtle text-warning-fg',
+    error:   'bg-error-subtle text-error-fg'
+  };
+  var TONE_TEXT = {
+    neutral: 'text-text-secondary',
+    primary: 'text-primary',
+    info:    'text-info',
+    warning: 'text-warning',
+    error:   'text-error'
+  };
+  // Same size classes as kui-react's ICON_SIZE.
+  var ICON_SIZE = { inline: 'h-3 w-3', node: 'h-3.5 w-3.5', card: 'h-4 w-4', tab: 'h-5 w-5' };
+  var _glyph = locals.icon || ('<i class="fa-solid ' + _meta.icon + ' ' + ICON_SIZE[_size] + '" aria-hidden="true"></i>');
+
+  // Button classes (same as modules/ui/Button.ejs).
+  var BTN = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+  var BTN_VARIANT = { ghost: 'bg-transparent text-text-primary hover:bg-surface-overlay', outline: 'border border-border text-text-primary hover:bg-surface-overlay' };
+  var BTN_SIZE = { xs: 'px-2 py-1 text-xs', sm: 'px-3 py-1.5 text-sm' };
+  function actionHtml(variant, size, extra) {
+    if (!_action) return '';
+    var cls = BTN + ' ' + BTN_VARIANT[variant] + ' ' + BTN_SIZE[size] + (extra ? ' ' + extra : '');
+    var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    var icon = _action.icon ? '<span aria-hidden="true" class="shrink-0">' + _action.icon + '</span>' : '';
+    var click = _action.onClick ? ' onclick="' + esc(_action.onClick) + '"' : '';
+    if (_action.href) return '<a href="' + esc(_action.href) + '"' + click + ' class="' + cls + '">' + icon + esc(_action.label) + '</a>';
+    return '<button type="button"' + click + ' class="' + cls + '">' + icon + esc(_action.label) + '</button>';
+  }
+  var _heading = _title || _text;
+%>
+<% if (_size === 'inline') { %>
+<div role="note" data-reason="<%= _reason %>" data-size="inline"<% if (_detail) { %> title="<%= _detail %>"<% } %><% if (locals.id) { %> id="<%= locals.id %>"<% } %> class="inline-flex max-w-full items-center gap-2 align-middle text-xs<%= _cls %>">
+  <span class="inline-flex items-center gap-1 rounded-full font-medium <%= BADGE[_tone] %> px-2 py-0.5 text-xs shrink-0"><span aria-hidden="true" class="inline-flex"><%- _glyph %></span><%= _text %></span>
+  <% if (_title) { %><span class="min-w-0 truncate font-medium text-text-primary"><%= _title %></span><% } %>
+  <% if (_detail) { %><span class="sr-only"><%= _detail %></span><% } %>
+  <%- actionHtml('ghost', 'xs') %>
+</div>
+<% } else if (_size === 'node') { %>
+<div role="note" data-reason="<%= _reason %>" data-size="node"<% if (locals.id) { %> id="<%= locals.id %>"<% } %> class="flex w-full min-w-0 items-start gap-3 p-3 text-left<%= _framed ? ' rounded-lg border border-dashed border-border bg-surface-raised' : '' %><%= _cls %>">
+  <div aria-hidden="true" class="flex shrink-0 items-center justify-center rounded-full bg-surface-sunken h-8 w-8 <%= TONE_TEXT[_tone] %>"><%- _glyph %></div>
+  <div class="min-w-0 flex-1">
+    <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+      <p class="truncate text-sm font-semibold text-text-primary"><%= _heading %></p>
+      <% if (_title) { %><span class="inline-flex items-center gap-1 rounded-full font-medium <%= BADGE[_tone] %> px-1.5 py-0 text-[10px]"><%= _text %></span><% } %>
+    </div>
+    <% if (_detail) { %><p class="mt-0.5 text-xs text-text-secondary"><%= _detail %></p><% } %>
+  </div>
+  <%- actionHtml('outline', 'xs', 'shrink-0') %>
+</div>
+<% } else { var _isTab = _size === 'tab'; %>
+<div role="note" data-reason="<%= _reason %>" data-size="<%= _size %>"<% if (locals.id) { %> id="<%= locals.id %>"<% } %> class="flex w-full flex-col items-center justify-center text-center <%= _isTab ? 'px-6 py-16' : 'h-full min-h-32 px-4 py-6' %><%= !_isTab && _framed ? ' rounded-xl border border-dashed border-border bg-surface-raised' : '' %><%= _cls %>">
+  <div aria-hidden="true" class="flex shrink-0 items-center justify-center rounded-full bg-surface-sunken <%= _isTab ? 'mb-4 h-12 w-12' : 'mb-3 h-10 w-10' %> <%= TONE_TEXT[_tone] %>"><%- _glyph %></div>
+  <p class="text-sm font-semibold text-text-primary"><%= _heading %></p>
+  <% if (_title) { %><div class="mt-1.5"><span class="inline-flex items-center gap-1 rounded-full font-medium <%= BADGE[_tone] %> px-1.5 py-0 text-[10px]"><%= _text %></span></div><% } %>
+  <% if (_detail) { %><p class="mt-1 max-w-xs text-text-secondary <%= _isTab ? 'text-sm' : 'text-xs' %>"><%= _detail %></p><% } %>
+  <% if (_action) { %><div class="<%= _isTab ? 'mt-4' : 'mt-3' %>"><%- actionHtml('outline', _isTab ? 'sm' : 'xs') %></div><% } %>
+</div>
+<% } %>

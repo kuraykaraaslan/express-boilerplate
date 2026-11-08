@@ -1,0 +1,24 @@
+<% var tag = item.href ? 'a' : 'button'; %>
+<<%= tag %>
+  <% if (item.href) { %>href="<%= item.href %>"<% } else { %>type="button"<% } %>
+  id="<%= _id %>-opt-<%= flatIndex %>"
+  role="option"
+  aria-selected="false"
+  tabindex="-1"
+  data-cmd-item
+  data-flat-index="<%= flatIndex %>"
+  data-label="<%= String(item.label || '').toLowerCase() %>"
+  data-keywords="<%= (item.keywords || []).join(' ').toLowerCase() %>"
+  data-category="<%= String(item.group || item.category || 'Commands').toLowerCase() %>"
+  data-order="<%= (typeof item.order === 'number' && isFinite(item.order)) ? item.order : 0 %>"
+  <% if (item.id) { %>data-cmd-id="<%= item.id %>"<% } %>
+  class="cmd-item flex w-full items-center justify-between gap-3 px-4 py-2 text-sm transition-colors text-text-primary hover:bg-surface-overlay focus:bg-surface-overlay outline-none"
+>
+  <span class="flex items-center gap-2 min-w-0">
+    <% if (item.icon) { %><i class="<%= item.icon %> w-4 text-center text-text-disabled shrink-0" style="font-size:0.875rem" aria-hidden="true"></i><% } %>
+    <span class="truncate cmd-item-label" data-original-label="<%= item.label %>"><%= item.label %></span>
+  </span>
+  <% if (item.shortcut) { %>
+  <span class="<%= _badgeNeutralSm %> shrink-0"><%= item.shortcut %></span>
+  <% } %>
+</<%= tag %>>

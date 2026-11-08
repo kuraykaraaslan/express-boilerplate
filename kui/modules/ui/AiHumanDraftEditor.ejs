@@ -1,0 +1,108 @@
+<%
+  // AiHumanDraftEditor — the AI's draft beside the human's text, diffed by words, with accept / reject per change
+  // and accept all. The text stays the human's until they accept. A badge says the draft is AI-generated.
+  // Differences are marked by shape (strike, underline, a number) as well as colour, and a change shows the same
+  // number in both panels. Same locals, DOM and classes as kui-react modules/ui/AiHumanDraftEditor/index.tsx.
+  // The server draws the panels as they read at render time; AiHumanDraftEditor/scripts/draft-editor.js (inlined
+  // once, idempotent, after draft-model.js and draft-view.js) keeps the state in the browser: accept, reject,
+  // reconsider, keep mine, accept all, the edit toggle and its textarea, and the hover / focus highlight that ties
+  // a change in one panel to its twin. The diff is the one in draft-model.js, a port of kui-react's diff.ts, loaded
+  // here through _observability/_load so the server and the browser run the same code.
+  //
+  // Locals:
+  //   aiDraft         — the AI's draft (read-only)
+  //   value           — the human's text
+  //   rejected        — keys of the changes the person rejected (React: controlled; see Events)
+  //   defaultRejected — the same, uncontrolled (used when `rejected` is not given)
+  //   model           — named in the AI badge
+  //   readOnly        — no accept, reject, edit or accept-all controls (default false)
+  //   minHeight       — minimum height of each panel in px (default 160)
+  //   messages        — partial overrides of the texts (every key of AiHumanDraftEditorMessages in kui-react:
+  //                     aiBadge, aiBadgeModel {model}, aiPanel, humanPanel, edit, review, editorLabel, accept,
+  //                     reject, acceptAll, keepMine, reconsider, pending {count}, noPending, identical,
+  //                     changeLabel {index} {total}, acceptAria / rejectAria / reconsiderAria {index} {summary},
+  //                     replace {human} {ai}, insert {ai}, remove {human}, nothing, removed, rejected,
+  //                     acceptedAnnounce / rejectedAnnounce {index}, allAcceptedAnnounce, allRejectedAnnounce)
+  //   className       — extra classes on the root (appended, no conflict resolution)
+  //   id              — prefix of the panel heading ids (React's useId; default: generated; pass it when two
+  //                     editors share a page and you want stable ids)
+  //   loadRuntime     — default true: inline the browser scripts (false when the host page loads draft-model.js,
+  //                     draft-view.js and scripts/draft-editor.js once and calls KuiAiHumanDraftEditor.autoInit())
+  //
+  // Events on the root (they bubble; React's callbacks):
+  //   'kui:draft-accept-hunk'  { hunk: { key, human, ai } }   onAcceptHunk, fired before the change below
+  //   'kui:draft-reject-hunk'  { hunk }                       onRejectHunk, fired before the rejected-change below
+  //   'kui:draft-accept-all'   {}                             onAcceptAll
+  //   'kui:draft-change'       { value }                      onChange: a hunk or all were accepted, or the person typed
+  //   'kui:draft-rejected-change' { keys }                    onRejectedChange: reject, reconsider or keep mine
+  // React's `value` is always controlled. Here the script applies a new value itself; call event.preventDefault() on
+  // 'kui:draft-change' to refuse it (the textarea snaps back) and answer later with
+  // KuiAiHumanDraftEditor.setValue(root, text). `rejected` given as a local is controlled like in React: the script
+  // only emits 'kui:draft-rejected-change' and the host answers with setRejected(root, keys); without it (or with
+  // `defaultRejected`) the script applies the change itself unless the event is prevented.
+  // Root API: root.kuiAiHumanDraftEditor = { value(), rejected(), setValue(text), setRejected(keys), setAiDraft(text) }
+  // (setAiDraft replaces the draft, e.g. when a new one arrives).
+  // Not in React: the hooks data-dr-root and the <script type="application/json" data-dr-data> that carries the
+  // texts, messages and rejected keys to the script. Note: data-hunk holds the hunk key, which contains a NUL; an
+  // HTML parser turns it into U+FFFD, so the script never reads keys back from attributes.
+  var M = {};
+  include('./_observability/_load', { out: M, src: include('./AiHumanDraftEditor/draft-model.js') });
+  var C = M.CLASSES;
+
+  var _msg = M.mergeMessages(locals.messages);
+  var _ai = locals.aiDraft == null ? '' : String(locals.aiDraft);
+  var _value = locals.value == null ? '' : String(locals.value);
+  var _controlled = Array.isArray(locals.rejected);
+  var _rejectedKeys = _controlled ? locals.rejected : (Array.isArray(locals.defaultRejected) ? locals.defaultRejected : []);
+  _rejectedKeys = _rejectedKeys.map(String);
+  var _model = locals.model ? String(locals.model) : '';
+  var _readOnly = !!locals.readOnly;
+  var _minHeight = typeof locals.minHeight === 'number' && isFinite(locals.minHeight) ? locals.minHeight : 160;
+  var _minH = _minHeight === 0 ? '0' : _minHeight + 'px';
+  var _uid = locals.id || ('ks-dr-' + Math.random().toString(36).substr(2, 9));
+  var _extra = locals.className ? ' ' + locals.className : '';
+
+  var _d = M.derive(_value, _ai, _rejectedKeys);
+  var _badge = _model ? M.fillMessage(_msg.aiBadgeModel, { model: _model }) : _msg.aiBadge;
+  var _pendingText = _d.hunks.length === 0 ? _msg.identical : _d.pending.length === 0 ? _msg.noPending : M.fillMessage(_msg.pending, { count: _d.pending.length });
+  var _data = { uid: _uid, aiDraft: _ai, value: _value, rejected: _rejectedKeys, rejectedControlled: _controlled, model: _model, readOnly: _readOnly, minHeight: _minHeight, messages: _msg };
+%>
+<div class="<%= C.root %><%= _extra %>" data-dr-root>
+  <div class="<%= C.grid %>">
+    <section aria-labelledby="<%= _uid %>-ai" class="<%= C.panel %>">
+      <header class="<%= C.panelHeader %>">
+        <h3 id="<%= _uid %>-ai" class="<%= C.panelTitle %>"><%= _msg.aiPanel %></h3>
+        <span data-part="ai-badge" class="<%= C.badge %>"><i class="fa-solid fa-wand-magic-sparkles <%= C.badgeIcon %>" aria-hidden="true"></i><%= _badge %></span>
+      </header>
+      <div class="<%= C.body %>" style="min-height: <%= _minH %>" data-dr-ai-body><% _d.segments.forEach(function (s) { if (s.type === 'equal') { %><span><%= s.text %></span><% } else { var h = s.hunk, rej = _d.isRejected(h); %><span data-hunk="<%= h.key %>"<% if (rej) { %> data-rejected="true"<% } %> class="<%= C.aiHunk(rej, false) %>"><sup aria-hidden="true" class="<%= C.num %>"><%= _d.indexOf(h) %></sup><% if (h.ai) { %><%= h.ai %><% } else { %><em class="<%= C.emptySide %>"><%= _msg.removed %></em><% } %></span><% } }); %></div>
+    </section>
+
+    <section aria-labelledby="<%= _uid %>-human" class="<%= C.panel %>">
+      <header class="<%= C.panelHeader %>" data-dr-human-header>
+        <h3 id="<%= _uid %>-human" class="<%= C.panelTitle %>"><%= _msg.humanPanel %></h3>
+        <% if (!_readOnly) { %><button type="button" aria-pressed="false" class="<%= C.ghost %>" data-dr-act="toggle-edit"><i class="fa-solid fa-pen-to-square <%= C.editButtonIcon %>" aria-hidden="true"></i><%= _msg.edit %></button><% } %>
+      </header>
+      <div class="<%= C.body %>" style="min-height: <%= _minH %>" data-dr-human-body><% _d.segments.forEach(function (s) { if (s.type === 'equal') { %><span><%= s.text %></span><% } else { var h = s.hunk, rej = _d.isRejected(h), idx = _d.indexOf(h), sum = M.summary(_msg, h); %><span role="group" aria-label="<%= M.fillMessage(_msg.changeLabel, { index: idx, total: _d.hunks.length }) %>" data-hunk="<%= h.key %>"<% if (rej) { %> data-rejected="true"<% } %> class="<%= C.humanHunk(rej, false) %>"><sup aria-hidden="true" class="<%= C.num %>"><%= idx %></sup><span<% if (!rej && h.ai) { %> class="<%= C.humanStrike %>"<% } %>><% if (h.human) { %><%= h.human %><% } else { %><em class="<%= C.emptySide %>"><%= _msg.nothing %></em><% } %></span><% if (rej) { %><span class="<%= C.rejectedNote %>">(<%= _msg.rejected %>)</span><% } %><% if (!_readOnly) { %><span class="<%= C.chips %>"><% if (rej) { %><button type="button" aria-label="<%= M.fillMessage(_msg.reconsiderAria, { index: idx, summary: sum }) %>" class="<%= C.chipReconsider %>" data-dr-act="reconsider" data-dr-i="<%= idx %>"><i class="fa-solid fa-rotate-left <%= C.chipIcon %>" aria-hidden="true"></i><%= _msg.reconsider %></button><% } else { %><button type="button" aria-label="<%= M.fillMessage(_msg.acceptAria, { index: idx, summary: sum }) %>" class="<%= C.chipAccept %>" data-dr-act="accept" data-dr-i="<%= idx %>"><i class="fa-solid fa-check <%= C.chipIcon %>" aria-hidden="true"></i><%= _msg.accept %></button><button type="button" aria-label="<%= M.fillMessage(_msg.rejectAria, { index: idx, summary: sum }) %>" class="<%= C.chipReject %>" data-dr-act="reject" data-dr-i="<%= idx %>"><i class="fa-solid fa-xmark <%= C.chipIcon %>" aria-hidden="true"></i><%= _msg.reject %></button><% } %></span><% } %></span><% } }); %></div>
+    </section>
+  </div>
+
+  <div class="<%= C.footer %>" data-dr-footer>
+    <p class="<%= C.pending %>" data-part="pending"><%= _pendingText %></p>
+    <% if (!_readOnly && _d.pending.length > 0) { %>
+    <div class="<%= C.footerButtons %>">
+      <button type="button" class="<%= C.ghost %>" data-dr-act="keep-mine"><i class="fa-solid fa-xmark <%= C.footerIcon %>" aria-hidden="true"></i><%= _msg.keepMine %></button>
+      <button type="button" class="<%= C.primary %>" data-dr-act="accept-all"><i class="fa-solid fa-check <%= C.footerIcon %>" aria-hidden="true"></i><%= _msg.acceptAll %></button>
+    </div>
+    <% } %>
+  </div>
+  <div class="<%= C.status %>" role="status" aria-live="polite" data-dr-status></div>
+  <script type="application/json" data-dr-data><%- include('./_script-json', { value: _data }) %></script>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./AiHumanDraftEditor/draft-model.js') %>
+<%- include('./AiHumanDraftEditor/draft-view.js') %>
+<%- include('./AiHumanDraftEditor/scripts/draft-editor.js') %>
+(function () { if (window.KuiAiHumanDraftEditor) window.KuiAiHumanDraftEditor.autoInit(); })();
+</script>
+<% } %>

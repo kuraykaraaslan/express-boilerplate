@@ -1,0 +1,92 @@
+<%_
+  // LocaleSwitcher — a language picker for public pages. Same DOM and classes as kui-react
+  // modules/ui/LocaleSwitcher. Options are links when they have an `href` (the menu is a native <details>, so it
+  // works with no JavaScript) or buttons when they do not. Names are shown in their own language with `lang` and
+  // `dir`, the current locale is marked in text, and a locale whose page is only available in a fallback language
+  // says so. Logical CSS properties keep it right in right-to-left pages.
+  //
+  // Not the flag dropdown of the common domain: no flag assets and no i18n dependency.
+  //
+  // Locals:
+  //   locales   — [{ code, name, englishName?, href?, dir?, fallback? }]
+  //     code    — BCP 47 code ('en', 'pt-BR', 'ar'); the link's hreflang and the name's lang
+  //     name    — the language's own name, escaped ('Türkçe')
+  //     englishName — a second, familiar name, shown small
+  //     href    — makes the option a link (good for SEO and for no-JS)
+  //     dir     — 'ltr' | 'rtl' of the name (default: from the language: ar, he, fa, ur, ps, sd, ug, yi, dv, ckb)
+  //     fallback — this page has no translation in this locale, so the fallback language is shown
+  //   current   — code of the current locale (an unknown code falls back to the first option)
+  //   variant   — 'menu' (default, a disclosure) | 'inline' (every option visible in a row)
+  //   size      — 'sm' | 'md' (default)
+  //   showEnglishName — show englishName beside each name (default: true when any option has one)
+  //   alignEnd  — align the open menu to the end instead of the start
+  //   dir       — force a text direction for the whole control (default: inherited)
+  //   messages  — { label, current, fallback, fallbackHint, triggerAria }; triggerAria has '{name}'
+  //   id        — id prefix; the menu list gets id + '-menu' (default: a random one)
+  //   className — extra classes on the root (appended, no conflict resolution)
+  //   loadRuntime — default true: inline LocaleSwitcher/scripts/locale-switcher.js (idempotent)
+  //
+  // React's `onChange(code, option, event)` is the bubbling, cancelable DOM event 'kui:locale-change'
+  // { code, option, originalEvent }, fired on the option before a link navigates; call event.preventDefault() to
+  // handle navigation yourself. The runtime also closes the menu after a choice, on Escape (focus returns to the
+  // trigger) and on an outside press, and moves between options with the arrow keys, Home and End. Hooks it uses
+  // (not in React): data-ls-root and data-ls-options on the root.
+  var RTL = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv', 'ckb'];
+  function direction(code) { return RTL.indexOf(String(code).toLowerCase().split('-')[0]) !== -1 ? 'rtl' : 'ltr'; }
+  var DEFAULT_MESSAGES = {
+    label: 'Language',
+    current: 'current',
+    fallback: 'fallback shown',
+    fallbackHint: 'This page is not translated into this language yet; the fallback language is shown.',
+    triggerAria: 'Language: {name}'
+  };
+  var _m = locals.messages && typeof locals.messages === 'object' ? locals.messages : {};
+  var _msg = {};
+  Object.keys(DEFAULT_MESSAGES).forEach(function (k) { _msg[k] = _m[k] != null ? _m[k] : DEFAULT_MESSAGES[k]; });
+  var _locales = Array.isArray(locals.locales) ? locals.locales.filter(Boolean) : [];
+  var _currentOption = null;
+  _locales.forEach(function (l) { if (!_currentOption && l.code === locals.current) _currentOption = l; });
+  if (!_currentOption) _currentOption = _locales[0] || null;
+  var _withEnglish = locals.showEnglishName != null ? !!locals.showEnglishName : _locales.some(function (l) { return !!l.englishName; });
+  var _sm = locals.size === 'sm';
+  var _variant = locals.variant === 'inline' ? 'inline' : 'menu';
+  var _id = locals.id || ('locale-' + Math.random().toString(36).substr(2, 9));
+  var _extra = locals.className ? ' ' + locals.className : '';
+  var _dir = locals.dir === 'rtl' || locals.dir === 'ltr' ? locals.dir : '';
+  var _options = _locales.map(function (l) {
+    return { code: l.code, name: l.name, englishName: l.englishName || '', href: l.href || '', dir: l.dir || '', fallback: !!l.fallback };
+  });
+  function itemClass(isCurrent) {
+    return 'flex w-full items-center gap-2 rounded px-2.5 text-start text-sm transition-colors ' + (_sm ? 'py-1' : 'py-1.5') +
+      ' hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ' +
+      (isCurrent ? 'font-semibold text-text-primary' : 'text-text-primary');
+  }
+_%>
+<% if (_currentOption) { %>
+<% var renderOption = function (opt) {
+  var isCurrent = opt.code === _currentOption.code;
+  var optDir = opt.dir || direction(opt.code);
+%><% if (opt.href) { %><a href="<%= opt.href %>" hreflang="<%= opt.code %>" data-locale="<%= opt.code %>"<% if (isCurrent) { %> aria-current="true"<% } %> class="<%= itemClass(isCurrent) %>"><% } else { %><button type="button" data-locale="<%= opt.code %>" aria-pressed="<%= isCurrent ? 'true' : 'false' %>" class="<%= itemClass(isCurrent) %>"><% } %><span class="flex w-4 shrink-0 justify-center" aria-hidden="true"><% if (isCurrent) { %><i class="fa-solid fa-check h-3 w-3 text-primary"></i><% } %></span><span lang="<%= opt.code %>" dir="<%= optDir %>" class="min-w-0 flex-1 truncate"><%= opt.name %></span><% if (_withEnglish && opt.englishName) { %><span class="text-xs text-text-secondary"><%= opt.englishName %></span><% } %><% if (opt.fallback) { %><span title="<%= _msg.fallbackHint %>" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-subtle px-1.5 py-0.5 text-[10px] font-medium text-warning-fg"><i class="fa-solid fa-triangle-exclamation h-2.5 w-2.5" aria-hidden="true"></i><%= _msg.fallback %></span><% } %><% if (isCurrent) { %><span class="sr-only">(<%= _msg.current %>)</span><% } %><% if (opt.href) { %></a><% } else { %></button><% } %><%
+}; %>
+<% if (_variant === 'inline') { %>
+<nav aria-label="<%= _msg.label %>"<% if (_dir) { %> dir="<%= _dir %>"<% } %><% if (locals.className) { %> class="<%= locals.className %>"<% } %> data-ls-root data-ls-options="<%= JSON.stringify(_options) %>">
+  <ul class="flex flex-wrap items-center gap-1">
+    <% _locales.forEach(function (opt) { %><li><% renderOption(opt); %></li><% }); %>
+  </ul>
+</nav>
+<% } else { %>
+<div<% if (_dir) { %> dir="<%= _dir %>"<% } %> class="relative inline-block text-sm<%= _extra %>" data-ls-root data-ls-options="<%= JSON.stringify(_options) %>">
+  <details class="group">
+    <summary aria-label="<%= _msg.triggerAria.split('{name}').join(_currentOption.name) %>" class="flex cursor-pointer list-none items-center gap-2 rounded-md border border-border bg-surface-base text-text-primary transition-colors [&::-webkit-details-marker]:hidden <%= _sm ? 'px-2 py-1' : 'px-3 py-1.5' %> hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><i class="fa-solid fa-globe h-3.5 w-3.5 text-text-secondary" aria-hidden="true"></i><span lang="<%= _currentOption.code %>" dir="<%= _currentOption.dir || direction(_currentOption.code) %>"><%= _currentOption.name %></span><% if (_currentOption.fallback) { %><span title="<%= _msg.fallbackHint %>" data-part="fallback" class="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-1.5 py-0.5 text-[10px] font-medium text-warning-fg"><i class="fa-solid fa-triangle-exclamation h-2.5 w-2.5" aria-hidden="true"></i><%= _msg.fallback %></span><% } %><i class="fa-solid fa-chevron-down h-3 w-3 text-text-disabled transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true"></i></summary>
+    <ul id="<%= _id %>-menu" aria-label="<%= _msg.label %>" class="absolute top-full z-20 mt-1 min-w-48 max-w-xs rounded-md border border-border bg-surface-raised p-1 shadow-lg <%= locals.alignEnd ? 'end-0' : 'start-0' %>">
+      <% _locales.forEach(function (opt) { %><li><% renderOption(opt); %></li><% }); %>
+    </ul>
+  </details>
+</div>
+<% } %>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./LocaleSwitcher/scripts/locale-switcher.js') %>
+</script>
+<% } %>
+<% } %>

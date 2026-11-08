@@ -1,0 +1,97 @@
+<%# modules/ui/DatePicker/partials/_calendar.ejs %>
+<%#
+  Shared trigger + hidden popover scaffold used by both DatePicker.ejs and
+  DateRangePicker.ejs. The calendar grid itself is rendered client-side by
+  scripts/calendar.js to keep the partial small.
+
+  Required locals:
+    _id        — unique element id
+    _mode      — 'single' | 'range'
+    _locale    — 'tr' | 'en'
+    _format    — display format token string (e.g. 'DD.MM.YYYY')
+    _value     — for single: ISO string; for range: { start, end } ISO strings
+    _placeholder — placeholder text shown when empty
+    _clearLabel — aria-label for the × button
+    _dialogLabel — aria-label for the popover
+    _invalid    — boolean
+    _disabled   — boolean
+    _required   — boolean
+    _min        — ISO yyyy-mm-dd or ''
+    _max        — ISO yyyy-mm-dd or ''
+    _ariaDescribedBy — concatenated ids for hint/error
+    _name       — single mode hidden name
+    _nameStart  — range mode hidden name for start
+    _nameEnd    — range mode hidden name for end
+%>
+<%
+  // kui-react builds these classes with cn() (tailwind-merge), so of the three backgrounds only the
+  // last one survives: error over disabled over base. Emit just that one; with all three in the
+  // class list the stylesheet order would pick bg-surface-base.
+  var triggerBg = _invalid ? '' : (_disabled ? '' : 'bg-surface-base ');
+  var triggerBase = 'group relative flex w-full items-center rounded-md border transition-colors '
+    + triggerBg + 'text-text-primary '
+    + 'focus-within:ring-2 focus-within:ring-border-focus focus-within:border-border-focus ';
+  if (_disabled) triggerBase += 'opacity-50 cursor-not-allowed' + (_invalid ? ' ' : ' bg-surface-sunken ');
+  triggerBase += _invalid
+    ? 'border-error ring-1 ring-error bg-error-subtle'
+    : 'border-border';
+%>
+<div
+  id="<%= _id %>-root"
+  data-kui-datepicker-root
+  data-mode="<%= _mode %>"
+  data-locale="<%= _locale %>"
+  data-format="<%= _format %>"
+  <% if (_min) { %>data-min="<%= _min %>"<% } %>
+  <% if (_max) { %>data-max="<%= _max %>"<% } %>
+  class="relative"
+>
+  <div class="<%= triggerBase %>">
+    <button
+      type="button"
+      id="<%= _id %>"
+      data-kui-trigger
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="<%= _id %>-popover"
+      aria-invalid="<%= _invalid ? 'true' : 'false' %>"
+      <% if (_required) { %>aria-required="true"<% } %>
+      <% if (_ariaDescribedBy) { %>aria-describedby="<%= _ariaDescribedBy %>"<% } %>
+      <% if (_disabled) { %>disabled<% } %>
+      data-testid="datepicker-<%= _id %>-trigger"
+      class="flex-1 text-left px-3 py-2 text-sm bg-transparent rounded-l-md focus-visible:outline-none disabled:cursor-not-allowed"
+    >
+      <span data-kui-display class="text-text-disabled"><%= _placeholder %></span>
+    </button>
+
+    <button
+      type="button"
+      data-kui-clear
+      <% if (_disabled) { %>data-kui-clear-disabled<% } %>
+      aria-label="<%= _clearLabel %>"
+      style="display:none"
+      class="inline-flex h-7 w-7 items-center justify-center rounded-md mr-1 text-text-secondary hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    >
+      <i class="fa-solid fa-xmark h-3 w-3" aria-hidden="true"></i>
+    </button>
+
+    <span class="pointer-events-none mr-3 text-text-secondary<%= _disabled ? ' opacity-50' : '' %>" aria-hidden="true">
+      <i class="fa-solid fa-calendar h-3.5 w-3.5"></i>
+    </span>
+  </div>
+
+  <% if (_mode === 'range') { %>
+    <input type="hidden" data-kui-input="start" name="<%= _nameStart || '' %>" value="<%= _value && _value.start ? _value.start : '' %>" />
+    <input type="hidden" data-kui-input="end"   name="<%= _nameEnd   || '' %>" value="<%= _value && _value.end   ? _value.end   : '' %>" />
+  <% } else { %>
+    <input type="hidden" data-kui-input name="<%= _name || '' %>" value="<%= _value || '' %>" />
+  <% } %>
+
+  <div
+    id="<%= _id %>-popover"
+    data-kui-popover
+    role="dialog"
+    aria-label="<%= _dialogLabel %>"
+    class="hidden"
+  ></div>
+</div>

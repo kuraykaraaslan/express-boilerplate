@@ -1,0 +1,100 @@
+<%
+  // ControlTile — the frame every async control shares: title, the control slot,
+  // and one live status line (pending / confirmed / mismatch / failed / read-only).
+  // One place, so the controls cannot drift on what "pending" or "failed" looks
+  // like. Mirror of kui-react modules/ui/ControlTile/ControlTile.tsx.
+  //
+  // The status line is rendered by the runtime (scripts/control-bind.js) as the
+  // control's state changes; this partial renders the idle state (the read-only
+  // notice, when set). Locals:
+  //   id            — root id (auto-generated when omitted)
+  //   title         — optional heading
+  //   body          — pre-rendered HTML of the control (trusted include output)
+  //   after         — pre-rendered HTML right after the control, outside the
+  //                   disabled-reason tooltip (the confirmation step)
+  //   kind          — 'switch' | 'slider' | 'setpoint' | 'button' (runtime binder)
+  //   config        — JSON-serialisable settings for the binder
+  //   readOnly      — show the read-only notice (the user may not use the control)
+  //   reportedText  — quiet line under the control (the slider keeps it live)
+  //   messages      — { pending, confirmed, mismatch, failed, readOnly, retry, ... }.
+  //                   A host-written `failed` leads and the write's reason follows it
+  //                   in brackets ("Could not switch (Offline)"); without it the reason
+  //                   alone is shown, else the default text.
+  //   framed        — draw the tile's own frame (border, background, padding). Default
+  //                   true. Pass false when the control sits inside a host card that
+  //                   already frames it: the tile then fills its parent as a column.
+  //   disabledReason — why the control is disabled (no command, old data …), shown in
+  //                   a tooltip over the control. The control itself must also be
+  //                   disabled (every Control* partial does that when it gets one).
+  //   bodyAlign     — unframed only: 'center' (default) centres the control in the
+  //                   space, 'end' puts it at the bottom; both with safe alignment, so a
+  //                   control taller than the space runs downwards, never up out of it.
+  //   fill          — unframed only: the control slot takes the whole height the status
+  //                   line leaves (a tile that fills its card).
+  //   reserveStatus — keep the status line's room while it is empty (default true), so the
+  //                   control never moves under the pointer when a status shows. false:
+  //                   it takes room only while it has a status (`sr-only` otherwise; the
+  //                   live region stays mounted so the next status is announced), so a
+  //                   control can centre in (or fill) its space (ControlButton).
+  //
+  // The status line's data-kui-control-status value ('framed' | 'unframed') tells the
+  // runtime which look to give it; data-kui-control-status-collapse that it gives up its
+  // room while empty.
+  //   className     — extra classes on the frame
+  //
+  // DEFAULT_CONTROL_MESSAGES (same strings as kui-react):
+  var DEFAULT_MESSAGES = {
+    pending: 'Sending…',
+    confirmed: 'Done',
+    mismatch: 'The device reports a different value.',
+    failed: 'The change failed.',
+    readOnly: 'You do not have permission to use this control.',
+    retry: 'Retry',
+  };
+  var _m = Object.assign({}, DEFAULT_MESSAGES, locals.messages || {});
+  // The runtime must know whether `failed` is the host's own text (kui-react reads `messages?.failed`).
+  if (locals.messages && locals.messages.failed) _m.failedByHost = true;
+  var _id = locals.id || ('control-' + Math.random().toString(36).substr(2, 9));
+  var _title = locals.title || '';
+  var _readOnly = !!locals.readOnly;
+  var _reportedText = locals.reportedText || '';
+  var _kind = locals.kind || '';
+  var _framed = locals.framed !== false;
+  var _disabledReason = typeof locals.disabledReason === 'string' ? locals.disabledReason : '';
+  var _bodyAlign = locals.bodyAlign === 'end' ? 'end' : 'center';
+  var body = locals.body || '';
+  var _after = locals.after || '';
+  var _reportedHolder = !!locals.reportedHolder;   // slider: a live (initially hidden) reported line
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  var _rootClass = _framed ? 'rounded-lg border border-border bg-surface-raised p-3' : 'flex h-full min-h-0 flex-col';
+  var _fills = !!locals.fill && !_framed;
+  var _collapse = locals.reserveStatus === false;
+  var _bodyClass = _framed ? 'flex flex-col gap-2' : 'flex min-h-0 flex-1 flex-col gap-1.5 ' + (_bodyAlign === 'end' ? 'justify-end-safe' : 'justify-center-safe');
+  // The same strings as scripts/control-bind.js STATUS_CLASS, which switches them as the state changes.
+  var _statusClass = _collapse && !_readOnly ? 'sr-only' : _framed ? 'flex min-h-5 items-center gap-2 text-xs' : 'flex min-h-4 items-center gap-2 text-[11px] leading-4';
+  // `body` from here on is the control (inside the disabled-reason tooltip) and its confirmation step.
+  body = (_disabledReason
+    ? include('../Tooltip', {
+      id: _id + '-reason', content: esc(_disabledReason), children: body,
+      className: 'flex w-full [&>span:first-child]:min-w-0 [&>span:first-child]:flex-1'
+        + (_fills ? ' min-h-0 flex-1 items-stretch [&>span:first-child]:flex [&>span:first-child]:flex-col' : ''),
+    })
+    : body) + _after;
+%>
+<div
+  id="<%= _id %>"
+  class="<%= _rootClass %><%= locals.className ? ' ' + locals.className : '' %>"
+  <% if (_disabledReason) { %>data-disabled-reason="<%= _disabledReason %>"<% } %>
+  <% if (_kind) { %>data-kui-control="<%= _kind %>"
+  data-kui-control-config="<%= JSON.stringify(locals.config || {}) %>"
+  data-kui-messages="<%= JSON.stringify(_m) %>"<% } %>
+>
+  <% if (_title) { %><h3 class="mb-2 text-sm font-semibold text-text-primary"><%= _title %></h3><% } %>
+  <div class="<%= _bodyClass %>">
+    <%- body %>
+    <% if (_reportedText || _reportedHolder) { %><p class="text-xs text-text-secondary" data-kui-control-reported<%= _reportedText ? '' : ' hidden' %>><%= _reportedText %></p><% } %>
+    <div class="<%= _statusClass %>" aria-live="polite" data-kui-control-status="<%= _framed ? 'framed' : 'unframed' %>"<% if (_collapse) { %> data-kui-control-status-collapse<% } %>>
+      <% if (_readOnly) { %><span class="text-text-secondary"><%= _m.readOnly %></span><% } %>
+    </div>
+  </div>
+</div>

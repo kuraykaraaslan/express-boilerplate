@@ -1,0 +1,345 @@
+<%
+  // GaugeChart — rendered on the server (no script). Mirrors kui-react's
+  // charts/GaugeChart.tsx: the same layouts, geometry, tones, HTML text and
+  // aria contract.
+  //
+  // Layouts: 'arc' (half circle, default), 'donut' (an arc between two free
+  // angles), 'bar-horizontal', 'bar-vertical' and 'level' (a thermometer). The
+  // drawing is SVG; every text (value, caption, min / max, tick labels) is HTML
+  // laid over it, so text keeps the kit's type sizes. The arc's box is cropped
+  // to the drawing, so labels sit right at its ends.
+  //
+  // Locals: value, min (0), max (100),
+  //   bands [{ from?, to, tone?, color?, label? }] (ascending by `to`),
+  //   bandEdges ('to' | 'from'), bandDisplay ('both' | 'bar' | 'track'),
+  //   bandStyle ('outer' | 'track'), bandOpacity (0.35),
+  //   unit, label (caption), format(v) and formatScale(v) (server-side functions),
+  //   needle (false), needleStyle ('line' | 'arrow' | 'marker'), needleColor,
+  //   size ('sm' | 'md' | 'lg' | 'fill'), layout, color ('var(--primary)'),
+  //   trackColor ('var(--border)'), thickness (16), roundedCaps (false),
+  //   ticks (0), tickLabels (false), tickColor, showMinMax (true), showValue (true),
+  //   startAngle (-135), endAngle (135) (donut), animate (true),
+  //   valueStyle / scaleStyle (CSS text, e.g. 'font-size: 2rem'), valueColor, scaleColor,
+  //   ariaLabel, stale (false), staleLabel ('stale'), className.
+  //
+  // role="meter" with aria-valuemin / -max / -now (clamped) and aria-valuetext
+  // (real value, unit, band name, stale). kui-react's `valueContent` (a React node that replaces the value text) is
+  // `valueContentPartial` (a partial, path relative to this file) + `valueContentLocals` here; `format` still feeds the
+  // accessible text.
+  var TONE_COLOR = {
+    success: 'var(--success)', warning: 'var(--warning)', error: 'var(--error)',
+    info: 'var(--info)', neutral: 'var(--text-disabled, var(--border-strong))',
+  };
+  var SIZE_PX = { sm: 140, md: 200, lg: 280 };
+  var CX = 100, CY = 100, R = 80, STROKE = 16;
+  function n(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
+
+  var gMin = n(locals.min, 0);
+  var gMax = n(locals.max, 100);
+  var gBands = Array.isArray(locals.bands) ? locals.bands : [];
+  var gEdges = locals.bandEdges === 'from' ? 'from' : 'to';
+  var gBandDisplay = locals.bandDisplay === 'bar' || locals.bandDisplay === 'track' ? locals.bandDisplay : 'both';
+  var gBandStyle = locals.bandStyle === 'track' ? 'track' : 'outer';
+  var gBandOpacity = n(locals.bandOpacity, 0.35);
+  var gSize = locals.size === 'fill' || SIZE_PX[locals.size] ? locals.size : 'md';
+  var gLayout = ['arc', 'donut', 'bar-horizontal', 'bar-vertical', 'level'].indexOf(locals.layout) >= 0 ? locals.layout : 'arc';
+  var gStale = !!locals.stale;
+  var gStaleLabel = locals.staleLabel || 'stale';
+  var gNeedle = !!locals.needle;
+  var gNeedleStyle = locals.needleStyle === 'arrow' || locals.needleStyle === 'marker' ? locals.needleStyle : 'line';
+  var gUnit = locals.unit;
+  var gLabel = locals.label;
+  var gValue = locals.value;
+  var gThickness = n(locals.thickness, STROKE);
+  var gRounded = !!locals.roundedCaps;
+  var gTicks = n(locals.ticks, 0);
+  var gTickLabels = !!locals.tickLabels;
+  var gShowMinMax = locals.showMinMax !== false;
+  var gShowValue = locals.showValue !== false;
+  var gStartAngle = n(locals.startAngle, -135);
+  var gEndAngle = n(locals.endAngle, 135);
+  var gAnimMs = locals.animate === false ? 0 : 400;
+
+  function rad(deg) { return (deg * Math.PI) / 180; }
+  /** Point at `deg` (clockwise from 12 o'clock) on a circle around the gauge centre. */
+  function polar(deg, radius) {
+    var r = radius === undefined ? R : radius;
+    return { x: CX + r * Math.sin(rad(deg)), y: CY - r * Math.cos(rad(deg)) };
+  }
+  /** SVG arc between two angles (clockwise). A full turn is drawn as two halves. */
+  function anglePath(a0, a1, radius) {
+    var r = radius === undefined ? R : radius;
+    var sweep = Math.min(360, Math.max(0, a1 - a0));
+    if (sweep >= 359.99) return anglePath(a0, a0 + 180, r) + ' ' + anglePath(a0 + 180, a0 + 360, r).replace(/^M[^A]+/, '');
+    var a = polar(a0, r);
+    var b = polar(a0 + sweep, r);
+    return 'M' + a.x.toFixed(2) + ' ' + a.y.toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + (sweep > 180 ? 1 : 0) + ' 1 ' + b.x.toFixed(2) + ' ' + b.y.toFixed(2);
+  }
+  function bandColor(b) { return b.color || TONE_COLOR[b.tone || 'neutral'] || TONE_COLOR.neutral; }
+  /** Which band a value falls in (kui-react bandFor). */
+  function bandFor(value) {
+    if (!gBands.length) return null;
+    var legacy = gBands.every(function (b) { return b.from === undefined; });
+    var i;
+    if (legacy && gEdges === 'to') {
+      for (i = 0; i < gBands.length; i++) if (value <= gBands[i].to) return gBands[i];
+      return gBands[gBands.length - 1];
+    }
+    var prev;
+    for (i = 0; i < gBands.length; i++) {
+      var b = gBands[i];
+      var from = b.from !== undefined ? b.from : prev;
+      prev = b.to;
+      var aboveFrom = from === undefined || (gEdges === 'from' ? value >= from : value > from);
+      var belowTo = gEdges === 'from' ? value < b.to : value <= b.to;
+      if (aboveFrom && belowTo) return b;
+    }
+    return legacy ? gBands[gBands.length - 1] : null;
+  }
+  /** The drawing's bounding box for an arc between two angles, with everything drawn around it. */
+  function arcBox(a0, a1, rOut, rIn, extra) {
+    var pts = extra.slice();
+    for (var a = a0; a < a1; a += 2) pts.push(polar(a, rOut), polar(a, rIn));
+    pts.push(polar(a1, rOut), polar(a1, rIn));
+    var xs = pts.map(function (p) { return p.x; });
+    var ys = pts.map(function (p) { return p.y; });
+    var pad = 2;
+    var x = Math.min.apply(null, xs) - pad;
+    var y = Math.min.apply(null, ys) - pad;
+    return { x: x, y: y, w: Math.max.apply(null, xs) + pad - x, h: Math.max.apply(null, ys) + pad - y };
+  }
+  function pctOf(v, total) { return ((v / total) * 100).toFixed(3) + '%'; }
+  function transition(props) {
+    return gAnimMs ? props.split(',').map(function (p) { return p.trim() + ' ' + gAnimMs + 'ms ease-out'; }).join(', ') : '';
+  }
+  function tr(props) { var t = transition(props); return t ? ' transition: ' + t + ';' : ''; }
+
+  var gSpan = gMax - gMin || 1;
+  var gHas = typeof gValue === 'number' && isFinite(gValue);
+  var gClamped = gHas ? Math.min(gMax, Math.max(gMin, gValue)) : gMin;
+  var gFraction = (gClamped - gMin) / gSpan;
+  var gBand = gHas ? bandFor(gValue) : null;
+  var gBaseColor = locals.color || 'var(--primary)';
+  var gBarColor = gBand && gBandDisplay !== 'track' ? bandColor(gBand) : gBaseColor;
+  var gText = gHas ? (typeof locals.format === 'function' ? locals.format(gValue) : String(Math.round(gValue * 100) / 100)) : '—';
+  var gBandName = gBand ? (gBand.label || gBand.tone) : undefined;
+  function scaleText(v) { return typeof locals.formatScale === 'function' ? locals.formatScale(v) : String(v); }
+  var gTrack = locals.trackColor || 'var(--border)';
+  var gNeedleFill = locals.needleColor || 'var(--text-primary)';
+  var gTicksStroke = locals.tickColor || 'var(--border-strong)';
+
+  var gSegments = [];
+  if (gBands.length && gBandDisplay !== 'bar') {
+    var gPrev = 0;
+    gBands.forEach(function (b) {
+      var from = b.from !== undefined ? Math.min(1, Math.max(0, (b.from - gMin) / gSpan)) : gPrev;
+      var to = Math.min(1, Math.max(0, (b.to - gMin) / gSpan));
+      gPrev = Math.max(gPrev, to);
+      if (to > from) gSegments.push({ from: from, to: to, color: bandColor(b) });
+    });
+  }
+  var gTickFractions = [];
+  if (gTicks >= 2) for (var ti = 0; ti < gTicks; ti++) gTickFractions.push(ti / (gTicks - 1));
+  var gScaleTextStyle = 'color: ' + (locals.scaleColor || 'var(--text-secondary)') + ';' + (locals.scaleStyle ? ' ' + locals.scaleStyle : '');
+  var gScaleCls = 'whitespace-nowrap text-[11px] leading-none tabular-nums';
+  var gCustomSize = typeof locals.valueStyle === 'string' && /font-size\s*:/.test(locals.valueStyle);
+  var gValueColor = locals.valueColor || 'var(--text-primary)';
+
+  var gFill = gSize === 'fill';
+  var gFixedWidth = gFill ? undefined : SIZE_PX[gSize];
+  var gAria = locals.ariaLabel || gLabel || 'Gauge';
+  var gValueText = gHas
+    ? (gText + (gUnit ? ' ' + gUnit : '') + (gBandName ? ', ' + gBandName : '') + (gStale ? ', ' + gStaleLabel : ''))
+    : 'no value';
+  var gOuterCls = 'relative ' + (gFill ? 'flex' : 'inline-flex') + ' flex-col items-center justify-center' + (gFill ? ' h-full w-full min-h-0' : '') + (gStale ? ' opacity-60' : '') + (locals.className ? ' ' + locals.className : '');
+  var gOuterStyle = gFill ? 'container-type: size;' : 'max-width: 100%;';
+
+  // Arc / donut geometry (computed only for those layouts).
+  var A = null;
+  if (gLayout === 'arc' || gLayout === 'donut') {
+    A = {};
+    A.donut = gLayout === 'donut';
+    A.t = Math.min(48, Math.max(1, gThickness));
+    A.cap = gRounded ? 'round' : 'butt';
+    A.a0 = A.donut ? gStartAngle : -90;
+    A.a1 = A.donut ? Math.max(gStartAngle + 1, Math.min(gStartAngle + 360, gEndAngle)) : 90;
+    A.angleAt = function (f) { return A.a0 + (A.a1 - A.a0) * f; };
+    A.full = A.a1 - A.a0 >= 300;
+    A.outerBands = gBandStyle === 'outer' && gSegments.length > 0;
+    A.bw = Math.max(3, Math.round(A.t * 0.28));
+    A.rBand = R + A.t / 2 + 3 + A.bw / 2;
+    A.marker = gNeedle && gNeedleStyle === 'marker';
+    A.rOut = A.outerBands ? A.rBand + A.bw / 2 : A.marker ? R + A.t / 2 + 9 : R + A.t / 2;
+    A.pointer = gNeedle && gNeedleStyle !== 'marker';
+    var extra = [];
+    if (A.pointer) extra.push({ x: CX - 7, y: CY - 7 }, { x: CX + 7, y: CY + 7 });
+    if (gRounded) [A.a0, A.a1].forEach(function (a) {
+      var p = polar(a);
+      for (var k = 0; k < 8; k++) extra.push({ x: p.x + (A.t / 2) * Math.cos(k * Math.PI / 4), y: p.y + (A.t / 2) * Math.sin(k * Math.PI / 4) });
+    });
+    // An arc with a pointer keeps room under the pivot for the number.
+    var arcValueRoom = !A.donut && A.pointer && gShowValue ? 34 : 0;
+    if (arcValueRoom) extra.push({ x: CX, y: CY + arcValueRoom });
+    A.box = arcBox(A.a0, A.a1, A.rOut, R - A.t / 2, extra);
+    A.ratio = A.box.w / A.box.h;
+    A.X = function (x) { return pctOf(x - A.box.x, A.box.w); };
+    A.Y = function (y) { return pctOf(y - A.box.y, A.box.h); };
+    A.nAngle = A.angleAt(gFraction);
+    A.tip = polar(A.nAngle, R - A.t / 2 - 4);
+    A.start = polar(A.a0);
+    A.end = polar(A.a1);
+    A.reserve = gShowMinMax && !A.full ? 16 : 0;
+    A.valueFont = A.donut ? 'clamp(0.875rem, 15cqw, 3rem)' : 'clamp(0.875rem, 16cqw, 3rem)';
+    A.valuePos = A.donut
+      ? 'left: 50%; top: ' + (A.pointer ? A.Y(CY + R * 0.42) : A.Y(CY)) + '; transform: translate(-50%, -50%);'
+      : A.pointer
+        ? 'left: 50%; top: ' + A.Y(CY + 8) + ';'
+        : 'left: 50%; bottom: ' + pctOf(A.box.y + A.box.h - CY - 1, A.box.h) + '; transform: translateX(-50%);';
+    var base = 4.5;
+    var l = polar(A.nAngle - 90, base);
+    var r = polar(A.nAngle + 90, base);
+    A.arrow = 'M' + l.x.toFixed(2) + ' ' + l.y.toFixed(2) + ' L' + A.tip.x.toFixed(2) + ' ' + A.tip.y.toFixed(2) + ' L' + r.x.toFixed(2) + ' ' + r.y.toFixed(2) + ' Z';
+    var r0 = R + A.t / 2 + 1;
+    var mp = polar(A.nAngle, r0);
+    var ml = polar(A.nAngle - 3.2, r0 + 8);
+    var mr = polar(A.nAngle + 3.2, r0 + 8);
+    A.markerPath = 'M' + mp.x.toFixed(2) + ' ' + mp.y.toFixed(2) + ' L' + ml.x.toFixed(2) + ' ' + ml.y.toFixed(2) + ' L' + mr.x.toFixed(2) + ' ' + mr.y.toFixed(2) + ' Z';
+    A.sizer = gFill
+      ? 'width: min(100cqw, calc((100cqh - ' + A.reserve + 'px) * ' + A.ratio.toFixed(4) + ')); aspect-ratio: ' + A.ratio.toFixed(4) + ';'
+      : 'width: ' + gFixedWidth + 'px; aspect-ratio: ' + A.ratio.toFixed(4) + ';';
+  }
+  var gBarT = gLayout === 'level' ? Math.min(48, Math.max(8, gThickness)) : Math.min(48, Math.max(4, gThickness));
+  var gBulb = gLayout === 'level' ? Math.round(gBarT * 2) : 0;
+  var gOuterBandsBar = gBandStyle === 'outer' && gSegments.length > 0;
+  function midTicks() { return gTickFractions.filter(function (f) { return !gShowMinMax || (f > 0 && f < 1); }); }
+%>
+<%_ /* The value block: the number and the caption (kui-react valueBlock). */ _%>
+<%_ function valueBlock(fontSize, align) { _%>
+<%_ if (!gShowValue && !gLabel) return; _%>
+<span class="flex flex-col gap-1 <%= align === 'start' ? 'items-start' : 'items-center text-center' %>">
+<%_ if (gShowValue && locals.valueContentPartial) { _%>
+<span class="leading-none" style="font-size: <%= fontSize %>"><%- include(locals.valueContentPartial, locals.valueContentLocals || {}) %></span>
+<%_ } else if (gShowValue) { _%>
+<span class="inline-flex items-baseline gap-[0.25em] font-semibold leading-none tracking-tight tabular-nums" style="<%= gCustomSize ? '' : 'font-size: ' + fontSize + '; ' %>color: <%= gValueColor %>;<%= locals.valueStyle ? ' ' + locals.valueStyle : '' %>" data-part="value"><span><%= gText %></span><% if (gUnit && gHas) { %><span class="text-[0.5em] font-medium text-text-secondary"><%= gUnit %></span><% } %></span>
+<%_ } _%>
+<%_ if (gLabel) { _%>
+<span class="text-[11px] leading-none text-text-secondary" data-part="caption"><%= gLabel %></span>
+<%_ } _%>
+</span>
+<%_ } _%>
+<div
+  role="meter"
+  aria-label="<%= gAria %>"
+  aria-valuemin="<%= gMin %>"
+  aria-valuemax="<%= gMax %>"
+  <% if (gHas) { %>aria-valuenow="<%= gClamped %>"<% } %>
+  aria-valuetext="<%= gValueText %>"
+  class="<%= gOuterCls %>"
+  style="<%= gOuterStyle %>"
+  data-layout="<%= gLayout %>"
+>
+<% if (gLayout === 'bar-horizontal') { %>
+  <div class="flex w-full flex-col justify-center gap-2"<% if (gFixedWidth) { %> style="width: <%= gFixedWidth %>px;"<% } %>>
+    <% valueBlock('clamp(1.5rem, min(14cqi, 30cqb), 3rem)', 'start') %>
+    <div class="relative w-full" style="padding-top: <%= gNeedle && gNeedleStyle === 'marker' ? 7 : 0 %>px;">
+      <% if (gOuterBandsBar) { %>
+      <div class="relative mb-1 h-1 w-full" aria-hidden="true">
+        <% gSegments.forEach(function (s) { %><span class="absolute inset-y-0 rounded-full" data-part="band" style="left: <%= pctOf(s.from, 1) %>; width: <%= pctOf(s.to - s.from, 1) %>; background: <%= s.color %>;"></span><% }); %>
+      </div>
+      <% } %>
+      <div class="relative w-full overflow-hidden <%= gRounded ? 'rounded-full' : 'rounded-sm' %>" style="height: <%= gBarT %>px; background: <%= gTrack %>;" data-part="track">
+        <% if (!gOuterBandsBar) gSegments.forEach(function (s) { %><span class="absolute inset-y-0" data-part="band" style="left: <%= pctOf(s.from, 1) %>; width: <%= pctOf(s.to - s.from, 1) %>; background: <%= s.color %>; opacity: <%= gBandOpacity %>;"></span><% }); %>
+        <% if (gHas && gFraction > 0) { %><span class="absolute inset-y-0 left-0 <%= gRounded ? 'rounded-full' : 'rounded-sm' %>" data-part="bar" style="width: <%= pctOf(gFraction, 1) %>; background: <%= gBarColor %>;<%= tr('width, background-color') %>"></span><% } %>
+      </div>
+      <% if (gNeedle && gHas) { if (gNeedleStyle === 'marker') { %>
+      <span class="absolute top-0 h-0 w-0 -translate-x-1/2 border-x-[5px] border-t-[6px] border-x-transparent" data-part="needle" style="left: <%= pctOf(gFraction, 1) %>; border-top-color: <%= gNeedleFill %>;<%= tr('left') %>"></span>
+      <% } else { %>
+      <span class="absolute w-[3px] -translate-x-1/2 rounded-full" data-part="needle" style="left: <%= pctOf(gFraction, 1) %>; bottom: -4px; height: <%= gBarT + 8 %>px; background: <%= gNeedleFill %>;<%= tr('left') %>"></span>
+      <% } } %>
+      <% if (gTickFractions.length) { %>
+      <div class="relative h-1.5 w-full" aria-hidden="true">
+        <% gTickFractions.forEach(function (f) { %><span class="absolute top-0.5 h-1 w-px" data-part="tick" style="left: <%= pctOf(f, 1) %>; background: <%= gTicksStroke %>;"></span><% }); %>
+      </div>
+      <% } %>
+    </div>
+    <% if (gShowMinMax || (gTickLabels && gTickFractions.length)) { %>
+    <div class="relative h-3 w-full" style="<%= gScaleTextStyle %>">
+      <% if (gShowMinMax) { %><span class="<%= gScaleCls %> absolute left-0 top-0" data-part="min"><%= scaleText(gMin) %></span><span class="<%= gScaleCls %> absolute right-0 top-0" data-part="max"><%= scaleText(gMax) %></span><% } %>
+      <% if (gTickLabels) midTicks().forEach(function (f) { %><span class="<%= gScaleCls %> absolute top-0 -translate-x-1/2" style="left: <%= pctOf(f, 1) %>;" data-part="tick-label"><%= scaleText(gMin + gSpan * f) %></span><% }); %>
+    </div>
+    <% } %>
+  </div>
+<% } else if (gLayout === 'bar-vertical' || gLayout === 'level') { var gLevel = gLayout === 'level'; %>
+  <div class="flex h-full min-h-0 w-full items-stretch gap-2 py-1.5" style="<%= gFixedWidth ? 'width: ' + gFixedWidth + 'px; ' : '' %><%= gFill ? '' : 'height: ' + ((gFixedWidth || 200) * 0.9) + 'px;' %>">
+    <div class="relative flex h-full min-h-0 flex-col items-center" style="width: <%= Math.max(gBarT, gBulb) %>px;">
+      <div class="relative w-full min-h-0 flex-1" style="display: flex; justify-content: center;">
+        <% if (gOuterBandsBar) { %>
+        <div class="absolute inset-y-0" style="left: calc(50% + <%= gBarT / 2 + 3 %>px); width: 4px;" aria-hidden="true">
+          <% gSegments.forEach(function (s) { %><span class="absolute inset-x-0 rounded-full" data-part="band" style="bottom: <%= pctOf(s.from, 1) %>; height: <%= pctOf(s.to - s.from, 1) %>; background: <%= s.color %>;"></span><% }); %>
+        </div>
+        <% } %>
+        <div class="relative h-full overflow-hidden <%= !gLevel && gRounded ? 'rounded-full' : gLevel ? 'rounded-t-full' : 'rounded-sm' %>" style="width: <%= gBarT %>px; background: <%= gTrack %>;<%= gLevel ? ' margin-bottom: ' + (-gBulb / 2) + 'px;' : '' %>" data-part="track">
+          <% if (!gOuterBandsBar) gSegments.forEach(function (s) { %><span class="absolute inset-x-0" data-part="band" style="bottom: <%= pctOf(s.from, 1) %>; height: <%= pctOf(s.to - s.from, 1) %>; background: <%= s.color %>; opacity: <%= gBandOpacity %>;"></span><% }); %>
+          <% if (gHas && (gFraction > 0 || gLevel)) { %><span class="absolute inset-x-0 bottom-0<%= !gLevel ? (gRounded ? ' rounded-full' : ' rounded-sm') : '' %>" data-part="bar" style="height: <%= gLevel ? 'calc(' + pctOf(gFraction, 1) + ' + ' + (gBulb / 2) + 'px)' : pctOf(gFraction, 1) %>; max-height: 100%; background: <%= gBarColor %>;<%= tr('height, background-color') %>"></span><% } %>
+        </div>
+        <% if (gNeedle && gHas) { %>
+        <span class="absolute" data-part="needle" style="bottom: <%= gLevel ? 'calc(' + (gBulb / 2) + 'px + (100% - ' + (gBulb / 2) + 'px) * ' + gFraction.toFixed(4) + ')' : pctOf(gFraction, 1) %>; left: calc(50% - <%= gBarT / 2 + 6 %>px); width: <%= gNeedleStyle === 'marker' ? 0 : gBarT + 12 %>px; height: <%= gNeedleStyle === 'marker' ? 0 : 3 %>px; <%= gNeedleStyle === 'marker' ? 'border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid ' + gNeedleFill + '; transform: translateY(50%);' : 'background: ' + gNeedleFill + '; border-radius: 9999px; transform: translateY(50%);' %><%= tr('bottom') %>"></span>
+        <% } %>
+      </div>
+      <% if (gLevel) { %>
+      <div class="relative shrink-0 rounded-full" style="width: <%= gBulb %>px; height: <%= gBulb %>px; background: <%= gHas ? gBarColor : gTrack %>;<%= tr('background-color') %>" data-part="bulb"></div>
+      <% } %>
+    </div>
+    <% if (gShowMinMax || (gTickLabels && gTickFractions.length) || gTickFractions.length) { %>
+    <div class="relative h-full min-h-0" style="padding-bottom: <%= gLevel ? gBulb / 2 : 0 %>px; <%= gScaleTextStyle %>">
+      <div class="relative h-full" style="min-width: 28px;">
+        <% gTickFractions.forEach(function (f) { %><span class="absolute left-0 h-px w-1.5" data-part="tick" style="bottom: <%= pctOf(f, 1) %>; background: <%= gTicksStroke %>;"></span><% }); %>
+        <% if (gShowMinMax) { %><span class="<%= gScaleCls %> absolute left-2.5 translate-y-1/2" style="bottom: 0;" data-part="min"><%= scaleText(gMin) %></span><span class="<%= gScaleCls %> absolute left-2.5 -translate-y-1/2" style="top: 0;" data-part="max"><%= scaleText(gMax) %></span><% } %>
+        <% if (gTickLabels) midTicks().forEach(function (f) { %><span class="<%= gScaleCls %> absolute left-2.5 translate-y-1/2" style="bottom: <%= pctOf(f, 1) %>;" data-part="tick-label"><%= scaleText(gMin + gSpan * f) %></span><% }); %>
+      </div>
+    </div>
+    <% } %>
+    <div class="flex min-w-0 flex-1 items-end justify-end pb-0.5">
+      <% valueBlock('clamp(1.5rem, min(14cqi, 30cqb), 3rem)', 'start') %>
+    </div>
+  </div>
+<% } else { %>
+  <div class="relative" style="<%= A.sizer %> container-type: inline-size; margin-bottom: <%= A.reserve %>px;">
+    <svg viewBox="<%= A.box.x.toFixed(2) %> <%= A.box.y.toFixed(2) %> <%= A.box.w.toFixed(2) %> <%= A.box.h.toFixed(2) %>" class="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+      <path d="<%= anglePath(A.a0, A.a1) %>" fill="none" stroke="<%= gTrack %>" stroke-width="<%= A.t %>" stroke-linecap="<%= A.cap %>" data-part="track" />
+      <% if (!A.outerBands) gSegments.forEach(function (s) { %>
+      <path d="<%= anglePath(A.angleAt(s.from), A.angleAt(s.to)) %>" fill="none" stroke="<%= s.color %>" stroke-opacity="<%= gBandOpacity %>" stroke-width="<%= A.t %>" data-part="band" />
+      <% }); %>
+      <% if (A.outerBands) gSegments.forEach(function (s) { %>
+      <path d="<%= anglePath(A.angleAt(s.from), A.angleAt(s.to), A.rBand) %>" fill="none" stroke="<%= s.color %>" stroke-width="<%= A.bw %>" data-part="band" />
+      <% }); %>
+      <% if (gHas && gFraction > 0) { %>
+      <path d="<%= anglePath(A.a0, A.a1) %>" pathLength="1" fill="none" stroke="<%= gBarColor %>" stroke-width="<%= A.t %>" stroke-linecap="<%= A.cap %>" stroke-dasharray="<%= gFraction %> 1"<% if (gAnimMs) { %> style="transition: <%= transition('stroke, stroke-dasharray') %>;"<% } %> data-part="bar" />
+      <% } %>
+      <% gTickFractions.forEach(function (f) { var p = polar(A.angleAt(f), R - A.t / 2 - 2); var q = polar(A.angleAt(f), R - A.t / 2 - 7); %>
+      <line x1="<%= p.x %>" y1="<%= p.y %>" x2="<%= q.x %>" y2="<%= q.y %>" stroke="<%= gTicksStroke %>" stroke-width="1.2" data-part="tick" />
+      <% }); %>
+      <% if (gNeedle && gHas && gNeedleStyle === 'line') { %>
+      <line x1="<%= CX %>" y1="<%= CY %>" x2="<%= A.tip.x %>" y2="<%= A.tip.y %>" stroke="<%= gNeedleFill %>" stroke-width="3" stroke-linecap="round" data-part="needle" />
+      <% } %>
+      <% if (gNeedle && gHas && gNeedleStyle === 'arrow') { %><path d="<%= A.arrow %>" fill="<%= gNeedleFill %>" data-part="needle" /><% } %>
+      <% if (A.pointer && gHas) { %><circle cx="<%= CX %>" cy="<%= CY %>" r="6" fill="<%= gNeedleFill %>" /><% } %>
+      <% if (A.marker && gHas) { %><path d="<%= A.markerPath %>" fill="<%= gNeedleFill %>" data-part="needle" /><% } %>
+    </svg>
+    <% if (gShowValue || gLabel) { %>
+    <div class="absolute" style="<%= A.valuePos %>"><% valueBlock(A.valueFont) %></div>
+    <% } %>
+    <% if (gTickLabels) gTickFractions.filter(function (f) { return !gShowMinMax || A.full || (f > 0 && f < 1); }).forEach(function (f) { var p = polar(A.angleAt(f), R - A.t / 2 - 15); %>
+    <span class="<%= gScaleCls %> absolute -translate-x-1/2 -translate-y-1/2" style="left: <%= A.X(p.x) %>; top: <%= A.Y(p.y) %>; <%= gScaleTextStyle %>" data-part="tick-label"><%= scaleText(gMin + gSpan * f) %></span>
+    <% }); %>
+    <% if (gShowMinMax && !A.full) { if (A.donut) { %>
+    <span class="<%= gScaleCls %> absolute -translate-x-1/2" style="left: <%= A.X(A.start.x) %>; top: calc(<%= A.Y(A.start.y) %> + <%= (A.t / 2 / A.box.h) * 100 %>% + 4px); <%= gScaleTextStyle %>" data-part="min"><%= scaleText(gMin) %></span>
+    <span class="<%= gScaleCls %> absolute -translate-x-1/2" style="left: <%= A.X(A.end.x) %>; top: calc(<%= A.Y(A.end.y) %> + <%= (A.t / 2 / A.box.h) * 100 %>% + 4px); <%= gScaleTextStyle %>" data-part="max"><%= scaleText(gMax) %></span>
+    <% } else { %>
+    <span class="<%= gScaleCls %> absolute" style="left: <%= A.X(CX - R - A.t / 2) %>; top: calc(<%= A.Y(CY + (gRounded ? A.t / 2 : 0)) %> + 4px); <%= gScaleTextStyle %>" data-part="min"><%= scaleText(gMin) %></span>
+    <span class="<%= gScaleCls %> absolute" style="right: <%= pctOf(A.box.x + A.box.w - (CX + R + A.t / 2), A.box.w) %>; top: calc(<%= A.Y(CY + (gRounded ? A.t / 2 : 0)) %> + 4px); <%= gScaleTextStyle %>" data-part="max"><%= scaleText(gMax) %></span>
+    <% } } %>
+  </div>
+<% } %>
+  <% if (gStale) { %><div class="text-[10px] uppercase tracking-wide text-text-secondary"><%= gStaleLabel %></div><% } %>
+</div>

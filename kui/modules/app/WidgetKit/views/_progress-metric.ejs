@@ -1,0 +1,4 @@
+<%#
+  The number of a progress widget (`<span data-part="value"><Metric/></span>`). Locals: metric, size, style.
+%><%_ var _mt = locals.metric; _%>
+<span data-part="value"><%- include('../_metric', { text: _mt.text, unit: _mt.unit, unitPosition: _mt.unitPosition, size: locals.size, font: _mt.font, color: _mt.color, style: _mt.custom ? undefined : locals.style }) %></span>

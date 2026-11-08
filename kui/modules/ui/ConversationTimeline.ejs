@@ -1,0 +1,163 @@
+<%
+  // ConversationTimeline — a vertical timeline of an AI investigation: model calls, tool calls, the evidence it
+  // read and whether each citation was kept or dropped, with tokens, cost and time per step and a total. Same
+  // locals, same DOM and classes as kui-react modules/ui/ConversationTimeline/index.tsx. Every step names its type
+  // in text. The server draws the whole list; ConversationTimeline/scripts/conversation-timeline.js (inlined,
+  // idempotent) toggles the details panels in the browser.
+  //
+  // Locals:
+  //   steps        — [{ id, type, title, summary?, startedAt?, durationMs?, status?, model?, tokens?, cost?,
+  //                  citation?, input?, output? }]
+  //     type       — 'model' | 'tool' | 'evidence' | 'citation'
+  //     status     — 'ok' | 'error' | 'running'
+  //     tokens     — { input?, output?, cached? }
+  //     citation   — { kept, index?, reason? }
+  //     input / output — collapsible text (arguments, prompt, raw result)
+  //   totals       — totals shown instead of the sums of the steps (a page of a longer run): any of
+  //                  { steps, inputTokens, outputTokens, cachedTokens, cost, durationMs, errors, citationsKept,
+  //                  citationsDropped }
+  //   currency     — ISO code of `cost` (default 'USD')
+  //   locale       — BCP 47 tag of the cost formatting (default: the server's)
+  //   expandedIds  — expanded step ids. React treats this as controlled; here it is the state at render time
+  //                  and the root gets data-ct-controlled: a click only emits the event (see below) and the host
+  //                  decides, with KuiConversationTimeline.setExpanded(root, ids)
+  //   defaultExpandedIds — expanded step ids at render time; the browser then toggles freely
+  //   hideTotals   — hide the totals block (default false)
+  //   messages     — partial overrides of the texts below, `types` is merged key by key; `{count}`, `{input}`,
+  //                  `{output}` are placeholders
+  //   className    — extra classes on the root
+  //   id           — prefix of the ids tying a button to its panel (default: generated; pass it when the same
+  //                  steps appear twice on one page)
+  //   loadRuntime  — default true: inline the browser script (false when the host page loads
+  //                  conversation-timeline.js once and calls KuiConversationTimeline.autoInit())
+  //
+  // Event on the root (bubbles): 'kui:conversation-expanded-change' { ids } is React's onExpandedChange.
+  // Differences from React: `startedAt` is accepted and not drawn (React does not draw it either); a step whose
+  // `tokens` / `cost` / `durationMs` is null counts as absent.
+  var F = {}, M = {};
+  include('./_observability/_load', { out: F, src: include('./_observability/format.js') });
+  include('./_observability/_load', { out: M, src: include('./ConversationTimeline/conversation-model.js') });
+
+  var _steps    = Array.isArray(locals.steps) ? locals.steps : [];
+  var _currency = locals.currency || 'USD';
+  var _locale   = locals.locale || undefined;
+  var _hideTotals = locals.hideTotals === true;
+  var _className = locals.className || '';
+  var _id       = locals.id || 'ks-ct-' + Math.random().toString(36).substr(2, 9);
+  var _controlled = Array.isArray(locals.expandedIds);
+  var _open     = _controlled ? locals.expandedIds : (Array.isArray(locals.defaultExpandedIds) ? locals.defaultExpandedIds : []);
+
+  var _defaults = {
+    label: 'Investigation timeline', totalLabel: 'Total', steps: 'Steps', tokens: 'Tokens', cost: 'Cost', time: 'Time',
+    tokensInOut: '{input} in · {output} out', cached: '{count} cached', citations: 'Citations', errors: '{count} failed',
+    types: { model: 'Model call', tool: 'Tool call', evidence: 'Evidence', citation: 'Citation' },
+    citationKept: 'kept', citationDropped: 'dropped', running: 'running', failed: 'failed', show: 'Show details',
+    hide: 'Hide details', input: 'Input', output: 'Output', reason: 'Reason', empty: 'Nothing has happened yet.'
+  };
+  var _m = Object.assign({}, _defaults, locals.messages || {});
+  _m.types = Object.assign({}, _defaults.types, (locals.messages && locals.messages.types) || {});
+
+  var _total = Object.assign({}, M.computeTotals(_steps));
+  if (locals.totals && typeof locals.totals === 'object') {
+    Object.keys(locals.totals).forEach(function (k) { if (locals.totals[k] != null) _total[k] = locals.totals[k]; });
+  }
+  var _hasTokens = _total.inputTokens > 0 || _total.outputTokens > 0;
+
+  var TYPE_ICON = { model: 'fa-wand-magic-sparkles', tool: 'fa-wrench', evidence: 'fa-file-lines', citation: 'fa-check' };
+  var RAIL = {
+    model: 'border-secondary text-secondary', tool: 'border-info text-info',
+    evidence: 'border-primary text-primary', citation: 'border-success text-success'
+  };
+
+  // [label, value, note, noteTone] of the totals block.
+  var _stats = [
+    [_m.steps, String(_total.steps)],
+    [_m.tokens,
+      _hasTokens ? F.fillMessage(_m.tokensInOut, { input: F.formatCompact(_total.inputTokens), output: F.formatCompact(_total.outputTokens) }) : '–',
+      _total.cachedTokens > 0 ? F.fillMessage(_m.cached, { count: F.formatCompact(_total.cachedTokens) }) : ''],
+    [_m.cost, _total.cost > 0 ? M.formatCost(_total.cost, _currency, _locale) : '–'],
+    [_m.time, _total.durationMs > 0 ? F.formatDurationMs(_total.durationMs) : '–',
+      _total.errors > 0 ? F.fillMessage(_m.errors, { count: _total.errors }) : '', 'error']
+  ];
+  if (_total.citationsKept + _total.citationsDropped > 0) {
+    _stats.push([_m.citations, _total.citationsKept + ' ' + _m.citationKept,
+      _total.citationsDropped > 0 ? _total.citationsDropped + ' ' + _m.citationDropped : '', 'warning']);
+  }
+  var _noteTone = { error: 'text-error-fg', warning: 'text-warning-fg' };
+%>
+<section aria-label="<%= _m.label %>" class="flex flex-col gap-4<%= _className ? ' ' + _className : '' %>" data-ct-root data-ct-show="<%= _m.show %>" data-ct-hide="<%= _m.hide %>"<% if (_controlled) { %> data-ct-controlled<% } %>>
+  <% if (!_hideTotals && _steps.length > 0) { %>
+  <dl data-part="totals" aria-label="<%= _m.totalLabel %>" class="grid grid-cols-2 gap-3 rounded-md border border-border bg-surface-raised p-3 text-sm sm:grid-cols-4">
+    <% _stats.forEach(function (st) { %>
+    <div>
+      <dt class="text-xs text-text-secondary"><%= st[0] %></dt>
+      <dd class="font-semibold text-text-primary"><%= st[1] %></dd>
+      <% if (st[2]) { %><dd class="text-xs <%= _noteTone[st[3]] || 'text-text-secondary' %>"><%= st[2] %></dd><% } %>
+    </div>
+    <% }); %>
+  </dl>
+  <% } %>
+
+  <% if (_steps.length === 0) { %>
+  <p class="text-sm text-text-secondary"><%= _m.empty %></p>
+  <% } else { %>
+  <ol class="flex flex-col">
+    <% _steps.forEach(function (s, i) {
+      var tk = s.tokens || {};
+      var citation = s.citation || null;
+      var dropped = s.type === 'citation' && !(citation && citation.kept);
+      var failed = s.status === 'error';
+      var running = s.status === 'running';
+      var icon = running ? 'fa-spinner' : failed ? 'fa-triangle-exclamation' : dropped ? 'fa-ban' : (TYPE_ICON[s.type] || TYPE_ICON.model);
+      var typeText = s.type === 'citation' ? _m.types.citation + ' ' + (citation && citation.kept ? _m.citationKept : _m.citationDropped) : _m.types[s.type];
+      var details = Boolean(s.input || s.output || (dropped && citation && citation.reason));
+      var expanded = _open.indexOf(s.id) !== -1;
+      var metrics = [];
+      if (tk.input || tk.output) metrics.push(F.fillMessage(_m.tokensInOut, { input: F.formatCompact(tk.input || 0), output: F.formatCompact(tk.output || 0) }));
+      if (s.cost != null) metrics.push(M.formatCost(s.cost, _currency, _locale));
+      if (s.durationMs != null) metrics.push(F.formatDurationMs(s.durationMs));
+      var panelId = _id + '-' + s.id;
+    %>
+    <li<% if (s.type) { %> data-step-type="<%= s.type %>"<% } %><% if (dropped) { %> data-dropped="true"<% } %><% if (s.status) { %> data-status="<%= s.status %>"<% } %> class="relative flex gap-3 pb-5 last:pb-0">
+      <% if (i < _steps.length - 1) { %><span aria-hidden="true" class="absolute inset-y-0 start-3.5 w-px bg-border"></span><% } %>
+      <span aria-hidden="true" class="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 bg-surface-base text-xs <%= dropped ? 'border-dashed border-warning text-warning-fg' : failed ? 'border-error text-error' : (RAIL[s.type] || RAIL.model) %>"><i class="fa-solid <%= icon %> h-3 w-3<%= running ? ' animate-spin motion-reduce:animate-none' : '' %>" aria-hidden="true"></i></span>
+      <div class="flex min-w-0 flex-1 flex-col gap-1">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium text-text-secondary"><%= typeText %></span>
+          <h4 class="min-w-0 break-words text-sm font-medium text-text-primary<%= dropped ? ' line-through decoration-warning' : '' %>"><%= s.title %></h4>
+          <% if (s.model) { %><span class="text-xs text-text-secondary"><%= s.model %></span><% } %>
+          <% if (running) { %><span class="text-xs font-medium text-text-secondary">(<%= _m.running %>)</span><% } %>
+          <% if (failed) { %><span class="text-xs font-medium text-error-fg">(<%= _m.failed %>)</span><% } %>
+        </div>
+        <% if (s.summary) { %><p class="break-words text-sm text-text-secondary"><%= s.summary %></p><% } %>
+        <% if (metrics.length > 0) { %><p class="text-xs text-text-disabled" data-part="metrics"><%= metrics.join(' · ') %></p><% } %>
+        <% if (details) { %>
+        <button type="button" aria-expanded="<%= expanded ? 'true' : 'false' %>" aria-controls="<%= panelId %>" data-ct-toggle="<%= s.id %>" class="inline-flex w-fit items-center gap-1 rounded text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><i class="fa-solid fa-chevron-down h-2.5 w-2.5 transition-transform motion-reduce:transition-none<%= expanded ? '' : ' -rotate-90 rtl:rotate-90' %>" aria-hidden="true"></i><%= expanded ? _m.hide : _m.show %></button>
+        <div id="<%= panelId %>"<% if (!expanded) { %> hidden<% } %> class="flex flex-col gap-2">
+          <% if (dropped && citation && citation.reason) { %><p class="text-xs text-warning-fg"><%= _m.reason %>: <%= citation.reason %></p><% } %>
+          <% if (s.input) { %>
+          <div>
+            <p class="mb-0.5 text-xs font-medium uppercase tracking-wide text-text-secondary"><%= _m.input %></p>
+            <pre class="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded bg-surface-sunken p-2 font-mono text-xs text-text-primary"><%= s.input %></pre>
+          </div>
+          <% } %>
+          <% if (s.output) { %>
+          <div>
+            <p class="mb-0.5 text-xs font-medium uppercase tracking-wide text-text-secondary"><%= _m.output %></p>
+            <pre class="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded bg-surface-sunken p-2 font-mono text-xs text-text-primary"><%= s.output %></pre>
+          </div>
+          <% } %>
+        </div>
+        <% } %>
+      </div>
+    </li>
+    <% }); %>
+  </ol>
+  <% } %>
+</section>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./ConversationTimeline/scripts/conversation-timeline.js') %>
+(function () { if (window.KuiConversationTimeline) window.KuiConversationTimeline.autoInit(); })();
+</script>
+<% } %>

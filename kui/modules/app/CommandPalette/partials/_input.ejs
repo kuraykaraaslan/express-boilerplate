@@ -1,0 +1,19 @@
+<!-- Search input — WAI-ARIA combobox -->
+<div class="relative flex items-center">
+  <span aria-hidden="true" class="absolute left-3 text-text-disabled pointer-events-none">
+    <i class="fa-solid fa-magnifying-glass w-3.5 h-3.5"></i>
+  </span>
+  <input
+    id="<%= _id %>-input"
+    type="search"
+    role="combobox"
+    aria-expanded="true"
+    aria-autocomplete="list"
+    aria-controls="<%= _id %>-list"
+    placeholder="<%= _placeholder %>"
+    autocomplete="off"
+    class="block w-full rounded-md border border-border bg-surface-base pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:border-border-focus transition-colors"
+    oninput="cmdBarFilter(<%= JSON.stringify(String(_id)) %>, this.value)"
+    onkeydown="cmdBarKeyNav(event, <%= JSON.stringify(String(_id)) %>)"
+  />
+</div>

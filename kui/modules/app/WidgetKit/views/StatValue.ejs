@@ -1,0 +1,23 @@
+<%#
+  stat.value: label and icon on top, the number, then its change (kui-react StatValueView). The label is the model's
+  `caption`: left out when it only repeats the card's title shown in the header (`captionOf`).
+  Locals: model (widgetKit.placement(...).model).
+%><%_
+  var _m = locals.model;
+  var _layout = _m.layout;
+  var _surface = widgetKit.style(_m.surface);
+  var _label = { text: _m.caption, font: locals.settings.labelFont, color: locals.settings.labelColor };
+  var _s = locals.settings;
+  var _tile = _s.icon ? { name: _s.icon, size: _m.iconSize, color: _m.iconColor, background: _s.iconBackground } : null;
+  var _metric = { text: _m.metricText, unit: _m.metricUnit, unitPosition: locals.format.unitPosition, size: _layout === 'compact' ? 'lg' : 'xl', font: _s.autoScale === false ? _s.valueFont : undefined, color: _m.metricColor };
+  var _delta = _m.cmp ? { text: _m.cmp.text, direction: _m.cmp.direction, meaning: _m.cmp.meaning, color: _m.cmp.color, label: _s.compareLabel } : null;
+_%>
+<% if (_layout === 'compact') { %>
+<div class="flex h-full items-center gap-3"<% if (_surface) { %> style="<%= _surface %>"<% } %>><% if (_tile) { %><%- include('../_icon-tile', _tile) %><% } %><div class="min-w-0 flex-1"><%- include('../_metric-label', _label) %></div><div class="flex flex-col items-end gap-1"><%- include('../_metric', _metric) %><% if (_delta) { %><%- include('../_delta', _delta) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div>
+<% } else if (_layout === 'inline') { %>
+<div class="flex h-full items-center gap-4"<% if (_surface) { %> style="<%= _surface %>"<% } %>><% if (_tile) { %><%- include('../_icon-tile', _tile) %><% } %><div class="flex min-w-0 flex-col gap-1.5"><%- include('../_metric-label', _label) %><%- include('../_metric', _metric) %><% if (_delta) { %><%- include('../_delta', _delta) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div>
+<% } else if (_layout === 'centered') { %>
+<div class="flex h-full flex-col items-center justify-center-safe gap-2 text-center"<% if (_surface) { %> style="<%= _surface %>"<% } %>><% if (_tile) { %><%- include('../_icon-tile', _tile) %><% } %><%- include('../_metric', _metric) %><%- include('../_metric-label', _label) %><% if (_delta) { %><%- include('../_delta', _delta) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div>
+<% } else { %>
+<div class="flex h-full min-h-0 flex-col gap-2"<% if (_surface) { %> style="<%= _surface %>"<% } %>><%- include('../_metric-head', { label: _label, tile: _tile }) %><div class="mt-auto flex flex-wrap items-baseline gap-x-2.5 gap-y-1"><%- include('../_metric', _metric) %><% if (_delta) { %><%- include('../_delta', _delta) %><% } %><% if (_m.showUpdated) { %><%- include('../_updated', { at: _m.updatedAt }) %><% } %></div></div>
+<% } %>

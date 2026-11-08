@@ -1,0 +1,13 @@
+<%#
+  stat.attributes: a record as label / value rows (the kit's Row), or as a grid of small metrics (kui-react StatAttributesView).
+  Locals: model.
+%><%_ var _m = locals.model; var _s = _m.s; var _lbl = widgetKit.style(_m.labelStyle); _%>
+<% if (_m.layout === 'list') { var _ls = widgetKit.style(_m.listStyle); %>
+<div class="flex flex-col" data-layout="list"<% if (_ls) { %> style="<%= _ls %>"<% } %>>
+<% _m.rows.forEach(function (r) { var _vs = widgetKit.style(r.valueStyle); %><div class="<%= r.rowClass %>"><span class="<%= widgetKit.ui.ROW_CLASS.label %>"<% if (_lbl) { %> style="<%= _lbl %>"<% } %>><% if (r.iconName) { %><span class="inline-flex min-w-0 items-center gap-2"><%- include('../_icon', { name: r.iconName, className: 'shrink-0 text-text-secondary', style: { width: 14, height: 14, fontSize: 14 } }) %><span class="truncate"><%= r.label %></span></span><% } else { %><%= r.label %><% } %></span><span class="<%= widgetKit.ui.ROW_CLASS.value %>"<% if (_vs) { %> style="<%= _vs %>"<% } %>><%= r.value %></span></div><% }); %>
+</div>
+<% } else { %>
+<div class="<%= _m.gridClass %>" data-layout="<%= _m.layout %>">
+<% _m.rows.forEach(function (r) { var _cs = widgetKit.style(r.cellStyle); var _rc = r.color ? widgetKit.style({ color: r.color }) : ''; var _tv = widgetKit.style(r.textValueStyle); %><div class="<%= r.cellClass %>"<% if (_cs) { %> style="<%= _cs %>"<% } %> data-part="row"><span class="block truncate text-xs font-medium text-text-secondary"<% if (_lbl) { %> style="<%= _lbl %>"<% } %>><% if (r.iconName) { %><span class="inline-flex min-w-0 items-center gap-2"><%- include('../_icon', { name: r.iconName, className: 'shrink-0 text-text-secondary', style: { width: 14, height: 14, fontSize: 14 } }) %><span class="truncate"><%= r.label %></span></span><% } else { %><%= r.label %><% } %></span><span<% if (_rc) { %> style="<%= _rc %>"<% } %>><% if (r.number !== undefined) { %><%- include('../_metric', { text: r.number, unit: r.unit, unitPosition: r.unitPosition, size: 'md', font: _s.valueFont, color: _m.metricColor(r) }) %><% } else { %><span class="block truncate text-[15px] font-semibold leading-tight text-text-primary"<% if (_tv) { %> style="<%= _tv %>"<% } %>><%= r.value %></span><% } %></span></div><% }); %>
+</div>
+<% } %>

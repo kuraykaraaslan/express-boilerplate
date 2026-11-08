@@ -1,0 +1,7 @@
+<%#
+  The shared head of single-value widgets: label left, icon right (`MetricHead`). A label object (even with an empty
+  text) is a label element, as in kui-react; null is none.
+  Locals: label ({ text, font, color } or null), tile ({ name, color, background, size, wrap: { className, part } } or null).
+%><%_ if (locals.label || locals.tile) { _%>
+<div class="flex items-start justify-between gap-3"><div class="min-w-0 pt-0.5"><% if (locals.label) { %><%- include('_metric-label', locals.label) %><% } %></div><% if (locals.tile && locals.tile.wrap) { %><span class="<%= locals.tile.wrap.className %>" data-part="<%= locals.tile.wrap.part %>"><%- include('_icon-tile', locals.tile) %></span><% } else if (locals.tile) { %><%- include('_icon-tile', locals.tile) %><% } %></div>
+<%_ } _%>

@@ -1,0 +1,6 @@
+<%#
+  An icon from a setting (kui-react's SettingIcon): the setting's own class list ("fas fa-bolt"), then className.
+  Locals: name, className, style (a style record).
+%><%_ if (typeof locals.name === 'string' && locals.name) { var _st = widgetKit.style(locals.style); _%>
+<i class="<%= [locals.name, locals.className].filter(Boolean).join(' ') %>"<% if (_st) { %> style="<%= _st %>"<% } %> aria-hidden="true"></i>
+<%_ } _%>

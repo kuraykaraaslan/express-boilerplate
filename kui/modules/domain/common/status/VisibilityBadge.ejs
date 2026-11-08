@@ -1,0 +1,19 @@
+<%
+  var _visibility = (locals.visibility || '').toUpperCase();
+  var _size       = locals.size       || 'md';
+  var _showIcon   = locals.showIcon   !== false;
+
+  var visibilityMeta = {
+    PUBLIC:   { children: 'Public',   variant: 'success', icon: '<i class="fa-solid fa-eye w-3 h-3" aria-hidden="true"></i>' },
+    PRIVATE:  { children: 'Private',  variant: 'error',   icon: '<i class="fa-solid fa-lock w-3 h-3" aria-hidden="true"></i>' },
+    UNLISTED: { children: 'Unlisted', variant: 'neutral', icon: '<i class="fa-solid fa-eye-slash w-3 h-3" aria-hidden="true"></i>' },
+  };
+  var meta = visibilityMeta[_visibility] || { children: locals.visibility || _visibility, variant: 'neutral', icon: '' };
+  var label = (_showIcon && meta.icon ? meta.icon + ' ' : '') + meta.children;
+%>
+<%- include('../../../ui/Badge', {
+  variant:  meta.variant,
+  size:     _size,
+  children: label,
+  className: 'gap-1' + (locals.className ? ' ' + locals.className : '')
+}) %>

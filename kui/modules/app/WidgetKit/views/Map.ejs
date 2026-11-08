@@ -1,0 +1,40 @@
+<%#
+  map: bound rows as markers (and zones and routes) on a card-less map that fills the card, with an optional colour
+  legend and a layer switch (kui-react MapWidgetView). Leaflet (leaflet.css, leaflet.js) is loaded by the host page.
+  Locals: model (`mapModel` plus `id`, `hrefs`, `classes`).
+
+  Browser side (scripts/widget-kit.js): the layer switch shows and hides the layers without moving the map; a click on a
+  marker is the bubbling `kui:widget-marker-click` event ({ placement, id, row, href }); when it is not cancelled and the
+  row has a link (`linkTemplate`, internal paths only) the browser goes there.
+
+  Phase 25 (kui-react MapWidgetView): a status can be drawn as a picture or a glyph (the model's markers carry
+  `shape: 'image'` with `image`, or `shape: 'icon'`; the canvas checks the address again); the Satellite style takes the
+  host's `imagery` tiles; the floor-plan address can be bound (the `image` slot); on a floor plan whose placement has a
+  command, `draggable` markers can be moved: a drop is the bubbling `kui:widget-control` event on the card with
+  `{ placement, kind: 'set', value: { id, x, y }, respond }` (whole pixels inside the picture; nothing is sent when the
+  host cannot write: `host.connected`); route replay (`model.replayUi`) draws Play / Pause, a range, the time and the
+  1x / 2x / 5x / 10x buttons, and scripts/map-replay.js moves a point along each route.
+%><%_
+  var _g = locals.model;
+  var _c = _g.canvas;
+  var _t = _g.layerText;
+  var _cls = _g.classes;
+_%>
+<div class="relative h-full min-h-40 w-full" data-wk-map<% if (_g.clickable) { %> data-wk-map-rows="<%= JSON.stringify({ rows: _g.rows, hrefs: _g.hrefs }) %>"<% } %>>
+<%- include('../../../ui/MapView/MapCanvas', {
+  id: _g.id, markers: _g.markers, zones: _g.zones, routes: _g.routes, showMarkers: true, showZones: true, showRoutes: true,
+  image: _c.image, tiles: _c.tiles, followSource: _g.followSource === true, fitBounds: _c.fitBounds, fitBoundsPadding: _c.fitBoundsPadding, center: _c.center, zoom: _c.zoom,
+  minZoom: _c.minZoom, maxZoom: _c.maxZoom, fitMaxZoom: _c.fitMaxZoom, cluster: _c.cluster, clusterRadius: _c.clusterRadius,
+  showLabels: _c.showLabels, tooltipTrigger: _c.tooltipTrigger, scrollWheelZoom: _c.scrollWheelZoom, zoomControl: _c.zoomControl,
+  controlsPosition: _c.controlsPosition, loadingLabel: _c.loadingLabel, ariaLabel: _c.ariaLabel, onMarkerClick: '', onMarkerMove: '', className: ''
+}) %>
+<%_ if (_g.replayUi) { var _r = _g.replayUi; var _rt = _g.replayText; _%>
+<div role="group" aria-label="<%= _rt.group %>" data-part="replay" data-wk-replay="<%= JSON.stringify(_r) %>" class="absolute left-1/2 top-2 z-10 flex max-w-[92%] -translate-x-1/2 items-center gap-2 rounded-lg border border-border bg-surface-raised/90 px-2.5 py-1.5 text-[11px] text-text-primary shadow-sm backdrop-blur-sm"><button type="button" data-wk-replay-play class="rounded-md border border-border px-2 py-0.5 font-medium hover:bg-surface-sunken focus-visible:ring-2 focus-visible:ring-border-focus"><%= _rt.play %></button><input type="range" min="0" max="1000" value="0" aria-label="<%= _rt.position %>" data-wk-replay-range class="h-1 min-w-24 flex-1"><span class="min-w-14 whitespace-nowrap tabular-nums text-text-secondary" data-part="replay-time" data-wk-replay-time><%= _r.now %></span><span role="group" aria-label="<%= _rt.speed %>" class="flex gap-0.5"><% _r.speeds.forEach(function (v) { %><button type="button" aria-pressed="<%= _r.speed === v %>" data-wk-replay-speed="<%= v %>" class="rounded px-1.5 py-0.5 tabular-nums focus-visible:ring-2 focus-visible:ring-border-focus <%= _r.speed === v ? 'bg-primary text-primary-fg' : 'hover:bg-surface-sunken' %>"><%= v %>×</button><% }); %></span></div>
+<%_ } _%>
+<%_ if (_g.showSwitch) { _%>
+<fieldset data-part="layers" class="<%= _g.switchClass %>"><legend class="sr-only"><%= _t.layers %></legend><% _g.layers.forEach(function (k) { %><label class="<%= _cls.layerLabel %>"><input type="checkbox" class="<%= _cls.layerBox %>" checked data-wk-layer="<%= k %>"><%= _t[k] %></label><% }); %></fieldset>
+<%_ } _%>
+<%_ if (_g.legend.length > 0) { _%>
+<ul aria-label="<%= _g.legendLabel %>" data-part="legend" class="<%= _g.legendClass %>"><% _g.legend.forEach(function (e) { %><li class="<%= _cls.legendItem %>"><span aria-hidden="true" class="h-2 w-2 shrink-0 rounded-full" style="<%= widgetKit.style({ background: e.color }) %>"></span><span class="min-w-0 truncate"><%= e.label %></span><% if (e.count !== undefined) { %><span class="ml-auto pl-2 tabular-nums text-text-secondary"><%= e.count %></span><% } %></li><% }); %></ul>
+<%_ } _%>
+</div>

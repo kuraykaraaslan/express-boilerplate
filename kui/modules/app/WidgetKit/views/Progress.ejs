@@ -1,0 +1,23 @@
+<%#
+  progress: a bound number against a target, in Stat's order: label and icon on top, the number, its meta, the bar
+  (kui-react ProgressView). The label is the model's `caption`: left out when it only repeats the card's title shown in
+  the header (`captionOf`). Locals: model.
+%><%_
+  var _p = locals.model;
+  var _head = { label: _p.label && _p.caption ? { text: _p.caption, font: _p.label.font, color: _p.label.color } : null, tile: _p.tile };
+  var _bar = _p.hasTarget ? { value: _p.pct === null ? 0 : _p.pct, color: _p.barColor, gradient: _p.gradient, trackColor: _p.trackColor, thickness: _p.thickness, rounded: _p.rounded, segments: _p.segments, marks: _p.marks, label: _p.aria, className: 'min-w-0 flex-1' } : null;
+_%>
+<% if (_p.layout === 'ring' || _p.layout === 'semicircle') { var _r = _p.ring; %>
+<div class="flex h-full min-h-0 flex-col gap-2"><%- include('../_metric-head', _head) %><div class="flex min-h-0 flex-1 items-center justify-center" style="container-type:size"><div class="relative" style="width:min(100cqw, calc(100cqh * <%= _r.ratioText %>));aspect-ratio:<%= _r.ratioText %>;container-type:inline-size"><%- include('../../../ui/Progress', { shape: _r.half ? 'semicircle' : 'circle', value: _p.pct === null ? 0 : _p.pct, diameter: 'fill', thickness: _r.thickness, color: _p.barColor, gradient: _p.gradient, trackColor: _p.trackColor, segments: _p.segments, marks: _p.marks, rounded: _p.rounded, showLabel: _p.mode !== 'none', label: _p.aria, labelPartial: '../app/WidgetKit/views/_progress-label', labelLocals: { metric: _p.metric, secondary: _p.secondary, half: _r.half, fontSize: _r.valueFontSize } }) %></div></div></div>
+<% } else { %>
+<%_
+  var _scale = _p.showTicks ? true : false;
+  var _meta = _p.secondary ? true : false;
+_%>
+<% if (_p.layout === 'bar') { %>
+<div class="flex h-full min-h-0 flex-col gap-2" data-layout="bar"><%- include('../_metric-head', _head) %><div class="mt-auto flex flex-col gap-1"><div class="flex items-center gap-3"><% if (_bar) { %><%- include('../../../ui/Progress', _bar) %><% } %><% if (_p.metric) { %><%- include('_progress-metric', { metric: _p.metric, size: 'lg' }) %><% } %></div><% if (_scale) { %><%- include('_progress-ticks', { model: _p }) %><% } %><% if (_meta) { %><span class="<%= widgetKit.ui.metaClass() %>"><span data-part="secondary"><%= _p.secondary %></span></span><% } %></div></div>
+<% } else { %>
+<%_ var _hasText = _p.mode !== 'none' || _meta; _%>
+<div class="flex h-full min-h-0 flex-col gap-2" data-layout="bar-labelled"><%- include('../_metric-head', _head) %><div class="mt-auto flex flex-col gap-2.5"><% if (!_p.below && _hasText) { %><%- include('_progress-text', { model: _p }) %><% } %><% if (_bar) { %><div class="flex flex-col"><%- include('../../../ui/Progress', _bar) %><% if (_scale) { %><%- include('_progress-ticks', { model: _p }) %><% } %></div><% } %><% if (_p.below && _hasText) { %><%- include('_progress-text', { model: _p }) %><% } %></div></div>
+<% } %>
+<% } %>

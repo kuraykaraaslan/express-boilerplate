@@ -1,0 +1,203 @@
+<%
+  // DataTable body rows: the `<tr>`s of one set of rows, with the selection and expand cells, the detail
+  // rows and the row-actions cell. Used for the first render and, in server mode, by the host route that
+  // answers a fetch with `{ total, html }` (`include('modules/ui/Table/Rows', { ...tableLocals, rows, offset })`).
+  // Same cells and classes as kui-react modules/ui/Table/parts/BodyRow.tsx + RowExtras.tsx.
+  //
+  // Locals: the DataTable's own (columns, id, rowId, selectable, selectedRowIds | defaultSelectedRowIds,
+  // isRowSelectable, isRowSelectionLocked, groupBy, renderGroupHeader, rowSelectLabel, renderExpanded, rowActions, rowActionsLabel, rowState, rowClassName,
+  // rowStyle, onRowClick, onRowDoubleClick, keyboardNavigation, density, unstyled, layout, renderCard, messages) plus
+  //   rows   — the rows to draw
+  //   offset — 0-based position of rows[0] in the whole result (server mode: (page - 1) * pageSize).
+  //   columnChooser — optional: cells carry data-dt-col (the table's browser script adds it when missing).
+  //            A row without `rowId` / `id` is identified by offset + its index.
+  // With layout "cards" and renderCard the rows are the card grid's <li>s (kui-react DataTable card layout).
+  var _columns  = locals.columns || [];
+  var _rows     = locals.rows    || [];
+  var _tableId  = locals.id      || 'dt';
+  var _offset   = Number(locals.offset) || 0;
+  var _selectable = !!locals.selectable;
+  var _renderExpanded = typeof locals.renderExpanded === 'function' ? locals.renderExpanded : null;
+  var _m = {};
+%><%- include('./_messages', { out: _m, messages: locals.messages }) -%><%
+  var _selectedIds = Array.isArray(locals.selectedRowIds) ? locals.selectedRowIds
+    : (Array.isArray(locals.defaultSelectedRowIds) ? locals.defaultSelectedRowIds : []);
+  var _selectedKeys = _selectedIds.map(function (x) { return JSON.stringify(x); });
+  var _alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' };
+  // kui-react core/columnHelpers.ts: hideBelowClass and densityCellClass.
+  var _hideBelow = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' };
+  var _density = locals.density === 'compact' ? 'compact' : 'comfortable';
+  var _cellPad = _density === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3';
+  function _cellClass(col) {
+    // unstyled (kui-react cellClassFor(column, '')): no density padding or colour of the table's own.
+    return (locals.unstyled ? '' : _cellPad + ' text-text-primary')
+      + (col.align && col.align !== 'left' ? ' ' + (_alignClass[col.align] || '') : '')
+      + (col.hideBelow && _hideBelow[col.hideBelow] ? ' ' + _hideBelow[col.hideBelow] : '')
+      + (col.tdClass ? ' ' + col.tdClass : '');
+  }
+  var _cards = locals.layout === 'cards' && typeof locals.renderCard === 'function';
+  // A row click handler (a global function name, or true for the 'kui:dt-row-click' event alone).
+  var _clickable = !!locals.onRowClick || !!locals.onRowDoubleClick;
+  // Keyboard rows: one row in the tab order, arrows / Home / End move; on by default with a row click.
+  var _keyboard = locals.keyboardNavigation !== undefined ? !!locals.keyboardNavigation : _clickable;
+  var _unstyled = !!locals.unstyled;
+  // A style local: a CSS string as is, or a style object (camelCase keys; a bare number is pixels, as in React).
+  var _unitless = { opacity: 1, zIndex: 1, fontWeight: 1, lineHeight: 1, flex: 1, flexGrow: 1, flexShrink: 1, order: 1, zoom: 1 };
+  function _css(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    return Object.keys(v).filter(function (k) { return v[k] !== undefined && v[k] !== null && v[k] !== ''; }).map(function (k) {
+      var name = k.indexOf('--') === 0 ? k : k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); });
+      var val = typeof v[k] === 'number' && !_unitless[k] ? v[k] + 'px' : String(v[k]);
+      return name + ':' + val;
+    }).join(';');
+  }
+  var _styleOf = typeof locals.rowStyle === 'function' ? locals.rowStyle : function () { return undefined; };
+  /** One row's cell: the column's classes, then its per-row classes and style (kui-react BodyRow). */
+  function _tdClass(col, row) {
+    var own = typeof col.cellClassName === 'function' ? col.cellClassName(row) : '';
+    return _cellClass(col) + (own ? ' ' + own : '');
+  }
+  function _tdStyle(col, row) { return typeof col.cellStyle === 'function' ? _css(col.cellStyle(row)) : ''; }
+  var _stateOf = typeof locals.rowState === 'function' ? locals.rowState : function () { return undefined; };
+  var _classOf = typeof locals.rowClassName === 'function' ? locals.rowClassName : function () { return ''; };
+  // true, or the reason the row cannot be selected (its checkbox is disabled with the reason as title).
+  var _canSelect = typeof locals.isRowSelectable === 'function' ? locals.isRowSelectable : function () { return true; };
+  // Ticked and locked (kui-react isRowSelectionLocked): checked, disabled, never part of the selection.
+  var _lockedOf = _selectable && typeof locals.isRowSelectionLocked === 'function' ? locals.isRowSelectionLocked : function () { return false; };
+  // Group rows (kui-react groupBy + renderGroupHeader): each row carries its group key and the header HTML; the
+  // browser script draws a header row before each run of one group.
+  var _groupBy = typeof locals.groupBy === 'function' ? locals.groupBy : null;
+  var _groupRows = {};
+  if (_groupBy) _rows.forEach(function (r) { var g = String(_groupBy(r)); (_groupRows[g] = _groupRows[g] || []).push(r); });
+  /** The row's group key and its header (the HTML of renderGroupHeader, else the key as text), or null. */
+  function _groupOf(row) {
+    if (!_groupBy) return null;
+    var g = String(_groupBy(row));
+    var label = typeof locals.renderGroupHeader === 'function'
+      ? String(locals.renderGroupHeader(g, _groupRows[g] || []))
+      : g.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return { key: g, label: label };
+  }
+  // EJS hands every include the caller's locals too; blank them so the table's own locals never reach
+  // the menu as its options.
+  function _atom(own) {
+    var o = {};
+    Object.keys(locals).forEach(function (k) { o[k] = undefined; });
+    return Object.assign(o, own);
+  }
+
+  function _rowIdOf(row, fallback) {
+    if (typeof locals.rowId === 'function') return locals.rowId(row);
+    if (typeof locals.rowId === 'string' && locals.rowId) return row[locals.rowId];
+    var own = row ? row.id : undefined;
+    return (typeof own === 'string' || typeof own === 'number') ? own : fallback;
+  }
+
+  // rowActions (parity with kui-react DataTable): descriptors { id, label, icon (HTML),
+  // onClick (JS string), href, hidden, disabled, disabledReason, destructive, group, order }
+  // shown as a menu in a trailing column. Every per-row field may be a function of the row.
+  var _rowActions = Array.isArray(locals.rowActions) && locals.rowActions.length ? locals.rowActions : null;
+  var _per = function (v, row) { return typeof v === 'function' ? v(row) : v; };
+  var _rowActionItems = function (row) {
+    return _rowActions.map(function (a) {
+      return {
+        type: 'item', id: a.id, label: a.label, icon: a.icon,
+        href: _per(a.href, row), onClick: _per(a.onClick, row),
+        hidden: _per(a.hidden, row), disabled: _per(a.disabled, row),
+        disabledReason: _per(a.disabledReason, row),
+        danger: !!a.destructive, order: a.order, group: a.group
+      };
+    });
+  };
+  var _rowActionsLabel = function (row) {
+    return typeof locals.rowActionsLabel === 'function' ? locals.rowActionsLabel(row) : (locals.rowActionsLabel || _m.rowActions);
+  };
+  var _ellipsisBtn = function (label) {
+    return '<button type="button" aria-label="' + String(label).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"'
+      + ' class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-primary hover:bg-surface-overlay p-1.5 text-sm">'
+      + '<i class="fa-solid fa-ellipsis-vertical w-3.5 h-3.5" aria-hidden="true"></i></button>';
+  };
+  var _totalCols = (_selectable ? 1 : 0) + (_renderExpanded ? 1 : 0) + _columns.length + (_rowActions ? 1 : 0);
+  var _checkboxClass = 'h-4 w-4 rounded border-border text-primary accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+%>
+<% _rows.forEach(function (row, ri) {
+     var _rid = _rowIdOf(row, _offset + ri);
+     var _ridJson = JSON.stringify(_rid);
+     var _locked = !!_lockedOf(row);
+     var _grp = _groupOf(row);
+     var _isSel = _selectable && (_locked || _selectedKeys.indexOf(_ridJson) !== -1);
+     var _live = _stateOf(row);
+     var _extra = _classOf(row) || '';
+     var _allowed = _canSelect(row);
+     if (_cards) {
+       var _menu = null;
+       if (_rowActions) {
+         var _cardItems = _rowActionItems(row);
+         if (_cardItems.some(function (it) { return !it.hidden; })) {
+           _menu = '<div class="inline-flex" data-part="row-actions">'
+             + include('../../DropdownMenu', _atom({ id: _tableId + '-actions-' + (_offset + ri), portal: true, align: 'right', items: _cardItems, trigger: _ellipsisBtn(_rowActionsLabel(row)) }))
+             + '</div>';
+         }
+       }
+       // kui-react renderCard(row, ctx); toggleSelected is the attribute that makes a control inside the
+       // card toggle the row's selection (a click handler cannot cross from the server).
+       var _cardHtml = locals.renderCard(row, {
+         id: _rid,
+         selected: _isSel,
+         selectable: _selectable ? _allowed : 'not selectable',
+         locked: _locked,
+         toggleSelected: 'data-dt-card-select',
+         actions: _menu
+       });
+%>
+<li class="min-w-0<%= _live === 'leaving' ? ' opacity-40 transition-opacity duration-500' : '' %><%= _extra ? ' ' + _extra : '' %>" data-dt-row="<%= ri %>" data-dt-row-id="<%= _ridJson %>"<% if (_isSel) { %> data-selected="true"<% } %> data-row-key="<%= String(_rid) %>"<% if (_live) { %> data-state="<%= _live %>"<% } %><% if (_locked) { %> data-dt-locked<% } %><% if (_grp) { %> data-dt-group="<%= _grp.key %>" data-dt-group-label="<%= _grp.label %>"<% } %>><%- _cardHtml %></li>
+<%   return;
+     }
+     var _detail = _renderExpanded ? _renderExpanded(row) : null;
+     var _hasDetail = _detail !== null && _detail !== undefined && _detail !== false && _detail !== '';
+     var _detailId = _tableId + '-detail-' + String(_rid).replace(/[^\w-]/g, '_');
+     var _trStyle = _css(_styleOf(row));
+     var _trClass = (_unstyled ? '' : 'hover:bg-surface-overlay transition-[background-color,opacity] duration-500')
+       + (_isSel || _live === 'new' ? ' bg-primary-subtle' : '')
+       + (_live === 'leaving' ? ' opacity-40' : '')
+       + (_clickable ? ' cursor-pointer' : '')
+       + (_keyboard ? ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus' : '')
+       + (_extra ? ' ' + _extra : '');
+%>
+<tr class="<%= _trClass.trim() %>" data-dt-row="<%= ri %>" data-dt-row-id="<%= _ridJson %>"<% if (_isSel) { %> data-selected="true"<% } %> data-row-key="<%= String(_rid) %>"<% if (_live) { %> data-state="<%= _live %>"<% } %><% if (_trStyle) { %> style="<%= _trStyle %>"<% } %><% if (_keyboard) { %> tabindex="<%= ri === 0 ? '0' : '-1' %>"<% } %><% if (_isSel) { %> aria-selected="true"<% } %><% if (_locked) { %> data-dt-locked<% } %><% if (_grp) { %> data-dt-group="<%= _grp.key %>" data-dt-group-label="<%= _grp.label %>"<% } %>>
+  <% if (_selectable) { %>
+  <td class="w-10 px-4 py-3" data-part="select"<% if (_locked) { %> data-locked="true"<% } %>>
+    <input type="checkbox" aria-label="<%= typeof locals.rowSelectLabel === 'function' ? locals.rowSelectLabel(row) : _m.selectRow + ' ' + (_offset + ri + 1) %>" data-dt-select<% if (typeof locals.rowSelectLabel === 'function') { %> data-dt-own-label<% } %> class="<%= _checkboxClass %>"<% if (_isSel) { %> checked<% } %><% if (_allowed !== true) { %> disabled title="<%= _allowed %>"<% } else if (_locked) { %> disabled<% } %>>
+  </td>
+  <% } %>
+  <% if (_renderExpanded) { %>
+  <td class="w-10 px-4 py-3" data-part="expand">
+    <% if (_hasDetail) { %>
+    <button type="button" aria-label="<%= _m.expandRow %>" aria-expanded="false" data-dt-expand="<%= _detailId %>" data-label-expand="<%= _m.expandRow %>" data-label-collapse="<%= _m.collapseRow %>" class="rounded text-text-disabled transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      <%# kui-react's svg carries w-2.5 h-2.5, but Font Awesome's own 1.25em x 1em wins; the bare <i> measures the same. %>
+      <i class="fa-solid fa-chevron-right w-2.5 h-2.5" data-dt-expand-icon aria-hidden="true"></i>
+    </button>
+    <% } %>
+  </td>
+  <% } %>
+  <% _columns.forEach(function (col) { %>
+  <td class="<%= _tdClass(col, row).trim() %>"<% var _tds = _tdStyle(col, row); if (_tds) { %> style="<%= _tds %>"<% } %><% if (!col.render) { %> data-dt-key="<%= col.key %>"<% } %><% if (locals.columnChooser) { %> data-dt-col="<%= col.key %>"<% } %>><% if (col.render) { %><%- col.render(row, { index: ri, id: _rid }) %><% } else { %><%= row[col.key] !== undefined && row[col.key] !== null ? row[col.key] : '' %><% } %></td>
+  <% }); %>
+  <% if (_rowActions) {
+       var _items = _rowActionItems(row);
+       var _anyVisible = _items.some(function (it) { return !it.hidden; });
+  %>
+  <td class="w-12 px-2 py-2 text-right" data-part="row-actions" onclick="event.stopPropagation()">
+    <% if (_anyVisible) { %>
+    <%- include('../../DropdownMenu', _atom({ id: _tableId + '-actions-' + (_offset + ri), portal: true, align: 'right', items: _items, trigger: _ellipsisBtn(_rowActionsLabel(row)) })) %>
+    <% } %>
+  </td>
+  <% } %>
+</tr>
+<% if (_hasDetail) { %>
+<tr id="<%= _detailId %>" class="bg-surface-sunken hidden" data-part="detail" data-dt-detail="<%= ri %>">
+  <td colspan="<%= _totalCols %>" class="px-6 py-3 text-sm text-text-secondary"><%- _detail %></td>
+</tr>
+<% } %>
+<% }); %>

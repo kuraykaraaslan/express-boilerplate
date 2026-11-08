@@ -1,0 +1,11 @@
+<%#
+  The inline nodes of a markdown block (kui-react ContentMarkdownView's `Inline`). Every value is written escaped:
+  a record value is a text node, never parsed. Locals: nodes.
+%><% (locals.nodes || []).forEach(function (n) { %><%
+  if (n.t === 'text') { %><%= n.text %><% }
+  else if (n.t === 'strong') { %><strong><%- include('_md-inline', { nodes: n.children }) %></strong><% }
+  else if (n.t === 'em') { %><em><%- include('_md-inline', { nodes: n.children }) %></em><% }
+  else if (n.t === 'code') { %><code class="<%= n.className %>"><%= n.text %></code><% }
+  else if (n.t === 'action') { var _as = widgetKit.style(n.style); %><button type="button" data-wk-element="<%= n.id %>" class="<%= n.className %>"<% if (_as) { %> style="<%= _as %>"<% } %>><%- include('_md-inline', { nodes: n.children }) %></button><% }
+  else if (n.t === 'link') { var _ls = widgetKit.style(n.style); %><a href="<%= n.href %>" class="<%= n.className %>"<% if (_ls) { %> style="<%= _ls %>"<% } %><% if (n.attrs.target) { %> target="<%= n.attrs.target %>"<% } %><% if (n.attrs.rel) { %> rel="<%= n.attrs.rel %>"<% } %>><%- include('_md-inline', { nodes: n.children }) %></a><% }
+%><% }); %>

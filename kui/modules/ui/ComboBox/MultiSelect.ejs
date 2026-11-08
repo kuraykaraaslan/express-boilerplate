@@ -1,0 +1,342 @@
+<%
+  // MultiSelect (lives in the ComboBox folder so it can share _chip/_listbox
+  // partials and the filter/async/keyboard helpers). Mirrors NextJS
+  // modules/ui/MultiSelect.tsx M1.
+  var _id          = locals.id          || 'multiselect-' + Math.random().toString(36).substr(2, 9);
+  var _label       = locals.label       || '';
+  var _options     = locals.options     || [];
+  var _value       = locals.value       || [];
+  var _placeholder = locals.placeholder || 'Select…';
+  var _hint        = locals.hint        || '';
+  var _error       = locals.error       || '';
+  var _dis         = !!locals.disabled;
+  var _searchable  = !!locals.searchable;
+  var _className   = locals.className   || '';
+  // `loadMore: true` renders the list-end sentinel that dispatches `multiselect:loadmore` (kui-react
+  // renders it only with `onLoadMore`); without it the list has no 4px sentinel row at the end.
+  var _loadMore    = !!locals.loadMore;
+  // Built-in strings, overridable through `messages` (kui-react MultiSelect `messages`).
+  // `remove` fills {label}. `loading` is the async loading row (kui-react draws skeleton rows there).
+  var _msgDefaults = { noResults: 'No results found.', search: 'Search…', remove: 'Remove {label}', loading: 'Loading…' };
+  var _msgIn = (locals.messages && typeof locals.messages === 'object') ? locals.messages : {};
+  var _m = {};
+  Object.keys(_msgDefaults).forEach(function (k) { _m[k] = typeof _msgIn[k] === 'string' ? _msgIn[k] : _msgDefaults[k]; });
+  function removeLabel(label) {
+    return _m.remove.replace(/\{(\w+)\}/g, function (whole, key) { return key === 'label' ? label : whole; });
+  }
+
+  var labelId     = _id + '-label';
+  var hintId      = _hint  ? (_id + '-hint')  : '';
+  var errorId     = _error ? (_id + '-error') : '';
+  var describedBy = [hintId, errorId].filter(Boolean).join(' ');
+  var listboxId   = _id + '-listbox';
+
+  function isSelected(v) {
+    for (var i = 0; i < _value.length; i++) { if (_value[i] === v) return true; }
+    return false;
+  }
+
+  var shellStateClass = _error
+    ? 'border-error ring-1 ring-error bg-error-subtle'
+    : 'border-border bg-surface-base';
+  var shellDisabledClass = _dis ? ' opacity-50 cursor-not-allowed bg-surface-sunken' : '';
+%>
+<div
+  id="<%= _id %>-root"
+  class="space-y-1<%= _className ? ' ' + _className : '' %>"
+  data-multiselect-root
+>
+  <label id="<%= labelId %>" class="block text-sm font-medium text-text-primary"><%= _label %></label>
+
+  <div class="relative">
+    <div
+      role="combobox"
+      tabindex="<%= _dis ? -1 : 0 %>"
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-controls="<%= listboxId %>"
+      aria-autocomplete="list"
+      aria-labelledby="<%= labelId %>"
+      <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>
+      aria-disabled="<%= _dis ? 'true' : 'false' %>"
+      id="<%= _id %>"
+      data-multiselect-shell
+      class="min-h-[2.5rem] w-full rounded-md border px-3 py-1.5 text-sm transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus flex flex-wrap gap-1 items-center <%= shellStateClass %><%= shellDisabledClass %>"
+    >
+      <span data-multiselect-placeholder class="text-text-disabled<%= _value.length > 0 ? ' hidden' : '' %>"><%= _placeholder %></span>
+      <span data-multiselect-chips class="contents">
+        <% _value.forEach(function(v) {
+          var opt = null;
+          for (var i = 0; i < _options.length; i++) { if (_options[i].value === v) { opt = _options[i]; break; } }
+          var chipValue = v;
+          var chipLabel = opt ? opt.label : v;
+          var chipIcon  = (opt && opt.icon) ? opt.icon : '';
+        %>
+          <%- include('./partials/_chip', { chipValue: chipValue, chipLabel: chipLabel, chipIcon: chipIcon, chipRemoveLabel: removeLabel(chipLabel) }) %>
+        <% }); %>
+      </span>
+      <i data-multiselect-caret class="fa-solid fa-chevron-down ml-auto w-3 h-3 text-text-disabled" aria-hidden="true"></i>
+    </div>
+
+    <div
+      data-multiselect-popover
+      class="absolute z-20 w-full rounded-md border border-border bg-surface-raised shadow-lg overflow-hidden top-full left-0 mt-1 hidden"
+    >
+      <% if (_searchable) { %>
+        <div class="p-2 border-b border-border">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-disabled" aria-hidden="true"></i>
+            <input
+              type="text"
+              data-multiselect-search
+              placeholder="<%= _m.search %>"
+              aria-label="<%= _m.search %>"
+              aria-autocomplete="list"
+              aria-controls="<%= listboxId %>"
+              class="block w-full rounded-md border border-border bg-surface-base pl-7 pr-3 py-1.5 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            />
+          </div>
+        </div>
+      <% } %>
+      <ul
+        id="<%= listboxId %>"
+        role="listbox"
+        aria-labelledby="<%= labelId %>"
+        aria-multiselectable="true"
+        data-multiselect-list
+        class="py-1 max-h-48 overflow-y-auto"
+      >
+        <% _options.forEach(function(opt) {
+          var checked = isSelected(opt.value);
+        %>
+          <li
+            role="option"
+            aria-selected="<%= checked ? 'true' : 'false' %>"
+            aria-disabled="<%= opt.disabled ? 'true' : 'false' %>"
+            tabindex="<%= opt.disabled ? -1 : 0 %>"
+            data-multiselect-option
+            data-value="<%= opt.value %>"
+            data-label="<%= opt.label %>"
+            <% if (opt.disabled) { %>data-disabled="true"<% } %>
+            class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer select-none hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:bg-surface-overlay<%= checked ? ' text-primary font-medium' : '' %><%= opt.disabled ? ' opacity-50 cursor-not-allowed' : '' %>"
+          >
+            <span
+              aria-hidden="true"
+              data-multiselect-box
+              class="h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 text-[10px] <%= checked ? 'bg-primary border-primary text-primary-fg' : 'border-border bg-surface-base' %>"
+            >
+              <%# Shown with an inline display: Font Awesome's unlayered `display` beats the `hidden` utility. %>
+              <i class="fa-solid fa-check w-2.5 h-2.5" aria-hidden="true"<% if (!checked) { %> style="display:none"<% } %>></i>
+            </span>
+            <% if (opt.icon) { %><span class="shrink-0" aria-hidden="true" data-multiselect-option-icon><%- opt.icon %></span><% } %>
+            <%= opt.label %>
+          </li>
+        <% }); %>
+        <li data-multiselect-loading class="hidden px-3 py-3 text-sm text-text-secondary" aria-live="polite">
+          <i class="fa-solid fa-spinner fa-spin w-3 h-3" aria-hidden="true"></i>
+          <span class="ml-1"><%= _m.loading %></span>
+        </li>
+        <li data-multiselect-empty class="hidden px-3 py-4 text-sm text-center text-text-secondary"><%= _m.noResults %></li>
+        <% if (_loadMore) { %><li data-multiselect-sentinel aria-hidden="true" class="h-1"></li><% } %>
+      </ul>
+    </div>
+  </div>
+
+  <% if (_hint && !_error) { %><p id="<%= hintId %>" class="text-xs text-text-secondary"><%= _hint %></p><% } %>
+  <% if (_error) { %><p id="<%= errorId %>" class="text-xs text-error" role="alert"><%= _error %></p><% } %>
+</div>
+
+<script><%- include('./scripts/filter.js') %></script>
+<script><%- include('./scripts/async.js') %></script>
+<script><%- include('./scripts/keyboard.js') %></script>
+
+<script>
+(function () {
+  var rootId = <%- include('../_script-json', { value: _id + '-root' }) %>;
+  var removeTemplate = <%- include('../_script-json', { value: _m.remove }) %>;
+  var root = document.getElementById(rootId);
+  if (!root || root.dataset.msInit === '1') return;
+  root.dataset.msInit = '1';
+
+  var shell       = root.querySelector('[data-multiselect-shell]');
+  var popover     = root.querySelector('[data-multiselect-popover]');
+  var listEl      = root.querySelector('[data-multiselect-list]');
+  var chipsEl     = root.querySelector('[data-multiselect-chips]');
+  var placeholder = root.querySelector('[data-multiselect-placeholder]');
+  var caret       = root.querySelector('[data-multiselect-caret]');
+  var search      = root.querySelector('[data-multiselect-search]');
+  var emptyEl     = root.querySelector('[data-multiselect-empty]');
+  var loadingEl   = root.querySelector('[data-multiselect-loading]');
+  var sentinelEl  = root.querySelector('[data-multiselect-sentinel]');
+  var optionEls   = Array.prototype.slice.call(root.querySelectorAll('[data-multiselect-option]'));
+  if (!shell || !popover) return;
+
+  var disabled = shell.getAttribute('aria-disabled') === 'true';
+  var open = false;
+  var selected = optionEls
+    .filter(function (el) { return el.getAttribute('aria-selected') === 'true'; })
+    .map(function (el) { return el.dataset.value; });
+
+  function setOpen(next) {
+    open = next;
+    shell.setAttribute('aria-expanded', open ? 'true' : 'false');
+    popover.classList.toggle('hidden', !open);
+    if (caret) {
+      caret.classList.toggle('fa-chevron-up', open);
+      caret.classList.toggle('fa-chevron-down', !open);
+    }
+    if (open && search) setTimeout(function () { search.focus(); }, 30);
+    else if (search) { search.value = ''; applyFilter(); }
+  }
+
+  function findOptionData(v) {
+    for (var i = 0; i < optionEls.length; i++) {
+      if (optionEls[i].dataset.value === v) return optionEls[i];
+    }
+    return null;
+  }
+
+  function renderChips() {
+    if (!chipsEl) return;
+    chipsEl.innerHTML = '';
+    selected.forEach(function (v) {
+      var src = findOptionData(v);
+      var label = src ? src.dataset.label : v;
+      var chip = document.createElement('span');
+      chip.setAttribute('data-multiselect-chip', '');
+      chip.setAttribute('data-value', v);
+      chip.className = 'inline-flex items-center gap-1 rounded-full bg-primary-subtle text-primary text-xs font-medium px-2 py-0.5';
+      // The chip repeats the option's icon, as kui-react's chip does (`opt.icon` before the label).
+      var iconSrc = src ? src.querySelector('[data-multiselect-option-icon]') : null;
+      chip.innerHTML = (iconSrc ? '<span class="shrink-0">' + iconSrc.innerHTML + '</span>' : '') +
+        label.replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }) +
+        '<button type="button" aria-label="' + removeTemplate.replace(/\{(\w+)\}/g, function (whole, key) { return key === 'label' ? label : whole; }).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" data-multiselect-chip-remove class="hover:opacity-70 focus-visible:outline-none">' +
+        '<i class="fa-solid fa-xmark w-2.5 h-2.5" aria-hidden="true"></i></button>';
+      var btn = chip.querySelector('[data-multiselect-chip-remove]');
+      if (btn) btn.addEventListener('click', function (e) { e.stopPropagation(); toggle(v); });
+      chipsEl.appendChild(chip);
+    });
+    if (placeholder) placeholder.classList.toggle('hidden', selected.length > 0);
+  }
+
+  function syncOptionStates() {
+    optionEls.forEach(function (el) {
+      var v = el.dataset.value;
+      var isSel = selected.indexOf(v) !== -1;
+      el.setAttribute('aria-selected', isSel ? 'true' : 'false');
+      if (isSel) el.classList.add('text-primary', 'font-medium');
+      else el.classList.remove('text-primary', 'font-medium');
+      var box = el.querySelector('[data-multiselect-box]');
+      if (box) {
+        if (isSel) {
+          box.classList.add('bg-primary', 'border-primary', 'text-primary-fg');
+          box.classList.remove('border-border', 'bg-surface-base');
+        } else {
+          box.classList.remove('bg-primary', 'border-primary', 'text-primary-fg');
+          box.classList.add('border-border', 'bg-surface-base');
+        }
+        var check = box.querySelector('.fa-check');
+        if (check) check.style.display = isSel ? '' : 'none';
+      }
+    });
+  }
+
+  function toggle(v) {
+    var idx = selected.indexOf(v);
+    if (idx === -1) selected.push(v);
+    else selected.splice(idx, 1);
+    renderChips();
+    syncOptionStates();
+    root.dispatchEvent(new CustomEvent('kui:multiselect-change', { bubbles: true, detail: { value: selected.slice() } }));
+  }
+
+  // Read and set the value from outside (kui-react MultiSelect is controlled through value / onChange):
+  // root.kuiMultiSelect.getValue() / .setValue(values). setValue fires no change event.
+  root.kuiMultiSelect = {
+    getValue: function () { return selected.slice(); },
+    setValue: function (values) {
+      selected = (Array.isArray(values) ? values : []).map(String);
+      renderChips();
+      syncOptionStates();
+    }
+  };
+
+  function applyFilter() {
+    if (window.ComboBoxAsync && window.ComboBoxAsync.has(root)) return;
+    if (!window.__cbFilter) return;
+    window.__cbFilter.applyFilter(optionEls, search ? search.value : '', emptyEl);
+  }
+
+  function setLoading(state) {
+    if (loadingEl) loadingEl.classList.toggle('hidden', !state);
+    if (emptyEl)   emptyEl.classList.toggle('hidden', state);
+  }
+
+  function runAsync() {
+    if (!window.ComboBoxAsync || !window.ComboBoxAsync.has(root)) return;
+    window.ComboBoxAsync.search(root, search ? search.value : '', {
+      onStart:  function () { setLoading(true); },
+      onResult: function () { /* host registration handles render */ },
+      onError:  function () { /* no-op */ },
+      onFinish: function () { setLoading(false); },
+    });
+  }
+
+  shell.addEventListener('click', function () { if (!disabled) setOpen(!open); });
+  shell.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); }
+  });
+
+  optionEls.forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (el.dataset.disabled) return;
+      toggle(el.dataset.value);
+    });
+    el.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') && !el.dataset.disabled) {
+        e.preventDefault();
+        toggle(el.dataset.value);
+      }
+    });
+  });
+
+  if (search) {
+    search.addEventListener('input', function () { applyFilter(); runAsync(); });
+    search.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  // initial chip remove buttons (server-rendered)
+  root.querySelectorAll('[data-multiselect-chip-remove]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var chip = btn.closest('[data-multiselect-chip]');
+      if (chip) toggle(chip.dataset.value);
+    });
+  });
+
+  // TODO M1: cursor pagination — emit combobox:loadmore on sentinel intersection.
+  if (sentinelEl && typeof IntersectionObserver !== 'undefined') {
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries[0] || !entries[0].isIntersecting) return;
+      root.dispatchEvent(new CustomEvent('multiselect:loadmore'));
+    }, { root: listEl, rootMargin: '40px' });
+    io.observe(sentinelEl);
+  }
+
+  // Escape anywhere in an open list (trigger, search box, an option) closes the
+  // list only: it is marked handled so an enclosing Modal / Drawer stays open.
+  // With the list closed, Escape passes through to the overlay as usual.
+  root.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !open) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    shell.focus();
+  });
+
+  document.addEventListener('mousedown', function (e) {
+    if (root.contains(e.target)) return;
+    if (open) setOpen(false);
+  });
+})();
+</script>

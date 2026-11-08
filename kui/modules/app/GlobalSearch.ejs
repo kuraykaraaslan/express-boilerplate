@@ -1,0 +1,150 @@
+<%
+  var _placeholder = locals.placeholder || 'Search…';
+  var _results     = locals.results || [];
+  var _query       = locals.query   || '';
+  var _loading     = !!locals.loading;
+  var _id          = 'gs-' + Math.random().toString(36).substr(2, 6);
+
+  var grouped = {};
+  _results.forEach(function (r) {
+    var cat = r.category || 'Results';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(r);
+  });
+  var cats = Object.keys(grouped);
+%>
+<div id="<%= _id %>" class="relative w-full max-w-md<%= locals.className ? ' '+locals.className : '' %>" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+  <div data-gs-search>
+    <%# className: '' keeps this component's className (inherited by includes) off the SearchBar. %>
+    <%- include('../ui/SearchBar', {
+      id:          _id + '-input',
+      placeholder: _placeholder,
+      value:       _query,
+      clearable:   true,
+      className:   '',
+    }) %>
+  </div>
+
+  <div
+    id="<%= _id %>-results"
+    role="listbox"
+    aria-label="Search results"
+    hidden
+    class="absolute top-full mt-1.5 left-0 right-0 z-50 rounded-lg border border-border bg-surface-raised shadow-xl overflow-hidden max-h-72 overflow-y-auto"
+  >
+    <% if (_loading) { %>
+    <div data-gs-loading class="px-4 py-6 text-center text-sm text-text-secondary animate-pulse">Searching…</div>
+    <% } else if (_results.length === 0) { %>
+    <div data-gs-empty class="px-4 py-6 text-center text-sm text-text-secondary">
+      No results for <strong class="text-text-primary">"<%= _query %>"</strong>
+    </div>
+    <% } else { %>
+      <% var optIdx = 0; %>
+      <% cats.forEach(function (cat) { %>
+      <div>
+        <p class="px-3 pt-2 pb-1 text-[10px] font-semibold text-text-disabled uppercase tracking-wider"><%= cat %></p>
+        <% grouped[cat].forEach(function (r) { %>
+        <button
+          type="button"
+          role="option"
+          data-gs-option
+          data-gs-index="<%= optIdx %>"
+          data-gs-id="<%= r.id %>"
+          aria-selected="false"
+          class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-overlay text-text-primary focus-visible:outline-none"
+        >
+          <% if (r.icon) { %><span aria-hidden="true" class="shrink-0 text-text-disabled"><i class="<%= r.icon %> text-sm"></i></span><% } %>
+          <div class="min-w-0">
+            <p class="text-sm font-medium truncate"><%= r.label %></p>
+            <% if (r.description) { %><p class="text-xs text-text-secondary truncate"><%= r.description %></p><% } %>
+          </div>
+        </button>
+        <% optIdx++; %>
+        <% }); %>
+      </div>
+      <% }); %>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../ui/_script-json', { value: String(_id) }) %>);
+  if (!root) return;
+  var input = document.getElementById(<%- include('../ui/_script-json', { value: _id + '-input' }) %>);
+  var panel = document.getElementById(<%- include('../ui/_script-json', { value: _id + '-results' }) %>);
+  if (!input || !panel) return;
+
+  var highlighted = -1;
+
+  function options() {
+    return Array.prototype.slice.call(panel.querySelectorAll('[data-gs-option]'));
+  }
+
+  function applyHighlight() {
+    options().forEach(function (btn, i) {
+      var on = i === highlighted;
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.classList.toggle('bg-primary-subtle', on);
+      btn.classList.toggle('text-primary', on);
+      btn.classList.toggle('hover:bg-surface-overlay', !on);
+      btn.classList.toggle('text-text-primary', !on);
+    });
+  }
+
+  function openPanel(open) {
+    panel.hidden = !open;
+    root.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open) { highlighted = -1; applyHighlight(); }
+  }
+
+  function refreshOpen() {
+    var q = (input.value || '').trim();
+    openPanel(q.length > 0);
+  }
+
+  input.addEventListener('input', function () {
+    highlighted = -1;
+    applyHighlight();
+    refreshOpen();
+    root.dispatchEvent(new CustomEvent('globalsearch:query', { bubbles: true, detail: { query: input.value } }));
+  });
+
+  input.addEventListener('focus', refreshOpen);
+
+  options().forEach(function (btn, i) {
+    btn.addEventListener('mouseenter', function () { highlighted = i; applyHighlight(); });
+    btn.addEventListener('click', function () {
+      root.dispatchEvent(new CustomEvent('globalsearch:select', {
+        bubbles: true,
+        detail: { id: btn.getAttribute('data-gs-id'), index: i }
+      }));
+      input.value = '';
+      openPanel(false);
+    });
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (panel.hidden) return;
+    var opts = options();
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlighted = Math.min(highlighted + 1, opts.length - 1);
+      applyHighlight();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlighted = Math.max(highlighted - 1, 0);
+      applyHighlight();
+    } else if (e.key === 'Enter' && highlighted >= 0 && opts[highlighted]) {
+      e.preventDefault();
+      opts[highlighted].click();
+    } else if (e.key === 'Escape') {
+      openPanel(false);
+    }
+  });
+
+  document.addEventListener('mousedown', function (e) {
+    if (!root.contains(e.target)) openPanel(false);
+  });
+})();
+</script>

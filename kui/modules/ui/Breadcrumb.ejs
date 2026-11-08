@@ -1,0 +1,59 @@
+<%
+  var _items     = locals.items     || [];
+  var _maxItems  = locals.maxItems  || 0;
+  var _className = locals.className || '';
+  var _ariaLabel = locals.ariaLabel || 'Breadcrumb';
+
+  // item.attrs: extra attributes on the item's element (data-*, aria-*, id, ...) so a host
+  // script can take the click; values are escaped, true renders a bare attribute, false / null
+  // drop it. Event handlers (on*) and the attributes the partial owns are ignored.
+  var _attrName = /^[a-zA-Z_:][-a-zA-Z0-9_:.]*$/;
+  var _ownAttrs = { href: 1, 'class': 1, style: 1, 'aria-current': 1, 'aria-hidden': 1 };
+  function itemAttrs(item) {
+    var out = [];
+    var a = item && item.attrs;
+    if (!a || typeof a !== 'object') return out;
+    Object.keys(a).forEach(function (name) {
+      var v = a[name];
+      var key = name.toLowerCase();
+      if (!_attrName.test(name) || key.indexOf('on') === 0 || _ownAttrs[key]) return;
+      if (v === false || v === null || v === undefined) return;
+      out.push({ name: name, value: v === true ? null : String(v) });
+    });
+    return out;
+  }
+
+  var displayed = _items;
+  var truncated = false;
+  if (_maxItems && _items.length > _maxItems) {
+    truncated = true;
+    // first + ellipsis + last (_maxItems - 1) items
+    var tail = _items.slice(_items.length - (_maxItems - 1));
+    displayed = [_items[0], { label: '…', href: undefined, _isEllipsis: true }].concat(tail);
+  }
+%>
+<nav aria-label="<%= _ariaLabel %>"<% if (_className) { %> class="<%= _className %>"<% } %>>
+  <ol class="flex flex-wrap items-center gap-1 text-sm">
+    <% displayed.forEach(function (item, i) { %>
+    <%
+      var isLast      = i === displayed.length - 1;
+      var isEllipsis  = !!item._isEllipsis;
+      var extra       = isEllipsis ? [] : itemAttrs(item);
+    %>
+    <li class="flex items-center gap-1">
+      <% if (!isLast && item.href && !isEllipsis) { %>
+      <a href="<%= item.href %>"<% extra.forEach(function (x) { %> <%= x.name %><% if (x.value !== null) { %>="<%= x.value %>"<% } %><% }); %> class="text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"><%= item.label %></a>
+      <span class="w-2.5 h-2.5 inline-flex items-center justify-center text-text-disabled" aria-hidden="true"><i class="fa-solid fa-chevron-right w-2.5 h-2.5"></i></span>
+      <% } else { %>
+      <span
+        class="<%= isLast ? 'text-text-primary font-medium' : 'text-text-secondary' %><%= isEllipsis ? ' select-none' : '' %>"
+        <% if (isLast) { %>aria-current="page"<% } %>
+        <% if (isEllipsis) { %>aria-hidden="true"<% } %>
+        <% extra.forEach(function (x) { %><%= x.name %><% if (x.value !== null) { %>="<%= x.value %>"<% } %> <% }); %>
+      ><%= item.label %></span>
+      <% if (!isLast) { %><span class="w-2.5 h-2.5 inline-flex items-center justify-center text-text-disabled" aria-hidden="true"><i class="fa-solid fa-chevron-right w-2.5 h-2.5"></i></span><% } %>
+      <% } %>
+    </li>
+    <% }); %>
+  </ol>
+</nav>

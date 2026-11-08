@@ -1,0 +1,6 @@
+<%#
+  What a number is ("Orders today"): small, muted, one line (`MetricLabel`). Nothing for an empty text.
+  Locals: text, font, color, className.
+%><%_ if (locals.text !== null && locals.text !== undefined && locals.text !== '') { var _st = widgetKit.style(widgetKit.fontStyle(locals.font, locals.color)); _%>
+<span class="<%= widgetKit.ui.METRIC_LABEL_CLASS %><%= locals.className ? ' ' + locals.className : '' %>"<% if (_st) { %> style="<%= _st %>"<% } %>><%= locals.text %></span>
+<%_ } _%>

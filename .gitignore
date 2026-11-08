@@ -77,3 +77,7 @@ Thumbs.db
 /prisma/.env.development
 
 /build
+# built by build:css / build:client
+public/assets/css/app.css
+public/js/kui-api.js
+public/js/kui-api.js.map

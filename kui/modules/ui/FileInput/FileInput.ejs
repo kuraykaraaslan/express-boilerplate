@@ -1,0 +1,51 @@
+<%
+  var _id          = locals.id        || 'file-' + Math.random().toString(36).substr(2, 9);
+  var _multiple    = !!locals.multiple;
+  var _accept      = locals.accept    || '';
+  var _dis         = !!locals.disabled;
+  var _maxBytes    = (typeof locals.maxSizeBytes === 'number') ? locals.maxSizeBytes : 0;
+  var _maxFiles    = (typeof locals.maxFiles === 'number') ? locals.maxFiles : 0;
+  var _allowed     = Array.isArray(locals.allowedTypes) ? locals.allowedTypes : [];
+  var _uploadLbl   = locals.uploadLabel || 'Upload';
+  var _hasUpload   = !!locals.onUpload; // expects a window.* function name string
+  var _enablePaste = !!locals.enablePaste;
+
+  // Bundle every dynamic option into a single JSON blob the script consumes.
+  // Keeps the markup clean and avoids string-template injection inside <script>.
+  var _opts = {
+    multiple:     _multiple,
+    accept:       _accept,
+    maxSizeBytes: _maxBytes,
+    maxFiles:     _maxFiles,
+    allowedTypes: _allowed,
+    disabled:     _dis,
+    enablePaste:  _enablePaste,
+    onUpload:     locals.onUpload || '',
+    uploadLabel:  _uploadLbl,
+    messages:     locals.messages || {}
+  };
+%>
+<div
+  class="w-full space-y-2<%= locals.className ? ' ' + locals.className : '' %>"
+  data-fi-root="<%= _id %>"
+  data-fi-options="<%= JSON.stringify(_opts) %>"
+>
+  <% if (locals.label) { %>
+    <label for="<%= _id %>" class="block text-sm font-medium text-text-primary">
+      <%= locals.label %><% if (locals.required) { %> <span class="text-error">*</span><% } %>
+    </label>
+  <% } %>
+
+  <%- include('./partials/_dropzone', {
+    _id: _id, _multiple: _multiple, _accept: _accept, _dis: _dis,
+    _enablePaste: _enablePaste, hint: locals.hint, name: locals.name
+  }) %>
+
+  <ul class="space-y-1.5 hidden" data-fi-list aria-label="Selected files"></ul>
+
+  <%- include('./partials/_upload-button', { _hasUpload: _hasUpload, _uploadLbl: _uploadLbl, error: locals.error }) %>
+</div>
+
+<script>
+<%- include('scripts/file-input.js') %>
+</script>

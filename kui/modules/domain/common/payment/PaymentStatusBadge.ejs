@@ -1,0 +1,21 @@
+<%
+  var _status = (locals.status || '').toUpperCase();
+  var _size   = locals.size || 'md';
+  var _dot    = !!locals.dot;
+
+  var statusMeta = {
+    PENDING:    { children: 'Pending',    variant: 'warning' },
+    AUTHORIZED: { children: 'Authorized', variant: 'info' },
+    PAID:       { children: 'Paid',       variant: 'success' },
+    FAILED:     { children: 'Failed',     variant: 'error' },
+    CANCELLED:  { children: 'Cancelled',  variant: 'neutral' },
+    REFUNDED:   { children: 'Refunded',   variant: 'info' },
+  };
+  var meta = statusMeta[_status] || { children: locals.status || _status, variant: 'neutral' };
+%>
+<%- include('../../../ui/Badge', {
+  variant:  meta.variant,
+  size:     _size,
+  dot:      _dot,
+  children: meta.children
+}) %>

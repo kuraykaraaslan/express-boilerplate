@@ -1,0 +1,29 @@
+<%#
+  The default panel body for the selected service of ServiceMap (kui-react DefaultSelection). Locals: c (the context
+  built by ../ServiceMap.ejs), node, incoming, outgoing.
+-%>
+<%
+  var _health = c.M.healthOf(node, c.thresholds);
+  var _name = function (id) { var x = c.nodeById.get(id); return x ? x.name : id; };
+  var _metrics = [
+    node.rate !== undefined ? c.F.fillMessage(c.msg.rate, { value: c.F.formatCompact(node.rate) }) : null,
+    node.errorRate !== undefined ? c.F.fillMessage(c.msg.errors, { value: c.F.formatPercent(node.errorRate * 100, 2) }) : null,
+    node.latencyMs !== undefined ? c.F.fillMessage(c.msg.latency, { value: c.F.formatDurationMs(node.latencyMs) }) : null
+  ].filter(Boolean);
+  var _caption = [node.kind, c.msg.status[_health]].filter(Boolean).join(' · ') + (_metrics.length ? ' · ' + _metrics.join(' · ') : '');
+-%>
+<div class="flex flex-col gap-2">
+  <div class="flex items-start justify-between gap-2">
+    <div>
+      <h3 class="font-semibold text-text-primary"><%= node.name %></h3>
+      <p class="text-xs text-text-secondary"><%= _caption %></p>
+    </div>
+    <button type="button" data-sm-clear class="rounded border border-border bg-surface-base px-2 py-1 text-xs hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= c.msg.clearSelection %></button>
+  </div>
+  <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+    <dt class="text-text-secondary"><%= c.msg.upstream %></dt>
+    <dd><%= incoming.length ? incoming.map(function (e) { return _name(e.from); }).join(', ') : c.msg.none %></dd>
+    <dt class="text-text-secondary"><%= c.msg.downstream %></dt>
+    <dd><%= outgoing.length ? outgoing.map(function (e) { return _name(e.to); }).join(', ') : c.msg.none %></dd>
+  </dl>
+</div>

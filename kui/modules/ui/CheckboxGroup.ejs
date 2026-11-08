@@ -1,0 +1,66 @@
+<%
+  var _opts    = locals.options  || [];
+  var _sel     = locals.selected || [];
+  var _dis     = !!locals.disabled;
+  var _legend  = locals.legend   || '';
+%>
+<fieldset class="space-y-2 <%= locals.className || '' %>" data-testid="checkboxgroup" data-checkboxgroup>
+  <legend class="text-sm font-medium text-text-primary mb-2"><%= _legend %></legend>
+  <div class="flex flex-wrap gap-2">
+    <% _opts.forEach(function(opt) { %>
+      <%
+        var optValue = (opt && typeof opt === 'object') ? opt.value : opt;
+        var optLabel = (opt && typeof opt === 'object') ? opt.label : opt;
+        var isSelected = _sel.indexOf(optValue) !== -1;
+      %>
+      <label data-checkboxgroup-option class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors focus-within:ring-2 focus-within:ring-border-focus <%= _dis ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' %> <%= isSelected ? 'bg-primary-subtle border-primary text-primary' : 'bg-surface-base border-border text-text-primary hover:bg-surface-overlay' %>">
+        <input
+          type="checkbox"
+          value="<%= optValue %>"
+          data-testid="checkboxgroup-<%= optValue %>"
+          class="sr-only"
+          <%= isSelected ? 'checked' : '' %>
+          <%= _dis ? 'disabled' : '' %>
+        >
+        <% if (isSelected) { %>
+          <%# kui-react's svg carries w-3 h-3, but Font Awesome's own 1.25em x 1em wins; the bare <i> measures the same. %>
+          <i class="fa-solid fa-check w-3 h-3" aria-hidden="true" data-checkboxgroup-check></i>
+        <% } %>
+        <span><%= optLabel %></span>
+      </label>
+    <% }); %>
+  </div>
+  <% if (locals.error) { %>
+    <p class="text-xs text-error mt-1" role="alert"><%= locals.error %></p>
+  <% } %>
+</fieldset>
+
+<script>
+(function () {
+  // A ticked option is restyled in the browser like kui-react's controlled CheckboxGroup re-renders it
+  // (selected classes and the check icon). Bound once per page, for every group.
+  if (window.__kuiCheckboxGroupBound) return;
+  window.__kuiCheckboxGroupBound = true;
+  var ON = ['bg-primary-subtle', 'border-primary', 'text-primary'];
+  var OFF = ['bg-surface-base', 'border-border', 'text-text-primary', 'hover:bg-surface-overlay'];
+  document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input || input.type !== 'checkbox' || !input.closest) return;
+    var label = input.closest('[data-checkboxgroup-option]');
+    if (!label) return;
+    var on = input.checked;
+    ON.forEach(function (c) { label.classList.toggle(c, on); });
+    OFF.forEach(function (c) { label.classList.toggle(c, !on); });
+    var icon = label.querySelector('[data-checkboxgroup-check]');
+    if (on && !icon) {
+      icon = document.createElement('i');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.setAttribute('data-checkboxgroup-check', '');
+      icon.className = 'fa-solid fa-check w-3 h-3';
+      input.insertAdjacentElement('afterend', icon);
+    } else if (!on && icon) {
+      icon.parentNode.removeChild(icon);
+    }
+  });
+})();
+</script>

@@ -1,0 +1,34 @@
+<%
+  var _status = locals.status || null;
+  var statusMap = {
+    operational: { cls: 'bg-success-subtle text-success-fg', dot: 'bg-success', label: 'Operational' },
+    degraded:    { cls: 'bg-warning-subtle text-warning-fg', dot: 'bg-warning', label: 'Degraded' },
+    outage:      { cls: 'bg-error-subtle text-error-fg',     dot: 'bg-error',   label: 'Outage' }
+  };
+  var _sc = _status ? statusMap[_status] : null;
+%>
+<footer class="w-full border border-border rounded-xl bg-surface-raised overflow-hidden<%= locals.className ? ' '+locals.className : '' %>">
+  <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 border-b border-border">
+    <div class="flex items-center gap-2">
+      <% if (locals.logoContent) { %><%- locals.logoContent %><% } %>
+      <% if (locals.version) { %>
+      <%# Badge variant="neutral" size="md" %>
+      <span class="inline-flex items-center rounded-md font-medium bg-surface-overlay text-text-primary px-2.5 py-0.5 text-sm border border-border">v<%= locals.version %></span>
+      <% } %>
+    </div>
+    <% if (locals.navContent) { %>
+    <nav aria-label="Footer navigation" class="flex items-center gap-1"><%- locals.navContent %></nav>
+    <% } %>
+    <% if (_sc) { %>
+    <%# Badge variant=<status> size="md" dot %>
+    <span class="inline-flex items-center gap-1 rounded-md font-medium <%= _sc.cls %> px-2.5 py-0.5 text-sm border border-border">
+      <span class="h-1.5 w-1.5 rounded-full shrink-0 <%= _sc.dot %>" aria-hidden="true"></span>
+      <%= _sc.label %>
+    </span>
+    <% } %>
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-3 bg-surface-base">
+    <% if (locals.copyright) { %><p class="text-xs text-text-secondary"><%= locals.copyright %></p><% } %>
+    <% if (locals.socialContent) { %><div class="flex items-center gap-1"><%- locals.socialContent %></div><% } %>
+  </div>
+</footer>

@@ -1,0 +1,133 @@
+<%
+  // CommandPalette (EJS, split) — folder-scoped sibling of
+  // /home/kuray/01_NextJS_Components/modules/app/CommandPalette/.
+  //
+  // File-for-file parallels:
+  //   partials/_input.ejs   <-- parts/Input.tsx
+  //   partials/_list.ejs    <-- parts/ResultList.tsx
+  //   partials/_item.ejs    <-- parts/ResultItem.tsx
+  //   partials/_footer.ejs  <-- parts/Footer.tsx
+  //   scripts/command-store.js <-- hooks/useCommandStore.ts
+  //   scripts/fuzzy.js         <-- hooks/useFuzzySearch.tsx
+  //   scripts/shortcuts.js     <-- hooks/useShortcuts.ts
+  //
+  // M1 scope: fuzzy search + grouping + highlight + empty-state suggestions.
+  // TODO M2..M6 inline.
+
+  var _id          = locals.id       || 'cmd-bar-' + Math.random().toString(36).substr(2, 9);
+  var _placeholder = locals.placeholder || 'Type a command or search…';
+  // demo: list the sample commands below when `items` is not given. Off by default (parity
+  // with kui-react): a real host lists only the commands it passes or registers at runtime
+  // (window.__KuiCmdStore.register / registerMany).
+  var _demo        = !!locals.demo;
+
+  // Sample commands: 5 Navigation + 4 Actions + 3 Recent = 12 items.
+  // NOTE: Recent items use `faClock` (fa-clock), NOT fa-clock-rotate-left.
+  var defaultItems = [
+    { icon: 'fa-solid fa-house',        label: 'Go to Dashboard',  shortcut: 'G D', category: 'Navigation', href: '#' },
+    { icon: 'fa-solid fa-folder',       label: 'Go to Projects',   shortcut: 'G P', category: 'Navigation', href: '#' },
+    { icon: 'fa-solid fa-users',        label: 'Go to Team',       shortcut: 'G T', category: 'Navigation', href: '#' },
+    { icon: 'fa-solid fa-gear',         label: 'Go to Settings',   shortcut: 'G S', category: 'Navigation', href: '#' },
+    { icon: 'fa-solid fa-chart-bar',    label: 'Go to Analytics',  shortcut: 'G A', category: 'Navigation', href: '#' },
+    { icon: 'fa-solid fa-plus',         label: 'New Project',      shortcut: '⌘N',  category: 'Actions' },
+    { icon: 'fa-solid fa-envelope',     label: 'Send Invite',      shortcut: '⌘I',  category: 'Actions' },
+    { icon: 'fa-solid fa-file-export',  label: 'Export Data',      shortcut: '⌘E',  category: 'Actions' },
+    { icon: 'fa-solid fa-lock',         label: 'Lock Screen',      shortcut: '⌘L',  category: 'Actions' },
+    { icon: 'fa-solid fa-clock',        label: 'Project Alpha',                     category: 'Recent' },
+    { icon: 'fa-solid fa-clock',        label: 'Q3 Report',                         category: 'Recent' },
+    { icon: 'fa-solid fa-clock',        label: 'Design Review',                     category: 'Recent' }
+  ];
+
+  // Commands take group (category is the legacy name), order and hidden. Groups rank by their
+  // lowest order and commands sort by order inside them (like CSS order: missing is 0, ties
+  // keep array order); hidden commands are left out.
+  var groupOf = function (item) { return item.group || item.category || 'Commands'; };
+  var ord = function (item) { return (typeof item.order === 'number' && isFinite(item.order)) ? item.order : 0; };
+  var _source = locals.items ? locals.items : (_demo ? defaultItems : []);
+  var _groups = [];
+  _source.filter(function (item) { return item && !item.hidden; }).forEach(function (item, i) {
+    var key = groupOf(item);
+    var g = _groups.filter(function (x) { return x.name === key; })[0];
+    if (!g) { g = { name: key, first: i, rank: ord(item), entries: [] }; _groups.push(g); }
+    g.rank = Math.min(g.rank, ord(item));
+    g.entries.push({ item: Object.assign({}, item, { category: key }), i: i });
+  });
+  _groups.sort(function (a, b) { return a.rank - b.rank || a.first - b.first; });
+  _groups.forEach(function (g) { g.entries.sort(function (x, y) { return ord(x.item) - ord(y.item) || x.i - y.i; }); });
+  var categories = _groups.map(function (g) { return g.name; });
+  var _allItems = [];
+  _groups.forEach(function (g) { g.entries.forEach(function (e) { _allItems.push(e.item); }); });
+  var _ranks = {};
+  _groups.forEach(function (g) { _ranks[g.name] = g.rank; });
+
+  var _badgeNeutralSm = 'inline-flex items-center gap-1 rounded-full font-medium bg-surface-sunken text-text-secondary px-1.5 py-0 text-[10px]';
+%>
+<!-- AppCommandBar Trigger -->
+<% if (locals.trigger) { %>
+  <span data-cmd-trigger="<%= _id %>"><%- locals.trigger %></span>
+<% } else { %>
+  <button
+    type="button"
+    data-cmd-trigger="<%= _id %>"
+    class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed border border-border text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm"
+    aria-label="Open command palette"
+  >
+    Quick actions…
+    <span aria-hidden="true" class="shrink-0">
+      <span class="<%= _badgeNeutralSm %>">⌘K</span>
+    </span>
+  </button>
+<% } %>
+
+<!-- Modal -->
+<div
+  id="<%= _id %>"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="<%= _id %>-title"
+  class="fixed inset-0 z-[100] hidden"
+>
+  <!-- Backdrop -->
+  <div
+    class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+    data-cmd-close="<%= _id %>"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Panel -->
+  <div class="relative mx-auto mt-16 w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
+      <h2 id="<%= _id %>-title" class="text-base font-semibold text-text-primary">Command Palette</h2>
+      <button
+        type="button"
+        data-cmd-close="<%= _id %>"
+        class="rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary hover:bg-surface-overlay"
+        aria-label="Close"
+      >Esc</button>
+    </div>
+
+    <div class="px-4 py-4 space-y-4">
+      <%- include('./partials/_input', { _id: _id, _placeholder: _placeholder }) %>
+
+      <!-- AlertBanner pro-tip -->
+      <div role="alert" class="flex items-start gap-3 rounded-lg border p-4 bg-info-subtle border-info text-info-fg">
+        <i class="fa-solid fa-circle-info mt-0.5 shrink-0 text-base" aria-hidden="true"></i>
+        <div class="flex-1 text-sm min-w-0">
+          <p>Pro tip: Press ⌘K from anywhere to open this palette.</p>
+        </div>
+      </div>
+
+      <%- include('./partials/_list', { _id: _id, _allItems: _allItems, categories: categories, _ranks: _ranks, _badgeNeutralSm: _badgeNeutralSm }) %>
+
+      <%- include('./partials/_footer') %>
+    </div>
+  </div>
+</div>
+
+<%- include('../../ui/Overlays/shared/focus-trap.js') %>
+<script>
+  <%- include('./scripts/command-store.js') %>
+  <%- include('./scripts/fuzzy.js') %>
+  <%- include('./scripts/shortcuts.js') %>
+</script>

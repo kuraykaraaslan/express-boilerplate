@@ -1,0 +1,4 @@
+<%#
+  The number and its meta in one wrapping line (bar-labelled layout). Locals: model.
+%><%_ var _p = locals.model; _%>
+<div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1"><% if (_p.metric) { %><%- include('_progress-metric', { metric: _p.metric, size: 'xl' }) %><% } %><% if (_p.secondary) { %><span class="<%= widgetKit.ui.metaClass() %>"><span data-part="secondary"><%= _p.secondary %></span></span><% } %></div>

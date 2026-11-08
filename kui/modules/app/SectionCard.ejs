@@ -1,0 +1,8 @@
+<%
+  var _title     = locals.title     || '';
+  var _className = locals.className || '';
+%>
+<div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4<%= _className ? ' ' + _className : '' %>">
+  <h3 class="text-sm font-semibold text-text-primary border-b border-border pb-3"><%= _title %></h3>
+  <%- locals.children || '' %>
+</div>

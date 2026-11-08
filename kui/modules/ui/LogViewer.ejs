@@ -1,0 +1,237 @@
+<%
+  // LogViewer — a log list built for many lines: severity (text label and colour), search with highlight, severity
+  // and field facet chips, a wrap toggle, copy line, context lines pulled in around a selected line when the list is
+  // filtered, and a follow mode for a live tail (pauses when the user scrolls up, counts new lines, shows a drop
+  // counter). Same locals, DOM and classes as kui-react modules/ui/LogViewer/index.tsx (listbox / option semantics,
+  // aria-activedescendant). The server draws the first window of rows for the state at render time; the lines
+  // travel as JSON next to it, and LogViewer/scripts/log-viewer.js (inlined after log-model.js and log-view.js,
+  // idempotent) windows, filters, highlights, steps through matches, expands context, follows a tail and takes new
+  // lines in the browser. log-view.js draws rows with the same markup as this file (a test compares both with the
+  // HTML kui-react renders).
+  //
+  // Locals:
+  //   lines        — [{ id, ts, severity, message, fields?, source? }]
+  //     ts         — epoch ms or an ISO string; a line whose ts cannot be parsed shows "–" and no datetime
+  //                  (React throws a RangeError there)
+  //     severity   — 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' (anything else is drawn as 'info')
+  //     fields     — { key: string | number | boolean } structured fields: facets and the detail read them
+  //   height       — height of the list in px (default 420)
+  //   query / defaultQuery — search text at render time (default ''). `query` is controlled in React: here it marks
+  //                  the root (see Events) and the browser script only emits the change
+  //   searchMode   — 'filter' (default: only matching lines) | 'highlight' (all lines, step through matches)
+  //   hideSearch   — hide the search box (the query still applies)
+  //   facetFields  — field keys offered as facet chips (default: detected from the lines); `severity` is always offered
+  //   wrap / defaultWrap — wrap long lines (default false), controlled like `query`
+  //   follow / defaultFollow — live tail at render time (default false), controlled like `query`
+  //   dropped      — lines the producer dropped, shown as a counter (default 0)
+  //   selectedId   — selected line id at render time (React: controlled; a selection that points at a line that is not
+  //                  in `lines` is no selection); the browser then selects freely unless the root is controlled
+  //   contextStep  — lines added per click of the context buttons (default 5)
+  //   timeZone     — IANA zone of the timestamps (default: the server's on the page, the browser's afterwards)
+  //   messages     — partial overrides of the texts below; `severity` is merged key by key;
+  //                  `{count}`, `{shown}`, `{total}`, `{field}`, `{current}` are placeholders
+  //   className    — extra classes on the root
+  //   id           — prefix of the row ids (default: generated; pass it when two viewers share a page)
+  //   maxLines     — the most lines the page holds (default 10000, the default of kui-react's useLogStream): the newest
+  //                  `maxLines` are kept and the rest is added to the drop counter
+  //   loadRuntime  — default true: inline the browser scripts (false when the host page loads format.js, log-model.js,
+  //                  log-view.js and log-viewer.js once and calls KuiLogViewer.autoInit())
+  //
+  // Events on the root (they bubble): 'kui:log-select' { id, line } (id null when cleared; React: onSelect),
+  // 'kui:log-copy' { id, line } (onCopy), 'kui:log-query-change' { query } (onQueryChange),
+  // 'kui:log-wrap-change' { wrap } (onWrapChange), 'kui:log-follow-change' { follow } (onFollowChange).
+  // A controlled value (`query`, `wrap`, `follow`) is only emitted, never applied by the script: the host answers
+  // with KuiLogViewer.setQuery(root, q) / setWrap(root, on) / setFollow(root, on); select(root, id) does the same for
+  // the selection.
+  // The producer side (React's useLogStream) is KuiLogViewer.push(root, lines, { dropped }): it appends, keeps the
+  // newest `maxLines`, counts what it dropped and follows the tail when following; KuiLogViewer.setLines(root, lines)
+  // replaces them.
+  // Differences from React: no virtual scroll element measure on the server (the first window assumes a 400 px
+  // viewport and 800 px width, as kui-react's own server render does); copy uses the Clipboard API with a
+  // textarea fallback.
+  var F = {}, M = {};
+  include('./_observability/_load', { out: F, src: include('./_observability/format.js') });
+  include('./_observability/_load', { out: M, src: include('./LogViewer/log-model.js') });
+
+  var SEVERITIES = M.LOG_SEVERITIES;
+  var FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var GHOST_BASE = 'inline-flex items-center rounded border px-2 py-1 text-xs transition-colors hover:bg-surface-overlay disabled:cursor-not-allowed disabled:opacity-50 ' + FOCUS;
+  var GHOST = GHOST_BASE + ' border-border bg-surface-base text-text-primary';
+  var CHIP_ON = 'border-primary bg-primary-subtle text-primary';
+  var CHIP_OFF = 'border-border bg-surface-base text-text-secondary hover:bg-surface-overlay';
+  var SEV = {
+    trace: { badge: 'text-text-disabled', bar: 'border-s-2 border-border', row: '' },
+    debug: { badge: 'text-text-secondary', bar: 'border-s-2 border-border-strong', row: '' },
+    info: { badge: 'text-info', bar: 'border-s-2 border-info', row: '' },
+    warn: { badge: 'text-warning-fg bg-warning-subtle', bar: 'border-s-2 border-warning', row: '' },
+    error: { badge: 'text-error-fg bg-error-subtle', bar: 'border-s-2 border-error', row: '' },
+    fatal: { badge: 'text-error-fg bg-error-subtle font-bold', bar: 'border-error border-s-4', row: 'bg-error-subtle/40' }
+  };
+  var LINE_H = M.LINE_H, ROW_PAD = M.ROW_PAD;
+
+  var _defaults = {
+    label: 'Log lines', searchLabel: 'Search logs', searchPlaceholder: 'Search logs', clearSearch: 'Clear search',
+    wrap: 'Wrap lines', follow: 'Follow', paused: 'Paused', resume: 'Resume', newLines: '{count} new lines',
+    jumpToLatest: 'Jump to latest', dropped: '{count} lines dropped', copy: 'Copy line', copied: 'Copied',
+    copyFailed: 'Copy failed', showBefore: 'Show {count} lines before', showAfter: 'Show {count} lines after',
+    hideContext: 'Hide context', noLines: 'No log lines yet.', noMatches: 'No lines match the current filters.',
+    lineCount: '{shown} of {total} lines', clearFilters: 'Clear filters', previousMatch: 'Previous match',
+    nextMatch: 'Next match', matchPosition: '{current} of {total}', facetGroup: 'Filter by {field}',
+    selectedLine: 'Selected line', fields: 'Fields', context: 'context',
+    severity: { trace: 'TRACE', debug: 'DEBUG', info: 'INFO', warn: 'WARN', error: 'ERROR', fatal: 'FATAL' }
+  };
+  var _msg = Object.assign({}, _defaults, locals.messages || {});
+  _msg.severity = Object.assign({}, _defaults.severity, (locals.messages && locals.messages.severity) || {});
+
+  function posInt(v, d) { var n = Math.floor(Number(v)); return isFinite(n) && n > 0 ? n : d; }
+  var _height      = Number(locals.height) > 0 ? Number(locals.height) : 420;
+  var _searchMode  = locals.searchMode === 'highlight' ? 'highlight' : 'filter';
+  var _hideSearch  = locals.hideSearch === true;
+  var _className   = locals.className || '';
+  var _uid         = locals.id || 'ks-lv-' + Math.random().toString(36).substr(2, 9);
+  var _contextStep = posInt(locals.contextStep, 5);
+  var _timeZone    = locals.timeZone || undefined;
+  var _maxLines    = posInt(locals.maxLines, 10000);
+  var _query       = locals.query !== undefined ? String(locals.query == null ? '' : locals.query) : (locals.defaultQuery != null ? String(locals.defaultQuery) : '');
+  var _wrap        = locals.wrap !== undefined ? !!locals.wrap : locals.defaultWrap === true;
+  var _following   = locals.follow !== undefined ? !!locals.follow : locals.defaultFollow === true;
+  var _controlled  = { query: locals.query !== undefined, wrap: locals.wrap !== undefined, follow: locals.follow !== undefined, selected: locals.selectedId !== undefined };
+  var _facetFields = Array.isArray(locals.facetFields) ? locals.facetFields : null;
+
+  var _all = Array.isArray(locals.lines) ? locals.lines : [];
+  var _cut = Math.max(0, _all.length - _maxLines);
+  var _dropped = (Number(locals.dropped) > 0 ? Number(locals.dropped) : 0) + _cut;
+  var _lines = (_cut ? _all.slice(_cut) : _all).map(function (l) {
+    l = l || {};
+    var out = { id: String(l.id), ts: l.ts, severity: SEVERITIES.indexOf(l.severity) !== -1 ? l.severity : 'info', message: l.message == null ? '' : String(l.message) };
+    if (l.source) out.source = String(l.source);
+    if (l.fields && typeof l.fields === 'object') out.fields = l.fields;
+    return out;
+  });
+
+  var _selectedRaw = locals.selectedId != null ? String(locals.selectedId) : null;
+  var _ui = {
+    query: _query, searchMode: _searchMode, wrap: _wrap, severities: new Set(), facets: {}, expansions: {}
+  };
+  var _d = M.derive(_lines, _ui, { facetFields: _facetFields });
+  var _rows = _d.rows;
+  var _w = _d.window;
+  var _selIndex = _selectedRaw ? _lines.findIndex(function (l) { return l.id === _selectedRaw; }) : -1;
+  var _selected = _selIndex >= 0 ? _selectedRaw : null;
+  var _activeIndex = -1;
+  if (_selected) _rows.forEach(function (r, i) { if (_activeIndex === -1 && _lines[r].id === _selected) _activeIndex = i; });
+  if (_activeIndex < 0) _activeIndex = _rows.length ? 0 : -1;
+  var _matchSet = new Set(_d.highlight);
+  var _highlightQuery = _searchMode === 'highlight' || _d.filters.query ? _query : '';
+  var _rowId = function (id) { return _uid + '-line-' + id; };
+  var _showCount = _d.filtered || _searchMode === 'highlight';
+  var _lh = 'line-height: ' + LINE_H + 'px';
+  var _rowH = LINE_H + ROW_PAD * 2;
+
+  function parts(text, query) { return String(query).trim() ? F.splitMatches(text, query) : null; }
+  function timeOf(l) { var ms = F.toEpochMs(l.ts); return isFinite(ms) ? { iso: new Date(ms).toISOString(), text: F.formatClock(ms, _timeZone) } : null; }
+
+  var _cfg = {
+    uid: _uid, messages: _msg, searchMode: _searchMode, hideSearch: _hideSearch, height: _height, contextStep: _contextStep,
+    timeZone: _timeZone || null, facetFields: _facetFields, controlled: _controlled, maxLines: _maxLines, dropped: _dropped,
+    ui: { query: _query, wrap: _wrap, following: _following, selected: _selected }
+  };
+%>
+<%# w-full min-w-0: the viewer takes its container's width, never its longest line's (kui-react's comment). %>
+<div class="flex w-full min-w-0 flex-col gap-2 text-sm<%= _className ? ' ' + _className : '' %>" data-lv-root data-lv-config="<%= JSON.stringify(_cfg) %>">
+  <div class="flex flex-wrap items-center gap-2" data-lv-toolbar>
+    <% if (!_hideSearch) { %>
+    <div class="relative min-w-48 flex-1" data-lv-search-wrap>
+      <i class="fa-solid fa-magnifying-glass pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-disabled" aria-hidden="true"></i>
+      <input type="search" value="<%= _query %>" aria-label="<%= _msg.searchLabel %>" placeholder="<%= _msg.searchPlaceholder %>" data-lv-search class="w-full rounded-md border border-border bg-surface-base py-1.5 ps-8 pe-8 text-text-primary placeholder:text-text-disabled <%= FOCUS %>">
+      <% if (_query) { %><button type="button" aria-label="<%= _msg.clearSearch %>" data-lv-clear-search class="absolute end-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-text-secondary hover:bg-surface-overlay <%= FOCUS %>"><i class="fa-solid fa-xmark h-3 w-3" aria-hidden="true"></i></button><% } %>
+    </div>
+    <% } %>
+    <% if (_searchMode === 'highlight' && _query.trim() !== '') { %>
+    <div class="flex items-center gap-1 text-xs text-text-secondary" data-lv-nav>
+      <button type="button" class="<%= GHOST %>"<% if (!_d.highlight.length) { %> disabled<% } %> data-lv-prev><%= _msg.previousMatch %></button>
+      <button type="button" class="<%= GHOST %>"<% if (!_d.highlight.length) { %> disabled<% } %> data-lv-next><%= _msg.nextMatch %></button>
+      <span aria-live="polite"><%= F.fillMessage(_msg.matchPosition, { current: _d.highlight.length ? Math.min(1, _d.highlight.length) : 0, total: _d.highlight.length }) %></span>
+    </div>
+    <% } %>
+    <label class="flex cursor-pointer items-center gap-1.5 text-xs text-text-secondary" data-lv-wrap-label><input type="checkbox"<% if (_wrap) { %> checked<% } %> data-lv-wrap class="h-3.5 w-3.5 accent-primary <%= FOCUS %>"><%= _msg.wrap %></label>
+    <button type="button" aria-pressed="<%= _following ? 'true' : 'false' %>" data-lv-follow class="<%= _following ? GHOST_BASE + ' gap-1.5 border-success bg-success-subtle text-success-fg' : GHOST + ' gap-1.5' %>"><i class="fa-solid fa-<%= _following ? 'play' : 'pause' %> h-3 w-3" aria-hidden="true"></i><%= _msg.follow %><% if (!_following) { %><span class="text-text-secondary">(<%= _msg.paused %>)</span><% } %></button>
+    <% if (_dropped > 0) { %><span role="status" data-lv-dropped class="rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-fg"><%= F.fillMessage(_msg.dropped, { count: _dropped.toLocaleString() }) %></span><% } %>
+    <% if (_showCount) { %><span class="ms-auto text-xs text-text-secondary" data-lv-count><%= F.fillMessage(_msg.lineCount, { shown: _rows.length.toLocaleString(), total: _lines.length.toLocaleString() }) %></span><% } %>
+  </div>
+
+  <% if (_d.facetKeys.some(function (k) { return _d.facets[k] && _d.facets[k].length; })) { %>
+  <div class="flex flex-col gap-1.5" data-lv-facets>
+    <% _d.facetKeys.forEach(function (key) { if (!(_d.facets[key] && _d.facets[key].length)) return; %>
+    <div role="group" aria-label="<%= F.fillMessage(_msg.facetGroup, { field: key }) %>" class="flex flex-wrap items-center gap-1.5">
+      <span class="text-xs font-medium text-text-secondary"><%= key %></span>
+      <% _d.facets[key].forEach(function (f) { %>
+      <button type="button" aria-pressed="false" data-lv-facet-key="<%= key %>" data-lv-facet-value="<%= f.value %>" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors <%= FOCUS %> <%= CHIP_OFF %>"><%= key === 'severity' ? (_msg.severity[f.value] || f.value) : f.value %><span class="text-text-disabled"><%= f.count.toLocaleString() %></span></button>
+      <% }); %>
+    </div>
+    <% }); %>
+    <% if (_d.filtered) { %><button type="button" data-lv-clear-filters class="<%= GHOST %> self-start"><%= _msg.clearFilters %></button><% } %>
+  </div>
+  <% } %>
+
+  <div class="relative">
+    <span aria-hidden="true" class="invisible absolute -z-10 whitespace-pre font-mono text-xs" data-lv-probe>00000000000000000000</span>
+    <div role="listbox" tabindex="0" aria-label="<%= _msg.label %>"<% if (_activeIndex >= 0) { %> aria-activedescendant="<%= _rowId(_lines[_rows[_activeIndex]].id) %>"<% } %> data-lv-list class="overflow-auto rounded-md border border-border bg-surface-base font-mono text-xs <%= FOCUS %>" style="height: <%= _height %>px">
+      <% if (_rows.length === 0) { %>
+      <div class="p-4 font-sans text-sm text-text-secondary"><%= _lines.length === 0 ? _msg.noLines : _msg.noMatches %></div>
+      <% } else { %>
+      <% if (_w.offsetTop > 0) { %><div aria-hidden="true" style="height: <%= _w.offsetTop %>px"></div><% } %>
+      <% for (var _i = _w.start; _i < _w.end; _i++) {
+        var _li = _rows[_i], _line = _lines[_li], _sev = SEV[_line.severity];
+        var _isSel = _selected === _line.id, _isCtx = _d.display.context.has(_li), _isMatch = _matchSet.has(_li);
+        var _t = timeOf(_line), _parts = parts(_line.message, _highlightQuery);
+      %>
+      <div id="<%= _rowId(_line.id) %>" role="option" aria-selected="<%= _isSel ? 'true' : 'false' %>" aria-posinset="<%= _i + 1 %>" aria-setsize="<%= _rows.length %>" data-severity="<%= _line.severity %>"<% if (_isCtx) { %> data-context="true"<% } %><% if (_isMatch) { %> data-match="true"<% } %> data-lv-row="<%= _line.id %>" class="group flex cursor-pointer items-start gap-2 px-2 hover:bg-surface-overlay <%= _sev.bar %><%= _isSel ? ' bg-primary-subtle' : (_sev.row ? ' ' + _sev.row : '') %><%= _isCtx ? ' opacity-70' : '' %><%= _activeIndex === _i ? ' outline-2 -outline-offset-2 outline-border-focus' : '' %>" style="<%= _wrap ? '' : 'min-height: ' + _rowH + 'px; height: ' + _rowH + 'px; ' %>padding-block: <%= ROW_PAD %>px">
+        <span aria-hidden="true" class="w-12 shrink-0 select-none text-end text-text-disabled" style="<%= _lh %>"><%= _li + 1 %></span>
+        <time class="w-24 shrink-0 text-text-secondary" style="<%= _lh %>"<% if (_t) { %> datetime="<%= _t.iso %>"<% } %>><%= _t ? _t.text : '–' %></time>
+        <span class="w-12 shrink-0 rounded px-1 text-center text-[10px] <%= _line.severity === 'fatal' ? '' : 'font-semibold ' %><%= _sev.badge %>" style="<%= _lh %>"><%= _msg.severity[_line.severity] %></span>
+        <span class="min-w-0 flex-1 text-text-primary <%= _wrap ? 'whitespace-pre-wrap break-all' : 'truncate whitespace-pre' %>" style="<%= _lh %>"><% if (_isCtx) { %><span class="sr-only"><%= _msg.context %>: </span><% } %><% if (_line.source) { %><span class="me-2 text-text-secondary"><%= _line.source %></span><% } %><% if (_parts) { _parts.forEach(function (p) { %><% if (p.match) { %><mark class="rounded-sm bg-warning-subtle px-0.5 text-text-primary"><%= p.text %></mark><% } else { %><span><%= p.text %></span><% } %><% }); } else { %><%= _line.message %><% } %></span>
+        <button type="button" tabindex="-1" aria-label="<%= _msg.copy %>" title="<%= _msg.copy %>" data-lv-copy="<%= _line.id %>" class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-text-secondary hover:bg-surface-sunken <%= _isSel ? 'opacity-100' : 'opacity-0' %> group-hover:opacity-100 focus-visible:opacity-100"><i class="fa-solid fa-copy h-3 w-3" aria-hidden="true"></i></button>
+      </div>
+      <% } %>
+      <% if (_w.offsetBottom > 0) { %><div aria-hidden="true" style="height: <%= _w.offsetBottom %>px"></div><% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="sr-only" role="status" aria-live="polite" data-lv-status></div>
+
+  <% if (_selIndex >= 0) {
+    var _sl = _lines[_selIndex];
+    var _hiddenBefore = _selIndex > 0 && !_d.shown.has(_selIndex - 1);
+    var _hiddenAfter = _selIndex < _lines.length - 1 && !_d.shown.has(_selIndex + 1);
+    var _fk = _sl.fields ? Object.keys(_sl.fields) : [];
+  %>
+  <section role="region" aria-label="<%= _msg.selectedLine %>" data-lv-detail class="flex flex-col gap-2 rounded-md border border-border bg-surface-raised p-3">
+    <pre class="max-h-40 overflow-auto whitespace-pre-wrap break-all font-mono text-xs text-text-primary"><%= _sl.message %></pre>
+    <% if (_fk.length > 0) { %>
+    <div class="flex flex-wrap items-center gap-1.5">
+      <span class="text-xs font-medium text-text-secondary"><%= _msg.fields %></span>
+      <% _fk.forEach(function (k) { var val = String(_sl.fields[k]); var filterable = k !== 'severity' && M.facetValue(_sl, k) !== undefined; %>
+      <button type="button" aria-pressed="false"<% if (!filterable) { %> disabled<% } %> data-lv-facet-key="<%= k %>" data-lv-facet-value="<%= val %>" class="rounded-full border px-2 py-0.5 font-mono text-xs transition-colors <%= FOCUS %> <%= CHIP_OFF %>"><%= k %>=<%= val %></button>
+      <% }); %>
+    </div>
+    <% } %>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" data-lv-copy="<%= _sl.id %>" class="<%= GHOST %>"><i class="fa-solid fa-copy me-1.5 h-3 w-3" aria-hidden="true"></i><%= _msg.copy %></button>
+      <% if (_hiddenBefore) { %><button type="button" data-lv-context="before" class="<%= GHOST %>"><%= F.fillMessage(_msg.showBefore, { count: _contextStep }) %></button><% } %>
+      <% if (_hiddenAfter) { %><button type="button" data-lv-context="after" class="<%= GHOST %>"><%= F.fillMessage(_msg.showAfter, { count: _contextStep }) %></button><% } %>
+    </div>
+  </section>
+  <% } %>
+  <script type="application/json" data-lv-data><%- include('./_script-json', { value: _lines }) %></script>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./_observability/format.js') %>
+<%- include('./LogViewer/log-model.js') %>
+<%- include('./LogViewer/log-view.js') %>
+<%- include('./LogViewer/scripts/log-viewer.js') %>
+(function () { if (window.KuiLogViewer) window.KuiLogViewer.autoInit(); })();
+</script>
+<% } %>

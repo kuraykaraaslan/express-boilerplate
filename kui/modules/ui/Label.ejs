@@ -1,0 +1,11 @@
+<%
+  var _for       = locals.for       || '';
+  var _label     = locals.label     || '';
+  var _required  = !!locals.required;
+  var _disabled  = !!locals.disabled;
+  var _className = locals.className || '';
+%>
+<label
+  <% if (_for) { %>for="<%= _for %>"<% } %>
+  class="block text-sm font-medium text-text-primary select-none<%= _disabled ? ' text-text-disabled cursor-not-allowed' : '' %><%= _className ? ' ' + _className : '' %>"
+><%= _label %><% if (_required) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only">(required)</span><% } %></label>

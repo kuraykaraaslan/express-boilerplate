@@ -1,0 +1,20 @@
+<%# modules/ui/Slider/partials/_dots.ejs — slide indicator strip. %>
+<% if (_showDots && _total > 1) { %>
+<div
+  class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10"
+  role="tablist"
+  aria-label="Slide indicators"
+  data-slider-dots
+>
+  <% for (var _di = 0; _di < _total; _di++) { %>
+  <button
+    type="button"
+    role="tab"
+    aria-selected="<%= _di === 0 ? 'true' : 'false' %>"
+    aria-label="Go to slide <%= _di + 1 %>"
+    data-slider-dot="<%= _di %>"
+    class="<%= _di === 0 ? 'h-2 w-5 bg-white' : 'h-2 w-2 bg-white/40 hover:bg-white/70' %> rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+  ></button>
+  <% } %>
+</div>
+<% } %>

@@ -1,0 +1,65 @@
+<%
+  var _action   = locals.action   || '#';
+  var _method   = locals.method   || 'post';
+  var _error    = locals.error    || '';
+  var _initial  = locals.initial  || {};
+
+  var _theme              = _initial.theme              || 'SYSTEM';
+  var _language           = _initial.language           || 'en';
+  var _emailNotifications = _initial.emailNotifications !== false;
+  var _pushNotifications  = _initial.pushNotifications  !== false;
+  var _newsletter         = _initial.newsletter         !== false;
+%>
+<form action="<%= _action %>" method="<%= _method %>" novalidate class="space-y-6<%= locals.className ? ' ' + locals.className : '' %>">
+  <% if (_error) { %>
+  <div role="alert" class="flex items-start gap-3 rounded-lg border p-3 bg-error-subtle border-error text-error-fg text-sm">
+    <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i>
+    <span><%= _error %></span>
+  </div>
+  <% } %>
+
+  <!-- Appearance -->
+  <div class="space-y-3">
+    <h3 class="text-sm font-semibold text-text-primary">Appearance</h3>
+
+    <%- include('../../../app/ThemeSwitcher', { value: _theme }) %>
+
+    <%- include('../i18n/LanguageSwitcher', { value: _language, name: 'language' }) %>
+  </div>
+
+  <!-- Notifications -->
+  <div class="space-y-3 pt-2 border-t border-border">
+    <h3 class="text-sm font-semibold text-text-primary pt-2">Notifications</h3>
+
+    <%- include('../../../ui/Toggle', {
+      id:      'pref-email-notif',
+      name:    'emailNotifications',
+      value:   '1',
+      label:   'Email notifications',
+      checked: _emailNotifications
+    }) %>
+
+    <%- include('../../../ui/Toggle', {
+      id:      'pref-push-notif',
+      name:    'pushNotifications',
+      value:   '1',
+      label:   'Push notifications',
+      checked: _pushNotifications
+    }) %>
+
+    <%- include('../../../ui/Toggle', {
+      id:      'pref-newsletter',
+      name:    'newsletter',
+      value:   '1',
+      label:   'Newsletter',
+      checked: _newsletter
+    }) %>
+  </div>
+
+  <div class="flex justify-end pt-2">
+    <%- include('../../../ui/Button', {
+      type: 'submit',
+      children: 'Save Preferences'
+    }) %>
+  </div>
+</form>

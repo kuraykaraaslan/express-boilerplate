@@ -1,0 +1,51 @@
+<%
+  // Sign-in page: the NB login page's flow (password, SSO and ACS providers, redirect rules) on kui-ejs partials.
+  // The behaviour lives in /js/login.js; this file is the markup.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="login-root"
+     data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary"><%= locals.heading || 'Sign in' %></h1>
+      <p class="text-sm text-text-secondary" id="login-subtitle"></p>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="login-banner" role="alert" class="hidden"></div>
+
+      <div id="login-success" class="hidden space-y-3" tabindex="-1" data-testid="login-success">
+        <div class="flex items-start gap-3 rounded-lg border p-3 bg-success-subtle border-success text-success-fg text-sm">
+          <i class="fa-solid fa-circle-check mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong class="block">Signed in successfully!</strong><span id="login-success-message"></span></span>
+        </div>
+        <p class="text-center text-xs text-text-secondary">Preparing your session…</p>
+      </div>
+
+      <div id="login-form-area" class="space-y-4">
+        <div id="login-providers" class="hidden space-y-2">
+          <div id="login-sso" class="hidden">
+            <%- include('../../kui/modules/domain/common/auth/OAuthButtons', { providers: ['GOOGLE', 'GITHUB', 'DISCORD', 'MICROSOFT'], action: '#' }) %>
+          </div>
+          <div id="login-acs" class="space-y-2"></div>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 h-px bg-border" aria-hidden="true"></div>
+            <span class="text-xs text-text-secondary">or continue with email</span>
+            <div class="flex-1 h-px bg-border" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <%- include('../../kui/modules/domain/common/auth/LoginForm', { action: '#', method: 'post' }) %>
+
+        <p class="text-center text-xs text-text-secondary">
+          <a id="login-forgot" href="/auth/forgot-password" class="text-primary hover:underline">Forgot your password?</a>
+        </p>
+      </div>
+    </div>
+
+    <p class="text-center text-sm text-text-secondary hidden" id="login-register">
+      Don't have an account? <a id="login-register-link" href="/auth/register" class="text-primary font-medium hover:underline">Sign up</a>
+    </p>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/login.js"></script>

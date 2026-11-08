@@ -1,0 +1,130 @@
+<%#
+  modules/ui/ConfirmDialog.ejs — the one confirmation of the design system (kui-react modules/ui/ConfirmDialog.tsx).
+  Every "are you sure?" goes through it, never the browser's window.confirm / window.prompt. The base is a question,
+  its consequence and two buttons; three optional gates go on top, in any combination:
+    input            a value given with the answer (a reason, a name, a date), returned in the result
+    acknowledgement  a responsibility text to tick before the confirm button unlocks
+    phrase           an exact phrase to type (a serial, a command word) for actions that cannot be undone
+
+  This partial is the controlled form: it renders the dialog in place (closed unless `open`), and the page opens it
+  with `KuiConfirm.open(id)` (a Promise of { value, choice } or null) or a [data-kui-confirm-open="<id>"] trigger.
+  The root also dispatches 'confirm-dialog:confirm' / 'confirm-dialog:cancel'. Asking from script without markup is
+  `KuiConfirm.confirmDialog(options)` (see ConfirmDialog/scripts/confirm-dialog.js and ConfirmHost.ejs).
+
+  Locals:
+    id, open, title (verb + object), message (text), tone ('default' | 'warning' | 'danger'),
+    confirmLabel ('Confirm'), cancelLabel ('Cancel'), closeLabel ('Close dialog'), secondaryLabel,
+    details (trusted HTML built by the calling template), input { kind: 'text' | 'textarea' | 'date' | 'number', label,
+    placeholder, defaultValue, required, minLength, maxLength, min, max, step, hint }, acknowledgement (text), phrase,
+    phraseLabel (default `Type "<phrase>" to confirm`), confirmDisabled (a gate of the caller's own; KuiConfirm.setConfirmDisabled
+    (id, on) changes it), busy, error, size ('sm' | 'md' | 'lg'), className,
+    loadRuntime (false when the page loads confirm-dialog.js itself).
+  Data hooks for tests (kui-react): data-confirm-action, data-confirm-cancel, data-confirm-secondary, data-confirm-message.
+%>
+<%
+  var _id      = locals.id || 'confirm-' + Math.random().toString(36).substr(2, 9);
+  var _open    = !!locals.open;
+  var _title   = locals.title || '';
+  var _message = locals.message || '';
+  var _tone    = { default: 1, warning: 1, danger: 1 }[locals.tone] ? locals.tone : 'default';
+  var _confirmLabel = locals.confirmLabel || 'Confirm';
+  var _cancelLabel  = locals.cancelLabel || 'Cancel';
+  var _closeLabel   = typeof locals.closeLabel === 'string' ? locals.closeLabel : 'Close dialog';
+  var _secondary    = locals.secondaryLabel || '';
+  var _details      = locals.details || '';
+  var _input        = locals.input || null;
+  var _ack          = locals.acknowledgement || '';
+  var _hasPhrase    = locals.phrase !== undefined && locals.phrase !== null;
+  var _phrase       = _hasPhrase ? String(locals.phrase) : '';
+  var _busy         = !!locals.busy;
+  var _error        = locals.error || '';
+  var _size         = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' }[locals.size] || 'max-w-md';
+  var _className    = locals.className || '';
+
+  var toneIcon      = { default: 'fa-circle-question', warning: 'fa-triangle-exclamation', danger: 'fa-triangle-exclamation' }[_tone];
+  var toneIconClass = { default: 'text-primary', warning: 'text-warning', danger: 'text-error' }[_tone];
+  var fieldClass = 'block w-full rounded-md border bg-surface-base px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled'
+    + ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+
+  // The gates (kui-react confirmReady) with the default value, so the first paint has the right buttons locked.
+  var _value = _input && _input.defaultValue ? String(_input.defaultValue) : '';
+  var _ready = true;
+  if (_input) {
+    var _v = _value.trim();
+    var _min = _input.minLength != null ? _input.minLength : (_input.required ? 1 : 0);
+    if (_v.length < _min) _ready = false;
+    if (_input.kind === 'date' && _v && !/^\d{4}-\d{2}-\d{2}$/.test(_v)) _ready = false;
+    if (_input.kind === 'number' && _v) {
+      var _n = Number(_v);
+      if (!isFinite(_n) || (_input.min != null && _n < Number(_input.min)) || (_input.max != null && _n > Number(_input.max))) _ready = false;
+    }
+  }
+  if (_ack) _ready = false;
+  if (_hasPhrase && _phrase !== '') _ready = false;
+  // confirmDisabled: a gate of the caller's own (a preview still loading); Cancel stays enabled.
+  var _confirmDisabled = !!locals.confirmDisabled;
+  if (_confirmDisabled) _ready = false;
+  var _star = _input && (_input.required || (_input.minLength || 0) > 0);
+  var _config = JSON.stringify({
+    input: _input ? { kind: _input.kind, required: !!_input.required, minLength: _input.minLength, min: _input.min, max: _input.max, defaultValue: _value } : undefined,
+    acknowledgement: !!_ack,
+    phrase: _hasPhrase ? _phrase : undefined,
+    confirmDisabled: _confirmDisabled || undefined,
+  });
+  var btn = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed';
+  var goVariant = _tone === 'danger' ? 'bg-error text-text-inverse hover:opacity-90' : 'bg-primary text-primary-fg hover:bg-primary-hover';
+%>
+<div id="<%= _id %>" class="fixed inset-0 z-[100] flex p-4 transition-opacity duration-200 items-center justify-center opacity-100" aria-modal="true" role="dialog" aria-labelledby="<%= _id %>-title" data-state="<%= _open ? 'open' : 'closed' %>" data-kui-confirm-dialog data-kui-confirm-config="<%= _config %>"<% if (!_open) { %> hidden<% } %>>
+  <div class="absolute inset-0 bg-black/50" aria-hidden="true" data-kui-confirm-backdrop></div>
+  <div tabindex="-1" data-state="<%= _open ? 'open' : 'closed' %>" class="relative z-[101] w-full border border-border bg-surface-raised shadow-xl flex flex-col transition-all duration-200 focus-visible:outline-none scale-100 opacity-100 rounded-xl <%= _size %><%= _className ? ' ' + _className : '' %>" data-kui-confirm-panel>
+    <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-border shrink-0">
+      <div><h2 id="<%= _id %>-title" class="text-base font-semibold text-text-primary"><%= _title %></h2></div>
+      <button type="button" aria-label="<%= _closeLabel %>" data-kui-confirm-close class="shrink-0 text-text-disabled hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="px-6 py-4 flex-1 min-h-0">
+      <form class="space-y-4" data-kui-confirm-form>
+        <% if (_message) { %>
+        <div class="flex gap-3">
+          <%# kui-react's svg carries h-4 w-4, but Font Awesome's own 1.25em x 1em wins; the bare <i> (h-4) measures the same (20 x 16). %>
+          <i class="fa-solid <%= toneIcon %> mt-0.5 h-4 shrink-0 <%= toneIconClass %>" aria-hidden="true"></i>
+          <div class="min-w-0 flex-1 text-sm text-text-secondary whitespace-pre-line" data-confirm-message><%= _message %></div>
+        </div>
+        <% } %>
+        <% if (_details) { %><div class="text-sm text-text-primary"><%- _details %></div><% } %>
+        <% if (_input) { %>
+        <div class="space-y-1.5">
+          <%# The required star is CSS content, so the label's text (its accessible name) stays the label. %>
+          <label for="<%= _id %>-input" class="block text-sm font-medium text-text-primary<%= _star ? " after:ml-0.5 after:text-error after:content-['*']" : '' %>"><%= _input.label || '' %></label>
+          <% if (_input.kind === 'textarea') { %>
+          <textarea id="<%= _id %>-input"<% if (_input.placeholder) { %> placeholder="<%= _input.placeholder %>"<% } %><% if (_input.maxLength != null) { %> maxlength="<%= _input.maxLength %>"<% } %><% if (_input.required) { %> aria-required="true"<% } %><% if (_input.hint) { %> aria-describedby="<%= _id %>-hint"<% } %> data-kui-confirm-input rows="3" class="<%= fieldClass %> border-border resize-y"<% if (_busy) { %> disabled<% } %>><%= _value %></textarea>
+          <% } else { %>
+          <input id="<%= _id %>-input"<% if (_input.placeholder) { %> placeholder="<%= _input.placeholder %>"<% } %><% if (_input.maxLength != null) { %> maxlength="<%= _input.maxLength %>"<% } %><% if (_input.required) { %> aria-required="true"<% } %><% if (_input.hint) { %> aria-describedby="<%= _id %>-hint"<% } %> data-kui-confirm-input type="<%= _input.kind === 'date' || _input.kind === 'number' ? _input.kind : 'text' %>"<% if (_input.kind === 'number') { %> inputmode="decimal"<% if (_input.step != null) { %> step="<%= _input.step %>"<% } %><% } %><% if (_input.min != null) { %> min="<%= _input.min %>"<% } %><% if (_input.max != null) { %> max="<%= _input.max %>"<% } %> autocomplete="off" class="<%= fieldClass %> border-border"<% if (_value) { %> value="<%= _value %>"<% } %><% if (_busy) { %> disabled<% } %>>
+          <% } %>
+          <% if (_input.hint) { %><p id="<%= _id %>-hint" class="text-xs text-text-secondary"><%= _input.hint %></p><% } %>
+        </div>
+        <% } %>
+        <% if (_ack) { %>
+        <label for="<%= _id %>-ack" class="flex cursor-pointer items-start gap-3 rounded-md border border-warning bg-warning-subtle px-3 py-2.5">
+          <input id="<%= _id %>-ack" type="checkbox" data-kui-confirm-ack class="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"<% if (_busy) { %> disabled<% } %>>
+          <span class="text-sm text-text-primary"><%= _ack %></span>
+        </label>
+        <% } %>
+        <% if (_hasPhrase) { %>
+        <div class="space-y-1.5">
+          <label for="<%= _id %>-phrase" class="block text-sm font-medium text-text-primary"><%= locals.phraseLabel != null ? locals.phraseLabel : 'Type "' + _phrase + '" to confirm' %></label>
+          <input id="<%= _id %>-phrase" autocomplete="off" spellcheck="false" aria-invalid="false" data-kui-confirm-phrase class="<%= fieldClass %> font-mono border-border"<% if (_busy) { %> disabled<% } %>>
+        </div>
+        <% } %>
+      </form>
+    </div>
+    <div class="px-6 py-4 border-t border-border flex justify-end gap-2 shrink-0">
+      <div class="flex w-full flex-wrap items-center justify-end gap-2" data-kui-confirm-footer>
+        <% if (_error) { %><p role="alert" class="mr-auto min-w-0 text-sm text-error" data-kui-confirm-error><%= _error %></p><% } %>
+        <button type="button" class="<%= btn %> bg-transparent text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm" data-confirm-cancel<% if (_busy) { %> disabled<% } %>><%= _cancelLabel %></button>
+        <% if (_secondary) { %><button type="button" class="<%= btn %> border border-border text-text-primary hover:bg-surface-overlay px-3 py-1.5 text-sm"<% if (!_ready || _busy) { %> disabled<% } %> data-confirm-secondary><%= _secondary %></button><% } %>
+        <button type="button" class="<%= btn %> <%= goVariant %> px-3 py-1.5 text-sm"<% if (!_ready || _busy) { %> disabled<% } %> data-confirm-action<% if (_busy) { %> aria-busy="true"<% } %>><% if (_busy) { %><span aria-hidden="true" class="inline-block rounded-full border-current border-t-transparent animate-spin shrink-0 h-4 w-4 border-2" data-kui-confirm-spinner></span><% } %><%= _confirmLabel %></button>
+      </div>
+    </div>
+  </div>
+</div>
+<% if (locals.loadRuntime !== false) { %><%- include('./ConfirmDialog/_runtime') %><% } %>

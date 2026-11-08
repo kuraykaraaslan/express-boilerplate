@@ -1,0 +1,212 @@
+<%
+  // ─── Chart (EJS) ───────────────────────────────────────────────────────────
+  //
+  // Pixel-identical sibling of kui-react's modules/ui/Chart (index.ts).
+  //
+  // Single entry point. line / area / bar / pie / donut / heatmap are drawn in
+  // the browser by the renderers in ./scripts (series.js, bar.js, pie.js,
+  // heatmap.js) from `data-kui-chart-config` (JSON); gauge is rendered here on
+  // the server (partials/_gauge.ejs); sparkline keeps its own partial.
+  // This file lays out the frame (legend above / below / beside the plot, `fill`).
+  //
+  // Functions cannot travel as JSON: every format option is the NAME of a global
+  // function, e.g. yFormat: 'fmtPercent' for window.fmtPercent = function (v) {...},
+  // or a plain-data spec the browser turns into the function (KuiChart.resolveFn): a number format
+  // `{ base: { unit, decimals, unitPosition, notation }, override?, mode? }` (the WidgetKit
+  // `NumberFormatSpec`; the chart's `locale` applies), the tooltip value format `{ fallback, bySeries }`
+  // and the heatmap's colour bands `colorFor: { bands: [{ from?, to?, color }], edges: 'from' | 'to' }`.
+  //
+  // Locals (all types):
+  //   id        — base id (data-kui-chart="<id>").
+  //   type      — 'line' | 'bar' | 'area' | 'pie' | 'donut' | 'sparkline'
+  //               | 'gauge' | 'heatmap' | 'scatter'.
+  //   series    — Array<{ id, name, data: [{ x, y, color?, label? }], color?, hidden?,
+  //               lineStyle?, strokeWidth?, showPoints?, pointShape?, pointSize?,
+  //               fillOpacity?, fillGradient?, yAxis? ('left'|'right'), stack?, format? }>
+  //   height    — px (default 240; 24 for sparkline). fill — take the parent's height.
+  //   showLegend, showGrid, showTooltip — booleans (default true).
+  //   ariaLabel, className, locale (number and time text).
+  //   loadHelpers — default true: the helper / renderer scripts are inlined
+  //               (idempotent). Pass false when the page already loads them.
+  //
+  // line / area / bar (kui-react BaseChartProps):
+  //   yMin, yMax, yLabel, xLabel, yTickCount (4), yIncludeZero (true),
+  //   showXAxis, showYAxis (true), gridStyle ('dashed' | 'dotted' | 'solid'),
+  //   gridColor, tickStyle { color, fontSize, fontWeight, fontFamily, fontStyle },
+  //   thresholds [{ value, label?, color?, style?, width?, yAxis? }],
+  //   y2Min, y2Max, y2Label, y2Format (series with yAxis: 'right'),
+  //   legendPosition ('bottom' | 'top' | 'left' | 'right'),
+  //   legendValues (['latest','min','max','avg','total']), legendStyle {css},
+  //   legendToggle (default: on when a series starts hidden),
+  //   tooltipMode ('axis' | 'point' | 'none'), tooltipHeader (true),
+  //   tooltipValueFormat (fn name, (value, series)), tooltipTotal (false),
+  //   tooltipTotalLabel ('Total'), yFormat, animate (true), valueLabelStyle, stacked.
+  //   rangeSelect (false; kui-react `onRangeSelect`), on an axis of instants: a pointer drag (mouse, pen, touch) selects
+  //   a range for the page instead of zooming, and the chart raises the bubbling `kui:chart-range-select` event, detail
+  //   `{ range: { from, to } }` (epoch ms) on release, `{ range: null }` on a double click or Escape (reset); the plot is
+  //   focusable (arrows, Shift + arrows, Enter). categoryTimes: on a band axis (bars, a stacked area) the instant of
+  //   each category, one per category, without which a band axis offers no range selection.
+  // line / area: xAxis 'band' (default) | 'time' (`xScale` alias; never with a
+  //   stacked area), zoom (true), resetZoomLabel, locale, timeZone, smooth (true),
+  //   curve ('smooth' | 'linear' | 'step'), strokeWidth (2), fillOpacity (0.2),
+  //   pointShape ('circle' | 'square' | 'diamond' | 'triangle'), pointSize,
+  //   showValues, valueLabelPosition ('top' | 'bottom').
+  // bar: radius (4), orientation ('vertical' | 'horizontal'), showValues,
+  //   valueLabelPosition ('outside' | 'inside' | 'center'), barWidth (0.75),
+  //   barGap (2), categoryTicks [{ at, label }], xTickFormat (fn name),
+  //   markers [{ at, label?, color?, style?, width? }].
+  // pie / donut: innerRadius (0 / 0.6), labels ('none' | 'percent' | 'value' |
+  //   'name' | 'name-percent'), labelPosition ('inside' | 'outside'), labelStyle,
+  //   minLabelShare (0.04), valueFormat, showCenter (true), centerLabel,
+  //   legendValue ('none' | 'value' | 'percent'), legendLayout ('wrap' | 'grid'),
+  //   legendToggle, hiddenSlices, startAngle (0), sliceGap (0),
+  //   tooltipValue ('both' | 'value' | 'percent'),
+  //   sliceClick (false; kui-react `onSliceClick`): every slice is a button (click, Enter, Space) and the chart raises
+  //   the bubbling `kui:chart-slice-click` event, detail `{ index, name, value, color }` (index into series[0].data).
+  // sparkline: filled (area under the line, opacity 0.15).
+  // scatter (kui-react ScatterChart): the cartesian options above (no `stacked`), series data x = a number,
+  //   pointRadius (4), pointShape ('circle'), pointOpacity (0.85), trendLine (false), trendColor, xMin, xMax,
+  //   xFormat. The y axis spans the data (it need not reach zero).
+  // heatmap (kui-react HeatmapChart): cells [{ x, y, value|null }], min, max,
+  //   valueLabel ('Value'), color ('var(--primary)'), colorLow, colorFor (fn name),
+  //   valueFormat, legendFormat, showValues, valueLabelStyle, legendPosition,
+  //   legendItems [{ color, label }], tickStyle, cellGap (2), cellRadius (3).
+  // gauge (kui-react GaugeChart) — rendered on the server: see partials/_gauge.ejs.
+  //
+  // histogram = a bar chart with `categoryTicks` and `markers`. Not ported: React-only props
+  // (valueContent as a React node).
+
+  var _id        = locals.id        || ('chart-' + Math.random().toString(36).substr(2, 6));
+  var _type      = (locals.type     || 'line').toLowerCase();
+  var _series    = Array.isArray(locals.series) ? locals.series : [];
+  var _height    = typeof locals.height === 'number' ? locals.height : (_type === 'sparkline' ? 24 : 240);
+  var _showLegend  = locals.showLegend  === false ? false : true;
+  var _showGrid    = locals.showGrid    === false ? false : true;
+  var _ariaLabel = locals.ariaLabel || (_type.charAt(0).toUpperCase() + _type.slice(1) + ' chart');
+  var _className = locals.className || '';
+  var _stacked   = !!locals.stacked;
+  var _fill      = !!locals.fill;
+  var _loadHelpers = locals.loadHelpers === false ? false : true;
+
+  // `xAxis` wins over its `xScale` alias. Time applies to line + area only, and
+  // never to a stacked area (same rule as kui-react).
+  var _xAxis  = locals.xAxis || locals.xScale || 'band';
+  var _isTime = _xAxis === 'time' && (_type === 'line' || (_type === 'area' && !_stacked));
+  var _resetZoomLabel = locals.resetZoomLabel || 'Reset zoom';
+
+  var CARTESIAN = ['series', 'height', 'fill', 'showLegend', 'showGrid', 'showTooltip', 'stacked', 'yFormat', 'y2Format',
+    'tooltipValueFormat', 'legendPosition', 'legendValues', 'legendStyle', 'legendToggle', 'yMin', 'yMax', 'yLabel', 'xLabel',
+    'thresholds', 'tooltipMode', 'gridColor', 'tickStyle', 'yTickCount', 'showXAxis', 'showYAxis', 'gridStyle', 'y2Min',
+    'y2Max', 'y2Label', 'tooltipHeader', 'tooltipTotal', 'tooltipTotalLabel', 'animate', 'valueLabelStyle', 'showValues', 'valueLabelPosition', 'ariaLabel', 'locale'];
+  var KEYS = {
+    series: CARTESIAN.concat(['smooth', 'curve', 'strokeWidth', 'fillOpacity', 'zoom', 'timeZone', 'pointShape', 'pointSize', 'yIncludeZero', 'rangeSelect', 'categoryTimes']),
+    scatter: CARTESIAN.concat(['xMin', 'xMax', 'xFormat', 'pointRadius', 'pointShape', 'pointOpacity', 'trendLine', 'trendColor']),
+    bar: CARTESIAN.concat(['radius', 'orientation', 'barWidth', 'barGap', 'categoryTicks', 'xTickFormat', 'markers', 'rangeSelect', 'categoryTimes']),
+    pie: ['series', 'height', 'fill', 'showLegend', 'showTooltip', 'innerRadius', 'labels', 'labelPosition', 'labelStyle',
+      'minLabelShare', 'valueFormat', 'showCenter', 'centerLabel', 'legendValue', 'legendPosition', 'legendStyle', 'legendLayout',
+      'legendToggle', 'legendAuto', 'hiddenSlices', 'tooltipMode', 'tooltipValue', 'startAngle', 'sliceGap', 'animate', 'ariaLabel', 'locale',
+      'sliceClick'],
+    heatmap: ['cells', 'height', 'min', 'max', 'valueFormat', 'legendFormat', 'valueLabel', 'showLegend', 'showTooltip', 'ariaLabel',
+      'color', 'colorLow', 'colorFor', 'showValues', 'valueLabelStyle', 'legendPosition', 'legendItems', 'tickStyle', 'cellGap',
+      'cellRadius', 'fill', 'animate', 'locale'],
+  };
+  function pick(kind) {
+    var out = {};
+    KEYS[kind].forEach(function (k) { if (locals[k] !== undefined && typeof locals[k] !== 'function') out[k] = locals[k]; });
+    out.height = _height;
+    return out;
+  }
+
+  var _kind = '';   // 'series' | 'bar' | 'pie' | 'heatmap' → drawn client side from data-kui-chart-config
+  var _cfg = null;
+  if (_type === 'line' || _type === 'area') {
+    _kind = 'series';
+    _cfg = pick('series');
+    _cfg.variant = _type;
+    _cfg.mode = _isTime ? 'time' : 'band';
+  } else if (_type === 'scatter') {
+    _kind = 'scatter';
+    _cfg = pick('scatter');
+  } else if (_type === 'bar') {
+    _kind = 'bar';
+    _cfg = pick('bar');
+  } else if (_type === 'pie' || _type === 'donut') {
+    _kind = 'pie';
+    _cfg = pick('pie');
+    if (_type === 'donut' && typeof _cfg.innerRadius !== 'number') _cfg.innerRadius = 0.6;
+  } else if (_type === 'heatmap') {
+    _kind = 'heatmap';
+    _cfg = pick('heatmap');
+    _cfg.cells = Array.isArray(locals.cells) ? locals.cells : [];
+  }
+
+  // ChartFrame: legend above / below / beside the plot; `fill` takes the parent's height.
+  var _legendPos = ['top', 'bottom', 'left', 'right'].indexOf(locals.legendPosition) >= 0 ? locals.legendPosition : 'bottom';
+  var _side = _legendPos === 'left' || _legendPos === 'right';
+  var _hasLegend = false;
+  if (_kind === 'series' || _kind === 'bar' || _kind === 'scatter') _hasLegend = _showLegend && _series.length > 0;
+  else if (_kind === 'pie') _hasLegend = _showLegend && !!_series[0] && (_series[0].data || []).some(function (p) { return typeof p.y === 'number' && p.y >= 0; });
+  else if (_kind === 'heatmap') _hasLegend = _showLegend;
+  var _frameCls;
+  var _plotCls;
+  if (_kind === 'heatmap') {
+    _frameCls = 'w-full' + (_side && _hasLegend ? ' flex flex-row items-stretch gap-3' : _fill ? ' flex flex-col' : '') + (_fill ? ' h-full min-h-0' : '');
+    _plotCls = _side || _fill ? 'min-h-0 min-w-0 flex-1' : '';
+  } else if (!_hasLegend) {
+    _frameCls = 'w-full' + (_fill ? ' flex h-full min-h-0 flex-col' : '');
+    _plotCls = _fill ? 'min-h-0 flex-1' : '';
+  } else {
+    _frameCls = 'flex w-full ' + (_side ? 'flex-row gap-4 ' + (_fill ? 'items-stretch' : 'items-center') : 'flex-col') + (_fill ? ' h-full min-h-0' : '');
+    _plotCls = 'min-w-0 flex-1' + (_fill ? ' min-h-0' : '');
+  }
+  var _canvasCls = 'relative w-full' + (_fill ? ' h-full min-h-0' : '');
+  var _canvasStyle = _fill ? 'min-height: 80px;' : 'height: ' + _height + 'px;';
+%>
+<% if (_type === 'gauge') { %>
+<%- include('partials/_gauge', locals) %>
+<% } else if (_type === 'sparkline') { %>
+<% if (_loadHelpers) { %>
+<script>
+<%- include('./scripts/chart-helpers.js') %>
+</script>
+<% } %>
+<div data-kui-chart="<%= _id %>" data-kui-chart-type="sparkline" class="kui-chart relative w-full<%= _className ? ' ' + _className : '' %>">
+  <div data-kui-chart-canvas class="relative w-full" style="height: <%= _height %>px;">
+    <%- include('partials/_sparkline', { _id: _id, _series: _series, _height: _height, _ariaLabel: _ariaLabel, filled: locals.filled }) %>
+  </div>
+</div>
+<% } else { %>
+<% if (_loadHelpers) { %>
+<script>
+<%- include('./scripts/chart-helpers.js') %>
+<% if (_kind === 'series') { %><%- include('./scripts/series.js') %><% } %>
+<% if (_kind === 'bar') { %><%- include('./scripts/bar.js') %><% } %>
+<% if (_kind === 'scatter') { %><%- include('./scripts/scatter.js') %><% } %>
+<% if (_kind === 'pie') { %><%- include('./scripts/pie.js') %><% } %>
+<% if (_kind === 'heatmap') { %><%- include('./scripts/heatmap.js') %><% } %>
+</script>
+<% } %>
+<div
+  data-kui-chart="<%= _id %>"
+  data-kui-chart-type="<%= _type %>"
+  data-kui-chart-kind="<%= _kind %>"
+  data-kui-chart-config="<%= JSON.stringify(_cfg) %>"
+  class="kui-chart <%= _frameCls %><%= _className ? ' ' + _className : '' %>"
+>
+  <div data-kui-chart-plot<% if (_plotCls) { %> class="<%= _plotCls %>"<% } %>>
+    <div data-kui-chart-canvas class="<%= _canvasCls %>" style="<%= _canvasStyle %>"></div>
+    <%# The reset-zoom button belongs to the local zoom, which stands down while the page takes the range (rangeSelect). %>
+    <% if (_kind === 'series' && _isTime && locals.zoom !== false && locals.rangeSelect !== true) { %>
+    <button
+      type="button"
+      data-kui-chart-reset
+      hidden
+      class="mt-1 self-start rounded-sm text-xs text-primary underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    ><%= _resetZoomLabel %></button>
+    <% } %>
+  </div>
+</div>
+<script>
+(function () { if (window.KuiChart) window.KuiChart.autoInit(); })();
+</script>
+<% } %>

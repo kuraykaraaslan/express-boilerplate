@@ -1,0 +1,8 @@
+/* Font Awesome 7 Free (webfont), imported into Tailwind's `base` layer — the same move as
+   kui-react, which imports its SVG stylesheet with layer(base). Unlayered, Font Awesome's
+   `width: 1.25em` beat every utility, so `w-3 h-3` on an icon did nothing; in the base layer
+   the size utilities win. This file must load before app.css: an @import has to come first
+   in its stylesheet, which the Tailwind build does not keep, and the layer order is declared
+   here once, the same as Tailwind's own. */
+@layer theme, base, components, utilities;
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css") layer(base);

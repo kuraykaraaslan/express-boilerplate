@@ -1,0 +1,4 @@
+<%# Backwards-compatible shim — the implementation now lives in
+    `modules/ui/Table/`. Existing `include('modules/ui/Table', ...)` keeps
+    working unchanged. %>
+<%- include('./Table/Table', Object.assign({}, locals, { mode: 'plain' })) %>

@@ -1,0 +1,4 @@
+<%#
+  The picture of content.image: the image, an overlay tint and an on-image caption. Locals: model.
+%><%_ var _m = locals.model; var _ps = widgetKit.style(_m.pictureStyle); var _is = widgetKit.style(_m.imgStyle); _%>
+<span class="group/img relative block h-full w-full overflow-hidden"<% if (_ps) { %> style="<%= _ps %>"<% } %>><img src="<%= _m.src %>" alt="<%= _m.alt %>" loading="lazy" referrerpolicy="no-referrer" class="<%= _m.imgClass %>"<% if (_is) { %> style="<%= _is %>"<% } %>><% if (_m.overlay) { %><span aria-hidden="true" class="pointer-events-none absolute inset-0" style="background:<%= _m.overlay %>"></span><% } %><% if (_m.caption && _m.caption.onImage) { var _cs = widgetKit.style(_m.caption.style); %><span class="<%= _m.caption.className %>"<% if (_cs) { %> style="<%= _cs %>"<% } %>><%= _m.caption.text %></span><% } %></span>

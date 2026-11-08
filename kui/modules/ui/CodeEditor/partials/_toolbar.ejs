@@ -1,0 +1,33 @@
+<%
+  // CodeEditor toolbar (M2) — sibling of kui-react parts/Toolbar.tsx: the language, then find,
+  // format (when the editor has a `format`), copy and full screen. Icon buttons with labels for
+  // screen readers; the bar sits above the field. scripts/codemirror-loader.js wires the buttons
+  // (data-kui-codeeditor-action) and flips their pressed / copied / full-screen states.
+
+  var m = _m;
+  var btn = 'inline-flex h-7 w-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-overlay hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+-%>
+<div
+  data-kui-codeeditor-toolbar
+  role="toolbar"
+  aria-label="<%= m.toolbarLabel %>"
+  class="flex items-center gap-1 rounded-t-md border border-b-0 border-border bg-surface-raised px-2 py-1 text-xs text-text-secondary"
+>
+  <span class="font-mono"><%= _language %></span>
+  <% if (_readonly) { %><span class="font-mono opacity-60">· <%= m.readOnlyLabel %></span><% } %>
+  <span class="flex-1"></span>
+  <button type="button" data-kui-codeeditor-action="find" class="<%= btn %>" aria-label="<%= m.find %>" title="<%= m.find %>" aria-pressed="false">
+    <i class="fa-solid fa-magnifying-glass w-3.5 h-3.5" aria-hidden="true"></i>
+  </button>
+  <% if (!_readonly) { %>
+  <button type="button" data-kui-codeeditor-action="format" class="<%= btn %>" aria-label="<%= m.format %>" title="<%= m.format %>"<% if (!_hasFormat) { %> hidden<% } %>>
+    <i class="fa-solid fa-wand-magic-sparkles w-3.5 h-3.5" aria-hidden="true"></i>
+  </button>
+  <% } %>
+  <button type="button" data-kui-codeeditor-action="copy" class="<%= btn %>" aria-label="<%= m.copy %>" title="<%= m.copy %>">
+    <i class="fa-solid fa-copy w-3.5 h-3.5" aria-hidden="true"></i>
+  </button>
+  <button type="button" data-kui-codeeditor-action="fullscreen" class="<%= btn %>" aria-label="<%= m.fullscreen %>" title="<%= m.fullscreen %>" aria-pressed="false">
+    <i class="fa-solid fa-maximize w-3.5 h-3.5" aria-hidden="true"></i>
+  </button>
+</div>

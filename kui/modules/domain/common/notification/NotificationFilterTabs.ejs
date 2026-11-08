@@ -1,0 +1,59 @@
+<%
+  var _tabs      = locals.tabs      || [];
+  var _activeId  = locals.activeId  || (_tabs.length > 0 ? _tabs[0].id : '');
+  var _id        = locals.id        || 'notif-filter-tabs-' + Math.random().toString(36).substr(2, 9);
+  var _className = locals.className || '';
+%>
+<div
+  id="<%= _id %>"
+  role="tablist"
+  aria-label="Notification filters"
+  class="flex flex-wrap items-center gap-1 border-b border-border pb-3<%= _className ? ' ' + _className : '' %>"
+>
+  <% _tabs.forEach(function (tab) { %>
+    <% var isActive = tab.id === _activeId; %>
+    <button
+      type="button"
+      role="tab"
+      id="<%= _id %>-tab-<%= tab.id %>"
+      aria-selected="<%= isActive ? 'true' : 'false' %>"
+      data-tab-id="<%= tab.id %>"
+      onclick="activateNotifFilterTab(<%= JSON.stringify(String(_id)) %>, <%= JSON.stringify(String(tab.id)) %>)"
+      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= isActive ? 'bg-primary text-primary-fg' : 'bg-surface-overlay text-text-secondary hover:text-text-primary hover:bg-surface-sunken' %>"
+    >
+      <%= tab.label %>
+      <% if (tab.count !== undefined && tab.count !== null) { %>
+        <span
+          data-count-pill
+          class="rounded-full px-1.5 py-0.5 text-[10px] tabular-nums <%= isActive ? 'bg-primary-fg/20' : 'bg-surface-base text-text-secondary' %>"
+        ><%= tab.count %></span>
+      <% } %>
+    </button>
+  <% }); %>
+</div>
+
+<script>
+(function () {
+  function activateNotifFilterTab(groupId, tabId) {
+    var group = document.getElementById(groupId);
+    if (!group) return;
+    group.querySelectorAll('[role="tab"]').forEach(function (t) {
+      var active = t.getAttribute('data-tab-id') === tabId;
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+      var activeCls = ['bg-primary', 'text-primary-fg'];
+      var inactiveCls = ['bg-surface-overlay', 'text-text-secondary', 'hover:text-text-primary', 'hover:bg-surface-sunken'];
+      activeCls.forEach(function (c) { t.classList.toggle(c, active); });
+      inactiveCls.forEach(function (c) { t.classList.toggle(c, !active); });
+      var pill = t.querySelector('[data-count-pill]');
+      if (pill) {
+        var pillActive = ['bg-primary-fg/20'];
+        var pillInactive = ['bg-surface-base', 'text-text-secondary'];
+        pillActive.forEach(function (c) { pill.classList.toggle(c, active); });
+        pillInactive.forEach(function (c) { pill.classList.toggle(c, !active); });
+      }
+    });
+    group.dispatchEvent(new CustomEvent('notif-filter-change', { detail: { tabId: tabId }, bubbles: true }));
+  }
+  window.activateNotifFilterTab = window.activateNotifFilterTab || activateNotifFilterTab;
+})();
+</script>

@@ -1,0 +1,6 @@
+<%#
+  The icon tile of each of the switch's states, only the current one visible (see _switch-layout.ejs).
+  Locals: g (the switch model), state (the current state).
+%><%_ ['on', 'off', 'unknown'].forEach(function (n) { var t = locals.g.states[n].tile; if (!t) return; _%>
+<span data-kui-state="<%= n %>" class="inline-flex"<% if (locals.state !== n) { %> hidden<% } %>><%- include('../_icon-tile', { name: t.name, size: t.size, color: t.color, background: undefined }) %></span>
+<%_ }); _%>

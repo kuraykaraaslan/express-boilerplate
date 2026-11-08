@@ -1,0 +1,73 @@
+<%
+  var _number    = typeof locals.number === 'number' ? locals.number : 1;
+  var _title     = locals.title    || '';
+  var _active    = !!locals.active;
+  var _done      = !!locals.done;
+  // `onEdit` (renamed from `editable` / `onEditHref`) gates the Edit button:
+  // truthy value (boolean or href string) + `_done` shows it; matches the
+  // NextJS `done && onEdit` predicate.
+  var _onEdit    = locals.onEdit;
+  var _hasEdit   = _done && !!_onEdit;
+  var _summary   = locals.summary  || '';
+  var _className = locals.className || '';
+  var _shellId   = locals.id || ('step-shell-' + Math.random().toString(36).slice(2, 8));
+
+  var borderClass = _active ? 'border-primary shadow-sm' : 'border-border';
+
+  var circleClass = _done
+    ? 'bg-success text-white'
+    : _active
+      ? 'bg-primary text-primary-fg'
+      : 'bg-surface-overlay text-text-disabled';
+
+  var titleClass = _active
+    ? 'text-text-primary'
+    : _done
+      ? 'text-text-secondary'
+      : 'text-text-disabled';
+%>
+<div id="<%= _shellId %>" class="rounded-2xl border transition-all bg-surface-raised overflow-hidden <%= borderClass %><%= _className ? ' ' + _className : '' %>">
+  <div class="flex items-center gap-3 px-5 py-4">
+    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors <%= circleClass %>">
+      <% if (_done) { %><i class="fa-solid fa-check w-3 h-3" aria-hidden="true"></i><% } else { %><%= _number %><% } %>
+    </span>
+    <h2 class="flex-1 text-sm font-semibold <%= titleClass %>"><%- _title %></h2>
+    <% if (_hasEdit) { %>
+      <span data-stepshell-edit class="shrink-0">
+        <%- include('../ui/Button', {
+          variant:  'ghost',
+          size:     'xs',
+          className: 'text-primary',
+          children: 'Edit',
+          element:  (typeof _onEdit === 'string') ? 'a' : 'button',
+          href:     (typeof _onEdit === 'string') ? _onEdit : undefined,
+        }) %>
+      </span>
+    <% } %>
+  </div>
+
+  <% if (_done && _summary) { %>
+  <div class="px-5 pb-4 border-t border-border pt-3 opacity-70">
+    <%- _summary %>
+  </div>
+  <% } %>
+
+  <% if (_active && locals.children) { %>
+  <div class="px-5 pb-5 border-t border-border pt-4">
+    <%- locals.children %>
+  </div>
+  <% } %>
+</div>
+
+<% if (_hasEdit && typeof _onEdit !== 'string') { %>
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../ui/_script-json', { value: String(_shellId) }) %>);
+  if (!root) return;
+  var btn = root.querySelector('[data-stepshell-edit] button');
+  if (btn) btn.addEventListener('click', function () {
+    root.dispatchEvent(new CustomEvent('stepshell:edit', { bubbles: true, detail: { number: <%- include('../ui/_script-json', { value: Number(_number) }) %> } }));
+  });
+})();
+</script>
+<% } %>

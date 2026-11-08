@@ -1,0 +1,65 @@
+<%
+  // One diff row. Locals:
+  //   change   = { type: 'context'|'add'|'remove', oldLine, newLine, content }
+  //   variant  = 'unified' | 'split-old' | 'split-new'
+  var _v = locals.variant || 'unified';
+  var _c = locals.change;
+  var _isSplitOld = _v === 'split-old';
+  var _isSplitNew = _v === 'split-new';
+  var _isOtherSide =
+    (_isSplitOld && _c.type === 'add') ||
+    (_isSplitNew && _c.type === 'remove');
+
+  var _rowBg = ({
+    add: 'bg-success-subtle',
+    remove: 'bg-error-subtle',
+    context: 'bg-surface-base',
+  })[_c.type] || 'bg-surface-base';
+  var _signFg = ({
+    add: 'text-success',
+    remove: 'text-error',
+    context: 'text-text-disabled',
+  })[_c.type] || 'text-text-disabled';
+  var _sign = ({ add: '+', remove: '-', context: ' ' })[_c.type] || ' ';
+  var _borderL = ({
+    add: 'border-l-success',
+    remove: 'border-l-error',
+    context: 'border-l-transparent',
+  })[_c.type] || 'border-l-transparent';
+
+  var _showOld = (_v === 'unified') || _isSplitOld;
+  var _showNew = (_v === 'unified') || _isSplitNew;
+  var _gridCols = (_v === 'unified')
+    ? 'grid-cols-[3rem_3rem_1rem_1fr]'
+    : 'grid-cols-[3rem_1rem_1fr]';
+
+  function _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+%>
+<% if (_isOtherSide) { %>
+<div aria-hidden="true" class="grid grid-cols-[3rem_1rem_1fr] font-mono text-xs leading-5 bg-surface-overlay border-l border-border">
+  <span class="text-right pr-2 text-text-disabled select-none">&nbsp;</span>
+  <span class="text-center text-text-disabled select-none">&nbsp;</span>
+  <span>&nbsp;</span>
+</div>
+<% } else { %>
+<div
+  data-diff-type="<%= _c.type %>"
+  class="grid font-mono text-xs leading-5 border-l-2 <%= _gridCols %> <%= _rowBg %> <%= _borderL %>"
+>
+  <% if (_showOld) { %>
+  <span<% if (_c.oldLine != null) { %> aria-label="Old line <%= _c.oldLine %>"<% } %> class="text-right pr-2 text-text-disabled select-none border-r border-border"><%= _c.oldLine != null ? _c.oldLine : '' %></span>
+  <% } %>
+  <% if (_showNew) { %>
+  <span<% if (_c.newLine != null) { %> aria-label="New line <%= _c.newLine %>"<% } %> class="text-right pr-2 text-text-disabled select-none border-r border-border"><%= _c.newLine != null ? _c.newLine : '' %></span>
+  <% } %>
+  <span aria-hidden="true" class="text-center select-none <%= _signFg %>"><%= _sign %></span>
+  <span class="pl-2 pr-3 whitespace-pre text-text-primary"><%- _esc(_c.content) || '&nbsp;' %></span>
+</div>
+<% } %>

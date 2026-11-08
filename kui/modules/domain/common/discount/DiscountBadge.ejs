@@ -1,0 +1,25 @@
+<%
+  var _type     = (locals.discountType  || '').toUpperCase();
+  var _value    = locals.discountValue  || 0;
+  var _currency = locals.currency       || 'TRY';
+  var _size     = locals.size           || 'md';
+
+  var sizeClass = {
+    sm: 'text-xs px-1.5 py-0.5',
+    md: 'text-sm px-2 py-0.5',
+    lg: 'text-base px-2.5 py-1',
+  }[_size] || 'text-sm px-2 py-0.5';
+
+  var label;
+  if (_type === 'PERCENTAGE') {
+    label = _value + '% off';
+  } else if (_type === 'FIXED') {
+    var formatted = _value.toLocaleString('tr-TR', { style: 'currency', currency: _currency, maximumFractionDigits: 0 });
+    label = formatted + ' off';
+  } else {
+    label = 'Free shipping';
+  }
+%>
+<span class="inline-flex items-center font-semibold rounded-full bg-error-subtle text-error border border-error/30 <%= sizeClass %><%= locals.className ? ' ' + locals.className : '' %>">
+  <%= label %>
+</span>

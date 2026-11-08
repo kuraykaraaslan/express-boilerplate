@@ -1,0 +1,9 @@
+<%
+  // Hunk header — `@@ -oldStart,oldLines +newStart,newLines @@`.
+  // Locals: hunk { oldStart, oldLines, newStart, newLines }
+%>
+<div
+  role="separator"
+  aria-label="Hunk at line <%= hunk.oldStart %>"
+  class="px-3 py-1 font-mono text-xs text-text-secondary bg-surface-overlay border-y border-border select-none"
+>@@ -<%= hunk.oldStart %>,<%= hunk.oldLines %> +<%= hunk.newStart %>,<%= hunk.newLines %> @@</div>

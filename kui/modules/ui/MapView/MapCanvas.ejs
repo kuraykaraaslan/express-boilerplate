@@ -1,0 +1,144 @@
+<%
+// MapCanvas — a bare, card-less Leaflet map that fills its parent (EJS).
+// Mirror of kui-react modules/ui/MapView/MapCanvas.tsx.
+//
+// Use it inside something that already owns the frame (a dashboard cell, a
+// panel). MapView is the framed variant with a toolbar. The PARENT MUST HAVE A
+// HEIGHT — the map is `h-full w-full`. Leaflet itself (leaflet.css +
+// leaflet.js, global `L`) must be loaded by the host page, as for MapView.
+//
+// Locals:
+//   id                 — DOM id base (auto-generated when omitted)
+//   markers, zones, routes — same shapes as MapView
+//   showMarkers, showZones, showRoutes
+//                      — layer visibility (default true). A hidden layer is not
+//                        drawn but still counts for fit-to-bounds, so hiding a
+//                        layer never moves the view.
+//   image              — a picture (a floor plan, a site drawing) instead of map
+//                        tiles: { url, width, height } (width / height in px).
+//                        The map then uses flat coordinates (L.CRS.Simple), the
+//                        markers / zones / routes take [y, x] pixels from the
+//                        picture's TOP-LEFT corner, the view frames the whole
+//                        picture (not the markers) and minZoom defaults to -5.
+//                        `url` must be an internal path (`/x`, never `//host`)
+//                        or https; anything else (javascript:, data:, http:,
+//                        //host) is refused and no picture is drawn. Without a
+//                        positive width and height the local is ignored.
+//   center, zoom       — view start (default Ankara, 6)
+//   tiles              — { url, attribution } for both themes, or { light, dark }.
+//                        Default the installation's tile source (__KuiMapParts.setTileSource, or
+//                        window.__KuiMapTileSource set before the maps load: { url, attribution,
+//                        subdomains?, maxZoom?, darkUrl? }), else OpenStreetMap's standard tiles,
+//                        darkened in the dark theme. A layer may also take subdomains, maxZoom, dim.
+//   fitBoundsPadding   — fit the view to the markers and the zone / route
+//                        vertices with this padding in px
+//                        (default 32; pass false to keep center / zoom)
+//   fitBounds          — false keeps center / zoom (kui-react's switch; default true)
+//   minZoom, maxZoom, cluster, clusterRadius, showLabels, tooltipTrigger,
+//   scrollWheelZoom, zoomControl, controlsPosition, fitMaxZoom
+//                      — display options, see partials/_display.ejs
+//   Markers: { id, position, variant?, color?, shape? ('pin' | 'dot' | 'circle' |
+//   'icon' | 'image'), icon? (Font Awesome class), image? (for shape 'image': an internal path
+//   or https address; anything else falls back to a dot), size? (px, 8..64), draggable?
+//   (the viewer may move it; see onMarkerMove), label?, tooltip?: { title,
+//   description?, fields?: [{ label, value }], color?, href? (internal path), linkLabel? },
+//   text? (a short count inside a dot or circle, at most 4 characters, escaped) }.
+//   followSource       — true: `tiles` are only a fallback, and the installation's tile source (setTileSource /
+//                        window.__KuiMapTileSource), when one is set, is drawn instead (the map widget's
+//                        "Follow the theme" style, kui-react MapWidgetView with MapTilesProvider).
+//   clusterText        — NAME of a global function given a cluster's markers that returns what its bubble says
+//                        (default how many markers it holds).
+//   onMarkerClick      — NAME of a global function called with the marker id
+//                        (the config cannot carry a function); the DOM event
+//                        'kui:map-marker-click' (detail: { id }) fires too.
+//   onMarkerMove       — NAME of a global function called with (id, position) when a draggable marker is dropped; the
+//                        DOM event 'kui:map-marker-move' (detail: { id, position }) fires too. `position` is in the
+//                        map's own coordinates: [lat, lng], or on an image map [y, x] whole pixels from the picture's
+//                        top-left corner, kept inside the picture.
+//   Events: 'kui:map-marker-click' (detail: { id }) on a marker click and 'kui:map-ready' (detail: { id }) once the
+//   map is built; both bubble from the map element, which also holds the built map as `__kuiMap`
+//   (markerLayers, zoneLayers, routeLayers, setLayerVisible(name, visible)).
+//   loadingLabel       — text shown until the map is built (default 'Loading map…')
+//   ariaLabel          — accessible name of the map region (default 'Map')
+//   className          — extra classes on the region
+var _id        = locals.id || ('mapcanvas-' + Math.random().toString(36).substr(2, 9));
+var _center    = Array.isArray(locals.center) ? locals.center : [39.9334, 32.8597];
+var _zoom      = typeof locals.zoom === 'number' ? locals.zoom : 6;
+var _markers   = locals.markers || [];
+var _zones     = locals.zones   || [];
+var _routes    = locals.routes  || [];
+var _showMarkers = locals.showMarkers !== false;
+var _showZones   = locals.showZones   !== false;
+var _showRoutes  = locals.showRoutes  !== false;
+var _tiles     = locals.tiles || null;
+var _followSource = locals.followSource === true;
+// The picture's address is author data: only an internal path or https gets into the page.
+var _image = null;
+if (locals.image && typeof locals.image === 'object') {
+  var _iw = Number(locals.image.width), _ih = Number(locals.image.height);
+  if (isFinite(_iw) && isFinite(_ih) && _iw > 0 && _ih > 0) {
+    var _iu = typeof locals.image.url === 'string' ? locals.image.url.trim() : '';
+    var _iok = _iu.length > 0 && _iu.length <= 2048 && !/[\u0000-\u001f\u007f\s<>]/.test(_iu)
+      && (/^\/(?![\/\\])/.test(_iu) || /^https:\/\/[^\/\\]/i.test(_iu));
+    _image = { url: _iok ? _iu : null, width: _iw, height: _ih };
+  }
+}
+var _fit       = locals.fitBoundsPadding === false || locals.fitBounds === false ? null : (typeof locals.fitBoundsPadding === 'number' ? locals.fitBoundsPadding : 32);
+var _loading   = locals.loadingLabel || 'Loading map…';
+var _aria      = locals.ariaLabel || 'Map';
+var _onClick   = typeof locals.onMarkerClick === 'string' ? locals.onMarkerClick : '';
+var _onMove    = typeof locals.onMarkerMove === 'string' ? locals.onMarkerMove : '';
+var _clusterText = typeof locals.clusterText === 'string' ? locals.clusterText : '';
+var D = {};
+include('./partials/_display', { D: D, src: locals });
+%>
+<div role="region" aria-label="<%= _aria %>" class="h-full w-full<%= locals.className ? ' ' + locals.className : '' %>" style="isolation: isolate;">
+  <div id="<%= _id %>-map" class="w-full h-full">
+    <div data-map-loading class="w-full h-full flex items-center justify-center bg-surface-raised">
+      <span class="text-sm text-text-secondary"><%= _loading %></span>
+    </div>
+  </div>
+</div>
+<script>
+  <%- include('./scripts/map-parts.js') %>
+  <%- include('./scripts/map-leaflet.js') %>
+  (function () {
+    var onClickName = <%- include('../_script-json', { value: _onClick }) %>;
+    var onMoveName = <%- include('../_script-json', { value: _onMove }) %>;
+    var clusterTextName = <%- include('../_script-json', { value: _clusterText }) %>;
+    var opts = {
+      id:               <%- include('../_script-json', { value: _id }) %>,
+      center:           <%- include('../_script-json', { value: _center }) %>,
+      zoom:             <%- include('../_script-json', { value: _zoom }) %>,
+      markers:          <%- include('../_script-json', { value: _markers }) %>,
+      zones:            <%- include('../_script-json', { value: _zones }) %>,
+      routes:           <%- include('../_script-json', { value: _routes }) %>,
+      showMarkers:      <%- include('../_script-json', { value: _showMarkers }) %>,
+      showZones:        <%- include('../_script-json', { value: _showZones }) %>,
+      showRoutes:       <%- include('../_script-json', { value: _showRoutes }) %>,
+      fitBoundsPadding: <%- include('../_script-json', { value: _fit === null ? null : _fit }) %>,
+      tiles:            <%- include('../_script-json', { value: _tiles }) %>,
+      followSource:     <%- include('../_script-json', { value: _followSource }) %>,
+      image:            <%- include('../_script-json', { value: _image }) %>,
+      display:          <%- include('../_script-json', { value: D.value }) %>,
+      onMarkerClick: function (markerId) {
+        var el = document.getElementById(<%- include('../_script-json', { value: _id + '-map' }) %>);
+        if (el) el.dispatchEvent(new CustomEvent('kui:map-marker-click', { bubbles: true, detail: { id: markerId } }));
+        if (onClickName && typeof window[onClickName] === 'function') window[onClickName](markerId);
+      },
+      onMarkerMove: function (markerId, position) {
+        var el = document.getElementById(<%- include('../_script-json', { value: _id + '-map' }) %>);
+        if (el) el.dispatchEvent(new CustomEvent('kui:map-marker-move', { bubbles: true, detail: { id: markerId, position: position } }));
+        if (onMoveName && typeof window[onMoveName] === 'function') window[onMoveName](markerId, position);
+      }
+    };
+    if (opts.fitBoundsPadding === null) opts.fitBoundsPadding = undefined;
+    opts = Object.assign(opts, opts.display);
+    if (clusterTextName) opts.clusterText = function (ms) { var f = window[clusterTextName]; return typeof f === 'function' ? f(ms) : undefined; };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { window.__MapViewLeaflet.init(opts); });
+    } else {
+      window.__MapViewLeaflet.init(opts);
+    }
+  })();
+</script>

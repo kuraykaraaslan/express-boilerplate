@@ -1,0 +1,17 @@
+<%#
+  The panel under the map for one selected service (kui-react's <section role="region">): the default body, a custom
+  partial (selectionPartial) or the text a renderSelection function returns. Locals: c (the context built by
+  ../ServiceMap.ejs), id (the service id).
+-%>
+<%
+  var _node = c.nodeById.get(id);
+  var _incoming = c.edges.filter(function (e) { return e.to === id; });
+  var _outgoing = c.edges.filter(function (e) { return e.from === id; });
+-%>
+<section role="region" aria-label="<%= c.msg.selection %>" class="rounded-md border border-border bg-surface-raised p-3 text-sm" data-sm-panel="<%= id %>">
+  <% if (c.selectionPartial) { %>
+  <%- include(c.selectionPartial, { node: _node, incoming: _incoming, outgoing: _outgoing }) %>
+  <% } else if (typeof c.renderSelection === 'function') { %><%= String(c.renderSelection(_node, { incoming: _incoming, outgoing: _outgoing })) %><% } else { %>
+  <%- include('./_selection', { c: c, node: _node, incoming: _incoming, outgoing: _outgoing }) %>
+  <% } %>
+</section>

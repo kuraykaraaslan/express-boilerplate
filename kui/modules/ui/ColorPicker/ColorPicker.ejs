@@ -1,0 +1,154 @@
+<%
+  // ─── ColorPicker (EJS) ──────────────────────────────────────────────────────
+  //
+  // Pixel-identical sibling of
+  // /home/kuray/01_NextJS_Components/modules/ui/ColorPicker/index.tsx.
+  //
+  // Locals:
+  //   id            — required, used as button id (popover gets `${id}-pop`)
+  //   name          — hidden input name for form integration
+  //   label         — visible label above the trigger
+  //   value         — initial color (any supported format), '' or null = no color
+  //   swatches      — array of hex strings (defaults to DEFAULT_COLOR_SWATCHES)
+  //   showHexInput        — default true
+  //   showNativePicker    — default true
+  //   showNoColor         — default false
+  //   showFormatSwitcher  — default false (M1)
+  //   defaultFormat       — 'hex'|'rgba'|'hsla'|'hwb'|'oklch' (default 'hex')
+  //   align         — 'left' | 'right'
+  //   triggerLabel  — aria-label for the trigger button
+  //   className     — extra classes on wrapper
+  //   onChangeFn    — name of a global JS function called with (color|null, id)
+  //
+  // Listen for `kui-colorpicker:change` on the wrapper —
+  //   event.detail = { value: string|null, format: string, id: string }
+  //
+  // TODO M2: EyeDropper, palette presets, recent colors, SV pad.
+  // TODO M3: GradientEditor.
+  // TODO M4: ContrastBadge.
+  // TODO M5: keyboard nav + screen reader announcements + i18n.
+
+  var DEFAULT_SWATCHES = [
+    '#000000', '#374151', '#6b7280', '#9ca3af', '#d1d5db', '#e5e7eb', '#f3f4f6', '#ffffff',
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+    '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+    '#fca5a5', '#fdba74', '#fcd34d', '#fde047', '#bef264', '#86efac', '#6ee7b7', '#5eead4',
+  ];
+
+  var _id     = locals.id    || ('cp-' + Math.random().toString(36).substr(2, 6));
+  var _name   = locals.name  || '';
+  var _label  = locals.label || '';
+  var _value  = locals.value || '';
+  var _swatches = Array.isArray(locals.swatches) && locals.swatches.length ? locals.swatches : (locals.swatches === null || (locals.swatches && locals.swatches.length === 0) ? [] : DEFAULT_SWATCHES);
+  // Allow swatches: [] to explicitly hide the grid (parity with NextJS).
+  if (Array.isArray(locals.swatches)) _swatches = locals.swatches;
+  var _showHexInput     = locals.showHexInput === false ? false : true;
+  var _showNativePicker = locals.showNativePicker === false ? false : true;
+  var _showNoColor      = !!locals.showNoColor;
+  var _showFormatSwitcher = !!locals.showFormatSwitcher;
+  var _defaultFormat    = locals.defaultFormat || 'hex';
+  var _align     = locals.align === 'right' ? 'right' : 'left';
+  var _triggerLabel = locals.triggerLabel || _label || 'Pick a color';
+  var _className = locals.className || '';
+  var _onChangeFn = locals.onChangeFn || '';
+  var _iconOnly  = !!locals.iconOnly;
+  var _icon      = locals.icon || '';  // FontAwesome class name e.g. 'fa-palette'
+%>
+<div
+  data-kui-colorpicker="<%= _id %>"
+  class="relative inline-block<%= _className ? ' ' + _className : '' %>"
+>
+  <% if (_label && !_iconOnly) { %>
+  <label for="<%= _id %>" class="block text-sm font-medium text-text-primary mb-1"><%= _label %></label>
+  <% } %>
+  <% if (_iconOnly) { %>
+  <button
+    type="button"
+    id="<%= _id %>"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-label="<%= _triggerLabel %>"
+    title="<%= _triggerLabel %>"
+    class="kui-rte-btn relative inline-flex items-center justify-center w-8 h-8 sm:w-7 sm:h-7 rounded text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+  >
+    <% if (_icon) { %><i class="fa-solid <%= _icon %> w-3.5 h-3.5" aria-hidden="true" style="font-size:0.875rem"></i><% } %>
+    <span
+      data-cp-bar
+      class="absolute bottom-0.5 left-1 right-1 h-0.5 rounded-sm"
+      style="background: <%= _value || 'transparent' %>"
+      aria-hidden="true"
+    ></span>
+  </button>
+  <% } else { %>
+  <button
+    type="button"
+    id="<%= _id %>"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-label="<%= _triggerLabel %>"
+    class="inline-flex items-center gap-2 rounded-md border border-border bg-surface-base px-2.5 py-1.5 text-sm text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+  >
+    <span
+      data-cp-swatch
+      class="w-4 h-4 rounded-sm border border-border shrink-0"
+      aria-hidden="true"
+    ></span>
+    <span data-cp-label class="font-mono text-xs"><%= _value || 'none' %></span>
+    <i class="fa-solid fa-chevron-down w-2.5 h-2.5 text-text-disabled w-2.5 h-2.5" aria-hidden="true"></i>
+  </button>
+  <% } %>
+  <div
+    role="dialog"
+    aria-label="Color picker"
+    data-cp-popover
+    class="hidden absolute top-full mt-1 z-50 w-64 p-3 rounded-lg border border-border bg-surface-raised shadow-lg <%= _align === 'right' ? 'right-0' : 'left-0' %>"
+  >
+    <%- include('partials/_palette', { _swatches: _swatches }) %>
+    <%- include('partials/_inputs', {
+        _value: _value,
+        _showHexInput: _showHexInput,
+        _showNativePicker: _showNativePicker,
+        _showNoColor: _showNoColor,
+        _showFormatSwitcher: _showFormatSwitcher,
+        _defaultFormat: _defaultFormat,
+    }) %>
+  </div>
+  <% if (_name) { %>
+  <input type="hidden" data-cp-input name="<%= _name %>" value="<%= _value %>" />
+  <% } %>
+</div>
+
+<script>
+(function () {
+  // Inline core scripts on first encounter; subsequent instances reuse.
+  if (!window.KuiColorConvert) {
+    <%- include('scripts/color-convert.js') %>
+  }
+  if (!window.KuiColorPickerCore) {
+    <%- include('scripts/color-state.js') %>
+  }
+
+  var id = <%- include('../_script-json', { value: _id }) %>;
+  var onChangeFn = <%- include('../_script-json', { value: _onChangeFn }) %>;
+  var defaultFormat = <%- include('../_script-json', { value: _defaultFormat }) %>;
+  if (window.__kuiColorPickerInit && window.__kuiColorPickerInit[id]) return;
+  window.__kuiColorPickerInit = window.__kuiColorPickerInit || {};
+  window.__kuiColorPickerInit[id] = true;
+
+  function init() {
+    var root = document.querySelector('[data-kui-colorpicker="' + id + '"]');
+    if (!root || !window.KuiColorPickerCore) return;
+    window.KuiColorPickerCore.attach(root, {
+      id: id,
+      onChangeFn: onChangeFn,
+      defaultFormat: defaultFormat,
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

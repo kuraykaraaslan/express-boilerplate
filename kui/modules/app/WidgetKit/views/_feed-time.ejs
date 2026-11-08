@@ -1,0 +1,5 @@
+<%#
+  An event's time in the feed (`Meta` around a <time>). Locals: entry, timeStyle, extra (more classes).
+%><%_ var _e = locals.entry; if (_e.time) { var _ts = widgetKit.style(locals.timeStyle); _%>
+<span class="<%= widgetKit.ui.metaClass(_e.time.className + (locals.extra ? ' ' + locals.extra : '')) %>"<% if (_ts) { %> style="<%= _ts %>"<% } %>><time datetime="<%= _e.time.iso %>" title="<%= _e.time.title %>"><%= _e.time.text %></time></span>
+<%_ } _%>

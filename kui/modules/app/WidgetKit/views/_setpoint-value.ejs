@@ -1,0 +1,9 @@
+<%#
+  The stepper / dial number of control.setpoint in the kit's metric style (kui-react's `renderValue`). Included by
+  ControlSetpoint.ejs (`valueContentPartial`); the control's runtime rewrites only the number's span and shows the unit
+  only while there is a number. Locals: text, vm (`valueMetric` of the setpoint model).
+%><%- include('../_metric', {
+  text: locals.text, unit: locals.vm.unit, unitPosition: locals.vm.unitPosition, size: locals.vm.size, font: locals.vm.font,
+  color: locals.vm.color, className: '', style: locals.vm.style, textAttr: 'data-kui-control-output-text',
+  unitAttr: 'data-kui-control-output-unit', unitHidden: locals.text === '—'
+}) %>

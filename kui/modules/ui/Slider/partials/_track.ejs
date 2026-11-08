@@ -1,0 +1,19 @@
+<%# modules/ui/Slider/partials/_track.ejs — the transform-based scroller. %>
+<div
+  class="flex ease-in-out will-change-transform touch-pan-y select-none"
+  style="transform: translateX(0%); transition-property: transform; transition-duration: 350ms;"
+  data-slider-track
+>
+  <% _slides.forEach(function(slide, i) { %>
+  <div
+    role="group"
+    aria-roledescription="slide"
+    aria-label="Slide <%= i + 1 %> of <%= _total %>"
+    aria-hidden="<%= i === 0 ? 'false' : 'true' %>"
+    class="w-full shrink-0<%= _slideClassName ? ' ' + _slideClassName : '' %>"
+    data-slider-slide="<%= i %>"
+  >
+    <%- slide %>
+  </div>
+  <% }); %>
+</div>

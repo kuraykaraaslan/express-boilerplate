@@ -1,0 +1,31 @@
+<%#
+  The state itself, by layout (kui-react StateView's `main`). Locals: model.
+%><%_
+  var _m = locals.model;
+  var _s = _m.s;
+  var _out = _m.out;
+  var _pulse = _m.pulse;
+  var _stale = _m.staleText;
+  var _stateFont = widgetKit.style(widgetKit.fontStyle(_s.stateFont));
+  var _stateStyle = widgetKit.style(Object.assign({}, widgetKit.fontStyle(_s.stateFont), { color: _out.color }));
+_%>
+<% if (_m.layout === 'badge') { %>
+<span class="inline-flex<%= _pulse ? ' motion-safe:animate-pulse' : '' %>" data-part="badge"<% if (_stateFont) { %> style="<%= _stateFont %>"<% } %>><%- include('../_pill', { label: _out.label, color: _out.color, background: _out.background, icon: _out.icon, size: 'lg', staleText: _stale }) %></span>
+<% } else if (_m.layout === 'dot') { %>
+<span class="inline-flex items-center gap-2.5 text-lg font-semibold leading-none text-text-primary" data-part="label"<% if (_stateFont) { %> style="<%= _stateFont %>"<% } %>><span class="relative inline-flex h-3 w-3 shrink-0" aria-hidden="true"><% if (_pulse) { %><span class="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping" style="background:<%= _out.color %>"></span><% } %><span class="relative h-3 w-3 rounded-full" style="background:<%= _out.color %>" data-part="dot"></span></span><%= _out.label %><% if (_stale) { %><span class="sr-only"> <%= _stale %></span><% } %></span>
+<% } else if (_m.layout === 'lamp') { %>
+<%_
+  var _size = Math.min(200, Math.max(16, _s.lampSize !== undefined ? _s.lampSize : 56));
+  var _lit = !_out.unknown && _out.lit !== false;
+  var _dim = widgetKit.cssColor(_s.lampDim) || 'var(--border)';
+  var _lampStyle = widgetKit.style({ background: _lit ? _out.color : _dim, boxShadow: _lit ? '0 0 ' + Math.round(_size / 3) + 'px ' + Math.round(_size / 12) + 'px ' + widgetKit.tint(_out.color, 45) : 'inset 0 0 0 1px var(--border)' });
+_%>
+<span class="relative inline-flex shrink-0" style="<%= widgetKit.style({ width: _size, height: _size }) %>" data-part="lamp" data-lit="<%= _lit ? 'true' : 'false' %>" aria-hidden="true"><% if (_lit && _pulse) { %><span class="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping" style="background:<%= _out.color %>"></span><% } %><span class="relative h-full w-full rounded-full" style="<%= _lampStyle %>"></span></span>
+<% if (_s.lampLabel !== false) { %><span class="text-base font-semibold leading-tight" style="<%= _stateStyle %>" data-part="label"><%= _out.label %><% if (_stale) { %><span class="sr-only"> <%= _stale %></span><% } %></span><% } else { %><span class="sr-only" data-part="label"><%= _out.label %><% if (_stale) { %><span class="sr-only"> <%= _stale %></span><% } %></span><% } %>
+<% } else if (_m.layout === 'icon') { %>
+<%_ var _isize = Math.round(_m.iconSize * 2.6); _%>
+<% if (_out.icon) { %><span class="inline-flex<%= _pulse ? ' motion-safe:animate-pulse' : '' %>" data-part="icon"><%- include('../_icon-tile', { name: _out.icon, size: _isize, color: _out.color, background: _out.background }) %></span><% } else { %><span class="rounded-full<%= _pulse ? ' motion-safe:animate-pulse' : '' %>" style="<%= widgetKit.style({ width: _isize / 2, height: _isize / 2, background: _out.color }) %>" data-part="icon" aria-hidden="true"></span><% } %>
+<span class="text-base font-semibold leading-tight" style="<%= _stateStyle %>" data-part="label"><%= _out.label %><% if (_stale) { %><span class="sr-only"> <%= _stale %></span><% } %></span>
+<% } else { %>
+<span class="block truncate font-semibold leading-none tracking-tight" style="<%= widgetKit.style(Object.assign({ fontSize: 'clamp(1.25rem, min(11cqi, 30cqb), 2.25rem)' }, widgetKit.fontStyle(_s.stateFont), { color: _out.color })) %>" data-part="label"><%= _out.label %><% if (_stale) { %><span class="sr-only"> <%= _stale %></span><% } %></span>
+<% } %>

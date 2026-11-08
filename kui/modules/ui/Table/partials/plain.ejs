@@ -1,0 +1,167 @@
+<%
+  // Low-level "dumb" table — same surface as the legacy `modules/ui/Table.ejs`.
+  var _columns        = locals.columns        || [];
+  var _rows           = locals.rows           || [];
+  var _caption        = locals.caption        || '';
+  var _emptyMessage   = locals.emptyMessage   || 'No results found.';
+  var _className      = locals.className      || '';
+  var _defaultSortKey = locals.defaultSortKey || '';
+  var _defaultSortDir = locals.defaultSortDir || null;
+  var _id             = locals.id             || 'tbl-' + Math.random().toString(36).substr(2, 9);
+
+  var alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' };
+
+  // Apply default sort server-side so initial render matches React's `useState(defaultSortKey/Dir)`.
+  var _sortedRows = _rows;
+  if (_defaultSortKey && (_defaultSortDir === 'asc' || _defaultSortDir === 'desc')) {
+    _sortedRows = _rows.slice().sort(function (a, b) {
+      var av = a[_defaultSortKey];
+      var bv = b[_defaultSortKey];
+      av = (av === undefined || av === null) ? '' : av;
+      bv = (bv === undefined || bv === null) ? '' : bv;
+      var cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+      return _defaultSortDir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  function _ariaSortFor(col) {
+    if (!col.sortable) return null;
+    if (col.key === _defaultSortKey && _defaultSortDir === 'asc')  return 'ascending';
+    if (col.key === _defaultSortKey && _defaultSortDir === 'desc') return 'descending';
+    return 'none';
+  }
+
+  function _sortIconFor(col) {
+    if (!col.sortable) return '';
+    if (col.key === _defaultSortKey && _defaultSortDir === 'asc')  return 'fa-chevron-up';
+    if (col.key === _defaultSortKey && _defaultSortDir === 'desc') return 'fa-chevron-down';
+    return 'fa-sort';
+  }
+%>
+<div id="<%= _id %>" class="w-full overflow-x-auto rounded-lg border border-border<%= _className ? ' ' + _className : '' %>" data-tbl-root tabindex="0" role="region" aria-label="<%= _caption || 'Table' %>">
+  <table class="w-full text-sm">
+    <% if (_caption) { %><caption class="sr-only"><%= _caption %></caption><% } %>
+    <thead class="bg-surface-sunken border-b border-border">
+      <tr>
+        <% _columns.forEach(function (col) { %>
+        <th
+          scope="col"
+          <% if (col.sortable) { %>aria-sort="<%= _ariaSortFor(col) %>" data-tbl-sort-key="<%= col.key %>"<% } %>
+          class="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider <%= alignClass[col.align] || 'text-left' %><%= col.sortable ? ' cursor-pointer select-none hover:text-text-primary transition-colors' : '' %>"
+        >
+          <span class="inline-flex items-center gap-1">
+            <%= col.header %>
+            <% if (col.sortable) { %>
+              <span class="w-2.5 h-2.5 inline-flex items-center justify-center" data-tbl-sort-icon aria-hidden="true">
+                <i class="fa-solid <%= _sortIconFor(col) %> w-2.5 h-2.5"></i>
+              </span>
+            <% } %>
+          </span>
+        </th>
+        <% }); %>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-border bg-surface-base" data-tbl-body>
+      <% if (_sortedRows.length === 0) { %>
+      <tr>
+        <td colspan="<%= _columns.length %>" class="px-4 py-8 text-center text-text-secondary"><%= _emptyMessage %></td>
+      </tr>
+      <% } else { %>
+        <% _sortedRows.forEach(function (row, ri) { %>
+        <tr class="hover:bg-surface-overlay transition-colors" data-tbl-row="<%= ri %>">
+          <% _columns.forEach(function (col) { %>
+          <td class="px-4 py-3 text-text-primary<%= col.align ? ' ' + (alignClass[col.align] || '') : '' %>"<% if (!col.render) { %> data-tbl-key="<%= col.key %>"<% } %>>
+            <% if (col.render) { %>
+              <%- col.render(row) %>
+            <% } else { %>
+              <%= row[col.key] !== undefined && row[col.key] !== null ? row[col.key] : '' %>
+            <% } %>
+          </td>
+          <% }); %>
+        </tr>
+        <% }); %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<%
+  var _hasSortable = false;
+  for (var _ci = 0; _ci < _columns.length; _ci++) {
+    if (_columns[_ci].sortable) { _hasSortable = true; break; }
+  }
+%>
+<% if (_hasSortable) { %>
+<script>
+(function () {
+  var root = document.getElementById(<%- include('../../_script-json', { value: String(_id) }) %>);
+  if (!root) return;
+  var body = root.querySelector('[data-tbl-body]');
+  if (!body) return;
+  var rowEls = Array.prototype.slice.call(body.querySelectorAll('[data-tbl-row]'));
+
+  var state = {
+    sortKey: <%- include('../../_script-json', { value: _defaultSortKey || '' }) %>,
+    sortDir: <%- include('../../_script-json', { value: _defaultSortDir || null }) %>
+  };
+
+  function setIcon(th, dir) {
+    var wrap = th.querySelector('[data-tbl-sort-icon]');
+    if (!wrap) return;
+    var cls = dir === 'asc' ? 'fa-chevron-up' : (dir === 'desc' ? 'fa-chevron-down' : 'fa-sort');
+    wrap.innerHTML = '<i class="fa-solid ' + cls + ' w-2.5 h-2.5"></i>';
+  }
+
+  function updateHeaders() {
+    root.querySelectorAll('[data-tbl-sort-key]').forEach(function (th) {
+      var key = th.getAttribute('data-tbl-sort-key');
+      var isSorted = state.sortKey === key && state.sortDir;
+      if (isSorted) {
+        th.setAttribute('aria-sort', state.sortDir === 'asc' ? 'ascending' : 'descending');
+        setIcon(th, state.sortDir);
+      } else {
+        th.setAttribute('aria-sort', 'none');
+        setIcon(th, null);
+      }
+    });
+  }
+
+  function rowValue(tr, key) {
+    var td = tr.querySelector('[data-tbl-key="' + key + '"]');
+    return td ? (td.textContent || '').trim() : '';
+  }
+
+  function render() {
+    var arr = rowEls.slice();
+    if (state.sortKey && state.sortDir) {
+      var key = state.sortKey;
+      var dir = state.sortDir;
+      arr.sort(function (a, b) {
+        var cmp = String(rowValue(a, key)).localeCompare(String(rowValue(b, key)), undefined, { numeric: true });
+        return dir === 'asc' ? cmp : -cmp;
+      });
+    }
+    arr.forEach(function (tr) { body.appendChild(tr); });
+    updateHeaders();
+  }
+
+  root.querySelectorAll('[data-tbl-sort-key]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var key = th.getAttribute('data-tbl-sort-key');
+      if (state.sortKey !== key) {
+        state.sortKey = key;
+        state.sortDir = 'asc';
+      } else if (state.sortDir === 'asc') {
+        state.sortDir = 'desc';
+      } else if (state.sortDir === 'desc') {
+        state.sortDir = null;
+        state.sortKey = '';
+      } else {
+        state.sortDir = 'asc';
+      }
+      render();
+    });
+  });
+})();
+</script>
+<% } %>

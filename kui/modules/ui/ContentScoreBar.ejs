@@ -1,0 +1,74 @@
+<%
+  // ContentScoreBar — server-rendered, presentational variant.
+  // Props:
+  //   score    : number (0–100) — precomputed score
+  //   results  : array of { label, pass, hint? } — precomputed rule results
+  //   label    : optional uppercase eyebrow label
+  //   className: optional extra classes
+  var _score     = (typeof locals.score === 'number') ? locals.score : 0;
+  var _results   = Array.isArray(locals.results) ? locals.results : [];
+  var _label     = locals.label     || '';
+  var _className = locals.className || '';
+
+  if (isNaN(_score)) _score = 0;
+  if (_score < 0)   _score = 0;
+  if (_score > 100) _score = 100;
+
+  var tier = (_score >= 70) ? 'great' : (_score >= 40) ? 'ok' : 'poor';
+  var tierMap = {
+    great: { bar: 'bg-success', text: 'text-success-fg', bg: 'bg-success-subtle', border: 'border-success', dot: 'bg-success', label: 'Good' },
+    ok:    { bar: 'bg-warning', text: 'text-warning-fg', bg: 'bg-warning-subtle', border: 'border-warning', dot: 'bg-warning', label: 'Fair' },
+    poor:  { bar: 'bg-error',   text: 'text-error-fg',   bg: 'bg-error-subtle',   border: 'border-error',   dot: 'bg-error',   label: 'Poor' },
+  };
+  var t = tierMap[tier];
+
+  var passCount = 0;
+  for (var pi = 0; pi < _results.length; pi++) { if (_results[pi].pass) passCount++; }
+
+  var ariaLabelText = (_label || 'Content score') + ': ' + _score + '%';
+%>
+<div
+  class="rounded-lg border p-3 space-y-2 transition-colors duration-300 <%= t.bg %> <%= t.border %><%= _className ? ' ' + _className : '' %>"
+  role="progressbar"
+  aria-valuenow="<%= _score %>"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  aria-label="<%= ariaLabelText %>"
+>
+  <div class="flex items-center gap-2">
+    <span class="inline-block h-1.5 w-1.5 rounded-full shrink-0 <%= t.dot %>" aria-hidden="true"></span>
+    <% if (_label) { %>
+      <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider"><%= _label %></span>
+    <% } %>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="text-xs font-medium <%= t.text %>"><%= t.label %></span>
+      <span class="text-sm font-bold tabular-nums leading-none <%= t.text %>" aria-label="<%= ariaLabelText %>"><%= _score %>%</span>
+    </div>
+  </div>
+
+  <div class="h-1.5 w-full rounded-full bg-surface-sunken overflow-hidden">
+    <div class="h-full rounded-full transition-all duration-500 ease-out <%= t.bar %>" style="width: <%= _score %>%"></div>
+  </div>
+
+  <% if (_results.length > 0) { %>
+  <div class="flex flex-wrap gap-1">
+    <% _results.forEach(function(r){
+         var pillClass = r.pass
+           ? (t.bg + ' ' + t.text + ' border ' + t.border)
+           : 'bg-surface-sunken text-text-disabled border border-border';
+    %>
+      <span
+        <% if (r.hint) { %>title="<%= r.hint %>"<% } %>
+        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-default select-none transition-colors <%= pillClass %>"
+      >
+        <% if (r.pass) { %><span class="w-2.5 h-2.5 inline-flex items-center justify-center" aria-hidden="true"><i class="fa-solid fa-check w-2.5 h-2.5"></i></span><% } %>
+        <%= r.label %>
+      </span>
+    <% }); %>
+  </div>
+
+  <p class="text-xs text-text-secondary leading-none">
+    <%= passCount %> / <%= _results.length %> rules passed
+  </p>
+  <% } %>
+</div>

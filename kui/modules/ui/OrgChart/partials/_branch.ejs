@@ -1,0 +1,26 @@
+<%
+  // One branch of OrgChart: the node's card, its toggle and its children (recursive). Locals: node, depth, single
+  // (the only child of its parent: no half rails), ctx (the chart's shared state, built in OrgChart.ejs).
+  var c = locals.ctx;
+  var node = locals.node;
+  var depth = locals.depth;
+  var id = String(c.getId(node));
+  var kids = c.getChildren(node) || [];
+  var isOpen = c.expanded[id] === true;
+  var isMatch = c.matched[id] === true;
+  var row = c.unwrap(node);
+  var cardLocals = Object.assign({}, c.nodeLocals, { node: row, highlighted: isMatch, depth: depth, childCount: kids.length });
+  var itemClass = 'relative rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus' +
+    (c.clickable ? ' cursor-pointer' : '') + (isMatch ? ' ring-2 ring-primary/40' : '');
+  var fallback = row && (row.name || row.label) ? (row.name || row.label) : id;
+%>
+<li role="none" class="relative flex flex-col items-center px-2<%= depth > 0 ? ' pt-6' : '' %>" data-part="org-branch">
+  <% if (depth > 0) { %><span class="absolute top-0 left-1/2 h-6 w-px -translate-x-1/2 bg-border" aria-hidden="true"></span><% } %>
+  <% if (depth > 0 && !locals.single) { %><span class="absolute top-0 left-0 right-1/2 h-px bg-border [li:first-child>&]:hidden" aria-hidden="true"></span><span class="absolute top-0 left-1/2 right-0 h-px bg-border [li:last-child>&]:hidden" aria-hidden="true"></span><% } %>
+  <div role="treeitem" aria-level="<%= depth + 1 %>"<% if (kids.length) { %> aria-expanded="<%= isOpen ? 'true' : 'false' %>"<% } %><% if (isMatch) { %> aria-selected="true"<% } %> tabindex="<%= id === c.tabId ? '0' : '-1' %>" data-node-id="<%= id %>"<% if (isMatch) { %> data-highlighted="true"<% } %> class="<%= itemClass %>"><% if (c.nodePartial) { %><%- include(c.nodePartial, cardLocals) %><% } else { %><div class="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"><%= fallback %></div><% } %></div>
+  <% if (kids.length > 0) { %><button type="button" tabindex="-1" aria-label="<%= isOpen ? c.m.collapse : c.m.expand %>" class="relative z-[1] -mt-2 inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-full border border-border bg-surface-raised px-1.5 text-[10px] font-medium text-text-secondary transition-colors hover:text-text-primary" data-part="org-toggle"><i class="fa-solid <%= isOpen ? 'fa-chevron-up' : 'fa-chevron-down' %> h-2 w-2" aria-hidden="true"></i><% if (!isOpen) { %><span><%= c.m.hiddenChildren.replace('{count}', String(kids.length)) %></span><% } %></button>
+  <ul role="group" class="relative flex list-none justify-center" data-part="org-children"<% if (!isOpen) { %> hidden<% } %>>
+    <% kids.forEach(function (k) { %><%- include('./_branch', { node: k, depth: depth + 1, single: kids.length === 1, ctx: c }) %><% }); %>
+  </ul>
+  <% } %>
+</li>

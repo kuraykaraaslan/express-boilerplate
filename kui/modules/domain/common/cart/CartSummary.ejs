@@ -1,0 +1,79 @@
+<%
+  var _cart         = locals.cart         || {};
+  var _items        = _cart.items         || [];
+  var _totals       = _cart.totals        || {};
+  var _appliedCoupon= locals.appliedCoupon|| null;
+  var _couponAction = locals.couponAction || null;
+  var _showTotals   = locals.showTotals !== false;
+  var _showCoupon   = locals.showCoupon !== false;
+  var _couponRemoveAction = locals.couponRemoveAction || null;
+  var _couponError  = locals.couponError  || null;
+  var _couponSuccess= locals.couponSuccess|| null;
+  var _updateAction = locals.updateAction || null;
+  var _removeAction = locals.removeAction || null;
+  var _checkoutHref = locals.checkoutHref || null;
+  var _checkoutLabel= locals.checkoutLabel|| 'Proceed to Checkout';
+  var _locale       = locals.locale       || 'tr-TR';
+  var currency      = _totals.currency    || 'TRY';
+
+  function fmtPrice(n) {
+    return (n || 0).toLocaleString(_locale, { style: 'currency', currency: currency, minimumFractionDigits: 2 });
+  }
+  var totalQty = _items.reduce(function(s, i) { return s + (i.quantity || 1); }, 0);
+%>
+
+<div class="space-y-4<%= locals.className ? ' ' + locals.className : '' %>">
+
+  <% if (_items.length === 0) { %>
+  <!-- Empty cart -->
+  <div class="flex flex-col items-center justify-center gap-3 py-12 text-center">
+    <span class="w-10 h-10 inline-flex items-center justify-center text-text-disabled" aria-hidden="true">
+      <i class="fa-solid fa-cart-shopping"></i>
+    </span>
+    <p class="font-medium text-text-primary">Your cart is empty</p>
+    <p class="text-sm text-text-secondary">Add items to get started</p>
+  </div>
+  <% } else { %>
+
+  <!-- Items -->
+  <div class="divide-y divide-border">
+    <% _items.forEach(function(item) { %>
+    <%- include('./CartItem', {
+      item: item,
+      updateAction: _updateAction,
+      removeAction: _removeAction,
+      locale: _locale,
+      className: 'py-4 first:pt-0 last:pb-0'
+    }) %>
+    <% }); %>
+  </div>
+
+  <!-- Coupon -->
+  <% if (_showCoupon && _couponAction) { %>
+  <%- include('../discount/CouponInput', {
+    action: _couponAction,
+    appliedCode: _appliedCoupon,
+    removeAction: _couponRemoveAction,
+    couponError: _couponError,
+    couponSuccess: _couponSuccess
+  }) %>
+  <% } %>
+
+  <!-- Totals -->
+  <% if (_showTotals) { %>
+  <%- include('../money/OrderTotalsCard', { totals: _totals, locale: _locale }) %>
+  <% } %>
+
+  <!-- Checkout CTA -->
+  <% if (_checkoutHref) { %>
+  <%- include('../../../ui/Button', {
+    element: 'a',
+    href: _checkoutHref,
+    fullWidth: true,
+    className: 'h-11 font-semibold',
+    children: _checkoutLabel
+  }) %>
+  <% } %>
+
+  <% } %>
+</div>

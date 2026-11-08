@@ -1,0 +1,17 @@
+<%
+  // Shared by the 404 catch-all and the 500 handler (src/middleware/error.ts):
+  // the 500 path passes its own code/heading/message, so a server error never
+  // shows "Page not found".
+  var _code    = locals.statusCode || 404;
+  var _heading = locals.heading    || 'Page not found';
+  var _message = locals.message    || "The page you're looking for doesn't exist or has been moved.";
+%>
+<div class="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+  <p class="text-7xl font-bold text-primary mb-4"><%= _code %></p>
+  <h1 class="text-2xl font-semibold text-text-primary mb-2"><%= _heading %></h1>
+  <p class="text-text-secondary mb-8"><%= _message %></p>
+  <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-fg font-medium hover:bg-primary-hover transition-colors">
+    <i class="fa-solid fa-house" aria-hidden="true"></i>
+    Back to showcase
+  </a>
+</div>

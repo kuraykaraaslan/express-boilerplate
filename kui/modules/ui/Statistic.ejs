@@ -1,0 +1,40 @@
+<%
+  var _label     = locals.label     || '';
+  var _value     = (locals.value !== undefined && locals.value !== null) ? locals.value : '';
+  var _precision = locals.precision;
+  var _prefix    = locals.prefix    || '';
+  var _suffix    = locals.suffix    || '';
+  var _trend     = locals.trend     || '';
+  var _trendValue = locals.trendValue || '';
+  var _loading   = !!locals.loading;
+  var _className = locals.className || '';
+
+  var _displayValue = _value;
+  if (_precision !== undefined && _precision !== null && typeof _value === 'number' && !isNaN(_value)) {
+    _displayValue = _value.toFixed(_precision);
+  } else if (_precision !== undefined && _precision !== null && typeof _value === 'string' && _value !== '' && !isNaN(Number(_value))) {
+    _displayValue = Number(_value).toFixed(_precision);
+  }
+
+  var trendIconClass = _trend === 'down' ? 'fa-arrow-down' : 'fa-arrow-up';
+  var trendColorClass = _trend === 'down' ? 'text-error' : 'text-success';
+%>
+<div class="flex flex-col gap-1<%= _className ? ' ' + _className : '' %>">
+  <span class="text-xs text-text-secondary"><%= _label %></span>
+  <% if (_loading) { %>
+    <span class="h-7 w-24 animate-pulse rounded bg-surface-sunken" aria-hidden="true"></span>
+    <span class="sr-only">Loading <%= _label %></span>
+  <% } else { %>
+    <div class="flex items-baseline gap-1">
+      <% if (_prefix) { %><span class="text-lg font-semibold text-text-secondary"><%- _prefix %></span><% } %>
+      <span class="text-2xl font-bold tabular-nums text-text-primary"><%= _displayValue %></span>
+      <% if (_suffix) { %><span class="text-lg font-semibold text-text-secondary"><%- _suffix %></span><% } %>
+      <% if (_trend && _trendValue) { %>
+        <span class="ml-1 inline-flex items-center gap-1 text-xs font-medium <%= trendColorClass %>">
+          <i class="fa-solid <%= trendIconClass %>" aria-hidden="true" style="font-size:10px"></i>
+          <%= _trendValue %>
+        </span>
+      <% } %>
+    </div>
+  <% } %>
+</div>

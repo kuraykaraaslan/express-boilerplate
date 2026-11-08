@@ -1,0 +1,26 @@
+<%# modules/ui/Toast/partials/_region.ejs %>
+<%#
+  Position-aware fixed container that hosts a single stack of toasts.
+  Empty by default — toasts are injected at runtime by scripts/store.js.
+  Mostly useful as a documentation/preview fixture; the runtime store lazily
+  creates regions on demand, so most pages don't need to include this partial.
+
+  Locals:
+    position  'top-right' (default) | 'top-left' | 'top-center'
+              | 'bottom-right' | 'bottom-left' | 'bottom-center'
+
+  M1 milestone — see PLANS/26-Toast.md.
+%>
+<%
+  var _pos = locals.position || 'top-right';
+  var POSITION_MAP = {
+    'top-right':     'top-4 right-4 items-end',
+    'top-left':      'top-4 left-4 items-start',
+    'top-center':    'top-4 left-1/2 -translate-x-1/2 items-center',
+    'bottom-right':  'bottom-4 right-4 items-end',
+    'bottom-left':   'bottom-4 left-4 items-start',
+    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2 items-center',
+  };
+  var posClass = POSITION_MAP[_pos] || POSITION_MAP['top-right'];
+%>
+<div class="fixed z-[90] flex flex-col gap-2 pointer-events-none <%= posClass %>" data-toast-region="<%= _pos %>"></div>

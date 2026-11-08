@@ -1,0 +1,51 @@
+<%
+  var _value      = locals.value      || 'en';
+  var _name       = locals.name       || 'language';
+  var _id         = locals.id         || ('lang-' + Math.random().toString(36).substr(2, 9));
+  var _autoSubmit = !!locals.autoSubmit;
+
+  // NOTE: NextJS sibling uses `country-flag-icons` (SVG) — EJS bundle has no
+  // flag asset pipeline yet, so we keep emoji flags as a TODO fallback.
+  // TODO(common/i18n): wire SVG country flags (parity with React DirectionProvider).
+  var languages = locals.languages || [
+    { value: 'en', flag: '🇺🇸', name: 'English' },
+    { value: 'tr', flag: '🇹🇷', name: 'Türkçe' },
+    { value: 'de', flag: '🇩🇪', name: 'Deutsch' },
+    { value: 'fr', flag: '🇫🇷', name: 'Français' },
+    { value: 'ar', flag: '🇸🇦', name: 'العربية' }
+  ];
+
+  var current = languages.filter(function (l) { return l.value === _value; })[0] || languages[0];
+
+  var items = languages.map(function (lang) {
+    var iconHtml = '<span class="w-4 inline-flex items-center justify-center" aria-hidden="true">' + lang.flag + '</span>';
+    var onClick  = "document.getElementById('" + _id + "-hidden').value='" + lang.value + "';"
+                 + (_autoSubmit ? "var f=document.getElementById('" + _id + "-hidden').closest('form'); if(f){f.submit();}" : '');
+    return { type: 'item', label: lang.name, icon: iconHtml, onClick: onClick };
+  });
+
+  // Build trigger using the Button atom output (captured into a string)
+  var triggerHtml = '';
+%>
+<form action="<%= locals.action || '#' %>" method="post" style="display:inline-block">
+  <input type="hidden" id="<%= _id %>-hidden" name="<%= _name %>" value="<%= _value %>">
+  <%
+    var btnIcon = '<span class="w-4 flex items-center justify-center shrink-0" aria-hidden="true">' + current.flag + '</span>';
+    var btnChev = '<span class="w-3 h-3 inline-flex items-center justify-center text-text-disabled" aria-hidden="true"><i class="fa-solid fa-chevron-down w-3 h-3"></i></span>';
+    triggerHtml = include('../../../ui/Button', {
+      variant: 'outline',
+      size: 'sm',
+      className: 'gap-2',
+      iconLeft: btnIcon,
+      iconRight: btnChev,
+      children: current.name
+    });
+  %>
+  <%- include('../../../ui/DropdownMenu', {
+    id: _id,
+    align: 'left',
+    className: locals.className || '',
+    trigger: triggerHtml,
+    items: items
+  }) %>
+</form>

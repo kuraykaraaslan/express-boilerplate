@@ -1,0 +1,75 @@
+<!-- ── Lightbox ─────────────────────────────────────────────────────────── -->
+<div
+  id="<%= _id %>-lb"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Image lightbox"
+  style="display:none"
+  class="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
+>
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-4 py-3 shrink-0">
+    <span id="<%= _id %>-lb-counter" class="text-white/70 text-sm tabular-nums select-none"></span>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        id="<%= _id %>-lb-zoom"
+        aria-label="Zoom in"
+        class="w-9 h-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      >
+        <i id="<%= _id %>-lb-zoom-icon" class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        id="<%= _id %>-lb-close"
+        aria-label="Close lightbox"
+        class="w-9 h-9 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main image -->
+  <div class="relative flex-1 flex items-center justify-center overflow-hidden px-14">
+    <img
+      id="<%= _id %>-lb-img"
+      src=""
+      alt=""
+      draggable="false"
+      class="max-h-full max-w-full object-contain transition-transform duration-300 select-none cursor-zoom-in"
+    />
+    <button
+      type="button"
+      id="<%= _id %>-lb-prev"
+      aria-label="Previous image"
+      class="absolute left-3 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+    >
+      <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      id="<%= _id %>-lb-next"
+      aria-label="Next image"
+      class="absolute right-3 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+    >
+      <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- Caption -->
+  <p id="<%= _id %>-lb-caption" class="shrink-0 text-center text-white/80 text-sm px-6 py-2 hidden"></p>
+
+  <!-- Thumbnail strip -->
+  <div id="<%= _id %>-lb-thumbs" class="shrink-0 flex gap-2 overflow-x-auto px-4 py-3 justify-center"></div>
+
+  <!-- Backdrop -->
+  <button
+    type="button"
+    id="<%= _id %>-lb-bg"
+    aria-label="Close lightbox"
+    style="position:absolute;inset:0;z-index:-1"
+    class="cursor-default focus-visible:outline-none"
+    tabindex="-1"
+  ></button>
+</div>

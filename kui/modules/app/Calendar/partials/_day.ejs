@@ -1,0 +1,87 @@
+<%
+  // Day view — parallel of views/DayView.tsx (M1 + M2 drag/popover hooks)
+  // Locals: _id, _date, _events, _today, _L, _workingHours, _slotMinutes,
+  //         _isSameDay, _eventOnDay, _pillCls, _fmtTime, _minutesIntoDay
+  var HOUR_HEIGHT = 48;
+  var MIN_EVT_H   = 18;
+  var _allDay = _events.filter(function (e) { return e.allDay && _eventOnDay(e, _date); });
+  var _timed  = _events.filter(function (e) { return !e.allDay && _isSameDay(e.start, _date); });
+  var _isToday = _isSameDay(_date, _today);
+  var _hours = [];
+  for (var h = 0; h < 24; h++) _hours.push(h);
+  var _totalHeight = 24 * HOUR_HEIGHT;
+  var _numCls = 'inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold tabular-nums '
+              + (_isToday ? 'bg-primary text-primary-fg' : 'text-text-primary');
+  var _ariaLbl = _L.dayLong[_date.getDay()] + ' ' + _date.getDate() + ' '
+               + _L.monthNames[_date.getMonth()] + ' ' + _date.getFullYear();
+  var _isWorkingDay = !_workingHours || _workingHours.days.indexOf(_date.getDay()) !== -1;
+%>
+<div role="region" aria-label="<%= _ariaLbl %>" class="flex flex-col w-full">
+  <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] border-b border-border bg-surface-raised">
+    <div aria-hidden="true"></div>
+    <div class="px-3 py-2 flex items-center gap-2">
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-text-secondary"><%= _L.dayLong[_date.getDay()] %></span>
+      <span class="<%= _numCls %>"><%= _date.getDate() %></span>
+    </div>
+  </div>
+
+  <% if (_allDay.length > 0) { %>
+    <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] border-b border-border bg-surface-base">
+      <div class="px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-text-secondary text-right border-r border-border"><%= _L.messages.allDay %></div>
+      <div class="p-1 flex flex-col gap-0.5 min-h-[28px]">
+        <% _allDay.forEach(function (e) { %>
+          <%- include('./_event-card', { _event: e, _variant: 'bar', _pillCls: _pillCls, _fmtTime: _fmtTime }) %>
+        <% }); %>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="flex w-full overflow-x-auto" role="region" aria-label="Time grid">
+    <div class="shrink-0 w-14 border-r border-border bg-surface-base">
+      <div class="h-8" aria-hidden="true"></div>
+      <% _hours.forEach(function (h) { %>
+        <div style="height: <%= HOUR_HEIGHT %>px" class="text-[10px] text-text-secondary text-right pr-2 -mt-2 pt-0">
+          <% if (h !== 0) { %><%= String(h).padStart(2, '0') %>:00<% } %>
+        </div>
+      <% }); %>
+    </div>
+
+    <div data-cal-day-index="0" data-cal-day-iso="<%= _date.toISOString() %>" class="flex-1 min-w-0 relative">
+      <div class="h-8 border-b border-border bg-surface-raised"></div>
+      <div data-cal-day-slots class="relative touch-none select-none" style="height: <%= _totalHeight %>px">
+        <% _hours.forEach(function (h) {
+             var inWorking = _isWorkingDay && _workingHours && h >= _workingHours.start && h < _workingHours.end;
+             var cls = 'border-b border-border/60 ' + (inWorking ? 'bg-surface-base' : 'bg-surface-raised/60');
+        %>
+          <div style="height: <%= HOUR_HEIGHT %>px" class="<%= cls %>"></div>
+        <% }); %>
+
+        <% _timed.forEach(function (e) {
+             var startMin = _minutesIntoDay(e.start);
+             var endMin   = Math.min(24*60, _minutesIntoDay(e.end) || 24*60);
+             var top      = (startMin / 60) * HOUR_HEIGHT;
+             var height   = Math.max(MIN_EVT_H, ((endMin - startMin) / 60) * HOUR_HEIGHT);
+             var pill     = _pillCls(e.color || 'primary');
+        %>
+          <button type="button"
+            data-event-id="<%= e.id %>"
+            data-event-title="<%= e.title %>"
+            data-event-start="<%= e.start.getTime() %>"
+            data-event-end="<%= e.end.getTime() %>"
+            data-event-color="<%= e.color || 'primary' %>"
+            <% if (e.calendarId) { %>data-event-calendar-id="<%= e.calendarId %>"<% } %>
+            <% if (e.description) { %>data-event-description="<%= e.description %>"<% } %>
+            aria-label="<%= e.title %> <%= _fmtTime(e.start) %> – <%= _fmtTime(e.end) %>"
+            style="top: <%= top %>px; height: <%= height %>px; left: 4px; right: 4px;"
+            class="absolute rounded-md px-2 py-1 text-left text-[11px] leading-tight overflow-hidden cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus <%= pill %>">
+            <div class="font-semibold truncate"><%= e.title %></div>
+            <div class="opacity-80 text-[10px] tabular-nums"><%= _fmtTime(e.start) %> – <%= _fmtTime(e.end) %></div>
+            <% if (height >= 24) { %>
+              <span data-resize-handle role="separator" aria-label="Resize" class="absolute left-1 right-1 bottom-0 h-1.5 rounded-b cursor-ns-resize bg-transparent hover:bg-black/10"></span>
+            <% } %>
+          </button>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</div>

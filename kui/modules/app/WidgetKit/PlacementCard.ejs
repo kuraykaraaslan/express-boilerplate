@@ -1,0 +1,16 @@
+<%#
+  One placement: its resolved settings, the frame and the type's view (kui-react PlacementCard). All logic is the
+  vendored WidgetKit's (src/widget-kit); this partial only draws it.
+
+  Locals (the names of kui-react's PlacementCard props): kind, title, settings, board, definitionDefaults, data,
+  boundSlots, loading, error, isEditor, fixedHeight, now, locale, messages, embedHosts, refresh, retry, timeWindow (the
+  locals of modules/ui/TimeWindowSelect, drawn in the header when the placement's `showWindow` asks for it).
+  `widgetKit` is app.locals.widgetKit (src/widget-kit-host).
+%><%_
+  // Without a kind (or the host helper) there is nothing to draw: the empty-state contract of every module partial.
+  if (!locals.widgetKit || !locals.kind) return;
+  var widgetKit = locals.widgetKit;
+  var _p = widgetKit.placement(locals);
+_%>
+<%- include('WidgetCard', { p: _p, locale: _p.locale, now: _p.now, messages: _p.messages }) %>
+<%- include('_runtime') %>

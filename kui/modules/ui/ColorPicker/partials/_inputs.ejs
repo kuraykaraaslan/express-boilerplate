@@ -1,0 +1,86 @@
+<%#
+  modules/ui/ColorPicker/partials/_inputs.ejs
+
+  Hex / native picker / no-color row. M1 — also renders the optional
+  HEX/RGBA/HSLA/HWB/OKLCH format-switcher + copy button block.
+
+  Required locals in scope:
+    _value, _showHexInput, _showNativePicker, _showNoColor,
+    _showFormatSwitcher, _defaultFormat
+%>
+<% if (_showFormatSwitcher) { %>
+<div class="mb-3 space-y-2" data-cp-fmt>
+  <div
+    role="tablist"
+    aria-label="Color format"
+    class="flex items-center gap-0.5 rounded-md border border-border bg-surface-base p-0.5"
+  >
+    <% ['hex','rgba','hsla','hwb','oklch'].forEach(function (f) {
+         var labels = { hex: 'HEX', rgba: 'RGBA', hsla: 'HSLA', hwb: 'HWB', oklch: 'OKLCH' };
+         var active = f === _defaultFormat;
+    %>
+      <button
+        type="button"
+        role="tab"
+        aria-selected="<%= active ? 'true' : 'false' %>"
+        data-cp-fmt-btn="<%= f %>"
+        class="flex-1 px-1.5 py-1 rounded text-[10px] font-medium uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors <%= active ? 'bg-primary text-primary-fg' : 'text-text-secondary hover:bg-surface-overlay' %>"
+      ><%= labels[f] %></button>
+    <% }); %>
+  </div>
+  <div class="flex items-center gap-2">
+    <input
+      type="text"
+      data-cp-fmt-input
+      spellcheck="false"
+      value="<%= _value %>"
+      aria-label="Color value"
+      class="flex-1 min-w-0 font-mono text-xs px-2 py-1 rounded border border-border bg-surface-base text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+    />
+    <button
+      type="button"
+      data-cp-copy
+      aria-label="Copy value"
+      title="Copy"
+      class="w-7 h-7 inline-flex items-center justify-center rounded border border-border bg-surface-base text-text-secondary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors"
+    >
+      <i class="fa-solid fa-copy w-3 h-3 w-3 h-3" aria-hidden="true" data-cp-copy-icon></i>
+    </button>
+  </div>
+</div>
+<% } %>
+<% if (_showHexInput || _showNativePicker || _showNoColor) { %>
+<div class="flex items-center gap-2">
+  <% if (_showHexInput && !_showFormatSwitcher) { %>
+  <input
+    type="text"
+    data-cp-hex
+    spellcheck="false"
+    value="<%= _value %>"
+    placeholder="#000000"
+    aria-label="Hex color"
+    class="flex-1 min-w-0 font-mono text-xs px-2 py-1 rounded border border-border bg-surface-base text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+  />
+  <% } %>
+  <% if (_showNativePicker) { %>
+  <input
+    type="color"
+    data-cp-native
+    value="<%= _value || '#000000' %>"
+    aria-label="Native color picker"
+    class="w-7 h-7 rounded border border-border bg-surface-base cursor-pointer p-0"
+  />
+  <% } %>
+  <% if (_showNoColor) { %>
+  <button
+    type="button"
+    data-cp-none
+    aria-label="No color"
+    title="No color"
+    class="w-7 h-7 inline-flex items-center justify-center rounded border border-border bg-surface-base text-text-secondary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+  >
+    <i class="fa-solid fa-xmark w-3 h-3 w-3 h-3" aria-hidden="true"></i>
+  </button>
+  <% } %>
+</div>
+<% } %>

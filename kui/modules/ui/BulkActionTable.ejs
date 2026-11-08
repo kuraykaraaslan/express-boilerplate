@@ -1,0 +1,128 @@
+<%
+  // BulkActionTable — a table with row selection and a bulk-action bar. Same DOM and classes as kui-react
+  // modules/ui/BulkActionTable.tsx. The server draws the table, the bar for the initial selection and the
+  // checkbox states; BulkActionTable/scripts/ (inlined once, idempotent) adds select all, select row, the bar and
+  // the column sort in the browser. Selection is by row id, never by position: sorting does not move it.
+  //
+  // Locals:
+  //   columns   — [{ key, header, align?, sortable?, thClass?, tdClass?, render?, partial? }]
+  //     header  — heading text (escaped)
+  //     render  — function (row) => text, escaped (React returns a node there; for markup use `partial`)
+  //     partial — absolute path of a partial included for the cell with { row, value, col }
+  //     sortable — clicking the heading cycles ascending, descending, none (by the raw row[key], numerically)
+  //   rows      — array of objects
+  //   rowId     — a function (row) => id, or the name of the id field (default 'id'). Never the array index.
+  //   selected  — the ids selected at render time (they may include ids that are not in `rows`)
+  //   actions   — [{ key, label, icon?, destructive?, minSelected?, maxSelected?, disabledReason? }]
+  //     icon    — Font Awesome class, e.g. 'fa-solid fa-trash'
+  //     minSelected / maxSelected — the action is disabled outside that count, with disabledReason as its tooltip.
+  //               React takes a function (ids) => reason | false; a function cannot run in the browser, so the
+  //               limits stand in for it and are re-checked on every selection change
+  //   totalMatching — rows matching the filter when more exist than are rendered
+  //   onSelectAllMatching — truthy turns on the "Select all N matching" button (React takes a callback); the
+  //               button dispatches 'kui:bulk-select-all-matching' for the host page to answer
+  //   isRowSelectable — function (row) => true | reason; a reason disables the row's checkbox and is its tooltip
+  //   caption, emptyMessage ('No results found.'), className
+  //   labels    — { selectRow, selectAllOnPage, selectedCount, selectAllMatching, clear }; the two counted labels
+  //               are a string with {n} or a function (n) => text
+  //   id        — optional id on the root
+  //   loadRuntime — default true: inline the browser scripts (pass false when the host page loads
+  //               bulk-logic.js and bulk-table.js once, then calls KuiBulkTable.autoInit())
+  //
+  // Events on the root (they bubble): 'kui:bulk-change' { selected }, 'kui:bulk-action' { key, ids },
+  // 'kui:bulk-select-all-matching' { count }. `onSelectedChange` and each action's `onAction` are these events.
+  var _columns  = Array.isArray(locals.columns) ? locals.columns : [];
+  var _rows     = Array.isArray(locals.rows) ? locals.rows : [];
+  var _selected = Array.isArray(locals.selected) ? locals.selected : [];
+  var _actions  = Array.isArray(locals.actions) ? locals.actions : [];
+  var _caption  = locals.caption || '';
+  var _emptyMessage = locals.emptyMessage != null ? locals.emptyMessage : 'No results found.';
+  var _className = locals.className || '';
+  var _isRowSelectable = typeof locals.isRowSelectable === 'function' ? locals.isRowSelectable : null;
+  function _rowId(row) { return typeof locals.rowId === 'function' ? locals.rowId(row) : row[locals.rowId || 'id']; }
+  function _tpl(v, d) { return typeof v === 'function' ? String(v('{n}')) : (v != null ? String(v) : d); }
+  function _fill(t, n) { return String(t).split('{n}').join(String(n)); }
+  var _L = locals.labels || {};
+  var _labels = {
+    selectRow: _L.selectRow != null ? _L.selectRow : 'Select row',
+    selectAllOnPage: _L.selectAllOnPage != null ? _L.selectAllOnPage : 'Select all rows on this page',
+    selectedCount: _tpl(_L.selectedCount, '{n} selected'),
+    selectAllMatching: _tpl(_L.selectAllMatching, 'Select all {n} matching'),
+    clear: _L.clear != null ? _L.clear : 'Clear selection'
+  };
+  var _alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' };
+
+  var _selectedKeys = _selected.map(function (id) { return JSON.stringify(id); });
+  var _rowInfo = _rows.map(function (row) {
+    var id = _rowId(row);
+    var sel = _isRowSelectable ? _isRowSelectable(row) : true;
+    return { row: row, id: id, key: JSON.stringify(id), selectable: sel === true, reason: typeof sel === 'string' ? sel : '', disabled: sel !== true };
+  });
+  var _selectable = _rowInfo.filter(function (r) { return r.selectable; });
+  var _visibleSelected = _selectable.filter(function (r) { return _selectedKeys.indexOf(r.key) !== -1; }).length;
+  var _allVisible = _selectable.length > 0 && _visibleSelected === _selectable.length;
+  var _hasMoreMatching = typeof locals.totalMatching === 'number' && locals.totalMatching > _rows.length && !!locals.onSelectAllMatching;
+
+  var _cfg = {
+    selected: _selected,
+    actions: _actions.map(function (a) {
+      return { key: a.key, label: a.label, icon: a.icon || '', destructive: !!a.destructive, minSelected: a.minSelected, maxSelected: a.maxSelected, disabledReason: a.disabledReason || '' };
+    }),
+    labels: _labels,
+    matching: _hasMoreMatching,
+    totalMatching: _hasMoreMatching ? locals.totalMatching : 0
+  };
+  function _actionState(a) {
+    var min = typeof a.minSelected === 'number' ? a.minSelected : 0;
+    var max = typeof a.maxSelected === 'number' ? a.maxSelected : Infinity;
+    var off = _selected.length < min || _selected.length > max;
+    return { disabled: off, reason: off ? String(a.disabledReason || '') : '' };
+  }
+%>
+<div<% if (locals.id) { %> id="<%= locals.id %>"<% } %> class="flex flex-col gap-3<%= _className ? ' ' + _className : '' %>" data-ba-root data-ba-config="<%= JSON.stringify(_cfg) %>">
+  <% if (_selected.length > 0) { %>
+  <div role="region" aria-label="Bulk actions" class="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2" data-ba-bar>
+    <span class="text-sm font-medium text-text-primary" data-ba-count><%= _fill(_labels.selectedCount, _selected.length) %></span>
+    <% if (_hasMoreMatching) { %><button type="button" class="text-sm text-primary hover:underline" data-ba-matching><%= _fill(_labels.selectAllMatching, locals.totalMatching) %></button><% } %>
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      <% _actions.forEach(function (a) { var st = _actionState(a); %>
+      <button type="button"<% if (st.disabled) { %> disabled<% } %><% if (st.reason) { %> title="<%= st.reason %>"<% } %> class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-not-allowed disabled:opacity-50 <%= a.destructive ? 'bg-error text-white hover:opacity-90' : 'bg-primary text-primary-fg hover:bg-primary-hover' %>" data-ba-action="<%= a.key %>"><% if (a.icon) { %><i class="<%= a.icon %>" aria-hidden="true"></i><% } %><%= a.label %></button>
+      <% }); %>
+      <button type="button" class="text-sm text-text-secondary hover:text-text-primary" data-ba-clear><%= _labels.clear %></button>
+    </div>
+  </div>
+  <% } %>
+
+  <div class="w-full overflow-x-auto rounded-lg border border-border" tabindex="0" role="region" aria-label="<%= _caption || 'Table' %>">
+    <table class="w-full text-sm">
+      <% if (_caption) { %><caption class="sr-only"><%= _caption %></caption><% } %>
+      <thead class="bg-surface-sunken border-b border-border">
+        <tr>
+          <th scope="col" class="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider text-left w-10"><span class="inline-flex items-center gap-1"><input type="checkbox" class="h-4 w-4 accent-[var(--primary)]"<% if (_allVisible) { %> checked<% } %> aria-label="<%= _labels.selectAllOnPage %>"<% if (_selectable.length === 0) { %> disabled<% } %> data-ba-all></span></th>
+          <% _columns.forEach(function (col) { %>
+          <th scope="col"<% if (col.sortable) { %> aria-sort="none" data-ba-sort="<%= col.key %>"<% } %> class="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider <%= _alignClass[col.align] || 'text-left' %><%= col.thClass ? ' ' + col.thClass : '' %><%= col.sortable ? ' cursor-pointer select-none hover:text-text-primary transition-colors' : '' %>"><span class="inline-flex items-center gap-1"><%= col.header %><% if (col.sortable) { %><i class="fa-solid fa-sort w-2.5 h-2.5" aria-hidden="true"></i><% } %></span></th>
+          <% }); %>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border bg-surface-base" data-ba-body>
+        <% if (_rowInfo.length === 0) { %>
+        <tr><td colspan="<%= _columns.length + 1 %>" class="px-4 py-8 text-center text-text-secondary"><%= _emptyMessage %></td></tr>
+        <% } else { _rowInfo.forEach(function (r, ri) { %>
+        <tr class="hover:bg-surface-overlay transition-colors" data-ba-row data-ba-index="<%= ri %>">
+          <td class="px-4 py-3 text-text-primary w-10"><input type="checkbox" class="h-4 w-4 accent-[var(--primary)] disabled:opacity-40"<% if (_selectedKeys.indexOf(r.key) !== -1) { %> checked<% } %><% if (r.disabled) { %> disabled<% } %><% if (r.reason) { %> title="<%= r.reason %>"<% } %> aria-label="<%= _labels.selectRow %> <%= String(r.id) %>" data-ba-check data-ba-id="<%= r.key %>"></td>
+          <% _columns.forEach(function (col) { var v = r.row[col.key]; %>
+          <td class="px-4 py-3 text-text-primary<%= col.align === 'center' ? ' text-center' : (col.align === 'right' ? ' text-right' : '') %><%= col.tdClass ? ' ' + col.tdClass : '' %>"<% if (col.sortable) { %> data-ba-cell="<%= col.key %>" data-ba-value="<%= v === undefined || v === null ? '' : v %>"<% } %>><% if (col.partial) { %><%- include(col.partial, { row: r.row, value: v, col: col }) %><% } else if (typeof col.render === 'function') { var out = col.render(r.row); %><%= out === undefined || out === null ? '' : out %><% } else { %><%= v === undefined || v === null ? '' : String(v) %><% } %></td>
+          <% }); %>
+        </tr>
+        <% }); } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./BulkActionTable/scripts/bulk-logic.js') %>
+<%- include('./BulkActionTable/scripts/bulk-table.js') %>
+(function () { if (window.KuiBulkTable) window.KuiBulkTable.autoInit(); })();
+</script>
+<% } %>

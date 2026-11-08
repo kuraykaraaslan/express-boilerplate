@@ -1,0 +1,34 @@
+<%#
+  One service node of ServiceMap (kui-react NodeView). Locals: c (the context built by ../ServiceMap.ejs), pn (the
+  placed node), n (the service), health, line (the caption parts), selected, focusable, dim, label.
+  No whitespace inside the <text> elements: it would be drawn.
+-%>
+<%
+  var _M = c.M;
+  var _failing = health === 'error';
+  var _degraded = health === 'warn';
+  var _stroke = selected ? 'var(--primary)' : c.healthStroke[health];
+  var _strokeWidth = selected ? 3 : _failing ? 2.5 : _degraded ? 2 : 1.25;
+  var _kindLine = [n.kind, c.msg.status[health]].filter(Boolean).join(' · ');
+  // Mirrored for a right-to-left map (kui-react NodeView). The svg's `direction` makes `start` the right edge there,
+  // so the captions keep the default anchor and the badge keeps `end`: only the x positions move. The script
+  // repaints these when it mirrors the map on a right-to-left page (data-sm-caption / -icon / -badge).
+  var _captionX = c.rtl ? pn.width - 12 : 12;
+  var _badgeX = c.rtl ? 12 : pn.width - 12;
+  var _iconX = c.rtl ? 10 : pn.width - 24;
+-%>
+<g data-node-id="<%= n.id %>" data-health="<%= health %>" role="button" tabindex="<%= focusable ? 0 : -1 %>" aria-label="<%= label %>" aria-pressed="<%= selected ? 'true' : 'false' %>" transform="translate(<%= pn.x %> <%= pn.y %>)" opacity="<%= dim ? 0.45 : 1 %>" class="cursor-pointer outline-none [&:focus-visible>rect:first-of-type]:stroke-[var(--border-focus)] [&:focus-visible>rect:first-of-type]:stroke-[3]">
+  <rect width="<%= pn.width %>" height="<%= pn.height %>" rx="8" fill="var(--surface-raised)"<% if (_stroke) { %> stroke="<%= _stroke %>"<% } %> stroke-width="<%= _strokeWidth %>"<% if (health === 'unknown') { %> stroke-dasharray="4 3"<% } %>></rect>
+  <text x="<%= _captionX %>" y="22" font-size="13" font-weight="600" fill="var(--text-primary)" data-sm-caption><%= _M.clip(String(n.name), 20) %></text>
+  <text x="<%= _captionX %>" y="38" font-size="10.5" fill="var(--text-secondary)" data-sm-caption><%= _M.clip(_kindLine, 28) %></text>
+  <text x="<%= _captionX %>" y="54" font-size="10.5" fill="var(--text-secondary)" data-sm-caption><%= _M.clip(line.join(' · '), 32) %></text>
+  <% if (_failing || _degraded) { %>
+  <g transform="translate(<%= _iconX %> 8)" aria-hidden="true" data-sm-icon>
+    <%# Inside an <svg> an <i> icon font glyph cannot be drawn: this is the Font Awesome "triangle-exclamation" path, as kui-react's FontAwesomeIcon draws it, plus width and height attributes: Chromium sizes a nested <svg> from the attributes and ignores the CSS size, so the icon would fill the whole map without them. %>
+    <svg data-prefix="fas" data-icon="triangle-exclamation" class="svg-inline--fa fa-triangle-exclamation" role="img" viewBox="0 0 512 512" width="14" height="14" aria-hidden="true" style="width: 14px; height: 14px; color: <%= _failing ? 'var(--error)' : 'var(--warning)' %>"><path fill="currentColor" d="M256 0c14.7 0 28.2 8.1 35.2 21l216 400c6.7 12.4 6.4 27.4-.8 39.5S486.1 480 472 480L40 480c-14.1 0-27.2-7.4-34.4-19.5s-7.5-27.1-.8-39.5l216-400c7-12.9 20.5-21 35.2-21zm0 352a32 32 0 1 0 0 64 32 32 0 1 0 0-64zm0-192c-18.2 0-32.7 15.5-31.4 33.7l7.4 104c.9 12.5 11.4 22.3 23.9 22.3 12.6 0 23-9.7 23.9-22.3l7.4-104c1.3-18.2-13.1-33.7-31.4-33.7z"></path></svg>
+  </g>
+  <% } %>
+  <% if (n.errorRate !== undefined && n.errorRate !== null && (_failing || _degraded)) { %>
+  <text x="<%= _badgeX %>" y="54" text-anchor="end" data-sm-badge font-size="10.5" font-weight="700" fill="<%= _failing ? 'var(--error)' : 'var(--warning-fg, var(--warning))' %>"><%= c.F.formatPercent(n.errorRate * 100, 1) %></text>
+  <% } %>
+</g>

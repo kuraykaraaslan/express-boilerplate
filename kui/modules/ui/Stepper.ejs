@@ -1,0 +1,67 @@
+<%
+  var _steps       = locals.steps       || [];
+  var _orientation = locals.orientation || 'horizontal';
+  var _className   = locals.className   || '';
+
+  var stateStyles = {
+    complete: { circle: 'bg-success text-text-inverse border-success',         text: 'text-text-primary',           line: 'bg-success' },
+    active:   { circle: 'bg-primary text-primary-fg border-primary',           text: 'text-text-primary font-semibold', line: 'bg-border' },
+    // `warning`: the step ran but needs attention. Hollow, so the mark reads in both themes (kui-react parity).
+    warning:  { circle: 'bg-warning-subtle text-warning-fg border-warning',   text: 'text-warning-fg',             line: 'bg-warning' },
+    error:    { circle: 'bg-error text-text-inverse border-error',             text: 'text-error-fg',               line: 'bg-border' },
+    pending:  { circle: 'bg-surface-base text-text-disabled border-border',    text: 'text-text-disabled',          line: 'bg-border' },
+  };
+%>
+<% if (_orientation === 'vertical') { %>
+<ol class="flex flex-col gap-0<%= _className ? ' ' + _className : '' %>">
+  <% _steps.forEach(function (step, i) { %>
+  <%
+    var state = step.state || 'pending';
+    var s = stateStyles[state] || stateStyles.pending;
+    var isLast = i === _steps.length - 1;
+  %>
+  <li class="flex gap-3 items-start">
+    <div class="flex flex-col items-center shrink-0">
+      <div class="h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 <%= s.circle %>"
+        aria-label="Step <%= i + 1 %>: <%= step.label %> — <%= state %>">
+        <% if (state === 'complete') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-check w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else if (state === 'warning') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-exclamation w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else if (state === 'error') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-xmark w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else { %><%= i + 1 %><% } %>
+      </div>
+      <% if (!isLast) { %><div class="w-0.5 flex-1 min-h-[2rem] mt-1 <%= s.line %>" aria-hidden="true"></div><% } %>
+    </div>
+    <div class="<%= isLast ? 'pb-0' : 'pb-6' %>">
+      <p class="text-sm <%= s.text %>"><%= step.label %></p>
+      <% if (step.description) { %><p class="text-xs text-text-secondary mt-0.5"><%= step.description %></p><% } %>
+    </div>
+  </li>
+  <% }); %>
+</ol>
+<% } else { %>
+<ol class="flex items-center<%= _className ? ' ' + _className : '' %>">
+  <% _steps.forEach(function (step, i) { %>
+  <%
+    var state = step.state || 'pending';
+    var s = stateStyles[state] || stateStyles.pending;
+    var isLast = i === _steps.length - 1;
+  %>
+  <li class="flex items-center<%= !isLast ? ' flex-1' : '' %>">
+    <div class="flex flex-col items-center gap-1 shrink-0">
+      <div class="h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold <%= s.circle %>"
+        aria-label="Step <%= i + 1 %>: <%= step.label %> — <%= state %>">
+        <% if (state === 'complete') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-check w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else if (state === 'warning') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-exclamation w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else if (state === 'error') { %><span class="w-3.5 h-3.5 inline-flex items-center justify-center"><i class="fa-solid fa-xmark w-3.5 h-3.5" aria-hidden="true"></i></span>
+        <% } else { %><%= i + 1 %><% } %>
+      </div>
+      <div class="text-center">
+        <p class="text-xs whitespace-nowrap <%= s.text %>"><%= step.label %></p>
+        <% if (step.description) { %><p class="text-xs text-text-secondary"><%= step.description %></p><% } %>
+      </div>
+    </div>
+    <% if (!isLast) { %><div class="h-0.5 flex-1 mx-2 mt-[-1.25rem] <%= s.line %>" aria-hidden="true"></div><% } %>
+  </li>
+  <% }); %>
+</ol>
+<% } %>

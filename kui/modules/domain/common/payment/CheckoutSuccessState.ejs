@@ -1,0 +1,54 @@
+<%
+  var _payment   = locals.payment   || {};
+  var _address   = locals.address   || null;
+  var _locale    = locals.locale    || 'tr-TR';
+  var _resetHref = locals.resetHref || '';
+  var _onReset   = locals.onReset   || '';
+  var _className = locals.className || '';
+
+  var _currency = _payment.currency || 'TRY';
+  var _amount   = _payment.amount   || 0;
+  var amountFormatted;
+  try {
+    amountFormatted = new Intl.NumberFormat(_locale, {
+      style: 'currency', currency: _currency,
+    }).format(Number(_amount));
+  } catch (e) {
+    amountFormatted = Number(_amount).toFixed(2) + ' ' + _currency;
+  }
+%>
+<div class="flex flex-col items-center justify-center py-16 space-y-6 text-center max-w-md mx-auto<%= _className ? ' ' + _className : '' %>">
+  <span class="flex h-20 w-20 items-center justify-center rounded-full bg-success-subtle">
+    <span class="w-10 h-10 inline-flex items-center justify-center text-success" aria-hidden="true">
+      <i class="fa-solid fa-check"></i>
+    </span>
+  </span>
+
+  <div class="space-y-2">
+    <h2 class="text-2xl font-bold text-text-primary">Payment successful!</h2>
+    <p class="text-text-secondary">
+      <%= amountFormatted %> was charged. A receipt has been sent to your email.
+    </p>
+  </div>
+
+  <div class="w-full space-y-4 text-left">
+    <%- include('./PaymentSummaryCard', { payment: _payment, locale: _locale }) %>
+
+    <% if (_address) { %>
+      <div class="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
+        <p class="text-xs font-semibold text-text-secondary uppercase tracking-wide">Delivering to</p>
+        <%- include('../address/AddressCard', { address: _address }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (_resetHref) { %>
+    <a href="<%= _resetHref %>" class="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      Start over
+    </a>
+  <% } else if (_onReset) { %>
+    <button type="button" onclick="(<%= _onReset %>)();" class="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+      Start over
+    </button>
+  <% } %>
+</div>

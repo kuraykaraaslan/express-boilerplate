@@ -1,0 +1,28 @@
+<%
+  // Unified Table family entry point.
+  //
+  // `mode`:
+  //   - 'plain'      → low-level dumb table (legacy `Table.ejs`)
+  //   - 'paginated'  → search + sort + pagination (legacy `DataTable.ejs`), the default
+  //   - 'static'     → the same without paging
+  //   - 'server'     → with `fetchUrl` / `fetchPage`: the DataTable fetching its pages (kui-react
+  //                    mode="server"); without one: the server-controlled card (legacy `ServerDataTable.ejs`)
+  //   - 'manual'     → the host owns the rows: it passes `rows` (+ `total`), hears every query change
+  //                    ('kui:dt-query-change' / `onQueryChange`) and answers with root.kuiDataTable.setRows
+  //   - 'advanced'   → @deprecated legacy `AdvancedDataTable.ejs`, now a thin wrapper over the DataTable
+  //
+  // Selection, expandable rows, the sticky header, the filter panel, live rows, the card shell and the card
+  // layout work in 'paginated', 'static', 'manual' and fetching 'server' modes (see ./partials/paginated.ejs). Older `Table.ejs`/`DataTable.ejs`/
+  // `AdvancedDataTable.ejs`/`ServerDataTable.ejs` are shims that include this with the appropriate `mode`.
+  var _mode = locals.mode || 'paginated';
+  var _fetching = _mode === 'server' && !!(locals.fetchUrl || locals.fetchPage);
+%>
+<% if (_mode === 'plain') { %>
+  <%- include('./partials/plain', locals) %>
+<% } else if (_mode === 'advanced') { %>
+  <%- include('./partials/advanced', locals) %>
+<% } else if (_mode === 'server' && !_fetching) { %>
+  <%- include('./partials/server', locals) %>
+<% } else { %>
+  <%- include('./partials/paginated', locals) %>
+<% } %>

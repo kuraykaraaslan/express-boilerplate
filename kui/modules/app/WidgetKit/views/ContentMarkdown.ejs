@@ -1,0 +1,9 @@
+<%#
+  content.markdown: author-written text from a parsed node tree, never an HTML string (kui-react ContentMarkdownView).
+  Locals: model.
+%><%_ var _m = locals.model; var _rs = widgetKit.style(_m.rootStyle); var _ts = widgetKit.style(_m.textStyle); _%>
+<div class="<%= _m.rootClass %>"<% if (_rs) { %> style="<%= _rs %>"<% } %>><div class="<%= _m.alignClass %>">
+<% if (_m.callout) { %><div class="flex gap-2.5 rounded-lg border-l-4 p-3" style="<%= widgetKit.style({ borderLeftColor: _m.tone.accent, background: _m.tone.background }) %>"><% if (_m.calloutIcon) { %><%- include('../_icon', { name: _m.calloutIcon.name, className: 'mt-0.5 shrink-0', style: { width: 16, height: 16, fontSize: 16, color: _m.calloutIcon.color } }) %><% } %><%- include('_md-text', { model: _m }) %></div>
+<% } else { %><%- include('_md-text', { model: _m }) %>
+<% } %></div>
+<% if (_m.footer.length) { %><div class="mt-3 shrink-0 border-t border-border pt-1"><% _m.footer.forEach(function (f) { %><div class="<%= widgetKit.ui.rowClass(true) %>"><span class="<%= widgetKit.ui.ROW_CLASS.label %>"><%= f.label %></span><span class="<%= widgetKit.ui.ROW_CLASS.value %>"><%= f.value %></span></div><% }); %></div><% } %></div>

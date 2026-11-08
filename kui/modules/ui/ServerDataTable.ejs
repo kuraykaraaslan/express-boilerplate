@@ -1,0 +1,4 @@
+<%# @deprecated — use `include('modules/ui/Table/Table', { mode: 'server' ... })`.
+    Backwards-compatible shim — `ServerDataTable` now lives in
+    `modules/ui/Table/`. %>
+<%- include('./Table/Table', Object.assign({}, locals, { mode: 'server' })) %>

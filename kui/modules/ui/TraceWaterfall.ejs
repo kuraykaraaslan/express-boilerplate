@@ -1,0 +1,213 @@
+<%
+  // TraceWaterfall — a distributed trace as nested rows with offset and duration bars on a shared time ruler.
+  // Same locals, DOM and classes as kui-react modules/ui/TraceWaterfall/index.tsx: tree semantics (role="tree" /
+  // "treeitem", aria-level / -setsize / -posinset, aria-expanded, aria-selected), aria-activedescendant on the tree,
+  // the critical path highlight, error spans (icon and text, not only colour) and a detail region for the selected
+  // span. The server draws the rows for the state at render time; TraceWaterfall/scripts/trace-waterfall.js
+  // (inlined after trace-model.js, idempotent) adds expand / collapse, selection, the keyboard, the critical-path
+  // switch, the detail region and, above `virtualizeThreshold` rows, the windowing.
+  //
+  // Locals:
+  //   spans        — [{ id, parentId?, name, service?, start, duration, status?, kind?, attributes? }], times in ms on
+  //                  one origin. An unknown or missing parent makes the span a root.
+  //     status     — 'ok' | 'error' | 'unset'
+  //   selectedId   — the selected span id (or null for none). React treats it as controlled: here it is the state at
+  //                  render time and the root gets data-tw-select-controlled (see Events)
+  //   defaultSelectedId — selected at render time; the browser then selects freely (default null)
+  //   collapsedIds / defaultCollapsedIds — collapsed span ids at render time, controlled the same way
+  //                  (data-tw-collapse-controlled)
+  //   showCriticalPath — highlight the critical path (default true); the toolbar switch changes it in the browser
+  //   renderDetail — false hides the detail region; a function (span, info) => text draws the detail as escaped
+  //                  text (React takes a function returning a node); `info` is
+  //                  { depth, offset, duration, selfTime, childCount, onCriticalPath }
+  //   detailPartial — absolute path of a partial drawn as the detail, with the locals { span, info }
+  //   colorBy      — 'service' (default: a stable palette slot per service) | 'none'
+  //   serviceColors — { service: css colour } over the palette; a value that could leave its CSS declaration is ignored
+  //   labelWidth   — width of the span-name column in px (default 280)
+  //   rowHeight    — row height in px (default 28)
+  //   virtualizeThreshold — visible rows above which the list is windowed (default 500)
+  //   maxHeight    — max height of the scrolling tree in px (default 420)
+  //   hideToolbar  — hide the toolbar (default false)
+  //   messages     — partial overrides of the texts below (`{count}` and `{name}` are placeholders)
+  //   ariaLabel    — accessible name of the tree (default messages.label)
+  //   className    — extra classes on the root
+  //   id           — prefix of the row ids (default: generated; pass it when two traces share a page)
+  //   maxSpans     — the most spans the server draws (default 2000, documented cap: the rows travel as HTML); the
+  //                  first `maxSpans` spans are used and a line says so
+  //   loadRuntime  — default true: inline the browser scripts (false when the host page loads
+  //                  _observability/format.js, trace-model.js and trace-waterfall.js once and calls
+  //                  KuiTraceWaterfall.autoInit())
+  //
+  // Windowing. Rows the list does not draw yet (rows of collapsed spans, rows outside the window) are held in a
+  // <template data-tw-rows> at the end of the root, as the same markup, and the script moves them in as the list is
+  // expanded or scrolled; a span's detail is held in <template data-tw-details>. Without JavaScript the list shows
+  // the rows of the first window and a trace above the threshold cannot be scrolled: raise `virtualizeThreshold`
+  // when the page must work without a script.
+  //
+  // Events on the root (they bubble): 'kui:trace-select' { id, name } (id null when cleared; React: onSelect(span))
+  // and 'kui:trace-collapsed-change' { ids } (React: onCollapsedChange). A controlled root only emits them; the host
+  // applies the state with KuiTraceWaterfall.select(root, id) and KuiTraceWaterfall.setCollapsed(root, ids).
+  var F = {}, M = {};
+  include('./_observability/_load', { out: F, src: include('./_observability/format.js') });
+  include('./_observability/_load', { out: M, src: include('./TraceWaterfall/trace-model.js') });
+
+  function cssValue(v) {
+    if (typeof v !== 'string') return '';
+    var s = v.trim();
+    if (!s || s.length > 200 || /[;{}<>\\"]/.test(s) || /url\s*\(|expression\s*\(|@import/i.test(s)) return '';
+    return s;
+  }
+  function posNum(v, d) { var n = Number(v); return isFinite(n) && n > 0 ? n : d; }
+
+  var PALETTE = ['var(--primary)', 'var(--secondary)', 'var(--info)', 'var(--success)', 'var(--warning)', 'var(--primary-active)'];
+  var HEADER_H = 28;
+  var _maxSpans = Math.floor(posNum(locals.maxSpans, 2000));
+  var _allSpans = Array.isArray(locals.spans) ? locals.spans : [];
+  var _truncated = _allSpans.length > _maxSpans;
+  var _spans = _truncated ? _allSpans.slice(0, _maxSpans) : _allSpans;
+  var _labelWidth = posNum(locals.labelWidth, 280);
+  var _rowHeight  = posNum(locals.rowHeight, 28);
+  var _threshold  = typeof locals.virtualizeThreshold === 'number' ? locals.virtualizeThreshold : 500;
+  var _maxHeight  = posNum(locals.maxHeight, 420);
+  var _colorBy    = locals.colorBy === 'none' ? 'none' : 'service';
+  var _className  = locals.className || '';
+  var _uid        = locals.id || 'ks-tw-' + Math.random().toString(36).substr(2, 9);
+  var _showDetail = locals.renderDetail !== false;
+
+  var _defaults = {
+    label: 'Trace waterfall', spanColumn: 'Span', expandAll: 'Expand all', collapseAll: 'Collapse all',
+    criticalPath: 'Critical path', noSpans: 'No spans in this trace.', spanCount: '{count} spans', error: 'error',
+    onCriticalPath: 'on the critical path', details: 'Span details', clearSelection: 'Clear selection',
+    service: 'Service', status: 'Status', kind: 'Kind', start: 'Start', duration: 'Duration', selfTime: 'Self time',
+    attributes: 'Attributes', expand: 'Expand {name}', collapse: 'Collapse {name}',
+    truncated: 'Showing the first {shown} of {total} spans.'
+  };
+  var _msg = Object.assign({}, _defaults, locals.messages || {});
+
+  var _tree = M.buildTraceTree(_spans);
+  var _critical = M.criticalPathIds(_tree);
+  var _criticalOn = locals.showCriticalPath !== false;
+  var _collapsedControlled = Array.isArray(locals.collapsedIds);
+  var _collapsedList = _collapsedControlled ? locals.collapsedIds : (Array.isArray(locals.defaultCollapsedIds) ? locals.defaultCollapsedIds : []);
+  var _collapsed = new Set(_collapsedList);
+  var _selectedControlled = locals.selectedId !== undefined;
+  var _selected = _selectedControlled ? locals.selectedId : (locals.defaultSelectedId != null ? locals.defaultSelectedId : null);
+
+  var _all = M.visibleRows(_tree, new Set());
+  _all.forEach(function (r, i) { r.fi = i; });
+  var _fi = {};
+  _all.forEach(function (r) { _fi[r.node.span.id] = r; });
+  var _rows = M.visibleRows(_tree, _collapsed).map(function (r) { return _fi[r.node.span.id]; });
+
+  var _activeIndex = -1;
+  _rows.forEach(function (r, i) { if (_activeIndex === -1 && r.node.span.id === _selected) _activeIndex = i; });
+  if (_activeIndex < 0) _activeIndex = _rows.length ? 0 : -1;
+  var _activeId = _activeIndex >= 0 ? _rows[_activeIndex].node.span.id : null;
+
+  var _virtual = _rows.length > _threshold;
+  // The first window: scroll position 0 and the 400 px viewport kui-react assumes before it measures.
+  var _win = _virtual ? M.windowFor(_rows.length, _rowHeight, 0, 400, HEADER_H, 8) : { start: 0, end: _rows.length };
+  var _inline = _rows.slice(_win.start, _win.end);
+  var _inlineIds = {};
+  _inline.forEach(function (r) { _inlineIds[r.node.span.id] = true; });
+  var _held = _all.filter(function (r) { return !_inlineIds[r.node.span.id]; });
+  var _topPx = _win.start * _rowHeight;
+  var _bottomPx = Math.max(0, (_rows.length - _win.end) * _rowHeight);
+
+  // The ruler as kui-react draws it before it has measured the track; the script fits it to the measured width.
+  var _ruler = M.rulerLabels(_tree.duration, 0, F.formatDurationMs);
+  var _pct = function (t) { return _tree.duration > 0 ? (t / _tree.duration) * 100 : 0; };
+
+  function colorOf(span) {
+    if (span.status === 'error') return 'var(--error)';
+    if (_colorBy === 'none' || !span.service) return 'var(--primary)';
+    var custom = locals.serviceColors && typeof locals.serviceColors === 'object' ? cssValue(locals.serviceColors[span.service]) : '';
+    return custom || PALETTE[F.hashIndex(span.service, PALETTE.length)];
+  }
+  function infoOf(node) {
+    return {
+      depth: node.depth, offset: node.span.start - _tree.start, duration: Math.max(0, node.span.duration),
+      selfTime: M.selfTime(node), childCount: node.children.length, onCriticalPath: _critical.has(node.span.id)
+    };
+  }
+
+  var _ctx = {
+    F: F, M: M, tree: _tree, critical: _critical, criticalOn: _criticalOn, collapsed: _collapsed, selected: _selected,
+    activeId: _activeId, rowHeight: _rowHeight, labelWidth: _labelWidth, msg: _msg, colorOf: colorOf,
+    rowId: function (id) { return _uid + '-row-' + id; },
+    detailPartial: typeof locals.detailPartial === 'string' && locals.detailPartial ? locals.detailPartial : '',
+    renderDetail: locals.renderDetail
+  };
+  var _selectedRow = _selected != null && _fi[_selected] ? _fi[_selected] : null;
+
+  var TOOL_BASE = 'rounded border px-2 py-1 text-xs transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var _detailClass = 'rounded-md border border-border bg-surface-raised p-3 text-sm';
+  var _cfg = {
+    rowHeight: _rowHeight, headerH: HEADER_H, maxHeight: _maxHeight, threshold: _threshold, criticalOn: _criticalOn, duration: _tree.duration,
+    selected: _selected, active: _activeId, collapsed: _collapsedList,
+    showDetail: _showDetail, detailClass: _detailClass,
+    messages: { expand: _msg.expand, collapse: _msg.collapse, onCriticalPath: _msg.onCriticalPath, details: _msg.details }
+  };
+%>
+<% if (!_tree.byId.size) { %>
+<div class="rounded-md border border-border bg-surface-raised p-4 text-sm text-text-secondary<%= _className ? ' ' + _className : '' %>"><%= _msg.noSpans %></div>
+<% } else { %>
+<div class="flex flex-col gap-3<%= _className ? ' ' + _className : '' %>" data-tw-root data-tw-config="<%= JSON.stringify(_cfg) %>"<% if (_selectedControlled) { %> data-tw-select-controlled<% } %><% if (_collapsedControlled) { %> data-tw-collapse-controlled<% } %>>
+  <% if (locals.hideToolbar !== true) { %>
+  <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+    <span><%= F.fillMessage(_msg.spanCount, { count: _tree.byId.size }) %></span>
+    <span aria-hidden="true">·</span>
+    <span><%= F.formatDurationMs(_tree.duration) %></span>
+    <div class="ms-auto flex flex-wrap items-center gap-2">
+      <button type="button" data-tw-expand-all class="<%= TOOL_BASE %> border-border bg-surface-base text-text-primary"><%= _msg.expandAll %></button>
+      <button type="button" data-tw-collapse-all class="<%= TOOL_BASE %> border-border bg-surface-base text-text-primary"><%= _msg.collapseAll %></button>
+      <button type="button" role="switch" aria-checked="<%= _criticalOn ? 'true' : 'false' %>" data-tw-critical-switch class="<%= TOOL_BASE %> <%= _criticalOn ? 'border-warning bg-warning-subtle text-warning-fg' : 'border-border bg-surface-base text-text-primary' %>"><%= _msg.criticalPath %></button>
+    </div>
+  </div>
+  <% } %>
+  <% if (_truncated) { %><p class="text-xs text-text-secondary" data-tw-truncated><%= F.fillMessage(_msg.truncated, { shown: _spans.length, total: _allSpans.length }) %></p><% } %>
+
+  <div role="tree" tabindex="0" aria-label="<%= locals.ariaLabel || _msg.label %>"<% if (_activeId !== null) { %> aria-activedescendant="<%= _ctx.rowId(_activeId) %>"<% } %> data-tw-tree class="relative overflow-auto rounded-md border border-border bg-surface-base text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus" style="max-height: <%= _maxHeight %>px">
+    <div aria-hidden="true" class="sticky top-0 z-10 flex border-b border-border bg-surface-raised text-xs text-text-secondary" style="height: <%= HEADER_H %>px">
+      <div class="shrink-0 truncate px-3 leading-7" style="width: <%= _labelWidth %>px"><%= _msg.spanColumn %></div>
+      <div class="relative min-w-0 flex-1" data-tw-ruler>
+        <% _ruler.forEach(function (r) { %><span class="absolute top-0 whitespace-nowrap leading-7" style="inset-inline-start: <%= _pct(r.t) %>%; padding-inline-start: 4px"><%= r.text %></span><% }); %>
+      </div>
+    </div>
+
+    <div class="relative" data-tw-body>
+      <div aria-hidden="true" class="pointer-events-none absolute inset-y-0 end-0" style="inset-inline-start: <%= _labelWidth %>px" data-tw-grid>
+        <% _ruler.forEach(function (r) { %><span class="absolute inset-y-0 border-s border-border" style="inset-inline-start: <%= _pct(r.t) %>%"></span><% }); %>
+      </div>
+      <% if (_virtual && _topPx > 0) { %><div aria-hidden="true" style="height: <%= _topPx %>px"></div><% } %>
+      <%- include('./TraceWaterfall/_rows', { rows: _inline, c: _ctx }) %>
+      <% if (_virtual && _bottomPx > 0) { %><div aria-hidden="true" style="height: <%= _bottomPx %>px"></div><% } %>
+    </div>
+  </div>
+
+  <% if (_showDetail && _selectedRow) { %>
+  <section role="region" aria-label="<%= _msg.details %>" class="<%= _detailClass %>" data-tw-detail>
+    <%- include('./TraceWaterfall/_details', { list: [{ node: _selectedRow.node, info: infoOf(_selectedRow.node) }], c: _ctx, wrap: false }) %>
+  </section>
+  <% } %>
+
+  <% if (_held.length > 0) { %>
+  <template data-tw-rows>
+    <%- include('./TraceWaterfall/_rows', { rows: _held, c: _ctx }) %>
+  </template>
+  <% } %>
+  <% if (_showDetail) { %>
+  <template data-tw-details>
+    <%- include('./TraceWaterfall/_details', { list: _all.map(function (r) { return { node: r.node, info: infoOf(r.node) }; }), c: _ctx, wrap: true }) %>
+  </template>
+  <% } %>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./_observability/format.js') %>
+<%- include('./TraceWaterfall/trace-model.js') %>
+<%- include('./TraceWaterfall/scripts/trace-waterfall.js') %>
+(function () { if (window.KuiTraceWaterfall) window.KuiTraceWaterfall.autoInit(); })();
+</script>
+<% } %>
+<% } %>

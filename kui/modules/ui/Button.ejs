@@ -1,0 +1,64 @@
+<%
+var _el      = locals.element  || 'button';
+var _v       = locals.variant  || 'primary';
+var _sz      = locals.size     || 'md';
+var _tp      = locals.type     || 'button';
+var _loading = locals.loading  || false;
+// As in kui-react, `loading` only shows the spinner and sets aria-busy; it does not disable
+// the button (pass `disabled` as well for that), so a loading button keeps full opacity.
+var _dis     = !!locals.disabled;
+var _sel     = locals.selected || false;
+var _iconOnly = !!locals.iconOnly;
+var _isBtn   = _el === 'button';
+var _isLink  = _el === 'a';
+
+var vc = {
+  primary:   'bg-primary text-primary-fg hover:bg-primary-hover',
+  // Neutral: the quiet alternative beside a primary (Cancel, Back). `accent` is the coloured one (a brand's second colour).
+  secondary: 'bg-surface-overlay text-text-primary hover:bg-border-strong',
+  accent:    'bg-accent text-accent-fg hover:bg-accent-hover',
+  ghost:     'bg-transparent text-text-primary hover:bg-surface-overlay',
+  danger:    'bg-error text-text-inverse hover:opacity-90',
+  outline:   'border border-border text-text-primary hover:bg-surface-overlay',
+}[_v] || 'bg-primary text-primary-fg hover:bg-primary-hover';
+
+var sc = {
+  xs: 'px-2 py-1 text-xs',
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base',
+  xl: 'px-6 py-3 text-lg',
+}[_sz] || 'px-4 py-2 text-sm';
+
+var iconOnlySc = {
+  xs: 'p-1 text-xs',
+  sm: 'p-1.5 text-sm',
+  md: 'p-2 text-sm',
+  lg: 'p-2.5 text-base',
+  xl: 'p-3 text-lg',
+}[_sz] || 'p-2 text-sm';
+
+var sizeClass = _iconOnly ? iconOnlySc : sc;
+
+var selClass  = _sel ? ' ring-2 ring-border-focus' : '';
+var disClass  = (_dis && !_isBtn) ? ' opacity-50 pointer-events-none cursor-not-allowed' : '';
+%><<%= _el %>
+  <% if (_isBtn) { %>type="<%= _tp %>"<% } %>
+  <% if (_isLink && locals.href) { %>href="<%= locals.href %>"<% } %>
+  <% if (_isLink && locals.target) { %>target="<%= locals.target %>"<% } %>
+  <% if (_isLink && locals.target === '_blank') { %>rel="<%= locals.rel || 'noopener noreferrer' %>"<% } %>
+  class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed <%= vc %> <%= sizeClass %><%= locals.fullWidth ? ' w-full' : '' %><%= selClass %><%= disClass %><%= locals.className ? ' ' + locals.className : '' %>"
+  <% if (_dis && _isBtn)  { %>disabled<% } %>
+  <% if (_dis && _isLink) { %>aria-disabled="true" tabindex="-1"<% } %>
+  <% if (_loading) { %>aria-busy="true"<% } %>
+  <% if (locals.ariaLabel) { %>aria-label="<%= locals.ariaLabel %>"<% } %>
+  <% if (_sel || locals.ariaPressed !== undefined) { %>aria-pressed="<%= _sel ? 'true' : locals.ariaPressed %>"<% } %>
+>
+  <% if (_loading) { %>
+    <span aria-hidden="true" class="inline-block rounded-full border-current border-t-transparent animate-spin shrink-0 h-4 w-4 border-2"></span>
+  <% } else if (locals.iconLeft) { %>
+    <span aria-hidden="true" class="shrink-0"><%- locals.iconLeft %></span>
+  <% } %>
+  <% if (locals.children) { %><%= locals.children %><% } %>
+  <% if (!_loading && locals.iconRight) { %><span aria-hidden="true" class="shrink-0"><%- locals.iconRight %></span><% } %>
+</<%= _el %>>

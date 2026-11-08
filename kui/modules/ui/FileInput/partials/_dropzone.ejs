@@ -1,0 +1,33 @@
+<%# FileInput drop zone partial — drag-and-drop target, browse button, hidden <input>. %>
+<%# Receives: _id, _multiple, _accept, _dis, _enablePaste, hint, name %>
+<div
+  data-fi-dropzone
+  class="relative rounded-lg border-2 border-dashed border-border bg-surface-base transition-colors flex flex-col items-center justify-center gap-2 px-6 py-8 text-center<%= _dis ? ' opacity-50 cursor-not-allowed' : '' %>"
+>
+  <span class="w-8 h-8 inline-flex items-center justify-center text-text-disabled" aria-hidden="true">
+    <i class="fa-solid fa-folder-open"></i>
+  </span>
+  <p class="text-sm text-text-secondary">
+    Drag &amp; drop files here, or
+    <button
+      type="button"
+      data-fi-browse
+      <% if (_dis) { %>disabled<% } %>
+      class="text-primary underline underline-offset-2 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded disabled:cursor-not-allowed"
+    >browse</button>
+    <% if (_enablePaste) { %> or paste<% } %>
+  </p>
+  <% if (locals.hint) { %>
+    <p class="text-xs text-text-disabled"><%= locals.hint %></p>
+  <% } %>
+  <input
+    id="<%= _id %>"
+    type="file"
+    class="sr-only"
+    data-fi-input
+    <% if (_multiple) { %>multiple<% } %>
+    <% if (_dis)      { %>disabled<% } %>
+    <% if (_accept)   { %>accept="<%= _accept %>"<% } %>
+    <% if (locals.name) { %>name="<%= locals.name %>"<% } %>
+  >
+</div>

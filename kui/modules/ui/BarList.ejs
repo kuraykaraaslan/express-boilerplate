@@ -1,0 +1,68 @@
+<%
+  // BarList — a ranked breakdown: label, a horizontal bar to scale and the value (phase 11.12). Same DOM, classes,
+  // local names and defaults as kui-react modules/ui/BarList.tsx.
+  //
+  // For report pages ("carts by status", "top coupons", "revenue by channel"): rows sort by value unless told
+  // otherwise, every bar is scaled to the largest value (or `max`), the value column lines up, and a row can be a
+  // link. Empty data shows `emptyMessage`. Use a DataTable when the reader needs to sort by several columns; use this
+  // when one number per label is the point. Server-rendered only: no browser script.
+  //
+  // Locals:
+  //   items          — [{ id?, label, value, meta?, href?, barClassName? }]
+  //     id           — stable key (kept for parity; the markup does not carry it)
+  //     label        — escaped text
+  //     value        — a number
+  //     meta         — text after the label (a count), escaped
+  //     href         — the row is a link
+  //     barClassName — a tone class for the bar (`bg-success`, `bg-warning`); default the primary colour
+  //   sort           — 'value' (default, largest first) | 'label' (A–Z, numeric aware) | 'none' (as given)
+  //   max            — full-width value; default the largest value
+  //   valueFormatter — function (value) → text; default value.toLocaleString() (the server's locale)
+  //   showPercent    — adds each row's share of the total after the value (default false)
+  //   limit          — show the first N rows only
+  //   emptyMessage   — shown when there are no rows (default 'No data.')
+  //   ariaLabel      — the list's accessible name
+  //   className      — extra classes on the root
+  var _items     = Array.isArray(locals.items) ? locals.items.filter(Boolean) : [];
+  var _sort      = locals.sort === 'label' || locals.sort === 'none' ? locals.sort : 'value';
+  var _format    = typeof locals.valueFormatter === 'function' ? locals.valueFormatter : function (v) { return v.toLocaleString(); };
+  var _showPct   = locals.showPercent === true;
+  var _limit     = locals.limit;
+  var _empty     = locals.emptyMessage != null ? locals.emptyMessage : 'No data.';
+  var _ariaLabel = locals.ariaLabel;
+  var _className = locals.className || '';
+
+  var _rows = _items.slice();
+  if (_sort === 'value') _rows.sort(function (a, b) { return b.value - a.value; });
+  else if (_sort === 'label') _rows.sort(function (a, b) { return String(a.label).localeCompare(String(b.label), undefined, { numeric: true }); });
+  if (_limit) _rows = _rows.slice(0, _limit);
+
+  var _top = Math.max(1, locals.max != null ? locals.max : Math.max.apply(null, _items.map(function (i) { return i.value; })));
+  var _sum = _items.reduce(function (s, i) { return s + i.value; }, 0) || 1;
+  var _headClass = 'mb-1 flex items-center justify-between gap-3 text-sm';
+%>
+<% if (_rows.length === 0) { %>
+<p class="text-sm text-text-secondary<%= _className ? ' ' + _className : '' %>" data-part="empty"><%= _empty %></p>
+<% } else { %>
+<ul class="space-y-3<%= _className ? ' ' + _className : '' %>"<% if (_ariaLabel) { %> aria-label="<%= _ariaLabel %>"<% } %> data-part="bar-list">
+  <% _rows.forEach(function (r) {
+    var width = Math.max(0, Math.min(100, (r.value / _top) * 100)) + '%';
+    var bar = r.barClassName != null ? r.barClassName : 'bg-primary';
+  %>
+  <li data-part="bar-row">
+    <% if (r.href) { %><a href="<%= r.href %>" class="block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus hover:[&_span.truncate]:underline"><% } %>
+      <div class="<%= _headClass %>">
+        <span class="flex min-w-0 items-center gap-2">
+          <span class="truncate text-text-primary"><%= r.label != null ? r.label : '' %></span>
+          <% if (r.meta) { %><span class="shrink-0 text-xs text-text-secondary"><%= r.meta %></span><% } %>
+        </span>
+        <span class="shrink-0 tabular-nums text-text-secondary"><%= _format(r.value) %><% if (_showPct) { %><span class="ml-1.5 text-xs text-text-disabled"><%= ((r.value / _sum) * 100).toFixed(1) %>%</span><% } %></span>
+      </div>
+      <div class="h-2 w-full rounded bg-surface-sunken" aria-hidden="true">
+        <div class="h-2 rounded<%= bar ? ' ' + bar : '' %>" style="width: <%= width %>"></div>
+      </div>
+    <% if (r.href) { %></a><% } %>
+  </li>
+  <% }); %>
+</ul>
+<% } %>

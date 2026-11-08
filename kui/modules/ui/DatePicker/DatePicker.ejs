@@ -1,0 +1,118 @@
+<%# modules/ui/DatePicker/DatePicker.ejs %>
+<%#
+  Popover-based single DatePicker.
+
+  Locals (all optional unless noted):
+    id            string   — root id
+    name          string   — hidden input name (for native form posting)
+    label         string
+    hint          string
+    error         string
+    value         string|Date — ISO yyyy-mm-dd or Date instance
+    disabled      bool
+    required      bool
+    min           string|Date — ISO or Date
+    max           string|Date — ISO or Date
+    locale        'tr' | 'en' (default 'tr')
+    format        token format ('DD.MM.YYYY', 'MM/DD/YYYY', ...)
+    placeholder   override locale placeholder
+    today_label / clear_label / dialog_label / prev_month_label / next_month_label
+    className     extra classes for the wrapper
+
+  TODO M2: range/preset slot integration.
+  TODO M3: input-mask.
+  TODO M5: bottom-sheet variant.
+%>
+<%
+  var _localeCode = locals.locale || 'tr';
+
+  // Default locale-aware copy — kept inline so the partial works without
+  // the JS bundle (e.g. SSR-only environments, email previews).
+  var _defaults = {
+    tr: {
+      placeholder: 'GG.AA.YYYY', format: 'DD.MM.YYYY',
+      clear: 'Tarihi temizle', today: 'Bugün', dialog: 'Tarih seçin',
+      prev: 'Önceki ay', next: 'Sonraki ay'
+    },
+    en: {
+      placeholder: 'MM/DD/YYYY', format: 'MM/DD/YYYY',
+      clear: 'Clear date', today: 'Today', dialog: 'Choose date',
+      prev: 'Previous month', next: 'Next month'
+    }
+  };
+  var _def = _defaults[_localeCode] || _defaults.tr;
+
+  function toIso(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    try {
+      var d = (v instanceof Date) ? v : new Date(v);
+      if (isNaN(d.getTime())) return '';
+      return d.toISOString().split('T')[0];
+    } catch (e) { return ''; }
+  }
+
+  var _id       = locals.id   || 'dp-' + Math.random().toString(36).substr(2, 9);
+  var _label    = locals.label || '';
+  var _hint     = locals.hint  || '';
+  var _error    = locals.error || '';
+  var _disabled = !!locals.disabled;
+  var _required = !!locals.required;
+  var _value    = toIso(locals.value);
+  var _min      = toIso(locals.min);
+  var _max      = toIso(locals.max);
+  var _format   = locals.format || _def.format;
+  var _placeholder = locals.placeholder || _def.placeholder;
+  var _clearLabel  = locals.clear_label  || _def.clear;
+  var _dialogLabel = locals.dialog_label || _def.dialog;
+
+  var _hintId  = (_hint  && !_error) ? (_id + '-hint')  : '';
+  var _errorId = _error ? (_id + '-error') : '';
+  var _ariaDescribedBy = [_hintId, _errorId].filter(function (x) { return !!x; }).join(' ');
+%>
+<div class="relative space-y-1 <%= locals.className || '' %>" data-testid="datepicker-<%= _id %>">
+  <%# The script sits inside the root, first, so the root stays the only element this partial
+      renders: a `space-y-*` parent then spaces DatePickers exactly like kui-react's (a trailing
+      sibling <script> would make the last picker "not the last child" and add a gap under it). %>
+  <script>
+    // Inline the locale + calendar + keyboard scripts on first encounter.
+    // window.KUI_DATEPICKER is set after the first include so we no-op next time.
+    if (typeof window !== 'undefined' && !window.KUI_DATEPICKER) {
+      (function () {
+        <%- include('scripts/locale-en.js') %>
+        <%- include('scripts/locale-tr.js') %>
+        <%- include('scripts/calendar.js') %>
+        <%- include('scripts/keyboard.js') %>
+      })();
+    } else if (typeof window !== 'undefined' && window.KUI_DATEPICKER) {
+      // Re-scan for any newly inserted roots (e.g. partial reload via HTMX).
+      window.KUI_DATEPICKER.autoInit && window.KUI_DATEPICKER.autoInit();
+    }
+  </script>
+  <% if (_label) { %>
+    <label for="<%= _id %>" class="block text-sm font-medium text-text-primary">
+      <%= _label %><% if (_required) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only">(required)</span><% } %>
+    </label>
+  <% } %>
+
+  <%- include('partials/_calendar', {
+    _id: _id,
+    _mode: 'single',
+    _locale: _localeCode,
+    _format: _format,
+    _value: _value,
+    _placeholder: _placeholder,
+    _clearLabel: _clearLabel,
+    _dialogLabel: _dialogLabel,
+    _invalid: !!_error,
+    _disabled: _disabled,
+    _required: _required,
+    _min: _min,
+    _max: _max,
+    _ariaDescribedBy: _ariaDescribedBy,
+    _name: locals.name || ''
+  }) %>
+
+  <% if (_hintId) { %><p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= _hint %></p><% } %>
+  <% if (_errorId) { %><p id="<%= _errorId %>" class="text-xs text-error" role="alert"><%= _error %></p><% } %>
+</div>

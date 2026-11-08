@@ -1,0 +1,4 @@
+<%# @deprecated — use the DataTable (`include('modules/ui/DataTable', { mode: 'static', searchable: false,
+    selectable, renderExpanded, stickyHeader })`). Kept as a thin wrapper over it so existing pages keep
+    working; selection events still report positions in `rows`. See Table/partials/advanced.ejs. %>
+<%- include('./Table/Table', Object.assign({}, locals, { mode: 'advanced' })) %>

@@ -1,0 +1,99 @@
+<%
+  var _item          = locals.item          || {};
+  var _updateAction  = locals.updateAction  || null;
+  var _removeAction  = locals.removeAction  || null;
+  var _compact       = !!locals.compact;
+  var _locale        = locals.locale        || 'tr-TR';
+  var _currency      = _item.currency       || 'TRY';
+
+  var qty            = _item.quantity || 1;
+  var maxQty         = (_item.maxQuantity == null) ? null : _item.maxQuantity;
+  var canDec         = qty > 1;
+  var canInc         = (maxQty == null) || (qty < maxQty);
+
+  var thumbSize      = _compact ? 'h-12 w-12' : 'h-16 w-16';
+  var iconSize       = _compact ? 'w-5 h-5'   : 'w-7 h-7';
+  var nameSize       = _compact ? 'text-xs'   : 'text-sm';
+%>
+<div class="flex gap-3<%= locals.className ? ' ' + locals.className : '' %>">
+
+  <!-- thumbnail -->
+  <div class="shrink-0 rounded-lg border border-border bg-surface-overlay flex items-center justify-center text-text-disabled overflow-hidden <%= thumbSize %>">
+    <% if (_item.image) { %>
+    <img src="<%= _item.image %>" alt="<%= _item.name %>" class="h-full w-full object-cover">
+    <% } else { %>
+    <span class="<%= iconSize %> inline-flex items-center justify-center text-text-disabled" aria-hidden="true">
+      <i class="fa-solid fa-bag-shopping"></i>
+    </span>
+    <% } %>
+  </div>
+
+  <!-- info -->
+  <div class="flex-1 min-w-0 space-y-0.5">
+    <p class="font-medium text-text-primary truncate <%= nameSize %>"><%= _item.name %></p>
+    <% if (_item.variant) { %>
+    <p class="text-xs text-text-secondary truncate"><%= _item.variant %></p>
+    <% } %>
+    <% if (_item.description && !_compact) { %>
+    <p class="text-xs text-text-secondary line-clamp-1"><%= _item.description %></p>
+    <% } %>
+
+    <div class="flex items-center gap-2 pt-1 flex-wrap">
+      <!-- qty controls -->
+      <% if (_updateAction) { %>
+      <div class="flex items-center gap-1 rounded-md border border-border bg-surface-base">
+        <form action="<%= _updateAction %>" method="post" class="contents">
+          <input type="hidden" name="cartItemId" value="<%= _item.cartItemId %>">
+          <button type="submit" name="qty" value="<%= Math.max(1, qty - 1) %>"
+            aria-label="Decrease quantity"
+            class="flex h-6 w-6 items-center justify-center rounded-l-md text-text-secondary hover:bg-surface-overlay disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+            <%= canDec ? '' : 'disabled' %>>−</button>
+        </form>
+        <span class="w-6 text-center text-xs font-medium text-text-primary tabular-nums"><%= qty %></span>
+        <form action="<%= _updateAction %>" method="post" class="contents">
+          <input type="hidden" name="cartItemId" value="<%= _item.cartItemId %>">
+          <button type="submit" name="qty" value="<%= (maxQty == null) ? (qty + 1) : Math.min(maxQty, qty + 1) %>"
+            aria-label="Increase quantity"
+            class="flex h-6 w-6 items-center justify-center rounded-r-md text-text-secondary hover:bg-surface-overlay disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold"
+            <%= canInc ? '' : 'disabled' %>>+</button>
+        </form>
+      </div>
+      <% } else { %>
+      <span class="text-xs text-text-secondary">Qty: <%= qty %></span>
+      <% } %>
+
+      <% if (_removeAction) { %>
+      <form action="<%= _removeAction %>" method="post" class="contents">
+        <input type="hidden" name="cartItemId" value="<%= _item.cartItemId %>">
+        <%- include('../../../ui/Button', {
+          type: 'submit',
+          variant: 'ghost',
+          size: 'xs',
+          className: 'text-error hover:opacity-80 px-1',
+          children: 'Remove'
+        }) %>
+      </form>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- price (sibling column) -->
+  <div class="shrink-0 text-right space-y-0.5">
+    <%- include('../money/PriceDisplay', {
+      amount: (_item.price || 0) * qty,
+      currency: _currency,
+      locale: _locale,
+      size: _compact ? 'sm' : 'md'
+    }) %>
+    <% if (qty > 1) { %>
+    <p class="text-xs text-text-secondary">
+      <%- include('../money/PriceDisplay', {
+        amount: (_item.price || 0),
+        currency: _currency,
+        locale: _locale,
+        size: 'sm'
+      }) %> each
+    </p>
+    <% } %>
+  </div>
+</div>

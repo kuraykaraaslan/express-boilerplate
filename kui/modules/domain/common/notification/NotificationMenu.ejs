@@ -1,0 +1,353 @@
+<%
+  // NotificationMenu — the bell with one list. Same DOM and classes as kui-react
+  // modules/domains/common/notification/NotificationMenu.tsx (a7ef1f5): the notifications and the items of every other source
+  // (the IoT alarms, say) in one list, newest first, a filter All / <source> / Notifications, each source's action in the header
+  // where it applies, its page in the footer, and an item with a page is a link.
+  //
+  // Locals:
+  //   id            — root id (default a random notif-menu-…)
+  //   items         — the menu's own notifications: [{ id, title, description?, timestamp?, at?, read, variant?, icon?, meta?,
+  //                   href?, onClick?, action? }]
+  //     timestamp   — the time as text; without it `at` is written as a relative time in `locale`
+  //     at          — when it happened (Date, ISO text or epoch ms): the one list is newest first across every source; items
+  //                   without one keep their order, after the dated ones
+  //     variant     — 'info' (default) | 'success' | 'warning' | 'error': the unread dot's colour
+  //     icon        — Font Awesome classes drawn instead of the unread dot (an alarm's severity icon)
+  //     meta        — a line under the title (an alarm's device and site)
+  //     href        — where the item leads: it is a link, so a modified click opens a new tab; with `onClick` a plain click runs
+  //                   it instead of following the link (the host navigates inside the app)
+  //     onClick     — a JS function expression for a plain click (the host marks the item read and opens it); the menu closes
+  //     action      — { label, onClick, disabled? }: an inline button beside the item (onClick a JS function expression); it
+  //                   does not open the item and the menu stays open
+  //   sources       — more sources of the same bell: [{ key, label, items, unread?, action?, viewAll?, emptyLabel?, summary? }]
+  //     unread      — what the source adds to the badge, when it is more than its unread items
+  //     action      — { label, onClick?, href?, disabled? } in the header, shown under All and under the source's filter; its
+  //                   onClick closes the menu (focus back on the bell) before it runs, so a confirmation is not left under it
+  //     summary     — a line about the source under its own filter ("3 open · 2 acknowledged")
+  //     viewAll     — { label, href?, onClick? }: the source's page in the footer
+  //     emptyLabel  — shown under the source's filter when it has no items
+  //   align         — 'right' (default) | 'left'
+  //   onMarkAllRead — a JS function expression for "Mark all read" (or markAllHref, a link)
+  //   onViewAll     — a JS function expression for "View all notifications" (or viewAllHref, a link)
+  //   locale        — BCP 47 tag of the relative times; now — the time they count from (epoch ms, default the render time)
+  //   labels        — { title, markAllRead, empty, viewAll, all, notifications, filter, unread } (`{n}` in unread)
+  //   className     — extra classes on the root
+  var _id          = locals.id          || 'notif-menu-' + Math.random().toString(36).substr(2, 9);
+  var _items       = Array.isArray(locals.items) ? locals.items : [];
+  var _sources     = Array.isArray(locals.sources) ? locals.sources : [];
+  var _align       = locals.align       || 'right';
+  var _onMarkAllRead = locals.onMarkAllRead || '';
+  var _onViewAll     = locals.onViewAll     || '';
+  var _markAllHref   = locals.markAllHref   || '';
+  var _viewAllHref   = locals.viewAllHref   || '';
+  var _className   = locals.className   || '';
+  var _now         = typeof locals.now === 'number' ? locals.now : Date.now();
+  var _labels = Object.assign({
+    title: 'Notifications', markAllRead: 'Mark all read', empty: 'No notifications', viewAll: 'View all notifications',
+    all: 'All', notifications: 'Notifications', filter: 'Show', unread: '{n} unread'
+  }, locals.labels || {});
+  var _idJs = JSON.stringify(String(_id));
+  var OWN = 'notifications';
+
+  var variantDot = {
+    info:    'bg-info',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    error:   'bg-error',
+  };
+
+  function timeOf(at) {
+    if (at === undefined || at === null || at === '') return null;
+    var t = (at instanceof Date ? at : new Date(at)).getTime();
+    return isNaN(t) ? null : t;
+  }
+  var UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+  // `at` as a relative time in `locale` ("5 min. ago", "yesterday"), or '' without a valid date.
+  function relative(at) {
+    var t = timeOf(at);
+    if (t === null) return '';
+    var diff = Math.round((t - _now) / 1000);
+    var rtf;
+    try { rtf = new Intl.RelativeTimeFormat(locals.locale || undefined, { numeric: 'auto', style: 'short' }); }
+    catch (e) { rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' }); }
+    for (var u = 0; u < UNITS.length; u++) {
+      if (Math.abs(diff) >= UNITS[u][1] || UNITS[u][0] === 'second') return rtf.format(Math.trunc(diff / UNITS[u][1]), UNITS[u][0]);
+    }
+    return rtf.format(0, 'second');
+  }
+  function unreadOf(list) { var n = 0; list.forEach(function (i) { if (i && !i.read) n++; }); return n; }
+  function sourceUnread(s) { return typeof s.unread === 'number' ? s.unread : unreadOf(s.items || []); }
+
+  // every source's items in one list: newest first, the undated after the dated in the order they came
+  var _merged = [];
+  _items.forEach(function (item) { if (item) _merged.push({ item: item, source: OWN }); });
+  _sources.forEach(function (s) { (s.items || []).forEach(function (item) { if (item) _merged.push({ item: item, source: s.key }); }); });
+  _merged = _merged.map(function (e, i) { return { item: e.item, source: e.source, t: timeOf(e.item.at), i: i }; });
+  _merged.sort(function (a, b) {
+    if (a.t === null || b.t === null) return a.t !== null ? -1 : (b.t !== null ? 1 : a.i - b.i);
+    return (b.t - a.t) || (a.i - b.i);
+  });
+
+  var ownUnread = unreadOf(_items);
+  var badgeCount = ownUnread;
+  _sources.forEach(function (s) { badgeCount += sourceUnread(s); });
+
+  var filters = _sources.length > 0
+    ? [{ id: 'all', label: _labels.all, count: 0, empty: _labels.empty }]
+        .concat(_sources.map(function (s) { return { id: s.key, label: s.label, count: sourceUnread(s), empty: s.emptyLabel || _labels.empty }; }))
+        .concat([{ id: OWN, label: _labels.notifications, count: ownUnread, empty: _labels.empty }])
+    : [];
+  // the header actions: "Mark all read" for the notifications, each source's own (Acknowledge all); the filter shows those that apply
+  var _actions = [];
+  if (ownUnread > 0 && (_onMarkAllRead || _markAllHref)) _actions.push({ scope: OWN, label: _labels.markAllRead, onClick: _onMarkAllRead, href: _markAllHref });
+  _sources.forEach(function (s) { if (s.action) _actions.push({ scope: s.key, source: true, label: s.action.label, onClick: s.action.onClick, href: s.action.href, disabled: s.action.disabled }); });
+  var _summaries = _sources.filter(function (s) { return s.summary; });
+  var footer = _sources.filter(function (s) { return s.viewAll; }).map(function (s) { return { key: s.key, label: s.viewAll.label, href: s.viewAll.href, onClick: s.viewAll.onClick }; });
+  if (_onViewAll || _viewAllHref) footer.push({ key: OWN, label: _labels.viewAll, href: _viewAllHref, onClick: _onViewAll });
+
+  var linkClass = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var actionClass = 'text-xs text-primary hover:underline rounded disabled:opacity-50 disabled:cursor-not-allowed ' + linkClass;
+  var targetClass = 'flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:bg-surface-overlay';
+  // kui-react's Button, variant outline, size xs
+  var inlineButtonClass = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed border border-border text-text-primary hover:bg-surface-overlay px-2 py-1 text-xs mr-4 mt-3 shrink-0';
+  var footerClass = 'flex-1 py-2.5 text-center text-xs text-primary font-medium hover:bg-surface-overlay transition-colors ' + linkClass;
+
+  var alignClass = _align === 'right' ? 'right-0' : 'left-0';
+  var triggerLabel = badgeCount > 0 ? _labels.title + ', ' + String(_labels.unread).replace('{n}', String(badgeCount)) : _labels.title;
+%>
+<div id="<%= _id %>" class="relative<%= _className ? ' ' + _className : '' %>">
+  <!-- Trigger -->
+  <button
+    type="button"
+    aria-label="<%= triggerLabel %>"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    onclick="toggleNotifMenu(<%= _idJs %>)"
+    class="relative flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+  >
+    <i class="fa-solid fa-bell w-4 h-4" aria-hidden="true"></i>
+    <% if (badgeCount > 0) { %>
+      <span class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full bg-error text-primary-fg text-[10px] font-bold leading-none pointer-events-none">
+        <%= badgeCount > 9 ? '9+' : badgeCount %>
+      </span>
+    <% } %>
+  </button>
+
+  <!-- Panel -->
+  <div
+    id="<%= _id %>-panel"
+    role="dialog"
+    aria-label="<%= _labels.title %>"
+    class="hidden absolute top-full mt-2 z-50 w-80 max-h-[calc(100dvh-5rem)] flex-col rounded-xl border border-border bg-surface-raised shadow-xl overflow-hidden <%= alignClass %>"
+  >
+    <!-- Header: the title with the badge, the actions where they apply, the filter -->
+    <div class="shrink-0 space-y-2 px-4 py-3 border-b border-border">
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-text-primary"><%= _labels.title %></span>
+          <% if (badgeCount > 0) { %>
+            <span class="px-1.5 py-0.5 rounded-full bg-error text-primary-fg text-[10px] font-bold leading-none"><%= badgeCount %></span>
+          <% } %>
+        </div>
+        <% if (_actions.length > 0) { %>
+          <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+            <% _actions.forEach(function (a) { var tag = a.href ? 'a' : 'button'; %>
+              <<%= tag %><% if (a.href) { %> href="<%= a.href %>"<% } else { %> type="button"<% } %> data-notif-scope="<%= a.scope %>"<% if (a.onClick && !a.href) { %> onclick="<%= a.source ? 'notifSourceAction(' + _idJs + ', function () { (' + a.onClick + ')(); })' : '(' + a.onClick + ')();' %>"<% } %><% if (a.disabled) { %> disabled<% } %> class="<%= actionClass %>"><%= a.label %></<%= tag %>>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+      <% if (filters.length > 0) { %>
+        <div role="group" aria-label="<%= _labels.filter %>" class="flex flex-wrap items-center gap-1">
+          <% filters.forEach(function (f) { var on = f.id === 'all'; %>
+            <button
+              type="button"
+              aria-pressed="<%= on ? 'true' : 'false' %>"
+              data-notif-filter="<%= f.id %>"
+              data-empty-label="<%= f.empty %>"
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors <%= linkClass %> <%= on ? 'bg-primary text-primary-fg' : 'bg-surface-overlay text-text-secondary hover:text-text-primary' %>"
+            >
+              <%= f.label %>
+              <% if (f.count > 0) { %>
+                <span data-notif-count class="rounded-full px-1.5 text-[10px] tabular-nums <%= on ? 'bg-primary-fg/20' : 'bg-surface-base' %>"><%= f.count %></span>
+              <% } %>
+            </button>
+          <% }); %>
+        </div>
+      <% } %>
+      <% _summaries.forEach(function (s) { %>
+        <p data-notif-summary="<%= s.key %>" class="text-xs text-text-secondary" style="display: none"><%= s.summary %></p>
+      <% }); %>
+    </div>
+
+    <!-- The one list -->
+    <div data-notif-empty class="flex flex-col items-center justify-center py-10 gap-2 text-text-disabled"<% if (_merged.length > 0) { %> style="display: none"<% } %>>
+      <i class="fa-solid fa-bell w-6 h-6" aria-hidden="true"></i>
+      <p class="text-sm"><%= _labels.empty %></p>
+    </div>
+    <ul data-notif-list class="min-h-0 flex-1 max-h-80 overflow-y-auto divide-y divide-border"<% if (_merged.length === 0) { %> style="display: none"<% } %>>
+      <% _merged.forEach(function (e) { var item = e.item; %>
+        <% var dotCls = item.read ? 'bg-transparent' : (variantDot[item.variant || 'info'] || variantDot.info); %>
+        <% var titleCls = item.read ? 'text-text-secondary' : 'text-text-primary font-medium'; %>
+        <% var time = item.timestamp != null && item.timestamp !== '' ? String(item.timestamp) : relative(item.at); %>
+        <% var t = timeOf(item.at); %>
+        <% var run = item.onClick ? 'function () { (' + item.onClick + ')(); }' : 'null'; %>
+        <li data-source="<%= e.source %>" data-notif-id="<%= item.id %>" class="flex items-start transition-colors hover:bg-surface-overlay<%= !item.read ? ' bg-primary-subtle/40' : '' %>">
+          <% var tag = item.href ? 'a' : 'button'; %>
+          <<%= tag %><% if (item.href) { %> href="<%= item.href %>"<% } else { %> type="button"<% } %> onclick="return notifItemClick(event, <%= _idJs %>, <%= run %>)" class="<%= targetClass %>">
+            <% if (item.icon) { %>
+              <span class="mt-0.5 shrink-0"><i class="<%= item.icon %>" aria-hidden="true"></i></span>
+            <% } else { %>
+              <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full <%= dotCls %>" aria-hidden="true"></span>
+            <% } %>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm truncate <%= titleCls %>"><%= item.title %></p>
+              <% if (item.description) { %>
+                <p class="text-xs text-text-secondary mt-0.5 line-clamp-2"><%= item.description %></p>
+              <% } %>
+              <% if (item.meta) { %>
+                <p class="text-xs text-text-secondary mt-0.5 truncate"><%= item.meta %></p>
+              <% } %>
+              <% if (time) { %>
+                <time<% if (t !== null) { %> datetime="<%= new Date(t).toISOString() %>"<% } %> class="block text-[11px] text-text-disabled mt-1"><%= time %></time>
+              <% } %>
+            </div>
+          </<%= tag %>>
+          <% if (item.action) { %>
+            <button type="button"<% if (item.action.onClick) { %> onclick="(<%= item.action.onClick %>)();"<% } %><% if (item.action.disabled) { %> disabled<% } %> class="<%= inlineButtonClass %>"><%= item.action.label %></button>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+
+    <!-- Footer: every page there is -->
+    <% if (footer.length > 0) { %>
+      <div class="flex shrink-0 divide-x divide-border border-t border-border">
+        <% footer.forEach(function (f) { var run = f.onClick ? 'function () { (' + f.onClick + ')(); }' : 'null'; %>
+          <% var tag = f.href ? 'a' : 'button'; %>
+          <<%= tag %><% if (f.href) { %> href="<%= f.href %>"<% } else { %> type="button"<% } %> onclick="return notifItemClick(event, <%= _idJs %>, <%= run %>)" class="<%= footerClass %>"><%= f.label %></<%= tag %>>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../../../ui/Overlays/shared/keep-in-viewport.js') %>
+<script>
+(function () {
+  function toggleNotifMenu(id) {
+    var panel = document.getElementById(id + '-panel');
+    var root  = document.getElementById(id);
+    if (!panel || !root) return;
+    var btn = root.querySelector('[aria-haspopup="dialog"]');
+    var isOpen = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', isOpen);
+    panel.classList.toggle('flex', !isOpen);
+    if (isOpen) { if (panel.__kivStop) panel.__kivStop(); }
+    else if (window.__keepInViewport) window.__keepInViewport(panel);
+    if (btn) btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  }
+  function closeNotifMenu(id) {
+    var panel = document.getElementById(id + '-panel');
+    var root  = document.getElementById(id);
+    if (!panel || !root) return;
+    var btn = root.querySelector('[aria-haspopup="dialog"]');
+    panel.classList.add('hidden');
+    panel.classList.remove('flex');
+    if (panel.__kivStop) panel.__kivStop();
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  // A plain click runs the host's function instead of following the link (it navigates inside the app) and closes the menu; a
+  // modified click on a link (a new tab) stays the browser's and keeps the menu open. Returns whether the link is followed.
+  function notifItemClick(e, id, run) {
+    var isLink = e.currentTarget && e.currentTarget.tagName === 'A';
+    if (isLink && (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return true;
+    if (isLink && run) e.preventDefault();
+    if (run) run();
+    closeNotifMenu(id);
+    return !(isLink && run);
+  }
+  // A source's header action (Acknowledge all): the menu closes and focus goes back to the bell first, so what it opens (a
+  // confirmation) is not left under the panel.
+  function notifSourceAction(id, run) {
+    var root = document.getElementById(id);
+    var btn = root && root.querySelector('[aria-haspopup="dialog"]');
+    if (btn) btn.focus();
+    closeNotifMenu(id);
+    run();
+  }
+  // The filter All / <source> / Notifications: shows the items of one source, the actions that apply to it, its summary and its
+  // empty text.
+  function notifFilter(id, key) {
+    var panel = document.getElementById(id + '-panel');
+    if (!panel) return;
+    var empty = '';
+    panel.querySelectorAll('[data-notif-filter]').forEach(function (b) {
+      var on = b.getAttribute('data-notif-filter') === key;
+      if (on) empty = b.getAttribute('data-empty-label') || '';
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      ['bg-primary', 'text-primary-fg'].forEach(function (c) { b.classList.toggle(c, on); });
+      ['bg-surface-overlay', 'text-text-secondary', 'hover:text-text-primary'].forEach(function (c) { b.classList.toggle(c, !on); });
+      var count = b.querySelector('[data-notif-count]');
+      if (count) { count.classList.toggle('bg-primary-fg/20', on); count.classList.toggle('bg-surface-base', !on); }
+    });
+    var shown = 0;
+    panel.querySelectorAll('li[data-source]').forEach(function (li) {
+      var visible = key === 'all' || li.getAttribute('data-source') === key;
+      li.style.display = visible ? '' : 'none';
+      if (visible) shown++;
+    });
+    panel.querySelectorAll('[data-notif-scope]').forEach(function (a) {
+      a.style.display = key === 'all' || a.getAttribute('data-notif-scope') === key ? '' : 'none';
+    });
+    panel.querySelectorAll('[data-notif-summary]').forEach(function (p) {
+      p.style.display = p.getAttribute('data-notif-summary') === key ? '' : 'none';
+    });
+    var list = panel.querySelector('[data-notif-list]');
+    var none = panel.querySelector('[data-notif-empty]');
+    if (list) list.style.display = shown ? '' : 'none';
+    if (none) {
+      none.style.display = shown ? 'none' : '';
+      var text = none.querySelector('p');
+      if (text && empty) text.textContent = empty;
+    }
+  }
+  window.toggleNotifMenu = window.toggleNotifMenu || toggleNotifMenu;
+  window.closeNotifMenu  = window.closeNotifMenu  || closeNotifMenu;
+  window.notifItemClick  = window.notifItemClick  || notifItemClick;
+  window.notifSourceAction = window.notifSourceAction || notifSourceAction;
+  window.notifFilter     = window.notifFilter     || notifFilter;
+
+  // the filter buttons of every menu on the page (no inline handlers)
+  if (!window.__notifFilterBound) {
+    window.__notifFilterBound = true;
+    document.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-notif-filter]') : null;
+      var panel = b && b.closest('[id$="-panel"]');
+      if (panel) window.notifFilter(panel.id.slice(0, -'-panel'.length), b.getAttribute('data-notif-filter'));
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('[id^="notif-menu-"]').forEach(function (root) {
+      if (root.id.indexOf('-panel') !== -1) return;
+      if (root.contains(e.target)) return;
+      var panel = document.getElementById(root.id + '-panel');
+      var btn = root.querySelector('[aria-haspopup="dialog"]');
+      if (panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); if (panel.__kivStop) panel.__kivStop(); }
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('[id^="notif-menu-"]').forEach(function (root) {
+      if (root.id.indexOf('-panel') !== -1) return;
+      var panel = document.getElementById(root.id + '-panel');
+      var btn = root.querySelector('[aria-haspopup="dialog"]');
+      if (panel) { panel.classList.add('hidden'); panel.classList.remove('flex'); if (panel.__kivStop) panel.__kivStop(); }
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  });
+})();
+</script>

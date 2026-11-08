@@ -1,0 +1,7 @@
+<%#
+  scada.symbol: one process symbol drawn from the bound readings (kui-react ScadaSymbolView). The drawing is the model's
+  SVG tree written as markup (`model.svg`, built by svgToString from nodes the model made: no setting reaches it as
+  markup); the number (for symbols that print one) and the label sit under it. A viewer who asks for reduced motion sees
+  running parts still: scripts/widget-kit.js pauses the SMIL clock of this svg. Locals: model.
+%><%_ var _g = locals.model; _%>
+<figure class="m-0 flex h-full min-h-0 w-full flex-col items-center justify-center gap-1" role="img" aria-label="<%= _g.spoken %>" data-state="<%= _g.state %>" data-symbol="<%= _g.symbol %>"><svg viewBox="<%= _g.viewBox %>" preserveAspectRatio="xMidYMid meet" class="min-h-0 w-full flex-1"<% if (_g.limit) { %> style="<%= widgetKit.style(_g.limit) %>"<% } %> aria-hidden="true" focusable="false"><%- _g.svg %></svg><% if (_g.value) { %><span class="text-sm font-semibold leading-none tabular-nums text-text-primary" data-part="value"><%= _g.value %></span><% } %><% if (_g.showLabel) { %><span class="max-w-full truncate text-xs leading-tight text-text-secondary" data-part="label"><%= _g.label %></span><% } %></figure>

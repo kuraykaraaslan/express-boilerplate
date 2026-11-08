@@ -1,0 +1,257 @@
+<%
+// VideoPlayer — the kit's video player (EJS). Locals:
+//   id, src (a string, a { src, type } or a list of them), poster, title, autoPlay, loop, startMuted, qualities,
+//   defaultQuality, subtitles ([{ label, srclang, src }]), audioTracks, autoHideControls, enableCast (default true),
+//   className
+//   Fitting a host (the WidgetKit video widget):
+//   fill          — true: the player fills its parent (h-full w-full, no 16:9 ratio, no rounded corners). Default false.
+//   fit           — 'contain' (default) | 'cover': how the picture fills the frame.
+//   theme         — 'default' | 'minimal' | 'broadcast' | 'cinema' (kui-player's preset names). Written as
+//                   data-kui-theme; `minimal` also drops the large centre play button. The other presets' own
+//                   spacing and colours are not drawn by this player.
+//   hls           — true: `src` is an HLS stream (.m3u8). A browser that plays HLS itself (Safari) gets it as the video's
+//                   source; any other loads hls.js once, from `hlsScript`, and attaches it. No other source is touched.
+//   hlsScript     — address of hls.js (default: the pinned build on jsDelivr).
+//   Live streams (kui-player's options of the same names; public/assets/js/video-player/live.js and presence.js):
+//   live          — true or { stopWhenHidden } (default true): the player is a live player. A live HLS stream that nobody can
+//                   see (scrolled out of view, a hidden tab) stops loading and rejoins the live edge when seen again; a
+//                   source that is refused or lost is opened again (the original address once, then 1 s, 2 s, 4 s … up to 15 s,
+//                   five times); `false` = a plain player.
+//   presence      — { everyMs, graceMs }: after `everyMs` of playback "Still watching?" asks for `graceMs`; no answer pauses the
+//                   player and stops its loading ("Paused to save data", Play starts it again). `false` = opt out.
+//   presenceGroup — a name (or 'board': the nearest [data-wk-board], else the page): every player with the same name shares
+//                   ONE timer and ONE page-level prompt (kui-player createPresenceGroup); the shortest `everyMs` wins.
+//   presenceTexts — { title, countdown ({seconds}), continue, paused, play, reconnecting, refused, unavailable, tryAgain, dir }.
+//   sources       — [{ label, src, type }] two or more addresses of the same stream, chosen in the quality menu (the first is the
+//                   default); replaces `src` and `qualities`.
+//   loadOnPlay    — true: an HLS stream requests nothing (no playlist, no segment) before Play is pressed (kui-player `loadOnPlay`);
+//                   a file is unaffected. Default false: the stream loads when the player is drawn.
+//   preferAlternateInFullscreen — with `sources`: the second one in full screen, the first in the card.
+var _id              = locals.id              || ('vp-' + Math.random().toString(36).substr(2, 9));
+var _poster          = locals.poster          || '';
+var _title           = locals.title           || '';
+var _autoPlay        = locals.autoPlay        || false;
+var _loop            = locals.loop            || false;
+var _startMuted      = locals.startMuted      || false;
+var _alternates      = Array.isArray(locals.sources) ? locals.sources.filter(function(a) { return a && typeof a.src === 'string' && a.src; }) : [];
+if (_alternates.length < 2) _alternates = [];
+var _qualities       = _alternates.length
+  ? _alternates.map(function(a, i) { return { value: String(i), label: String(a.label || ('' + (i + 1))) }; })
+  : (locals.qualities || []);
+var _defaultQuality  = (_alternates.length ? '0' : locals.defaultQuality) || (_qualities.length > 0 ? _qualities[0].value : '');
+var _defaultQualityLabel = (function() {
+  if (!_qualities.length) return 'Auto';
+  var match = _qualities.filter(function(q) { return q.value === _defaultQuality; })[0];
+  return match ? match.label : (_qualities[0] ? _qualities[0].label : 'Auto');
+})();
+var _subtitles       = locals.subtitles       || [];
+var _audioTracks     = locals.audioTracks     || [];
+var _autoHideControls = (locals.autoHideControls !== undefined) ? locals.autoHideControls : true;
+var _enableCast      = (locals.enableCast      !== undefined) ? locals.enableCast      : true;
+var _className       = locals.className       || '';
+var _fill            = locals.fill === true;
+var _fit             = locals.fit === 'cover' ? 'cover' : 'contain';
+var _theme           = ['minimal', 'broadcast', 'cinema'].indexOf(locals.theme) !== -1 ? locals.theme : '';
+var _isHlsUrl        = function(u, type) { return /\.m3u8(?:[?#]|$)/i.test(String(u || '')) || /mpegurl/i.test(String(type || '')); };
+// With alternate sources `hls` may mean "either address is a stream" (the card's model): the first address decides how it is attached.
+var _anyHls          = locals.hls === true || _alternates.some(function(a) { return _isHlsUrl(a.src, a.type); });
+var _hls             = _alternates.length ? _isHlsUrl(_alternates[0].src, _alternates[0].type) : locals.hls === true;
+var _hlsScript       = typeof locals.hlsScript === 'string' && /^https:\/\/[^\/\\\s"'<>]+\//.test(locals.hlsScript)
+  ? locals.hlsScript : 'https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js';
+
+// A live player: any of the live options was given and `live` is not switched off.
+var _liveOpts = locals.live !== false && (locals.live !== undefined || locals.presence || _alternates.length > 0);
+var _liveCfg  = locals.live && typeof locals.live === 'object' ? locals.live : {};
+
+var _src = _alternates.length ? { src: _alternates[0].src, type: _alternates[0].type } : (locals.src || '');
+var _sources = Array.isArray(_src)
+  ? _src
+  : (typeof _src === 'string' ? [{ src: _src }] : [_src]);
+
+// What live.js / presence.js take (null = a plain player). Plain data; the scripts do the rest in the browser.
+var _firstSrc = typeof _sources[0] === 'string' ? _sources[0] : (_sources[0] && _sources[0].src) || '';
+var _liveInit = !_liveOpts ? null : {
+  hls: _hls,
+  hlsScript: _anyHls ? _hlsScript : '',   // hls.js is addressed only for a player that can need it
+  src: _firstSrc,
+  loadOnPlay: locals.loadOnPlay === true,
+  stopWhenHidden: _liveCfg.stopWhenHidden !== false,
+  reauth: _liveCfg.reauth !== false,
+  credentials: _liveCfg.credentials === 'include' ? 'include' : 'same-origin',
+  presence: locals.presence && locals.presence.everyMs > 0 && locals.presence.graceMs > 0
+    ? { everyMs: Number(locals.presence.everyMs), graceMs: Number(locals.presence.graceMs) } : null,
+  group: typeof locals.presenceGroup === 'string' ? locals.presenceGroup : '',
+  texts: locals.presenceTexts && typeof locals.presenceTexts === 'object' ? locals.presenceTexts : null,
+  sources: _alternates.length
+    ? _alternates.map(function(a) { return { label: String(a.label || ''), src: a.src, hls: _isHlsUrl(a.src, a.type), type: a.type || '' }; }) : null,
+  preferAlternateInFullscreen: locals.preferAlternateInFullscreen === true && _alternates.length > 1
+};
+
+var _hasSettings = true; // always show gear (speed is always available)
+var _hasSubs     = _subtitles.length > 0;
+var _hasQualities = _qualities.length > 0;
+var _hasAudio    = _audioTracks.length > 1;
+
+var _speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+// shared partial context
+var _ctx = {
+  id: _id,
+  poster: _poster,
+  title: _title,
+  autoPlay: _autoPlay,
+  loop: _loop,
+  startMuted: _startMuted,
+  qualities: _qualities,
+  defaultQuality: _defaultQuality,
+  defaultQualityLabel: _defaultQualityLabel,
+  subtitles: _subtitles,
+  audioTracks: _audioTracks,
+  autoHideControls: _autoHideControls,
+  enableCast: _enableCast,
+  className: _className,
+  centerPlay: _theme !== 'minimal',
+  sources: _sources,
+  hasSubs: _hasSubs,
+  hasQualities: _hasQualities,
+  hasAudio: _hasAudio,
+  speeds: _speeds,
+};
+%>
+
+<div
+  id="<%= _id %>"
+  tabindex="0"
+  aria-label="<%= _title ? 'Video: ' + _title : 'Video player' %>"
+  <% if (_theme) { %>data-kui-theme="<%= _theme %>"<% } %>
+  class="relative bg-black overflow-hidden select-none outline-none focus-visible:ring-2 focus-visible:ring-border-focus<%= _fill ? ' h-full w-full' : ' rounded-xl aspect-video min-h-40' %><%= _className ? ' ' + _className : '' %>"
+>
+
+  <%/* ── Video element ── */%>
+  <video
+    id="<%= _id %>-video"
+    <% if (_poster)     { %>poster="<%= _poster %>"<% } %>
+    <% if (_autoPlay)   { %>autoplay<% } %>
+    <% if (_loop)       { %>loop<% } %>
+    <% if (_startMuted) { %>muted<% } %>
+    crossorigin="anonymous"
+    class="w-full h-full <%= _fit === 'cover' ? 'object-cover' : 'object-contain' %> block cursor-pointer"
+    onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].togglePlay()"
+  >
+    <% if (!_hls) { _sources.forEach(function(s) {
+         var src  = typeof s === 'string' ? s : s.src;
+         var type = (typeof s === 'object' && s.type) ? s.type : '';
+    %>
+      <source src="<%= src %>"<% if (type) { %> type="<%= type %>"<% } %>>
+    <% }); } %>
+
+    <% _subtitles.forEach(function(sub, i) { %>
+      <track kind="subtitles" label="<%= sub.label %>"
+        <% if (sub.srclang) { %>srclang="<%= sub.srclang %>"<% } %>
+        src="<%= sub.src %>">
+    <% }); %>
+  </video>
+
+  <%- include('./partials/_overlays', { ctx: _ctx }) %>
+
+  <%/* ── Controls layer ── */%>
+  <div id="<%= _id %>-controls"
+    class="absolute inset-0 flex flex-col justify-end transition-opacity duration-300 opacity-100 z-20"
+    onclick="window.__vp[<%= JSON.stringify(String(_id)) %>].onBgClick(event)">
+
+    <%/* Vignette */%>
+    <div class="absolute inset-0 pointer-events-none"
+      style="background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.3) 30%,transparent 60%)"></div>
+
+    <%- include('./partials/_settings-panel', { ctx: _ctx }) %>
+
+    <%- include('./partials/_controls', { ctx: _ctx }) %>
+
+  </div><%/* end controls layer */%>
+
+</div>
+
+<%/*
+  ──────────────────────────────────────────────────────────────────────────────
+  JS-event-vs-callback API (EJS) — note for consumers
+  ──────────────────────────────────────────────────────────────────────────────
+  The React `VideoPlayer.tsx` exposes callback props (`onQualityChange`,
+  `onAudioTrackChange`, `onCastStateChange`, `onControlsVisibilityChange`).
+  This EJS twin runs as a vanilla-JS IIFE and instead dispatches DOM
+  `CustomEvent`s on the player container:
+    - `vp:qualitychange`      → detail: { value }
+    - `vp:audiotrackchange`   → detail: { index }
+  Subscribe via:
+    document.getElementById('<id>').addEventListener('vp:qualitychange', ...);
+  The imperative API is exposed at `window.__vp[<id>]` (togglePlay, seekBy,
+  toggleMute, setVolume, setSpeed, setQuality, setSubtitle, etc.).
+*/%>
+
+<%/* ── Load shared helper scripts (browsers dedupe identical URLs) ── */%>
+<script src="/assets/js/video-player/helpers.js"></script>
+<script src="/assets/js/video-player/controls-visibility.js"></script>
+<script src="/assets/js/video-player/video-events.js"></script>
+<script src="/assets/js/video-player/subtitle-cues.js"></script>
+<script src="/assets/js/video-player/keyboard.js"></script>
+<script src="/assets/js/video-player/cast.js"></script>
+<script src="/assets/js/video-player/public-api.js"></script>
+<% if (_liveInit) { %>
+<script src="/assets/js/video-player/presence.js"></script>
+<script src="/assets/js/video-player/live.js"></script>
+<% } %>
+<script src="/assets/js/video-player/init.js"></script>
+
+<% if (_hls && !_liveInit) { %>
+<%/* ── HLS: native where the browser plays it, else hls.js (loaded once). A live player (`_liveInit`) is attached by live.js. ── */%>
+<script>
+(function () {
+  var video = document.getElementById(<%- include('../_script-json', { value: String(_id) + '-video' }) %>);
+  var src = <%- include('../_script-json', { value: typeof _sources[0] === 'string' ? _sources[0] : (_sources[0] && _sources[0].src) || '' }) %>;
+  if (!video || !src) return;
+  if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = src; return; }
+  function attach() {
+    if (!window.Hls || !window.Hls.isSupported()) return;
+    var hls = new window.Hls();
+    hls.loadSource(src);
+    hls.attachMedia(video);
+  }
+  if (window.Hls) { attach(); return; }
+  var s = document.querySelector('script[data-kui-hls]');
+  if (!s) {
+    s = document.createElement('script');
+    s.src = <%- include('../_script-json', { value: _hlsScript }) %>;
+    s.crossOrigin = 'anonymous';
+    s.setAttribute('data-kui-hls', '');
+    document.head.appendChild(s);
+  }
+  s.addEventListener('load', attach);
+})();
+</script>
+<% } %>
+
+<%/* ── Per-component initializer (preserves the IIFE pattern) ── */%>
+<script>
+(function () {
+  var config = {
+    id:         <%- include('../_script-json', { value: String(_id) }) %>,
+    autoHide:   <%- include('../_script-json', { value: _autoHideControls }) %>,
+    enableCast: <%- include('../_script-json', { value: _enableCast }) %>,
+    castTitle:  <%- include('../_script-json', { value: _title }) %>,
+    castPoster: <%- include('../_script-json', { value: _poster }) %>,
+    castFirstSrc: <%- include('../_script-json', { value: _sources[0] || '' }) %><% if (_liveInit) { %>,
+    live: <%- include('../_script-json', { value: _liveInit }) %><% } %>
+  };
+  function start() {
+    if (window.__vpInit) { window.__vpInit(config); return; }
+    document.addEventListener('vp:helpers-ready', function onReady() {
+      document.removeEventListener('vp:helpers-ready', onReady);
+      window.__vpInit(config);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+</script>

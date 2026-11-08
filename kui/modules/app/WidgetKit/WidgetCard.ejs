@@ -1,0 +1,86 @@
+<%#
+  The frame every dashboard widget sits in (kui-react WidgetCard): title row, card buttons, the body states
+  (loading, empty, unconfigured, error), the body and an "Updated …" footer. Every look comes from the card model
+  (core:card settings), the same one kui-react draws from.
+  A drawn view that zooms in full screen (`p.zoom`, scada.scene) puts the zoom pane's texts on the body as `data-wk-zoom`;
+  scripts/zoom-pane.js builds the pane from them when the card goes full screen (kui-react PlacementCard + ZoomPane).
+  In a fixed-height cell a view whose content has a height of its own (`p.fit`: values, attributes, states, progress,
+  controls) sits in the fit box (`data-part="fit"`); scripts/widget-kit.js scales it down into the body when it overflows
+  the body at full size, never under 60 % (kui-react PlacementCard + FitBox). The box clips horizontal overflow, so a
+  scrollbar it would add to the body cannot change the height the next measure sees.
+  Locals: p (widgetKit.placement(locals)).
+%><%_
+  var _p = locals.p;
+  var _c = _p.card;
+  var _card = _p.resolved.card;
+  var _m = _p.messages.card;
+  var _btn = widgetKit.ui.ICON_BUTTON_CLASS;
+_%>
+<section data-wk-card<% if (_p.id) { %> data-wk-id="<%= _p.id %>"<% } %><% if (_p.titleText) { %> aria-label="<%= _p.titleText %>"<% } %><% if (_c.ariaBusy) { %> aria-busy="true"<% } %> class="<%= _c.sectionClass %>" style="<%= widgetKit.style(_c.frame) %>">
+<%_ if (_c.overlay) { _%>
+<div aria-hidden="true" class="pointer-events-none absolute inset-0" style="<%= widgetKit.style(_c.overlay) %>"></div>
+<%_ } _%>
+<%_ if (_c.hasHeader) { _%>
+<header class="relative flex min-w-0 items-start gap-2" style="<%= widgetKit.style(_c.headerStyle) %>">
+<%_ if (_c.titleIcon) { _%>
+<%- include('_icon', { name: _c.titleIcon.name, className: 'mt-0.5 shrink-0 text-text-secondary', style: { width: _c.titleIcon.size, height: _c.titleIcon.size, fontSize: _c.titleIcon.size, color: _c.titleIcon.color } }) %>
+<%_ } _%>
+<div class="min-w-0 flex-1">
+<%_ if (_c.showTitle) { _%>
+<div class="flex min-w-0 items-center gap-1.5"><h3 class="truncate text-sm font-semibold"<% var _ts = widgetKit.style(_c.titleStyle); if (_ts) { %> style="<%= _ts %>"<% } %>><%= _p.titleText %></h3><% if (_card.titleTooltip) { %><button type="button" aria-label="<%= _m.about(_p.titleText) %>" title="<%= _card.titleTooltip %>" class="<%= _btn %> h-5 w-5"><i class="fas fa-circle-info h-3 w-3" aria-hidden="true"></i></button><% } %><% if (_c.staleMode) { %><span class="shrink-0 rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] font-medium text-warning-fg"><%= _m.oldData %></span><% } %></div>
+<%_ if (_card.subtitle) { var _ss = widgetKit.style(_c.subtitleStyle); _%>
+<p class="truncate text-xs text-text-secondary"<% if (_ss) { %> style="<%= _ss %>"<% } %>><%= _card.subtitle %></p>
+<%_ } _%>
+<%_ } else if (_c.staleMode) { _%>
+<span class="rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] font-medium text-warning-fg"><%= _m.oldData %></span>
+<%_ } _%>
+</div>
+<%_ if (_p.timeWindow) { _%>
+<%# The card's own window: always shown (it says what the card shows), never with the hover buttons. Its trigger truncates, so a narrow card keeps its title. The compact size wins over the select's own; like tailwind-merge in kui-react, a host class of the same kind (height, inline padding, text size) wins over the compact one, which is then left out (a host class is appended, as on every kui-ejs partial). %>
+<%_ var _twHost = _p.timeWindow.className || ''; var _twCompact = [/(^|\s)h-/.test(_twHost) ? '' : 'h-7!', /(^|\s)(p|px|pl|pr)-/.test(_twHost) ? '' : 'px-2!', /(^|\s)text-(xs|sm|base|lg|[0-9]*xl|\[)/.test(_twHost) ? '' : 'text-xs!'].filter(Boolean).join(' '); _%>
+<div class="min-w-0 max-w-[60%]">
+<%- include('../../ui/TimeWindowSelect', Object.assign(_p.id ? { idPrefix: 'wk-tw-' + _p.id } : {}, _p.timeWindow, { className: _twCompact + (_twHost ? ' ' + _twHost : '') })) %>
+</div>
+<%_ } _%>
+<%# From lg up the card buttons show on hover or keyboard focus; hidden they take no room, so a short title keeps the whole row. Still focusable: a Tab into them reveals them. A touch screen cannot hover (a tablet in landscape, a kiosk): there they always show. %>
+<div class="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity lg:-ml-2 lg:max-w-0 lg:overflow-hidden lg:opacity-0 lg:group-hover/wk:ml-0 lg:group-hover/wk:max-w-none lg:group-hover/wk:overflow-visible lg:group-hover/wk:opacity-100 lg:group-focus-within/wk:ml-0 lg:group-focus-within/wk:max-w-none lg:group-focus-within/wk:overflow-visible lg:group-focus-within/wk:opacity-100 [@media(hover:none)]:ml-0 [@media(hover:none)]:max-w-none [@media(hover:none)]:overflow-visible [@media(hover:none)]:opacity-100">
+<%_ if (_p.buttons.refresh) { _%>
+<button type="button" data-wk-action="refresh" aria-label="<%= _m.refresh %>" title="<%= _m.refresh %>" class="<%= _btn %>"><i class="fas fa-rotate-right h-3.5 w-3.5" aria-hidden="true"></i></button>
+<%_ } _%>
+<%_ if (_p.buttons.export) { _%>
+<button type="button" data-wk-action="export-csv" aria-label="<%= _m.download %>" title="<%= _m.download %>" class="<%= _btn %>"><i class="fas fa-download h-3.5 w-3.5" aria-hidden="true"></i></button>
+<button type="button" data-wk-action="export-xlsx" aria-label="<%= _m.downloadXlsx %>" title="<%= _m.downloadXlsx %>" class="<%= _btn %>"><i class="fas fa-file-excel h-3.5 w-3.5" aria-hidden="true"></i></button>
+<%_ } _%>
+<%_ if (_p.buttons.fullscreen) { _%>
+<button type="button" data-wk-action="fullscreen" aria-label="<%= _m.fullscreen %>" title="<%= _m.fullscreen %>" class="<%= _btn %>"><i class="fas fa-expand h-3.5 w-3.5" aria-hidden="true"></i></button>
+<%_ } _%>
+</div>
+</header>
+<%_ } _%>
+<div class="<%= _c.bodyClass %>" style="<%= widgetKit.style(_c.bodyStyle) %>"<% if (_p.zoom) { %> data-wk-zoom="<%= JSON.stringify(_p.zoom) %>"<% } %>>
+<%_ if (_c.bodyState === 'loading') { _%>
+<div class="flex h-full min-h-16 flex-col gap-2" role="status" aria-label="<%= _m.loading %>"><div class="h-4 w-1/3 animate-pulse rounded bg-surface-sunken"></div><div class="h-full min-h-8 w-full animate-pulse rounded bg-surface-sunken"></div></div>
+<%_ } else if (_c.bodyState === 'empty' || _c.bodyState === 'unconfigured') { var _text = _c.bodyState === 'empty' ? (_c.noDataText || _m.noData) : (locals.unconfiguredText || _m.bindData); _%>
+<%_ if (_p.emptyModel) { _%>
+<div class="relative flex h-full min-h-16 flex-col"><div aria-hidden="true" inert class="pointer-events-none flex h-full min-h-0 flex-1 select-none flex-col opacity-40"><%- include('views/' + _p.partial, { model: _p.emptyModel, settings: _p.resolved.settings, format: _p.resolved.format }) %></div><div class="absolute inset-0 flex items-center justify-center p-2"><p class="rounded-full border border-border bg-surface-raised px-3 py-1 text-center text-xs text-text-secondary shadow-sm"><%= _text %></p></div></div>
+<%_ } else { _%>
+<div class="flex h-full min-h-16 items-center justify-center text-center text-sm text-text-secondary"><%= _text %></div>
+<%_ } _%>
+<%_ } else if (_c.bodyState === 'error') { _%>
+<div role="alert" class="flex h-full min-h-16 flex-col items-center justify-center gap-2 text-center text-sm text-error"><p><%= _p.errorText || _m.error %></p><% if (locals.retry) { %><button type="button" data-wk-action="retry" class="rounded-md border border-border px-2.5 py-1 text-xs text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= _m.retry %></button><% } %></div>
+<%_ } else if (_p.partial && _p.fit) { _%>
+<%# In a fixed-height cell a view whose content has a height of its own is scaled down to fit rather than cut off (kui-react FitBox): scripts/widget-kit.js decides from its real layout and scales the inner box (`data-scale` on the box while it is scaled). %>
+<div class="relative h-full w-full overflow-x-clip" data-part="fit"><div style="height:100%"><%- include('views/' + _p.partial, { model: _p.model, settings: _p.resolved.settings, format: _p.resolved.format }) %></div></div>
+<%_ } else if (_p.partial) { _%>
+<%- include('views/' + _p.partial, { model: _p.model, settings: _p.resolved.settings, format: _p.resolved.format }) %>
+<%_ } else { _%>
+<div class="flex h-full min-h-16 items-center justify-center text-center text-sm text-text-secondary"><%= _p.kind.label %></div>
+<%_ } _%>
+</div>
+<%_ if (_p.exportRows) { _%>
+<script type="application/json" data-wk-export><%- include('../../ui/_script-json', { value: { name: _p.exportName, title: _p.titleText || _p.kind.template.label, rows: _p.exportRows } }) %></script>
+<%_ } _%>
+<%_ if (_c.showFooter) { _%>
+<footer class="relative flex items-center justify-between gap-2 text-xs text-text-secondary" style="<%= widgetKit.style(_c.footerStyle) %>"><span></span><% if (_c.updated) { %><span><%= _m.updated(_c.updated) %></span><% } %></footer>
+<%_ } _%>
+</section>

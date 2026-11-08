@@ -1,0 +1,122 @@
+<%
+  var _id          = locals.id          || 'user-menu-' + Math.random().toString(36).substr(2, 9);
+  var _email       = locals.email       || (locals.user && locals.user.email) || '';
+  // Without a name the email stands in (parity with kui-react UserMenu).
+  var _name        = locals.name        || (locals.user && locals.user.name) || _email || 'User';
+  var _role        = locals.role        || (locals.user && locals.user.role)  || '';
+  var _src         = locals.src         || (locals.user && locals.user.profilePicture) || null;
+  var _align       = locals.align       || 'right';
+  var _onlyAvatar  = !!locals.onlyAvatar;
+  var _labels      = locals.labels || {};
+  // portal: the open menu moves to document.body (DropdownMenu portal), so a sticky or
+  // clipping top bar cannot cut it off. className goes to the DropdownMenu root.
+  // Parity with kui-react UserMenu `portal` / `className`. The trigger is a Tailwind `group`
+  // and DropdownMenu sets aria-expanded on it, so the chevron turns over while the menu is open.
+  var _portal      = !!locals.portal;
+  var _className   = locals.className || '';
+
+  // Built-in items (parity with kui-react UserMenu): ids profile / settings / sign-out, in
+  // groups account (100, 200) and session (1000). hrefs and onClick JS strings are optional.
+  var _builtIn = [
+    { type: 'item', id: 'profile',  group: 'account', order: 100,  label: _labels.profile  || 'Profile',  href: locals.profileHref,  onClick: locals.onProfile,  icon: '<i class="fa-solid fa-user w-3.5 h-3.5" aria-hidden="true"></i>' },
+    { type: 'item', id: 'settings', group: 'account', order: 200,  label: _labels.settings || 'Settings', href: locals.settingsHref, onClick: locals.onSettings, icon: '<i class="fa-solid fa-gear w-3.5 h-3.5" aria-hidden="true"></i>' },
+    { type: 'item', id: 'sign-out', group: 'session', order: 1000, label: _labels.signOut  || 'Sign out', href: locals.signOutHref,  onClick: locals.onSignOut,  icon: '<i class="fa-solid fa-arrow-right-from-bracket w-3.5 h-3.5" aria-hidden="true"></i>', danger: true }
+  ];
+  // Adds contributed items; one whose id matches a base item replaces it in place.
+  var _merge = function (base, extra) {
+    var byId = {};
+    extra.forEach(function (it) { if (it.id) byId[it.id] = it; });
+    var replaced = {};
+    var out = base.map(function (it) {
+      if (it.id && byId[it.id]) { replaced[it.id] = true; return byId[it.id]; }
+      return it;
+    });
+    extra.forEach(function (it) { if (!it.id || !replaced[it.id]) out.push(it); });
+    return out;
+  };
+  // Contributed items without a group join `account`; without an order they land at 500
+  // (after the account items, before sign out). One replacing a built-in keeps its place.
+  var _placed = function (list) {
+    return list.map(function (it) {
+      if (it.type === 'separator') return it;
+      var slot = _builtIn.filter(function (b) { return b.id === it.id; })[0];
+      return Object.assign({}, it, {
+        group: it.group !== undefined ? it.group : (slot ? slot.group : 'account'),
+        order: it.order !== undefined ? it.order : (slot ? slot.order : 500)
+      });
+    });
+  };
+  var _extra = locals.extraItems || [];
+  var _menuItems = (locals.items && !locals.mergeItems)
+    ? (_extra.length ? _merge(locals.items, _extra) : locals.items)
+    : _merge(_builtIn, _placed((locals.items || []).concat(_extra)));
+
+  // Build trigger as Button atom output (rendered via captureInclude).
+  // We do this via a string by inlining the same Button atom output we'd render.
+  // Because EJS includes can't be captured to a string easily without a helper,
+  // we manually compose the trigger using the exact Button atom shape (ghost / sm).
+  // This matches `<Button variant="ghost" size="sm" className="group gap-2 px-2">…</Button>`, where
+  // the className's px-2 replaces the sm size's px-3 (kui-react merges them with tailwind-merge).
+
+  // Render Avatar via include into a captured chunk:
+  // we rely on the DropdownMenu atom accepting raw HTML strings for `trigger` and `header`.
+%>
+
+<%
+  // Capture the Avatar markup into a variable so we can embed it in the trigger string.
+  var _avatarHtml = '';
+%>
+<% _avatarHtml %><%
+  // We need a way to render Avatar to a string. EJS doesn't natively do this;
+  // emit the Avatar HTML inline by including with a flag to write to a buffer
+  // is not portable. Instead, use a div placeholder that we hydrate post-render.
+%>
+
+<div data-user-menu-host data-id="<%= _id %>" data-align="<%= _align %>">
+  <%- include('../../../ui/DropdownMenu', {
+    id:        _id,
+    align:     _align,
+    portal:    _portal,
+    className: _className,
+    trigger:
+      '<button type="button"' +
+      ' aria-label="User menu for ' + _name + '"' +
+      ' class="group inline-flex items-center justify-center gap-2 px-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-primary hover:bg-surface-overlay py-1.5 text-sm">' +
+        '<span data-user-menu-avatar-slot></span>' +
+        (_onlyAvatar ? '' :
+          '<div class="hidden sm:block text-left min-w-0">' +
+            '<p class="text-sm font-medium text-text-primary truncate max-w-[8rem]">' + _name + '</p>' +
+            (_role ? '<p class="text-xs text-text-secondary truncate">' + _role + '</p>' : '') +
+          '</div>') +
+        // kui-react's FontAwesomeIcon classes minus w-3 h-3: there Font Awesome's own 1.25em x 1em wins over
+        // them, so the chevron measures 17.5 x 14 at the button's 14px; the bare <i> measures the same.
+        '<i class="fa-solid fa-chevron-down text-text-disabled hidden sm:block transition-transform group-aria-expanded:rotate-180" aria-hidden="true"></i>' +
+      '</button>',
+    header:
+      '<div class="px-3 py-2.5">' +
+        '<p class="text-sm font-semibold text-text-primary truncate">' + _name + '</p>' +
+        (_email ? '<p class="text-xs text-text-secondary truncate">' + _email + '</p>' : '') +
+      '</div>',
+    items: _menuItems
+  }) %>
+
+  <%# Hidden Avatar — we mount it into the trigger slot via the script below. %>
+  <template data-user-menu-avatar-template>
+    <%- include('../../../ui/Avatar', { name: _name, src: _src, size: 'sm' }) %>
+  </template>
+</div>
+
+<script>
+(function () {
+  var host = document.querySelector(<%- include('../../../ui/_script-json', { value: '[data-user-menu-host][data-id="' + _id + '"]' }) %>);
+  if (!host || host.dataset.umInit === '1') return;
+  host.dataset.umInit = '1';
+
+  var tpl  = host.querySelector('template[data-user-menu-avatar-template]');
+  var slot = host.querySelector('[data-user-menu-avatar-slot]');
+  if (tpl && slot) {
+    slot.innerHTML = tpl.innerHTML;
+    tpl.remove();
+  }
+})();
+</script>

@@ -1,0 +1,56 @@
+<%# modules/ui/DateRangePicker.ejs — thin shim %>
+<%#
+  Backwards-compatible entry point. The real DateRangePicker lives at
+  `modules/ui/DatePicker/DateRangePicker.ejs`; the TimePicker (kind === 'time')
+  flow stays inline here because the time picker belongs to milestone M4.
+
+  When the caller passes `kind: 'time'` we keep the legacy native-input
+  behaviour — otherwise we delegate to the new popover.
+%>
+<% if (locals.kind === 'time') { %>
+  <%
+    var _id    = locals.id || 'time-' + Math.random().toString(36).substr(2, 9);
+    var _label = locals.label || '';
+    var _hint  = locals.hint  || '';
+    var _error = locals.error || '';
+    var _dis   = !!locals.disabled;
+    var _req   = !!locals.required;
+    var _className = locals.className || '';
+    var _timeVal = locals.value || '';
+    var _step    = locals.step  || 60;
+
+    var _hintId  = (_hint  && !_error) ? (_id + '-hint')  : '';
+    var _errorId = _error ? (_id + '-error') : '';
+    var _describedBy = [_hintId, _errorId].filter(function (x) { return !!x; }).join(' ');
+
+    var inputClass = 'block w-full rounded-md border px-3 py-2 text-sm transition-colors '
+      + 'text-text-primary bg-surface-base '
+      + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus '
+      + 'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-sunken ';
+    inputClass += _error
+      ? 'border-error ring-1 ring-error bg-error-subtle'
+      : 'border-border';
+  %>
+  <div class="space-y-1<%= _className ? ' ' + _className : '' %>">
+    <label for="<%= _id %>" class="block text-sm font-medium text-text-primary">
+      <%= _label %><% if (_req) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only">(required)</span><% } %>
+    </label>
+    <input
+      id="<%= _id %>"
+      type="time"
+      value="<%= _timeVal %>"
+      step="<%= _step %>"
+      class="<%= inputClass %>"
+      <% if (_dis) { %>disabled<% } %>
+      <% if (_req) { %>required<% } %>
+      <% if (locals.name) { %>name="<%= locals.name %>"<% } %>
+      aria-invalid="<%= _error ? 'true' : 'false' %>"
+      <% if (_describedBy) { %>aria-describedby="<%= _describedBy %>"<% } %>
+      data-testid="timepicker-<%= _id %>"
+    />
+    <% if (_hintId) { %><p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= _hint %></p><% } %>
+    <% if (_errorId) { %><p id="<%= _errorId %>" class="text-xs text-error" role="alert"><%= _error %></p><% } %>
+  </div>
+<% } else { %>
+  <%- include('./DatePicker/DateRangePicker', locals) %>
+<% } %>

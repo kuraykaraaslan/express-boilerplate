@@ -1,0 +1,233 @@
+<%
+  // DayBarChart — one bar per day (the 90-day uptime strip of a status page), coloured by availability, with
+  // incident markers, a tooltip on hover and focus and a pinned details popover on click or Enter. Same DOM and
+  // classes as kui-react modules/ui/DayBarChart. Status is told four ways, not colour alone: the bar height, an
+  // incident marker, the accessible name of each day, and the legend. The server draws the strip, the heading,
+  // the summary, the range, the legend and, for an initially pinned day, the popover; DayBarChart/scripts/
+  // (inlined once, idempotent) adds the tooltip, pinning, the roving tabindex and the keys in the browser.
+  //
+  // Locals:
+  //   days       — oldest first: [{ date, availability, incidents? }]
+  //     date     — calendar day, 'YYYY-MM-DD'
+  //     availability — percent (0..100) or null for no data
+  //     incidents — [{ id, title, severity?, href? }]; severity: minor | major | critical | maintenance
+  //   label      — names the strip ('API'); used in the accessible name and the heading
+  //   showHeading — show `label` as a visible heading with the summary beside it (default: true when `label` is set)
+  //   thresholds — { operational (99.9), degraded (99) }: at or above `operational` a day is operational, at or
+  //                above `degraded` degraded, below it an outage
+  //   showSummary (true), showRange (true), showLegend (true)
+  //   height     — strip height in px (default 40)
+  //   selectedDate — the pinned day, by date. Given (even as null) the chart is controlled: a click fires the event
+  //                  below but does not pin; the page pins with root.kuiDayBarChart.select(date | null)
+  //   defaultSelectedDate — the day pinned at render time when uncontrolled
+  //   detailsPartial — absolute path of a partial included at the end of the pinned popover with
+  //                  Object.assign({}, detailsLocals, { day }) (React takes a render function). It is rendered on the
+  //                  server for the initially pinned day only; a day pinned in the browser gets the event below
+  //                  instead, whose detail.popover is the dialog element for the page to append to
+  //   locale     — BCP 47 tag for the dates (default: the server's own)
+  //   digits     — decimals of the availability figures (default 2)
+  //   messages   — { group, operational, degraded, outage, noData, incident, dayLabel, noDataDay, incidentCount,
+  //                  moreIncidents, summary, noSummary, close, details, legend, atLeast, between, below,
+  //                  severity: { minor, major, critical, maintenance } }; placeholders as in kui-react
+  //   id         — id prefix of the popover (id + '-pop'; default: a random one). React derives it with useId; the
+  //                root carries no id, so wrap the partial in an element of your own to scope a listener
+  //   className  — extra classes on the root (appended, no conflict resolution)
+  //   loadRuntime — default true: inline DayBarChart/scripts/*.js (idempotent)
+  //
+  // Events on the root (they bubble): 'kui:daybar-select' { day, date, popover } where `day` is
+  // { date, availability, incidents } or null when the pin was released (React's onSelect).
+  // Hooks of the browser script, not in React: data-dbc-root and data-dbc-config on the root, data-dbc-pop on the
+  // popover.
+  var DEFAULTS = {
+    group: 'Daily availability for {label}',
+    operational: 'Operational',
+    degraded: 'Degraded',
+    outage: 'Outage',
+    noData: 'No data',
+    incident: 'Incident',
+    dayLabel: '{date}: {availability}, {status}{incidents}',
+    noDataDay: 'no data',
+    incidentCount: '{count} incidents',
+    moreIncidents: '+{count} more',
+    summary: '{value} uptime over {days} days',
+    noSummary: 'No data for this period',
+    close: 'Close details',
+    details: 'Day details',
+    legend: 'Legend',
+    atLeast: '{value} or more',
+    between: '{from} to {to}',
+    below: 'below {value}'
+  };
+  var _m = locals.messages && typeof locals.messages === 'object' ? locals.messages : {};
+  var _msg = {};
+  Object.keys(DEFAULTS).forEach(function (k) { _msg[k] = _m[k] != null ? _m[k] : DEFAULTS[k]; });
+  var _sev = Object.assign({ minor: 'Minor', major: 'Major', critical: 'Critical', maintenance: 'Maintenance' }, _m.severity || {});
+
+  function fill(template, values) {
+    return String(template).replace(/\{(\w+)\}/g, function (whole, key) {
+      return Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : whole;
+    });
+  }
+  function trimNum(n, d) { return String(Number(n.toFixed(d))); }
+  function pct(value, d) { return isFinite(value) ? trimNum(value, d) + '%' : '–'; }
+  function toUtcMs(date) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : NaN;
+  }
+  var _locale = locals.locale || undefined;
+  function dateText(date, style) {
+    var ms = toUtcMs(String(date));
+    if (isNaN(ms)) return String(date);
+    try {
+      return new Intl.DateTimeFormat(_locale, { dateStyle: style === 'short' ? 'short' : 'medium', timeZone: 'UTC' }).format(new Date(ms));
+    } catch (e) { return String(date); }
+  }
+
+  var _th = locals.thresholds && typeof locals.thresholds === 'object' ? locals.thresholds : {};
+  var _t = {
+    operational: typeof _th.operational === 'number' ? _th.operational : 99.9,
+    degraded: typeof _th.degraded === 'number' ? _th.degraded : 99
+  };
+  function statusOf(a) {
+    if (a === null || a === undefined || typeof a !== 'number' || !isFinite(a)) return 'nodata';
+    if (a >= _t.operational) return 'operational';
+    if (a >= _t.degraded) return 'degraded';
+    return 'outage';
+  }
+  var _days = Array.isArray(locals.days) ? locals.days.filter(Boolean) : [];
+  var _digits = typeof locals.digits === 'number' ? locals.digits : 2;
+  var _label = locals.label != null ? String(locals.label) : '';
+  var _heading = locals.showHeading != null ? !!locals.showHeading : _label !== '';
+  var _showSummary = locals.showSummary !== false;
+  var _showRange = locals.showRange !== false;
+  var _showLegend = locals.showLegend !== false;
+  var _height = typeof locals.height === 'number' ? locals.height : 40;
+  var _id = locals.id || ('daybar-' + Math.random().toString(36).substr(2, 9));
+  var _extra = locals.className ? ' ' + locals.className : '';
+  var _statusText = { operational: _msg.operational, degraded: _msg.degraded, outage: _msg.outage, nodata: _msg.noData };
+  var HEIGHT_PCT = { operational: 100, degraded: 78, outage: 56, nodata: 34 };
+  var FILL = { operational: 'bg-success', degraded: 'bg-warning', outage: 'bg-error', nodata: 'bg-surface-sunken' };
+  var NODATA_BG = 'repeating-linear-gradient(135deg, transparent 0 3px, var(--border) 3px 4px)';
+  var OUTAGE_BG = 'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--surface-base) 35%, transparent) 4px 5px)';
+  function barBackground(status) { return status === 'nodata' ? NODATA_BG : status === 'outage' ? OUTAGE_BG : ''; }
+
+  var _sum = 0, _n = 0;
+  _days.forEach(function (d) { if (typeof d.availability === 'number' && isFinite(d.availability)) { _sum += d.availability; _n++; } });
+  var _mean = _n ? _sum / _n : null;
+  var _summaryText = _mean === null ? _msg.noSummary : fill(_msg.summary, { value: pct(_mean, _digits), days: _days.length });
+
+  var _controlled = locals.selectedDate !== undefined;
+  var _pinnedDate = _controlled ? locals.selectedDate : (locals.defaultSelectedDate != null ? locals.defaultSelectedDate : null);
+  var _pinnedIdx = -1;
+  if (_pinnedDate) _days.forEach(function (d, i) { if (_pinnedIdx === -1 && d.date === _pinnedDate) _pinnedIdx = i; });
+  var _active = Math.max(0, _days.length - 1);
+  var _popPct = _pinnedIdx >= 0 && _days.length > 1 ? (_pinnedIdx / (_days.length - 1)) * 100 : 50;
+
+  function severityText(inc) { return inc.severity ? _sev[inc.severity] : undefined; }
+  var _rows = _days.map(function (d, i) {
+    var status = statusOf(d.availability);
+    var incidents = Array.isArray(d.incidents) ? d.incidents : [];
+    var availText = d.availability === null || d.availability === undefined ? _msg.noDataDay : pct(d.availability, _digits);
+    return {
+      day: d,
+      status: status,
+      incidents: incidents,
+      availText: availText,
+      name: fill(_msg.dayLabel, {
+        date: dateText(d.date),
+        availability: availText,
+        status: _statusText[status],
+        incidents: incidents.length ? ', ' + fill(_msg.incidentCount, { count: incidents.length }) : ''
+      })
+    };
+  });
+
+  // The browser script builds tooltips and popovers from this, so it never formats a date or a figure itself.
+  var _cfg = {
+    controlled: _controlled,
+    pinned: _pinnedIdx >= 0 ? _days[_pinnedIdx].date : null,
+    popId: _id + '-pop',
+    messages: { close: _msg.close, details: _msg.details },
+    days: _rows.map(function (r) {
+      return {
+        date: r.day.date,
+        availability: r.day.availability === undefined ? null : r.day.availability,
+        incidents: r.incidents.map(function (inc) {
+          return { id: inc.id, title: inc.title, severity: inc.severity || '', severityText: severityText(inc) || '', href: inc.href || '' };
+        }),
+        dateText: dateText(r.day.date),
+        availText: r.availText,
+        statusText: _statusText[r.status],
+        more: r.incidents.length > 3 ? fill(_msg.moreIncidents, { count: r.incidents.length - 3 }) : ''
+      };
+    })
+  };
+
+  function legendRange(s) {
+    if (s === 'operational') return fill(_msg.atLeast, { value: pct(_t.operational, _digits) });
+    if (s === 'degraded') return fill(_msg.between, { from: pct(_t.degraded, _digits), to: pct(_t.operational, _digits) });
+    if (s === 'outage') return fill(_msg.below, { value: pct(_t.degraded, _digits) });
+    return _msg.noDataDay;
+  }
+%>
+<div class="flex flex-col gap-2<%= _extra %>" data-dbc-root data-dbc-config="<%= JSON.stringify(_cfg) %>">
+  <% if (_heading) { %>
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <h3 class="text-sm font-semibold text-text-primary"><%= _label %></h3>
+    <% if (_showSummary) { %><span class="text-sm text-text-secondary"><%= _summaryText %></span><% } %>
+  </div>
+  <% } %>
+  <div class="relative">
+    <div role="group" aria-label="<%= fill(_msg.group, { label: _label }).trim() %>" class="flex items-end gap-px" style="height: <%= _height %>px">
+      <% _rows.forEach(function (r, i) { %>
+      <button type="button" data-day="<%= r.day.date %>" data-status="<%= r.status %>" tabindex="<%= i === _active ? 0 : -1 %>" aria-label="<%= r.name %>"<% if (_pinnedIdx === i) { %> aria-describedby="<%= _id %>-pop" aria-expanded="true"<% } %> aria-haspopup="dialog" class="group relative flex h-full min-w-0 flex-1 items-end justify-center focus-visible:outline-none">
+        <% if (r.incidents.length > 0) { %><span aria-hidden="true" data-part="incident-marker" class="absolute -top-1 start-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 bg-text-primary rtl:translate-x-1/2"></span><% } %>
+        <span aria-hidden="true" class="block w-full rounded-[1px] transition-opacity group-hover:opacity-80 group-focus-visible:ring-2 group-focus-visible:ring-border-focus group-focus-visible:ring-offset-1 <%= FILL[r.status] %><%= _pinnedIdx === i ? ' ring-2 ring-primary' : '' %>" style="height: <%= HEIGHT_PCT[r.status] %>%<% if (barBackground(r.status)) { %>; background-image: <%= barBackground(r.status) %><% } %>"></span>
+      </button>
+      <% }); %>
+    </div>
+    <% if (_pinnedIdx >= 0) { var pr = _rows[_pinnedIdx]; var pd = pr.day; %>
+    <div id="<%= _id %>-pop" role="dialog" aria-label="<%= _msg.details %>" data-dbc-pop class="absolute top-full z-20 mt-2 w-64 max-w-[90vw] rounded-md border border-border bg-surface-raised p-3 text-sm shadow-lg" style="inset-inline-start: <%= _popPct %>%; transform: translateX(-<%= _popPct %>%)">
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="font-semibold text-text-primary"><%= dateText(pd.date) %></p>
+          <button type="button" aria-label="<%= _msg.close %>" class="-m-1 flex h-6 w-6 items-center justify-center rounded text-text-secondary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><i class="fa-solid fa-xmark h-3 w-3" aria-hidden="true"></i></button>
+        </div>
+        <p class="text-text-secondary"><%= pr.availText %> · <%= _statusText[pr.status] %></p>
+        <% if (pr.incidents.length > 0) { %>
+        <ul class="flex flex-col gap-1">
+          <% pr.incidents.forEach(function (inc) { %>
+          <li class="flex items-start gap-1.5"><i class="fa-solid fa-triangle-exclamation mt-1 h-3 w-3 shrink-0 text-warning" aria-hidden="true"></i><span class="min-w-0"><% if (inc.href) { %><a href="<%= inc.href %>" class="text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= inc.title %></a><% } else { %><%= inc.title %><% } %><% if (inc.severity) { %><span class="ms-1 text-xs text-text-secondary">(<%= severityText(inc) %>)</span><% } %></span></li>
+          <% }); %>
+        </ul>
+        <% } %>
+        <% if (locals.detailsPartial) { %><%- include(locals.detailsPartial, Object.assign({}, locals.detailsLocals || {}, { day: pd })) %><% } %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <% if (_showRange && _days.length > 0) { %>
+  <div class="flex justify-between text-xs text-text-secondary" aria-hidden="true">
+    <span><%= dateText(_days[0].date, 'short') %></span>
+    <span><%= dateText(_days[_days.length - 1].date, 'short') %></span>
+  </div>
+  <% } %>
+  <% if (!_heading && _showSummary) { %><p class="text-sm text-text-secondary"><%= _summaryText %></p><% } %>
+  <% if (_showLegend) { %>
+  <ul aria-label="<%= _msg.legend %>" class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+    <% ['operational', 'degraded', 'outage', 'nodata'].forEach(function (s) { %>
+    <li class="flex items-center gap-1.5">
+      <span aria-hidden="true" class="inline-block w-2.5 rounded-[1px] <%= FILL[s] %>" style="height: <%= Math.round(HEIGHT_PCT[s] / 100 * 12) %>px<% if (s === 'nodata') { %>; background-image: <%= NODATA_BG %><% } %>"></span>
+      <span><%= _statusText[s] %><span class="text-text-disabled"> (<%= legendRange(s) %>)</span></span>
+    </li>
+    <% }); %>
+    <li class="flex items-center gap-1.5"><span aria-hidden="true" class="inline-block h-1.5 w-1.5 rotate-45 bg-text-primary"></span><%= _msg.incident %></li>
+  </ul>
+  <% } %>
+</div>
+<% if (locals.loadRuntime !== false) { %>
+<script>
+<%- include('./DayBarChart/scripts/daybar.js') %>
+(function () { if (window.KuiDayBarChart) window.KuiDayBarChart.autoInit(); })();
+</script>
+<% } %>

@@ -1,0 +1,151 @@
+<%
+  // ControlSetpoint — type a number, press Apply or Enter (or step it). A bad entry
+  // is a field error and sends nothing. Mirror of kui-react ControlSetpoint.
+  //
+  // Locals:
+  //   id, title, value, reported, onCommit — as ControlSlider
+  //   ariaLabel — the control's accessible name when there is no `title` (a host card names it)
+  //   confirm ('none' | 'confirm' | 'typed'), confirmText — as ControlSwitch
+  //   min (0), max (100), step (1), unit, decimals (0)
+  //   format    — NAME of a global function (value: number) => string for the numbers shown
+  //               (current value, stepper value); overrides unit / decimals. The server renders
+  //               the unit / decimals text and the runtime reformats it on mount.
+  //   layout    — 'input' (default): type a number and apply. 'stepper': minus / plus buttons;
+  //               presses in a row move the value at once and are written as one, `settleMs` after
+  //               the last (a device takes one command for five presses, not five). 'dial': the
+  //               stepper around a 270° arc showing where the value sits between min and max.
+  //   settleMs  — stepper and dial: how long after the last press the value is written (ms,
+  //               default 700 = STEP_SETTLE_MS of the runtime; 0 writes every press)
+  //   showValue — show the current (bound) value (default true)
+  //   valueStyle — inline style of the value text (the input, or the stepper / dial number)
+  //   buttonColor, buttonTextColor — fill and text colour of the Apply / stepper buttons
+  //   borderColor — border of the input / stepper box
+  //   dialColor, dialTrackColor — arc colours of the dial (default buttonColor, then the theme)
+  //   readOnly, disabled, disabledReason (a tooltip; implies disabled), framed (default true)
+  //   timeoutMs (10000), className, loadRuntime
+  //   messages — the shared ones plus { apply: 'Apply', enterNumber: 'Enter a number.',
+  //              outOfRange: 'Enter a value between {min} and {max}.', current: 'Current: {value}',
+  //              decrease: 'Decrease', increase: 'Increase' }
+  //
+  //   formatSpec — { decimals?, notation? ('compact'), unit?, unitPosition?, locale? }: every number shown (server and
+  //              runtime alike) is written the way kui-react's WidgetKit `formatValue` writes it. Wins over unit /
+  //              decimals and then also over the unit beside the number (put the unit in the spec, or leave it out and
+  //              pass `unit` for the input field only); a named `format` function wins over it.
+  //   valueContentPartial, valueContentLocals — kui-react's `renderValue`, as a partial: the stepper / dial number is
+  //              drawn by this EJS partial (path relative to this file), included with `valueContentLocals` and `text`.
+  //              The runtime rewrites only the element marked `data-kui-control-output-text` (the number) and shows
+  //              the ones marked `data-kui-control-output-unit` only while there is a number.
+  //
+  // Not ported: renderValue as a function; use valueContentPartial, or style the number with valueStyle.
+  var L = {};
+  include('./_logic', { L: L });
+  var P = {};
+  include('./_parts', { P: P });
+  var esc = P.esc;
+  var _id = locals.id || ('control-setpoint-' + Math.random().toString(36).substr(2, 9));
+  var _range = L.toRange({ min: locals.min, max: locals.max, step: locals.step });
+  var _bound = L.asNumber(locals.value);
+  var _decimals = locals.decimals || 0;
+  var _unit = locals.unit || '';
+  var _spec = locals.formatSpec && typeof locals.formatSpec === 'object' ? locals.formatSpec : null;
+  var _fmtSpec = _spec ? L.formatBySpec(_spec) : null;
+  function fmt(n) { return _fmtSpec ? _fmtSpec(n) : L.formatValue(n, _decimals) + (_unit ? ' ' + _unit : ''); }
+  var _valuePartial = typeof locals.valueContentPartial === 'string' && locals.valueContentPartial ? locals.valueContentPartial : '';
+  function valueHtml(text) {
+    return _valuePartial ? include(_valuePartial, Object.assign({}, locals.valueContentLocals || {}, { text: text })) : esc(text);
+  }
+  var _readOnly = !!locals.readOnly;
+  var _disabled = !!locals.disabled;
+  var _reason = typeof locals.disabledReason === 'string' && locals.disabledReason ? locals.disabledReason : '';
+  var _locked = _disabled || _readOnly || !!_reason;
+  var _confirm = ['confirm', 'typed'].indexOf(locals.confirm) !== -1 ? locals.confirm : 'none';
+  var _layout = ['stepper', 'dial'].indexOf(locals.layout) !== -1 ? locals.layout : 'input';
+  var _showValue = locals.showValue !== false;
+  var _msgs = Object.assign({
+    apply: 'Apply', enterNumber: 'Enter a number.',
+    outOfRange: 'Enter a value between {min} and {max}.', current: 'Current: {value}',
+    decrease: 'Decrease', increase: 'Increase',
+  }, P.CONFIRM_DEFAULTS, locals.messages || {});
+  var _buttonColor = P.cssValue(locals.buttonColor);
+  var _buttonTextColor = P.cssValue(locals.buttonTextColor);
+  var _borderColor = P.cssValue(locals.borderColor);
+  var _btnStyle = (_buttonColor || _buttonTextColor)
+    ? Object.assign({}, _buttonColor ? { background: _buttonColor, borderColor: _buttonColor } : {}, _buttonTextColor ? { color: _buttonTextColor } : {})
+    : null;
+  var _boxStyle = _borderColor ? 'border-color: ' + _borderColor : '';
+  var _valueStyle = P.styleText(locals.valueStyle);
+  var _boxValueStyle = [_boxStyle, _valueStyle].filter(Boolean).join('; ');
+  var _aria = locals.ariaLabel || locals.title || 'Set point';
+  var _currentLine = '<p class="text-xs text-text-secondary" data-kui-control-current'
+    + (_showValue && _bound !== null && _layout === 'input' ? '' : ' hidden') + '>'
+    + (_bound !== null ? esc(_msgs.current.replace('{value}', fmt(_bound))) : '') + '</p>';
+  var body;
+  if (_layout === 'input') {
+    var _apply = P.button({
+      type: 'submit', children: esc(_msgs.apply), disabled: _locked, style: _btnStyle, className: 'h-9 shrink-0',
+      attrs: 'data-kui-control-apply',
+    });
+    body = '<form class="space-y-1" novalidate>'
+      + '<div class="flex items-center gap-2">'
+      + '<input inputmode="decimal" aria-label="' + esc(_aria) + '" aria-invalid="false" data-kui-control-input'
+      +   ' value="' + esc(_bound !== null ? String(_bound) : '') + '"' + (_locked ? ' disabled' : '')
+      +   (_boxValueStyle ? ' style="' + esc(_boxValueStyle) + '"' : '')
+      +   ' class="h-9 w-28 min-w-0 flex-1 rounded-md border border-border bg-surface-base px-2 text-sm tabular-nums text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:cursor-not-allowed disabled:opacity-50">'
+      + (_unit ? '<span class="text-sm text-text-secondary">' + esc(_unit) + '</span>' : '')
+      + _apply
+      + '</div>'
+      + _currentLine
+      + '<div data-kui-control-error-host></div>'
+      + '</form>';
+  } else {
+    var _text = _bound !== null ? fmt(_bound) : '—';
+    var stepBtn = function (dir) {
+      var atEdge = _bound !== null && (dir < 0 ? _bound <= _range.min : _bound >= _range.max);
+      return P.button({
+        iconOnly: true, ariaLabel: dir < 0 ? _msgs.decrease : _msgs.increase, children: dir < 0 ? '−' : '+',
+        disabled: _locked || atEdge, style: _btnStyle, className: 'h-9 w-9 shrink-0 text-lg leading-none',
+        attrs: 'data-kui-control-step="' + dir + '"',
+      });
+    };
+    var middle;
+    if (_layout === 'stepper') {
+      middle = '<output aria-live="polite" data-kui-control-output'
+        + ' class="flex h-9 min-w-0 flex-1 items-center justify-center rounded-md border border-border bg-surface-base px-2 text-base font-semibold tabular-nums text-text-primary"'
+        + (_boxValueStyle ? ' style="' + esc(_boxValueStyle) + '"' : '') + '>' + valueHtml(_text) + '</output>';
+    } else {
+      var r = 42;
+      var len = 2 * Math.PI * r * 0.75;
+      var f = _bound === null ? 0 : Math.min(1, Math.max(0, (_bound - _range.min) / (_range.max - _range.min)));
+      var dialColor = P.cssValue(locals.dialColor) || _buttonColor || 'var(--primary)';
+      var dialTrack = P.cssValue(locals.dialTrackColor) || 'var(--surface-sunken)';
+      middle = '<div class="relative aspect-square h-full max-h-32 min-h-14 w-auto">'
+        + '<svg viewBox="0 0 100 100" aria-hidden="true" class="h-full w-full rotate-[135deg]">'
+        + '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + len + ' 999" style="stroke: ' + esc(dialTrack) + '"></circle>'
+        + '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (len * f) + ' 999" data-kui-control-dial data-len="' + len + '"'
+        +   ' style="stroke: ' + esc(dialColor) + '; transition: stroke-dasharray 200ms' + (_bound === null ? '; display: none' : '') + '"></circle>'
+        + '</svg>'
+        // A size container, so the value can scale with the dial (`cqi` units).
+        + '<div class="absolute inset-0 flex items-center justify-center [container-type:size]">'
+        + '<output aria-live="polite" data-kui-control-output class="font-semibold tabular-nums text-text-primary"' + (_valueStyle ? ' style="' + esc(_valueStyle) + '"' : '') + '>' + valueHtml(_text) + '</output>'
+        + '</div></div>';
+    }
+    body = '<div class="space-y-1' + (_layout === 'dial' ? ' flex min-h-0 flex-1 flex-col' : '') + '">'
+      + '<div class="flex items-center ' + (_layout === 'dial' ? 'min-h-0 flex-1 justify-center gap-3' : 'gap-2') + '" role="group" aria-label="' + esc(_aria) + '">'
+      + stepBtn(-1) + middle + stepBtn(1)
+      + '</div>'
+      + _currentLine
+      + '</div>';
+  }
+%>
+<%- include('./ControlTile', {
+  id: _id, title: locals.title, kind: 'setpoint', readOnly: _readOnly, messages: _msgs, className: locals.className, body: body,
+  framed: locals.framed, disabledReason: _reason, after: P.confirmPrompt(_id, _confirm, locals.confirmText, locals.messages),
+  config: {
+    value: locals.value, reported: locals.reported, timeoutMs: locals.timeoutMs, readOnly: _readOnly, disabled: _disabled || !!_reason,
+    min: locals.min, max: locals.max, step: locals.step, unit: locals.unit, decimals: _decimals, onCommit: locals.onCommit,
+    format: typeof locals.format === 'string' ? locals.format : '', formatSpec: _spec, layout: _layout, showValue: _showValue,
+    confirm: _confirm, confirmText: locals.confirmText || '',
+    settleMs: typeof locals.settleMs === 'number' ? locals.settleMs : undefined,
+  },
+}) %>
+<% if (locals.loadRuntime !== false) { %><%- include('./_runtime') %><% } %>

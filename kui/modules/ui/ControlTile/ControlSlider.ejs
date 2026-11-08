@@ -1,0 +1,167 @@
+<%
+  // ControlSlider — drag moves only the local value; the write happens ONCE on
+  // release (pointer up / keyboard idle / blur); failure restores the bound value.
+  // Mirror of kui-react ControlSlider.
+  //
+  // Locals:
+  //   id, title
+  //   ariaLabel — the control's accessible name when there is no `title` (a host card names it)
+  //   value, reported — as ControlSwitch (numbers)
+  //   onCommit  — NAME of a global function (next: number, confirmation?) => Promise, or the DOM
+  //               event 'kui:control-commit' (see scripts/control-bind.js)
+  //   confirm ('none' | 'confirm' | 'typed'), confirmText — as ControlSwitch
+  //   min (0), max (100), step (1), unit, decimals (0)
+  //   format    — NAME of a global function (value: number) => string for every number shown
+  //               (value, min, max, mark labels); overrides unit / decimals. The server renders
+  //               the unit / decimals text and the runtime reformats it on mount.
+  //   reportedLabel — 'Reported: {value}'
+  //   layout    — 'default': slider, then min · value · max. 'extended': large value above,
+  //               icons at both ends. 'compact': one line.
+  //   showValue — show the current value (default true); valueStyle — its inline style
+  //   showTicks — show the minimum and maximum (default true)
+  //   tickMarks — draw this many evenly spaced marks under the track (2–21); tickLabels — print
+  //               the value under each mark
+  //   orientation — 'horizontal' (default) | 'vertical' (minimum at the bottom; give it a height)
+  //   thickness — track thickness in px (2–16, default 6); thumbSize — thumb diameter (8–32, default 18)
+  //   colors    — { main, track, disabledMain, disabledTrack }: any CSS colour or theme token
+  //   startIcon, endIcon — trusted HTML of the icons at both ends (layout 'extended')
+  //   commitMode — 'release' (default): once per gesture. 'debounced': also while dragging,
+  //               after debounceMs (500) without movement.
+  //   renderLayout — a server-side function (parts) => HTML: { slider, valueText, value, minText,
+  //               maxText, dragging }. Mark an element with `data-kui-control-value` to keep the
+  //               shown value live there.
+  //   layoutPartial, layoutLocals — the same as a partial: the path of an EJS partial (relative to this file) that is
+  //               included with `layoutLocals` and `parts` (the object above) and returns the arrangement. Used when
+  //               there is no `renderLayout`.
+  //   formatSpec — { decimals?, notation? ('compact'), unit?, unitPosition? ('before' | 'after'), locale? }: every
+  //               number shown (server and runtime alike) is written the way kui-react's WidgetKit `formatValue`
+  //               writes it. Wins over unit / decimals; a named `format` function wins over it.
+  //   readOnly, disabled, disabledReason (a tooltip; implies disabled), framed (default true)
+  //   timeoutMs (10000), messages, className, loadRuntime
+  var L = {};
+  include('./_logic', { L: L });
+  var P = {};
+  include('./_parts', { P: P });
+  var esc = P.esc;
+  var _id = locals.id || ('control-slider-' + Math.random().toString(36).substr(2, 9));
+  var _range = L.toRange({ min: locals.min, max: locals.max, step: locals.step });
+  var _bound = L.asNumber(locals.value);
+  var _shown = _bound === null ? _range.min : _bound;
+  var _decimals = locals.decimals || 0;
+  var _suffix = locals.unit ? ' ' + locals.unit : '';
+  var _spec = locals.formatSpec && typeof locals.formatSpec === 'object' ? locals.formatSpec : null;
+  var _fmtSpec = _spec ? L.formatBySpec(_spec) : null;
+  function fmt(n) { return _fmtSpec ? _fmtSpec(n) : L.formatValue(n, _decimals) + _suffix; }
+  var _readOnly = !!locals.readOnly;
+  var _disabled = !!locals.disabled;
+  var _reason = typeof locals.disabledReason === 'string' && locals.disabledReason ? locals.disabledReason : '';
+  var _locked = _disabled || _readOnly || !!_reason;
+  var _confirm = ['confirm', 'typed'].indexOf(locals.confirm) !== -1 ? locals.confirm : 'none';
+  var _layout = ['extended', 'compact'].indexOf(locals.layout) !== -1 ? locals.layout : 'default';
+  var _showValue = locals.showValue !== false;
+  var _showTicks = locals.showTicks !== false;
+  var _vertical = locals.orientation === 'vertical';
+  var _render = typeof locals.renderLayout === 'function' ? locals.renderLayout
+    : typeof locals.layoutPartial === 'string' && locals.layoutPartial
+      ? function (parts) { return include(locals.layoutPartial, Object.assign({}, locals.layoutLocals || {}, { parts: parts })); }
+      : null;
+  function clampPx(v, lo, hi, dflt) { return typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt; }
+  var _thick = clampPx(locals.thickness, 2, 16, 6);
+  var _thumb = clampPx(locals.thumbSize, 8, 32, 18);
+  var _c = locals.colors || {};
+  var _colors = {};
+  ['main', 'track', 'disabledMain', 'disabledTrack'].forEach(function (k) { var v = P.cssValue(_c[k]); if (v) _colors[k] = v; });
+  var _main = (_locked ? _colors.disabledMain : undefined) || _colors.main || 'var(--primary)';
+  var _trackColor = (_locked ? _colors.disabledTrack : undefined) || _colors.track || 'var(--surface-sunken)';
+  var _pct = ((_shown - _range.min) / (_range.max - _range.min)) * 100;
+  var _style = 'background-image: linear-gradient(to ' + (_vertical ? 'top' : 'right') + ', ' + _main + ' ' + _pct + '%, ' + _trackColor + ' ' + _pct + '%)'
+    + '; --kui-slider-thumb: ' + _main + '; --kui-slider-thumb-size: ' + _thumb + 'px'
+    + (_vertical ? '; writing-mode: vertical-lr; direction: rtl; width: ' + _thick + 'px; height: 100%' : '; height: ' + _thick + 'px; width: 100%');
+  // No value yet reads "—": the thumb has to sit somewhere (the minimum), the text must not claim it.
+  var _text = _bound === null ? '—' : fmt(_shown);
+  var _inputClass = 'm-0 cursor-pointer appearance-none rounded-full'
+    + ' [&::-webkit-slider-thumb]:h-[var(--kui-slider-thumb-size)] [&::-webkit-slider-thumb]:w-[var(--kui-slider-thumb-size)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-surface-base [&::-webkit-slider-thumb]:bg-[var(--kui-slider-thumb)] [&::-webkit-slider-thumb]:shadow'
+    + ' [&::-moz-range-thumb]:h-[var(--kui-slider-thumb-size)] [&::-moz-range-thumb]:w-[var(--kui-slider-thumb-size)] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-surface-base [&::-moz-range-thumb]:bg-[var(--kui-slider-thumb)]'
+    + ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base'
+    + ' disabled:cursor-not-allowed'
+    + (_locked && !_colors.disabledMain ? ' disabled:opacity-50' : '');
+  var input = '<input type="range" data-kui-control-range'
+    + ' aria-label="' + esc(locals.ariaLabel || locals.title || 'Value') + '"'
+    + ' aria-valuetext="' + esc(_text) + '"'
+    + (_vertical ? ' aria-orientation="vertical"' : '')
+    + ' min="' + esc(_range.min) + '" max="' + esc(_range.max) + '" step="' + esc(_range.step) + '" value="' + esc(_shown) + '"'
+    + (_locked ? ' disabled' : '')
+    + ' style="' + esc(_style) + '" class="' + _inputClass + '">';
+
+  // Marks sit under the thumb centres: the travel is inset by half a thumb at both ends.
+  var _marks = typeof locals.tickMarks === 'number' && locals.tickMarks >= 2 ? Math.min(21, Math.floor(locals.tickMarks)) : 0;
+  var _tickLabels = !!locals.tickLabels;
+  var markRow = '';
+  if (_marks > 0) {
+    var fine = { min: _range.min, max: _range.max, step: _range.step / 100 };
+    // kui-react snapToStep on a 1/100 step: the mark value, without float noise.
+    var snapFine = function (v) {
+      var snapped = fine.min + Math.round((v - fine.min) / fine.step) * fine.step;
+      var d = (String(fine.step).split('.')[1] || '').length;
+      return Number(Math.min(fine.max, Math.max(fine.min, snapped)).toFixed(d));
+    };
+    markRow = '<div aria-hidden="true" class="relative shrink-0 ' + (_vertical ? 'h-full' : 'w-full') + ' '
+      + (_tickLabels ? (_vertical ? 'w-10' : 'h-5') : (_vertical ? 'w-2' : 'h-2')) + '"' + (_vertical ? ' style="margin-block: 0px"' : '') + '>';
+    for (var i = 0; i < _marks; i++) {
+      var at = 'calc(' + (_thumb / 2) + 'px + (100% - ' + _thumb + 'px) * ' + (i / (_marks - 1)) + ')';
+      var mv = snapFine(_range.min + ((_range.max - _range.min) * i) / (_marks - 1));
+      markRow += '<span class="absolute flex items-center gap-1 ' + (_vertical ? 'left-0 translate-y-1/2 flex-row' : 'top-0 -translate-x-1/2 flex-col') + '"'
+        + ' style="' + (_vertical ? 'bottom' : 'left') + ': ' + at + '">'
+        + '<span class="bg-border-strong ' + (_vertical ? 'h-px w-1.5' : 'h-1.5 w-px') + '"></span>'
+        + (_tickLabels ? '<span class="whitespace-nowrap text-[11px] leading-none tabular-nums text-text-secondary" data-kui-control-num="' + esc(mv) + '">' + esc(fmt(mv)) + '</span>' : '')
+        + '</span>';
+    }
+    markRow += '</div>';
+  }
+  var slider = _vertical
+    ? '<div class="flex h-full min-h-0 items-stretch justify-center gap-1.5"><div class="flex h-full w-9 items-center justify-center">' + input + '</div>' + markRow + '</div>'
+    : '<div class="min-w-0 flex-1"><div class="flex h-9 items-center">' + input + '</div>' + markRow + '</div>';
+  var _valueStyle = P.styleText(locals.valueStyle);
+  var valueEl = _showValue
+    ? '<span class="font-semibold tabular-nums text-text-primary" aria-live="off" data-kui-control-value' + (_valueStyle ? ' style="' + esc(_valueStyle) + '"' : '') + '>' + esc(_text) + '</span>'
+    : '';
+  var minEl = '<span data-kui-control-num="' + esc(_range.min) + '">' + esc(fmt(_range.min)) + '</span>';
+  var maxEl = '<span data-kui-control-num="' + esc(_range.max) + '">' + esc(fmt(_range.max)) + '</span>';
+  var body;
+  if (_render) {
+    body = _render({ slider: slider, valueText: _text, value: _shown, minText: fmt(_range.min), maxText: fmt(_range.max), dragging: false });
+  } else if (_layout === 'compact') {
+    body = '<div class="flex items-center gap-3">' + slider + (valueEl ? '<span class="shrink-0 text-sm">' + valueEl + '</span>' : '') + '</div>';
+  } else if (_layout === 'extended') {
+    body = '<div class="space-y-2">'
+      + (valueEl ? '<div class="text-center text-2xl">' + valueEl + '</div>' : '')
+      + '<div class="flex items-center gap-3">'
+      + (locals.startIcon ? '<span aria-hidden="true" class="inline-flex shrink-0 items-center">' + locals.startIcon + '</span>' : '')
+      + slider
+      + (locals.endIcon ? '<span aria-hidden="true" class="inline-flex shrink-0 items-center">' + locals.endIcon + '</span>' : '')
+      + '</div>'
+      + (_showTicks ? '<div class="flex justify-between text-xs tabular-nums text-text-secondary">' + minEl + maxEl + '</div>' : '')
+      + '</div>';
+  } else {
+    body = '<div class="space-y-1">' + slider
+      + (_showTicks || valueEl
+        ? '<div class="flex justify-between text-xs tabular-nums text-text-secondary">'
+          + (_showTicks ? minEl : '<span></span>') + valueEl + (_showTicks ? maxEl : '<span></span>') + '</div>'
+        : '')
+      + '</div>';
+  }
+%>
+<%- include('./ControlTile', {
+  id: _id, title: locals.title, kind: 'slider', readOnly: _readOnly,
+  messages: Object.assign({ reportedLabel: locals.reportedLabel || 'Reported: {value}' }, P.CONFIRM_DEFAULTS, locals.messages || {}),
+  className: locals.className, framed: locals.framed, disabledReason: _reason, body: body, reportedHolder: true,
+  after: P.confirmPrompt(_id, _confirm, locals.confirmText, locals.messages),
+  config: {
+    value: locals.value, reported: locals.reported, timeoutMs: locals.timeoutMs, readOnly: _readOnly, disabled: _disabled || !!_reason,
+    min: locals.min, max: locals.max, step: locals.step, unit: locals.unit, decimals: _decimals, onCommit: locals.onCommit,
+    format: typeof locals.format === 'string' ? locals.format : '', formatSpec: _spec, confirm: _confirm, confirmText: locals.confirmText || '',
+    colors: _colors, vertical: _vertical, commitMode: locals.commitMode === 'debounced' ? 'debounced' : 'release',
+    debounceMs: typeof locals.debounceMs === 'number' ? locals.debounceMs : 500,
+  },
+}) %>
+<% if (locals.loadRuntime !== false) { %><%- include('./_runtime') %><% } %>

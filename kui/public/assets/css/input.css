@@ -1,0 +1,462 @@
+@import "tailwindcss";
+
+@source "../../views";
+@source "../../src";
+@source "../../public/js";
+
+/* ── Fonts (mirrors NextJS next/font Geist + Geist_Mono) ── */
+:root {
+  --font-geist-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-geist-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  /* Brand mark (brand/geometry.mjs) — on top of the family contract. The
+     in-app mark reads these; only generated static assets use raw hex. */
+  --brand-tone-one: #3b82f6;
+  --brand-tone-two: #ec4899;
+  --brand-tile:     #0f172a;
+}
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+body {
+  font-family: var(--font-geist-sans);
+}
+code, pre, kbd, samp, .font-mono {
+  font-family: var(--font-geist-mono);
+}
+
+/* ── Sidebar collapse (toggled via html.sidebar-collapsed) ── */
+/* kui-react's aside is a 1px border around a w-56 / w-14 AppSidebar, so it measures 225px / 57px. */
+#sidebar {
+  width: calc(14rem + 1px); /* w-56 + border */
+  transition: width 200ms;
+}
+html.sidebar-collapsed #sidebar {
+  width: calc(3.5rem + 1px); /* w-14 + border */
+}
+html.sidebar-collapsed .sidebar-full-only {
+  display: none;
+}
+html.sidebar-collapsed .sidebar-compact-only {
+  display: flex;
+}
+html.sidebar-collapsed .sidebar-item {
+  justify-content: center;
+  padding-left:  0.5rem; /* px-2 */
+  padding-right: 0.5rem;
+  padding-top:    0.5rem; /* py-2 */
+  padding-bottom: 0.5rem;
+}
+html.sidebar-collapsed #sidebar-collapse-row {
+  justify-content: center;
+}
+html.sidebar-collapsed #sidebar-logo {
+  padding-left:  0.75rem; /* px-3 */
+  padding-right: 0.75rem;
+  justify-content: center;
+}
+
+/* ── Sidebar scrollbar (mirrors NextJS .sidebar-scrollbar-hover) ── */
+.sidebar-scrollbar-hover {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.sidebar-scrollbar-hover:hover,
+.sidebar-scrollbar-hover:focus-visible,
+.sidebar-scrollbar-hover:focus-within {
+  scrollbar-color: var(--border-strong) transparent;
+}
+/* Icon-only sidebar: no scrollbar at all (it still scrolls by wheel, touch and keyboard). A classic scrollbar (Windows)
+   takes its width out of the narrow nav even with no gutter reserved, and the centered icons slid left (parity with kui-react). */
+.sidebar-scrollbar-none {
+  scrollbar-width: none;
+}
+.sidebar-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-scrollbar-hover::-webkit-scrollbar {
+  width:  8px;
+  height: 8px;
+}
+.sidebar-scrollbar-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar-hover::-webkit-scrollbar-thumb {
+  background:    transparent;
+  border-radius: 9999px;
+}
+.sidebar-scrollbar-hover:hover::-webkit-scrollbar-thumb,
+.sidebar-scrollbar-hover:focus-visible::-webkit-scrollbar-thumb,
+.sidebar-scrollbar-hover:focus-within::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+.sidebar-scrollbar-hover:hover::-webkit-scrollbar-thumb:hover,
+.sidebar-scrollbar-hover:focus-visible::-webkit-scrollbar-thumb:hover,
+.sidebar-scrollbar-hover:focus-within::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+}
+
+:root {
+  --primary:         #3b82f6;
+  --primary-hover:   #2563eb;
+  --primary-active:  #1d4ed8;
+  --primary-subtle:  #eff6ff;
+  --primary-fg:      #ffffff;
+
+  --secondary:        #8b5cf6;
+  --secondary-hover:  #7c3aed;
+  --secondary-active: #6d28d9;
+  --secondary-subtle: #f5f3ff;
+  --secondary-fg:     #ffffff;
+
+  /* The coloured alternative action (Button `accent`). A brand's second colour goes here; Button `secondary` is neutral. */
+  --accent:           #7c3aed;
+  --accent-hover:     #6d28d9;
+  --accent-fg:        #ffffff;
+
+  --surface-base:    #ffffff;
+  --surface-raised:  #f9fafb;
+  --surface-overlay: #f3f4f6;
+  --surface-sunken:  #e5e7eb;
+
+  --text-primary:    #111827;
+  --text-secondary:  #6b7280;
+  --text-disabled:   #9ca3af;
+  --text-inverse:    #ffffff;
+
+  --border:          #e5e7eb;
+  --border-strong:   #d1d5db;
+  --border-focus:    #3b82f6;
+
+  --success:         #22c55e;
+  --success-subtle:  #f0fdf4;
+  --success-fg:      #14532d;
+
+  --warning:         #f59e0b;
+  --warning-subtle:  #fffbeb;
+  --warning-fg:      #78350f;
+
+  --error:           #ef4444;
+  --error-subtle:    #fef2f2;
+  --error-fg:        #7f1d1d;
+
+  --info:            #06b6d4;
+  --info-subtle:     #ecfeff;
+  --info-fg:         #164e63;
+}
+
+.dark {
+  --primary:          #60a5fa;
+  --primary-hover:    #93c5fd;
+  --primary-subtle:   #1e3a5f;
+  --primary-active:   #1d4ed8;
+  --primary-fg:       #ffffff;
+
+  --secondary:        #a78bfa;
+  --secondary-hover:  #c4b5fd;
+  --secondary-active: #7c3aed;
+  --secondary-subtle: #2e1065;
+  --secondary-fg:     #ffffff;
+
+  --accent:           #a78bfa;
+  --accent-hover:     #c4b5fd;
+  --accent-fg:        #0f172a;
+
+  --surface-base:    #0f172a;
+  --surface-raised:  #1e293b;
+  --surface-overlay: #334155;
+  --surface-sunken:  #1e293b;
+
+  --text-primary:    #f1f5f9;
+  --text-secondary:  #94a3b8;
+  --text-disabled:   #475569;
+  --text-inverse:     #111827;
+
+  --border:          #334155;
+  --border-strong:   #475569;
+  --border-focus:    #60a5fa;
+
+  --success:         #4ade80;
+  --success-subtle:  #052e16;
+  --success-fg:      #bbf7d0;
+
+  --warning:         #fbbf24;
+  --warning-subtle:  #451a03;
+  --warning-fg:      #fef3c7;
+
+  --error:           #f87171;
+  --error-subtle:    #450a0a;
+  --error-fg:        #fee2e2;
+
+  --info:            #22d3ee;
+  --info-subtle:     #083344;
+  --info-fg:         #cffafe;
+  --brand-tone-one: #60a5fa;
+  --brand-tone-two: #ec4899;
+  --brand-tile:     #0f172a;
+}
+
+@theme inline {
+  --color-primary:         var(--primary);
+  --color-primary-hover:   var(--primary-hover);
+  --color-primary-active:  var(--primary-active);
+  --color-primary-subtle:  var(--primary-subtle);
+  --color-primary-fg:      var(--primary-fg);
+
+  --color-secondary:       var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-fg:     var(--secondary-fg);
+  --color-secondary-active: var(--secondary-active);
+  --color-secondary-subtle: var(--secondary-subtle);
+
+  --color-accent:          var(--accent);
+  --color-accent-hover:    var(--accent-hover);
+  --color-accent-fg:       var(--accent-fg);
+
+  --color-surface-base:    var(--surface-base);
+  --color-surface-raised:  var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-sunken:  var(--surface-sunken);
+
+  --color-text-primary:    var(--text-primary);
+  --color-text-secondary:  var(--text-secondary);
+  --color-text-disabled:   var(--text-disabled);
+  --color-text-inverse:    var(--text-inverse);
+
+  --color-border:          var(--border);
+  --color-border-strong:   var(--border-strong);
+  --color-border-focus:    var(--border-focus);
+
+  --color-success:         var(--success);
+  --color-success-subtle:  var(--success-subtle);
+  --color-success-fg:      var(--success-fg);
+
+  --color-warning:         var(--warning);
+  --color-warning-subtle:  var(--warning-subtle);
+  --color-warning-fg:      var(--warning-fg);
+
+  --color-error:           var(--error);
+  --color-error-subtle:    var(--error-subtle);
+  --color-error-fg:        var(--error-fg);
+
+  --color-info:            var(--info);
+  --color-info-subtle:     var(--info-subtle);
+  --color-info-fg:         var(--info-fg);
+}
+
+/* ── Font Awesome icon boxes (mirrors kui-react's FontAwesomeIcon) ─────────
+   kui-react draws icons as SVGs: `w-3 h-3` makes a 12x12 box and the glyph is
+   scaled to fit it (aspect kept, centred); an icon without size classes is a
+   1.25em x 1em box. Here icons are webfont <i>s. Font Awesome's CSS is in the
+   base layer (assets/css/fontawesome.css), so the size utilities set the box;
+   the rules below size the glyph to that box the way the SVG viewBox does:
+   font-size = min(box height, box width / glyph aspect), with the line box as
+   tall as the icon so the glyph is centred. Wide glyphs (viewBox wider than
+   512) carry their aspect. Unlayered on purpose: a `text-*` class on a sized
+   icon does not change the glyph, as it does not on kui-react's SVG. */
+.w-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.25rem; }
+.h-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.25rem; }
+.size-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.25rem; --kui-fa-h: 0.25rem; }
+.w-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.375rem; }
+.h-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.375rem; }
+.size-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.375rem; --kui-fa-h: 0.375rem; }
+.w-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.5rem; }
+.h-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.5rem; }
+.size-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.5rem; --kui-fa-h: 0.5rem; }
+.w-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.625rem; }
+.h-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.625rem; }
+.size-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.625rem; --kui-fa-h: 0.625rem; }
+.w-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.75rem; }
+.h-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.75rem; }
+.size-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.75rem; --kui-fa-h: 0.75rem; }
+.w-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.875rem; }
+.h-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 0.875rem; }
+.size-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 0.875rem; --kui-fa-h: 0.875rem; }
+.w-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1rem; }
+.h-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1rem; }
+.size-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1rem; --kui-fa-h: 1rem; }
+.w-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.125rem; }
+.h-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1.125rem; }
+.size-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.125rem; --kui-fa-h: 1.125rem; }
+.w-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.25rem; }
+.h-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1.25rem; }
+.size-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.25rem; --kui-fa-h: 1.25rem; }
+.w-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.375rem; }
+.h-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1.375rem; }
+.size-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.375rem; --kui-fa-h: 1.375rem; }
+.w-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.5rem; }
+.h-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1.5rem; }
+.size-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.5rem; --kui-fa-h: 1.5rem; }
+.w-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.75rem; }
+.h-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 1.75rem; }
+.size-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 1.75rem; --kui-fa-h: 1.75rem; }
+.w-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2rem; }
+.h-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 2rem; }
+.size-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2rem; --kui-fa-h: 2rem; }
+.w-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.25rem; }
+.h-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 2.25rem; }
+.size-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.25rem; --kui-fa-h: 2.25rem; }
+.w-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.5rem; }
+.h-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 2.5rem; }
+.size-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.5rem; --kui-fa-h: 2.5rem; }
+.w-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.75rem; }
+.h-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 2.75rem; }
+.size-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 2.75rem; --kui-fa-h: 2.75rem; }
+.w-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 3rem; }
+.h-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 3rem; }
+.size-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 3rem; --kui-fa-h: 3rem; }
+.w-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 3.5rem; }
+.h-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 3.5rem; }
+.size-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 3.5rem; --kui-fa-h: 3.5rem; }
+.w-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 4rem; }
+.h-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-h: 4rem; }
+.size-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-w: 4rem; --kui-fa-h: 4rem; }
+.w-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.w-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.h-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-1:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-1\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-2:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-2\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-3:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-3\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-4:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-4\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-5\.5:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-6:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-7:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-8:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-9:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-10:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-11:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-12:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-14:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic),
+.size-16:is(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) {
+  font-size: min(var(--kui-fa-h, 1em), calc(var(--kui-fa-w, 1.25em) / var(--kui-fa-aspect, 1)));
+  line-height: var(--kui-fa-h, 1);
+  /* An SVG's baseline is its bottom edge, set 0.125em (of the surrounding font) below the text
+     baseline. `overflow: hidden` makes the <i>'s baseline its bottom edge too (the glyph is
+     never larger than the box), so the same shift lines it up. */
+  overflow: hidden;
+  vertical-align: calc(-0.125 * var(--kui-fa-pfs));
+}
+/* The surrounding font size, for the shift above: every non-icon element records its own font
+   size, and an icon inherits its parent's. */
+@property --kui-fa-pfs { syntax: '<length>'; inherits: true; initial-value: 16px; }
+:not(.fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic) { --kui-fa-pfs: 1em; }
+.fa-arrow-trend-up,
+.fa-basket-shopping,
+.fa-bell-slash,
+.fa-bug,
+.fa-cc-visa,
+.fa-certificate,
+.fa-chart-pie,
+.fa-clock-rotate-left,
+.fa-cloud-arrow-up,
+.fa-code,
+.fa-discord,
+.fa-eye,
+.fa-eye-slash,
+.fa-file-export,
+.fa-folder-open,
+.fa-gavel,
+.fa-graduation-cap,
+.fa-highlighter,
+.fa-house-signal,
+.fa-id-card,
+.fa-keyboard,
+.fa-link,
+.fa-lock-open,
+.fa-mug-hot,
+.fa-network-wired,
+.fa-npm,
+.fa-paper-plane,
+.fa-piggy-bank,
+.fa-plane-departure,
+.fa-screwdriver-wrench,
+.fa-star,
+.fa-star-half-stroke,
+.fa-subscript,
+.fa-sun,
+.fa-superscript,
+.fa-ticket,
+.fa-timeline,
+.fa-toggle-on,
+.fa-truck,
+.fa-tv,
+.fa-user-shield,
+.fa-video,
+.fa-wand-magic-sparkles,
+.fa-wifi,
+.fa-wrench { --kui-fa-aspect: 1.125; }
+.fa-apple-pay,
+.fa-battery-full,
+.fa-battery-half,
+.fa-battery-quarter,
+.fa-battery-three-quarters,
+.fa-box-open,
+.fa-cart-shopping,
+.fa-envelope-circle-check,
+.fa-gamepad,
+.fa-google-pay,
+.fa-laptop,
+.fa-map-location-dot,
+.fa-robot,
+.fa-user-pen,
+.fa-users,
+.fa-volume-high { --kui-fa-aspect: 1.25; }
+
+/* ── Native checkboxes and radios follow the theme (kui-react app/globals.css) ──
+   Their border and fill cannot take `border-*` / `text-*` classes, so they take
+   accent-color and color-scheme, and an invalid one gets an error outline. */
+@layer base {
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
+  input[type="checkbox"][aria-invalid="true"],
+  input[type="radio"][aria-invalid="true"] {
+    accent-color: var(--error);
+    outline: 1px solid var(--error);
+    outline-offset: 1px;
+  }
+}

@@ -1,0 +1,94 @@
+<%
+  // ControlButton — one press fires the write; an optional confirm / typed-confirm
+  // step comes first. Mirror of kui-react ControlButton.
+  //
+  // Locals:
+  //   id, title
+  //   label     — button caption (default messages.run = 'Run')
+  //   confirm   — 'none' (default) | 'confirm' ("Are you sure?") | 'typed' (also type `confirmText`)
+  //   confirmText — the text to type when confirm = 'typed'
+  //   onCommit  — NAME of a global function (confirmation?: { confirmed: true, typed? }) => Promise,
+  //               or the DOM event 'kui:control-commit' (see scripts/control-bind.js)
+  //   pressed   — a toggle-like button's state: true is drawn pressed (Button `selected` ring) and
+  //               announced aria-pressed="true"; false is announced aria-pressed="false". Absent (the
+  //               default) is an ordinary button with no pressed state. The button never flips it
+  //               itself: the host derives it from the state the press changes.
+  //   layout    — 'button' (default): a button. 'tile': a large pressable area with the icon above
+  //               the label; unframed it fills the height it is given (at least 96 px). 'icon': a round icon button with the label under it. 'fab': a fully
+  //               rounded, raised button.
+  //   icon      — trusted HTML of an icon before the label (above it in a tile, alone in the round
+  //               `icon` button)
+  //   iconPosition — 'start' (default) | 'end': where the icon sits next to the label (button, fab)
+  //   variant   — 'primary' (default) | 'secondary' | 'ghost' | 'outline' | 'danger'
+  //   size      — 'sm' | 'md' (default) | 'lg': 32 / 36 / 44 px high (the round button 40 / 56 / 72)
+  //   fullWidth — stretch the button (not the fab)
+  //   align     — 'start' | 'center' (default) | 'end': where a narrower button sits
+  //   bodyAlign — unframed: 'center' (default) or 'end' (the button at the bottom)
+  //   buttonStyle — inline style of the main button (object with camelCase keys, or CSS text)
+  //   buttonClassName — extra classes on the main button
+  //   readOnly, disabled, disabledReason (a tooltip; implies disabled), framed (default true)
+  //   className, loadRuntime
+  //   messages  — the shared ones plus { run: 'Run', confirmPrompt: 'Are you sure?', confirm: 'Confirm',
+  //               cancel: 'Cancel', typeToConfirm: 'Type "{text}" to confirm' }
+  var P = {};
+  include('./_parts', { P: P });
+  var esc = P.esc;
+  var _id = locals.id || ('control-button-' + Math.random().toString(36).substr(2, 9));
+  var _confirm = ['none', 'confirm', 'typed'].indexOf(locals.confirm) !== -1 ? locals.confirm : 'none';
+  var _confirmText = locals.confirmText || '';
+  var _readOnly = !!locals.readOnly;
+  var _disabled = !!locals.disabled;
+  var _reason = typeof locals.disabledReason === 'string' && locals.disabledReason ? locals.disabledReason : '';
+  var _pressed = typeof locals.pressed === 'boolean' ? locals.pressed : undefined;
+  var _msgs = Object.assign({ run: 'Run' }, P.CONFIRM_DEFAULTS, locals.messages || {});
+  var _layout = ['tile', 'icon', 'fab'].indexOf(locals.layout) !== -1 ? locals.layout : 'button';
+  var _size = ['sm', 'lg'].indexOf(locals.size) !== -1 ? locals.size : 'md';
+  var _variant = ['secondary', 'ghost', 'outline', 'danger'].indexOf(locals.variant) !== -1 ? locals.variant : 'primary';
+  var _align = ['start', 'end'].indexOf(locals.align) !== -1 ? locals.align : 'center';
+  var _iconEnd = locals.iconPosition === 'end';
+  var _icon = locals.icon || '';
+  var _text = locals.label || _msgs.run;
+  var _blocked = _disabled || _readOnly || !!_reason;
+  // Control heights: 32 / 36 / 44 px (DESIGN.md: controls are 36px by default); the round button's diameter.
+  var HEIGHT = { sm: 'h-8', md: 'h-9', lg: 'h-11' };
+  var ROUND = { sm: 'h-10 w-10', md: 'h-14 w-14', lg: 'h-[4.5rem] w-[4.5rem]' };
+  var ALIGN = { start: 'justify-start', center: 'justify-center', end: 'justify-end' };
+  var _pressAttrs = 'data-kui-control-main' + (_pressed === undefined ? '' : ' data-pressed="' + String(_pressed) + '"');
+  var _main;
+  if (_layout === 'icon') {
+    _main = '<div class="flex flex-col items-center gap-2">'
+      + P.button({
+        variant: _variant, iconOnly: true, disabled: _blocked, ariaLabel: _text,
+        selected: _pressed === true, ariaPressed: _pressed, style: locals.buttonStyle,
+        className: 'rounded-full p-0 ' + ROUND[_size] + (locals.buttonClassName ? ' ' + locals.buttonClassName : ''),
+        attrs: _pressAttrs,
+        children: _icon ? '<span aria-hidden="true" class="inline-flex items-center">' + _icon + '</span>' : esc(_text.slice(0, 1)),
+      })
+      + '<span aria-hidden="true" class="max-w-full truncate text-sm font-medium text-text-primary">' + esc(_text) + '</span>'
+      + '</div>';
+  } else {
+    var _cls = _layout === 'tile' ? 'min-h-24 flex-col gap-2 py-4'
+      : _layout === 'button' ? HEIGHT[_size]
+        : 'rounded-full px-6 shadow-md ' + HEIGHT[_size === 'sm' ? 'md' : 'lg'];
+    _main = P.button({
+      variant: _variant, size: _layout === 'tile' ? 'lg' : _size,
+      fullWidth: (!!locals.fullWidth && _layout !== 'fab') || _layout === 'tile',
+      disabled: _blocked, selected: _pressed === true, ariaPressed: _pressed, style: locals.buttonStyle,
+      iconLeft: _layout !== 'tile' && !_iconEnd ? _icon : '',
+      iconRight: _layout !== 'tile' && _iconEnd ? _icon : '',
+      className: _cls + (locals.buttonClassName ? ' ' + locals.buttonClassName : ''),
+      attrs: _pressAttrs,
+      children: (_layout === 'tile' && _icon ? '<span aria-hidden="true" class="inline-flex items-center">' + _icon + '</span>' : '') + esc(_text),
+    });
+  }
+  // Unframed, a tile fills the space it is given (its card); the other layouts keep their size and sit centred.
+  var _fill = _layout === 'tile' && locals.framed === false;
+  var body = '<div class="flex ' + ALIGN[_align] + (_fill ? ' min-h-0 flex-1' : '') + '" data-kui-control-main-row>' + _main + '</div>';
+  var _ask = P.confirmPrompt(_id, _confirm, _confirmText, _msgs);
+%>
+<%- include('./ControlTile', {
+  id: _id, title: locals.title, kind: 'button', readOnly: _readOnly, messages: _msgs, className: locals.className, body: body,
+  after: _ask, framed: locals.framed, disabledReason: _reason, bodyAlign: locals.bodyAlign, fill: _layout === 'tile', reserveStatus: false,
+  config: { readOnly: _readOnly, disabled: _disabled || !!_reason, confirm: _confirm, confirmText: _confirmText, onCommit: locals.onCommit, layout: _layout },
+}) %>
+<% if (locals.loadRuntime !== false) { %><%- include('./_runtime') %><% } %>

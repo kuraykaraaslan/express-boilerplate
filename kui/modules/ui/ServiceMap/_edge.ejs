@@ -1,0 +1,21 @@
+<%#
+  One edge of ServiceMap (kui-react EdgeView): the path with its arrow and, when it has figures, a badge at the
+  middle of the polyline. Locals: c (the context built by ../ServiceMap.ejs), pe (the placed edge), data (the
+  call's figures or undefined), dim, label. No whitespace inside <text> / <title>: it would be drawn.
+-%>
+<%
+  var _failing = ((data && data.errorRate !== undefined && data.errorRate !== null ? data.errorRate : 0)) >= 0.05;
+  var _text = data ? c.edgeText(data).join(' · ') : '';
+  var _w = Math.ceil(_text.length * 6) + 14;
+  var _sw = c.M.edgeStrokeWidth(data ? data.rate : 0);
+-%>
+<g opacity="<%= dim ? 0.3 : 1 %>" role="img" aria-label="<%= label %>" data-sm-edge="<%= pe.id %>" data-sm-edge-from="<%= pe.from %>" data-sm-edge-to="<%= pe.to %>">
+  <title><%= label %></title>
+  <path d="<%= pe.path %>" fill="none" stroke="<%= _failing ? 'var(--error)' : 'var(--border-strong)' %>" stroke-width="<%= _sw %>"<% if (_failing) { %> stroke-dasharray="6 4"<% } %> marker-end="url(#<%= _failing ? c.markerErrId : c.markerId %>)"></path>
+  <% if (_text) { %>
+  <g transform="translate(<%= pe.mid.x %> <%= pe.mid.y %>)">
+    <rect x="<%= -_w / 2 %>" y="-9" width="<%= _w %>" height="18" rx="9" fill="var(--surface-base)" stroke="<%= _failing ? 'var(--error)' : 'var(--border)' %>"></rect>
+    <text text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="<%= _failing ? 700 : 500 %>" fill="<%= _failing ? 'var(--error)' : 'var(--text-secondary)' %>"><%= (_failing ? '! ' : '') + _text %></text>
+  </g>
+  <% } %>
+</g>

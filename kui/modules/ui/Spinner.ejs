@@ -1,0 +1,15 @@
+<%
+// label: screen-reader text (default "Loading…"); null leaves it out, for a spinner beside a visible message
+// that already says it (kui-react Spinner `label`).
+var _sz = locals.size || 'md';
+var _label = locals.label === undefined ? 'Loading…' : locals.label;
+var sc = {
+  xs: 'h-3 w-3 border',
+  sm: 'h-4 w-4 border-2',
+  md: 'h-6 w-6 border-2',
+  lg: 'h-8 w-8 border-[3px]',
+  xl: 'h-12 w-12 border-4',
+}[_sz] || 'h-6 w-6 border-2';
+%>
+<span aria-hidden="true" class="inline-block rounded-full border-border border-t-primary animate-spin <%= sc %><%= locals.className ? ' ' + locals.className : '' %>"></span>
+<% if (_label !== null) { %><span class="sr-only"><%= _label %></span><% } %>

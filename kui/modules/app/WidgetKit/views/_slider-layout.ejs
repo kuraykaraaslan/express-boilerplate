@@ -1,0 +1,22 @@
+<%#
+  The arrangement of control.slider (kui-react ControlSliderView's `renderLayout`), included by ControlSlider.ejs
+  (`layoutPartial`): vertical, compact, extended or default. The value text is marked `data-kui-control-value`, which the
+  control's runtime keeps live while the slider is dragged. The label is the model's `caption`: left out when it only
+  repeats the card's title shown in the header (`captionOf`).
+  Locals: g (the slider model), parts ({ slider, valueText, value, minText, maxText, dragging } of ControlSlider.ejs).
+%><%_
+  var _g = locals.g;
+  var _p = locals.parts;
+  var _atBottom = _g.showValue && _g.valueAt === 'footer';
+  var _label = { text: _g.caption, font: _g.label.font, color: _g.label.color, className: '' };
+  var _meta = function (text, className) { return { text: text, className: className || '', style: undefined, tooltip: '' }; };
+_%>
+<%_ if (_g.variant === 'vertical') { _%>
+<div class="flex min-h-0 flex-1 gap-4"><div class="flex min-w-0 flex-1 flex-col gap-1.5 [&>*]:shrink-0"><%- include('../_metric-label', _label) %><% if (_g.showValue) { %><%- include('_slider-metric', { g: _g, text: _p.valueText, size: _g.valueSize }) %><% } %><% if (_g.showMinMax) { %><%- include('../_meta', _meta(_p.minText + ' – ' + _p.maxText, 'mt-auto')) %><% } %></div><div class="flex min-h-16 flex-col items-center gap-1.5"><%- include('_slider-icon', { icon: _g.endIcon }) %><div class="min-h-0 flex-1"><%- include('../_slot', { body: _p.slider }) %></div><%- include('_slider-icon', { icon: _g.startIcon }) %></div></div>
+<%_ } else if (_g.variant === 'compact') { _%>
+<div class="flex min-h-0 flex-1 items-center gap-3"><% if (_g.caption) { %><div class="max-w-[35%] shrink-0"><%- include('../_metric-label', _label) %></div><% } %><div class="min-w-0 flex-1"><%- include('_slider-track', { g: _g, slider: _p.slider, end: _g.showValue ? 'value' : '', valueText: _p.valueText }) %></div></div>
+<%_ } else if (_g.variant === 'extended') { _%>
+<div class="flex min-h-0 flex-1 flex-col items-stretch justify-center-safe gap-1"><div class="flex flex-col items-center gap-1 text-center"><%- include('../_metric-label', _label) %><% if (_g.showValue) { %><%- include('_slider-metric', { g: _g, text: _p.valueText, size: _g.valueSize }) %><% } %></div><%- include('_slider-track', { g: _g, slider: _p.slider, end: '', valueText: _p.valueText }) %><% if (_g.showMinMax) { %><div class="flex justify-between"><%- include('../_meta', _meta(_p.minText)) %><%- include('../_meta', _meta(_p.maxText)) %></div><% } %></div>
+<%_ } else { _%>
+<div class="flex min-h-0 flex-1 flex-col gap-1"><div class="flex items-start justify-between gap-3"><div class="min-w-0 pt-0.5"><%- include('../_metric-label', _label) %></div><% if (_g.showValue && _g.valueAt === 'head') { %><%- include('_slider-metric', { g: _g, text: _p.valueText, size: _g.valueSize }) %><% } %></div><div class="mt-auto"><%- include('_slider-track', { g: _g, slider: _p.slider, end: _g.showValue && _g.valueAt === 'track-end' ? 'value' : '', valueText: _p.valueText }) %><% if (_g.showMinMax || _atBottom) { %><div class="flex items-center justify-between gap-2"><% if (_g.showMinMax) { %><%- include('../_meta', _meta(_p.minText)) %><% } else { %><span></span><% } %><% if (_atBottom) { %><%- include('_slider-metric', { g: _g, text: _p.valueText, size: _g.valueSize }) %><% } %><% if (_g.showMinMax) { %><%- include('../_meta', _meta(_p.maxText)) %><% } else { %><span></span><% } %></div><% } %></div></div>
+<%_ } _%>

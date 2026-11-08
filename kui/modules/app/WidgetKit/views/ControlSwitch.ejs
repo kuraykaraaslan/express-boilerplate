@@ -1,0 +1,13 @@
+<%#
+  control.switch: label and icon on top, the state and the switch below (kui-react ControlSwitchView). A toggle is the
+  bubbling `kui:widget-control` event, `{ placement, kind: 'set', value: <boolean>, confirmation }` (scripts/widget-kit.js).
+  The arrangement is _switch-layout.ejs (kui-react's `renderLayout`). Locals: model (`controlSwitchModel` plus `id`).
+%><%_ var _g = locals.model; _%>
+<%- include('../../../ui/ControlTile/ControlSwitch', {
+  id: _g.id, title: '', framed: false, className: '', value: _g.state === 'on' ? true : _g.state === 'off' ? false : null, reported: undefined,
+  label: _g.ariaLabel || '', onLabel: _g.labels.on, offLabel: _g.labels.off, unknownLabel: _g.labels.unknown, size: _g.size,
+  colors: _g.colors, disabledReason: _g.disabledReason || '', disabled: false, readOnly: false,
+  confirm: _g.confirm.confirm, confirmText: _g.confirm.confirmText || '', messages: _g.messages || {}, onCommit: '',
+  layout: 'left', showStateText: true, icon: '', stateStyles: undefined, labelStyle: undefined, renderLayout: undefined,
+  layoutPartial: '../../app/WidgetKit/views/_switch-layout', layoutLocals: { g: _g }, stateViews: true, loadRuntime: false
+}) %>

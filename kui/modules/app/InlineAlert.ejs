@@ -1,0 +1,19 @@
+<%
+  var _v         = locals.variant   || 'success';
+  var _message   = locals.message   || '';
+  var _className = locals.className || '';
+
+  var variantMap = {
+    success: { container: 'bg-success-subtle border-success text-success-fg',   icon: 'fa-check' },
+    error:   { container: 'bg-error-subtle border-error text-error',            icon: 'fa-xmark' },
+    warning: { container: 'bg-warning-subtle border-warning text-text-primary', icon: 'fa-triangle-exclamation' },
+    info:    { container: 'bg-info-subtle border-info text-text-primary',       icon: 'fa-circle-info' },
+  };
+  var vm = variantMap[_v] || variantMap.success;
+%>
+<div class="rounded-lg border px-4 py-2.5 text-sm font-medium flex items-center gap-1.5 <%= vm.container %><%= _className ? ' ' + _className : '' %>">
+  <span aria-hidden="true" class="w-3.5 h-3.5 inline-flex items-center justify-center shrink-0">
+    <i class="fa-solid <%= vm.icon %>" style="font-size:14px"></i>
+  </span>
+  <span><%= _message %></span>
+</div>

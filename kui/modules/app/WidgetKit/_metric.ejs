@@ -1,0 +1,13 @@
+<%#
+  A number with its unit in the kit's metric style (views/ui.tsx `Metric`).
+  Locals: text, unit, unitPosition ('after'|'before'), size ('xl'|'lg'|'md'|'sm'), color, font, className, style (a style record laid over the auto size),
+  textAttr (the name of a data attribute set on the text span, e.g. 'data-kui-control-value', so a browser runtime can keep that text live; only `data-` names are written),
+  unitAttr (the same for the unit span), unitHidden (the unit span is drawn hidden: a runtime shows it when there is a value).
+%><%_
+  var _unit = locals.unit ? locals.unit : '';
+  var _before = locals.unitPosition === 'before';
+  var _ta = typeof locals.textAttr === 'string' && /^data-[a-z][a-z0-9-]*$/.test(locals.textAttr) ? locals.textAttr : '';
+  var _ua = typeof locals.unitAttr === 'string' && /^data-[a-z][a-z0-9-]*$/.test(locals.unitAttr) ? locals.unitAttr : '';
+  var _st = widgetKit.style(widgetKit.ui.metricStyle({ size: locals.size, font: locals.font, color: locals.color, style: locals.style }));
+_%>
+<span class="<%= widgetKit.ui.METRIC_CLASS %><%= locals.className ? ' ' + locals.className : '' %>"<% if (_st) { %> style="<%= _st %>"<% } %>><% if (_unit && _before) { %><span class="<%= widgetKit.ui.METRIC_UNIT_CLASS %>"<% if (_ua) { %> <%= _ua %><% } %><% if (locals.unitHidden) { %> hidden<% } %>><%= _unit %></span><% } %><span<% if (_ta) { %> <%= _ta %><% } %>><%= locals.text %></span><% if (_unit && !_before) { %><span class="<%= widgetKit.ui.METRIC_UNIT_CLASS %>"<% if (_ua) { %> <%= _ua %><% } %><% if (locals.unitHidden) { %> hidden<% } %>><%= _unit %></span><% } %></span>

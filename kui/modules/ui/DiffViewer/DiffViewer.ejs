@@ -1,0 +1,197 @@
+<%
+  // ─── DiffViewer (EJS) ──────────────────────────────────────────────────
+  //
+  // Pixel-identical sibling of
+  // /home/kuray/01_NextJS_Components/modules/ui/DiffViewer/index.tsx.
+  //
+  // M1 — line-based LCS diff with unified + split views, hunk headers, line
+  // numbers, configurable context, optional collapsible runs.
+  //
+  // Locals:
+  //   id          — wrapper id (auto-generated when missing)
+  //   oldText     — string, defaults to ''
+  //   newText     — string, defaults to ''
+  //   mode        — 'unified' | 'split' (default 'unified')
+  //   context     — # of unchanged lines around each hunk (default 3)
+  //   collapsible — boolean — fold trimmed context behind a button
+  //   language    — string — surfaced as data-language for the M2 syntax engine
+  //   className   — extra classes on the wrapper
+  //
+  // TODO M2: lazy syntax highlight, intra-line word diff, theme switcher.
+  // TODO M3: code review comments (threads, replies, suggestion mode).
+  // TODO M4: JSON tree diff, image diff slider/swipe/onion/2-up, binary banner.
+  // TODO M5: J/K + N/P keyboard nav, roving tabindex, virtualisation, i18n.
+
+  var _id        = locals.id          || ('dv-' + Math.random().toString(36).substr(2, 6));
+  var _oldText   = locals.oldText     || '';
+  var _newText   = locals.newText     || '';
+  var _mode      = locals.mode === 'split' ? 'split' : 'unified';
+  var _context   = (typeof locals.context === 'number' && locals.context >= 0) ? locals.context : 3;
+  var _collapsible = !!locals.collapsible;
+  var _language  = locals.language    || '';
+  var _className = locals.className   || '';
+
+  // ─── Compute hunks (server-side mirror of useDiff) ─────────────────────
+  function _splitLines(s) {
+    if (s === '') return [];
+    return String(s).split('\n');
+  }
+
+  function _lcsTable(oldLines, newLines) {
+    var m = oldLines.length, n = newLines.length;
+    var lcs = new Array(m + 1);
+    for (var i = 0; i <= m; i++) {
+      lcs[i] = new Array(n + 1);
+      for (var j = 0; j <= n; j++) lcs[i][j] = 0;
+    }
+    for (var i2 = 1; i2 <= m; i2++) {
+      for (var j2 = 1; j2 <= n; j2++) {
+        if (oldLines[i2 - 1] === newLines[j2 - 1]) {
+          lcs[i2][j2] = lcs[i2 - 1][j2 - 1] + 1;
+        } else {
+          lcs[i2][j2] = Math.max(lcs[i2 - 1][j2], lcs[i2][j2 - 1]);
+        }
+      }
+    }
+    return lcs;
+  }
+
+  function _changes(oldLines, newLines, lcs) {
+    var out = [];
+    var i = oldLines.length, j = newLines.length;
+    while (i > 0 && j > 0) {
+      if (oldLines[i - 1] === newLines[j - 1]) {
+        out.push({ type: 'context', oldLine: i, newLine: j, content: oldLines[i - 1] });
+        i--; j--;
+      } else if (lcs[i - 1][j] >= lcs[i][j - 1]) {
+        out.push({ type: 'remove', oldLine: i, newLine: null, content: oldLines[i - 1] });
+        i--;
+      } else {
+        out.push({ type: 'add', oldLine: null, newLine: j, content: newLines[j - 1] });
+        j--;
+      }
+    }
+    while (i > 0) { out.push({ type: 'remove', oldLine: i, newLine: null, content: oldLines[i - 1] }); i--; }
+    while (j > 0) { out.push({ type: 'add', oldLine: null, newLine: j, content: newLines[j - 1] }); j--; }
+    out.reverse();
+    return out;
+  }
+
+  function _groupHunks(changes, context) {
+    if (!changes.length) return [];
+    var changeIdx = [];
+    for (var i = 0; i < changes.length; i++) {
+      if (changes[i].type !== 'context') changeIdx.push(i);
+    }
+    if (!changeIdx.length) return [];
+    var clusters = [];
+    var curStart = changeIdx[0], curEnd = changeIdx[0];
+    for (var k = 1; k < changeIdx.length; k++) {
+      var idx = changeIdx[k];
+      if (idx - curEnd <= 2 * context + 1) {
+        curEnd = idx;
+      } else {
+        clusters.push({ start: curStart, end: curEnd });
+        curStart = idx;
+        curEnd = idx;
+      }
+    }
+    clusters.push({ start: curStart, end: curEnd });
+
+    var hunks = [];
+    for (var c = 0; c < clusters.length; c++) {
+      var cl = clusters[c];
+      var from = Math.max(0, cl.start - context);
+      var to = Math.min(changes.length - 1, cl.end + context);
+      var slice = changes.slice(from, to + 1);
+      var oldStart = 0, newStart = 0;
+      for (var s = 0; s < slice.length; s++) {
+        if (slice[s].oldLine != null) { oldStart = slice[s].oldLine; break; }
+      }
+      for (var s2 = 0; s2 < slice.length; s2++) {
+        if (slice[s2].newLine != null) { newStart = slice[s2].newLine; break; }
+      }
+      var oldLines = 0, newLines = 0;
+      for (var t = 0; t < slice.length; t++) {
+        var ch = slice[t];
+        if (ch.type === 'context') { oldLines++; newLines++; }
+        else if (ch.type === 'remove') oldLines++;
+        else if (ch.type === 'add') newLines++;
+      }
+      hunks.push({ oldStart: oldStart, oldLines: oldLines, newStart: newStart, newLines: newLines, changes: slice });
+    }
+    return hunks;
+  }
+
+  var _oldLines = _splitLines(_oldText);
+  var _newLines = _splitLines(_newText);
+  var _hunks = [];
+  if (_oldLines.length || _newLines.length) {
+    var _lcs = _lcsTable(_oldLines, _newLines);
+    var _chs = _changes(_oldLines, _newLines, _lcs);
+    _hunks = _groupHunks(_chs, _context);
+  }
+%>
+<div
+  id="<%= _id %>"
+  data-kui-diffviewer="<%= _id %>"
+  data-mode="<%= _mode %>"
+  <% if (_language) { %>data-language="<%= _language %>"<% } %>
+  class="w-full rounded-md border border-border bg-surface-base text-text-primary overflow-hidden<%= _className ? ' ' + _className : '' %>"
+>
+  <% if (_mode === 'split') { %>
+  <%- include('partials/_split', { hunks: _hunks, diffId: _id }) %>
+  <% } else { %>
+  <%- include('partials/_unified', { hunks: _hunks, collapsible: _collapsible, diffId: _id }) %>
+  <% } %>
+</div>
+
+<script>
+(function () {
+  if (!window.KuiDiff) {
+    <%- include('scripts/diff.js') %>
+  }
+  if (!window.KuiDiffScrollSync) {
+    <%- include('scripts/scroll-sync.js') %>
+  }
+
+  var id = <%- include('../_script-json', { value: _id }) %>;
+  if (window.__kuiDiffInit && window.__kuiDiffInit[id]) return;
+  window.__kuiDiffInit = window.__kuiDiffInit || {};
+  window.__kuiDiffInit[id] = true;
+
+  function init() {
+    var root = document.querySelector('[data-kui-diffviewer="' + id + '"]');
+    if (!root) return;
+
+    // Wire collapsible expand buttons (unified view).
+    var btns = root.querySelectorAll('[data-diff-expand]');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var key = btn.getAttribute('data-diff-expand');
+          var target = root.querySelector('[data-diff-expand-target="' + key + '"]');
+          if (target) {
+            target.classList.remove('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+            btn.classList.add('hidden');
+          }
+        });
+      })(btns[i]);
+    }
+
+    // Wire scroll-sync (split view).
+    var left = root.querySelector('[data-diff-split-left="' + id + '"]');
+    var right = root.querySelector('[data-diff-split-right="' + id + '"]');
+    if (left && right && window.KuiDiffScrollSync) {
+      window.KuiDiffScrollSync.attach(left, right);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

@@ -1,0 +1,5 @@
+<%# Backwards-compatible shim — `DataTable` now lives in `modules/ui/Table/`.
+    Defaults to `mode="paginated"` so existing consumers see no behavioral
+    change. Use the new modes (`static` | `server`) via the unified
+    `include('modules/ui/Table/Table', { mode: '…' })` API. %>
+<%- include('./Table/Table', Object.assign({}, locals, { mode: locals.mode || 'paginated' })) %>

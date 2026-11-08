@@ -1,0 +1,14 @@
+<%#
+  content.embed: an external page in a hardened frame. The address passes the vendored gate (https only, no
+  credentials, default port, no private host, the host's allow-list); the frame is sandboxed without allow-same-origin,
+  sends no referrer and loads lazily (kui-react ContentEmbedView). Locals: model.
+%><%_ var _m = locals.model; _%>
+<% if (!_m.ok) { %>
+<p class="flex h-full items-center justify-center p-4 text-center text-sm text-text-secondary"><%= _m.text %></p>
+<% } else { %>
+<div class="flex h-full min-h-0 w-full flex-col"<% if (_m.refreshSeconds) { %> data-wk-reload="<%= _m.refreshSeconds %>"<% } %>>
+<% if (_m.top && _m.toolbar) { %><%- include('_embed-toolbar', { model: _m }) %><% } %>
+<div class="flex min-h-0 flex-1 items-center justify-center"><div class="<%= _m.frameBoxClass %>" style="<%= widgetKit.style(_m.frameBox) %>"><iframe src="<%= _m.url %>" title="<%= _m.iframe.title %>" sandbox="<%= _m.iframe.sandbox %>"<% if (_m.iframe.allow) { %> allow="<%= _m.iframe.allow %>"<% } %><% if (_m.iframe.allowFullScreen) { %> allowfullscreen<% } %> referrerpolicy="<%= _m.iframe.referrerPolicy %>" loading="lazy" class="absolute inset-0 block h-full w-full border-0"<% var _fs = widgetKit.style(_m.frameStyle); if (_fs) { %> style="<%= _fs %>"<% } %>></iframe></div></div>
+<% if (!_m.top && _m.toolbar) { %><%- include('_embed-toolbar', { model: _m }) %><% } %>
+</div>
+<% } %>

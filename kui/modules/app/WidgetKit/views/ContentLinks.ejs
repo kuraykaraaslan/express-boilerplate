@@ -1,0 +1,12 @@
+<%#
+  content.links: quick links; an unsafe target is dropped (kui-react ContentLinksView). Locals: model.
+%><%_ var _m = locals.model; _%>
+<% if (_m.empty) { %>
+<p class="flex h-full items-center justify-center p-4 text-center text-sm text-text-secondary"><%= _m.emptyText %></p>
+<% } else { var _us = widgetKit.style(_m.ulStyle); %>
+<ul class="<%= _m.ulClass %>"<% if (_us) { %> style="<%= _us %>"<% } %>>
+<% _m.items.forEach(function (l) { %>
+<li style="<%= widgetKit.style(l.liStyle) %>"<% if (l.liClass) { %> class="<%= l.liClass %>"<% } %>><a href="<%= l.href %>" class="<%= l.className %>"<% if (l.title) { %> title="<%= l.title %>"<% } %><% if (l.newTab) { %> target="_blank"<% } %><% if (l.rel) { %> rel="<%= l.rel %>"<% } %>><% if (l.icon && l.icon.tile) { %><%- include('../_icon-tile', { name: l.icon.name, color: l.icon.color, size: l.icon.size }) %><% } else if (l.icon) { %><%- include('../_icon', { name: l.icon.name, className: 'shrink-0', style: l.icon.style }) %><% } %><span class="<%= l.innerClass %>"><span class="<%= l.labelClass %>"<% var _ls = widgetKit.style(l.labelStyle); if (_ls) { %> style="<%= _ls %>"<% } %>><%= l.label %><% if (l.mark) { %><span aria-hidden="true" class="ml-1 text-[0.8em] opacity-60">↗</span><% } %></span><% if (l.description) { var _ds = widgetKit.style(l.description.style); %><span class="<%= l.description.className %>"<% if (_ds) { %> style="<%= _ds %>"<% } %>><%= l.description.text %></span><% } %></span><% if (l.newTab) { %><span class="sr-only"> (opens in a new tab)</span><% } %></a></li>
+<% }); %>
+</ul>
+<% } %>

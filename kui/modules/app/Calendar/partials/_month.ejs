@@ -1,0 +1,70 @@
+<%
+  // Month view — parallel of views/MonthView.tsx
+  // Locals: _id, _date, _events, _today, _L, _isSameDay, _isSameMonth,
+  //         _eventOnDay, _monthGrid, _pillCls, _fmtTime
+  var _cells       = _monthGrid(_date, _L.weekStart);
+  var _headerOrder = [];
+  for (var _i = 0; _i < 7; _i++) _headerOrder.push((_i + _L.weekStart) % 7);
+  var _maxPerDay = 3;
+
+  function moreLabel(n) {
+    if (_L.messages.more) return _L.messages.more(n);
+    return (_L.weekStart === 1) ? '+' + n + ' daha' : '+' + n + ' more';
+  }
+%>
+<div class="flex flex-col w-full" role="grid" aria-label="<%= _L.monthNames[_date.getMonth()] %> <%= _date.getFullYear() %>">
+  <div class="grid grid-cols-7 border-b border-border bg-surface-raised" role="row">
+    <% _headerOrder.forEach(function (dayIdx) { %>
+      <div role="columnheader" class="px-2 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-secondary text-center">
+        <%= _L.dayShort[dayIdx] %>
+      </div>
+    <% }); %>
+  </div>
+
+  <div role="presentation" class="grid grid-cols-7 grid-rows-6 flex-1">
+    <% for (var _w = 0; _w < _cells.length; _w += 7) { %>
+    <div role="row" style="display: contents">
+    <% _cells.slice(_w, _w + 7).forEach(function (cell, _ci) {
+         var i = _w + _ci;
+         var inMonth = _isSameMonth(cell, _date);
+         var isToday = _isSameDay(cell, _today);
+         var dayEvents = _events.filter(function (e) { return _eventOnDay(e, cell); });
+         var visible   = dayEvents.slice(0, _maxPerDay);
+         var overflow  = dayEvents.length - visible.length;
+         var dateLabel = _L.dayLong[cell.getDay()] + ' ' + cell.getDate() + ' ' + _L.monthNames[cell.getMonth()];
+         var ariaLabel = _L.messages.cellLabel ? _L.messages.cellLabel(dateLabel, dayEvents.length) : dateLabel;
+         var cellCls = 'min-h-[88px] border-b border-r border-border p-1 flex flex-col gap-0.5 last-of-type:border-r-0'
+                     + ((i + 1) % 7 === 0 ? ' border-r-0' : '')
+                     + (!inMonth ? ' bg-surface-raised/50' : '');
+         var dayNumCls;
+         if (isToday) {
+           dayNumCls = 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-fg text-xs font-medium tabular-nums';
+         } else if (!inMonth) {
+           dayNumCls = 'text-xs font-medium tabular-nums text-text-disabled';
+         } else {
+           dayNumCls = 'text-xs font-medium tabular-nums text-text-primary';
+         }
+    %>
+      <div role="gridcell" aria-selected="<%= isToday ? 'true' : 'false' %>" aria-label="<%= ariaLabel %>" class="<%= cellCls %>">
+        <div class="flex items-center justify-between">
+          <span class="<%= dayNumCls %>"><%= cell.getDate() %></span>
+        </div>
+        <div class="flex flex-col gap-0.5 min-h-0">
+          <% visible.forEach(function (e) { %>
+            <%- include('./_event-card', {
+              _event: e,
+              _variant: e.allDay ? 'bar' : 'pill',
+              _pillCls: _pillCls,
+              _fmtTime: _fmtTime
+            }) %>
+          <% }); %>
+          <% if (overflow > 0) { %>
+            <span class="px-1.5 text-[10px] text-text-secondary"><%= moreLabel(overflow) %></span>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+    </div>
+    <% } %>
+  </div>
+</div>

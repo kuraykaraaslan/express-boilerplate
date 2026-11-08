@@ -1,0 +1,12 @@
+<%#
+  Script-safe JSON for one server value written into an inline script block. Use it, in a raw
+  output tag, for every value a script needs, e.g. var label = include('<path>/ui/_script-json',
+  { value: label }) written with the raw output delimiters. Escaped output (the = tag) is wrong
+  there: it HTML-escapes, so an apostrophe arrives as &#39;. A bare JSON.stringify is unsafe there:
+  a value holding a closing script tag ends the block.
+  JSON.stringify makes a JS literal (quotes, backslashes and control characters escaped); then
+  every < becomes \u003c, so no closing script tag or comment opener can form, and U+2028 and
+  U+2029 are escaped for engines that do not allow them in strings. undefined (and anything
+  JSON.stringify drops, such as a function) becomes null.
+-%>
+<%- (function (v) { var s = JSON.stringify(v); if (s === undefined) s = 'null'; return s.replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'); })(locals.value) -%>

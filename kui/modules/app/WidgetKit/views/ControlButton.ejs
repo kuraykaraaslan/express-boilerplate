@@ -1,0 +1,17 @@
+<%#
+  control.button: one press asks the host to run the placement's command; with `pressed` it is a toggle (kui-react
+  ControlButtonView). The press is the bubbling `kui:widget-control` event, `{ placement, kind: 'run', confirmation }`
+  (see scripts/widget-kit.js). Locals: model (`controlButtonModel` plus `id`).
+%><%_
+  var _g = locals.model;
+  var _b = _g.button;
+  var _icon = _b.icon ? include('../_icon', { name: _b.icon.name, className: '', style: { width: _b.icon.size, height: _b.icon.size, fontSize: _b.icon.size } }) : '';
+_%>
+<div class="flex h-full min-h-0 flex-col gap-2"><% if (_g.description) { %><%- include('../_metric-label', { text: _g.description.text, font: _g.description.font, color: _g.description.color, className: '' }) %><% } %>
+<%- include('../../../ui/ControlTile/ControlButton', {
+  id: _g.id, title: '', framed: false, className: 'min-h-0 flex-1', layout: _b.layout, label: _b.label || '', icon: _icon,
+  iconPosition: _b.iconPosition, variant: _b.variant, size: _b.size, fullWidth: _b.fullWidth, bodyAlign: _b.bodyAlign, align: _b.align,
+  buttonStyle: _b.style, buttonClassName: _b.className, disabledReason: _b.disabledReason || '', disabled: false, readOnly: false,
+  pressed: _b.pressed, confirm: _b.confirm.confirm, confirmText: _b.confirm.confirmText || '', messages: _b.messages || {},
+  onCommit: '', loadRuntime: false
+}) %></div>

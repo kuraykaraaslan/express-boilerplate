@@ -1,0 +1,51 @@
+<%#
+  The detail of a selected span: kui-react's DefaultDetail (or the host's partial / function in its place).
+  Included by TraceWaterfall.ejs for the span selected at render time and, with wrap: true, once per span inside
+  a <template> that the browser script copies into the detail region on selection.
+  Locals: list = [{ node, info }], c = the context object, wrap = write a [data-tw-for] wrapper per span.
+-%>
+<% locals.list.forEach(function (entry) {
+  var node = entry.node, span = node.span, info = entry.info;
+%><% if (locals.wrap) { %><div data-tw-for="<%= span.id %>"><% } %><%
+  if (c.detailPartial) { %><%- include(c.detailPartial, { span: span, info: info }) %><%
+  } else if (typeof c.renderDetail === 'function') { %><%= c.renderDetail(span, info) %><%
+  } else {
+    var attrs = span.attributes && typeof span.attributes === 'object' ? Object.keys(span.attributes) : [];
+    var rowsOf = [
+      [c.msg.start, '+' + c.F.formatDurationMs(info.offset)],
+      [c.msg.duration, c.F.formatDurationMs(info.duration)],
+      [c.msg.selfTime, c.F.formatDurationMs(info.selfTime)]
+    ];
+    if (span.service) rowsOf.unshift([c.msg.service, span.service]);
+    if (span.kind) rowsOf.push([c.msg.kind, span.kind]);
+    rowsOf.push([c.msg.status, span.status === 'error' ? c.msg.error : (span.status || 'unset')]);
+%>
+<div class="flex flex-col gap-2">
+  <div class="flex items-start justify-between gap-2">
+    <h3 class="min-w-0 break-words font-semibold text-text-primary"><%= span.name %></h3>
+    <button type="button" data-tw-clear class="rounded border border-border bg-surface-base px-2 py-1 text-xs text-text-primary transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><%= c.msg.clearSelection %></button>
+  </div>
+  <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+    <% rowsOf.forEach(function (r) { %>
+    <div class="contents">
+      <dt class="text-text-secondary"><%= r[0] %></dt>
+      <dd class="text-text-primary"><%= r[1] %></dd>
+    </div>
+    <% }); %>
+  </dl>
+  <% if (attrs.length > 0) { %>
+  <div>
+    <h4 class="mb-1 text-xs font-medium uppercase tracking-wide text-text-secondary"><%= c.msg.attributes %></h4>
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-xs">
+      <% attrs.forEach(function (k) { %>
+      <div class="contents">
+        <dt class="text-text-secondary"><%= k %></dt>
+        <dd class="break-all text-text-primary"><%= String(span.attributes[k]) %></dd>
+      </div>
+      <% }); %>
+    </dl>
+  </div>
+  <% } %>
+</div>
+<% } %><% if (locals.wrap) { %></div><% } %>
+<% }); %>

@@ -1,0 +1,46 @@
+<svg
+  data-kui-chart-svg
+  width="100%"
+  height="<%= _height %>"
+  role="img"
+  aria-label="<%= _ariaLabel %>"
+  preserveAspectRatio="none"
+></svg>
+<script>
+(function () {
+  var host = document.querySelector(<%- include('../../_script-json', { value: '[data-kui-chart="' + _id + '"]' }) %>);
+  if (!host || typeof KuiChart === 'undefined') return;
+  var svg = host.querySelector('[data-kui-chart-svg]');
+  var series = <%- include('../../_script-json', { value: _series }) %>;
+  var H = <%- include('../../_script-json', { value: Number(_height) }) %>;
+  function ns(n,a){var e=document.createElementNS('http://www.w3.org/2000/svg',n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function render(size){
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute('viewBox', '0 0 ' + size.width + ' ' + H);
+    var W = size.width;
+    var s = series[0];
+    if (!s || !s.data || !s.data.length) return;
+    var ext = KuiChart.yExtent(series);
+    var n = s.data.length;
+    var color = KuiChart.paletteColor(0, s.color);
+    var pts = s.data.map(function(p, i){
+      if (p.y === null || p.y === undefined) return null;
+      return {
+        x: n === 1 ? W/2 : (i / (n - 1)) * (W - 2) + 1,
+        y: ext.max === ext.min ? H/2 : H - ((p.y - ext.min) / (ext.max - ext.min)) * (H - 2) - 1,
+      };
+    });
+    var d = KuiChart.smoothPath(pts);
+    var clean = pts.filter(Boolean);
+    if (<%- include('../../_script-json', { value: !!locals.filled }) %> && clean.length > 1) {
+      svg.appendChild(ns('path', { d: d + ' L' + clean[clean.length-1].x + ' ' + H + ' L' + clean[0].x + ' ' + H + ' Z', fill: color, opacity: 0.15 }));
+    }
+    svg.appendChild(ns('path', {
+      d: d,
+      fill: 'none', stroke: color, 'stroke-width': 1.5,
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    }));
+  }
+  KuiChart.observeContainer(host.querySelector('[data-kui-chart-canvas]'), render);
+})();
+</script>

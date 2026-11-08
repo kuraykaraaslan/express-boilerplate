@@ -1,0 +1,13 @@
+<%#
+  chart.scatter: points of a bound table, one series per group, with an optional trend line each (kui-react
+  ScatterChartView).
+  Locals: model (scatterChartModel + id, locale).
+%><%_
+  var _m = locals.model;
+  var _props = Object.assign({
+    id: _m.id, series: _m.series, pointRadius: _m.pointRadius, pointShape: _m.pointShape, pointOpacity: _m.pointOpacity,
+    trendLine: _m.trendLine, trendColor: _m.trendColor, xMin: _m.xMin, xMax: _m.xMax, xFormat: _m.xFormat, yFormat: _m.yFormat,
+    thresholds: _m.thresholds, animate: _m.animate, ariaLabel: _m.ariaLabel, locale: _m.locale
+  }, _m.legend, _m.axis, _m.tooltip);
+_%>
+<%- include('_chart', { type: 'scatter', props: _props, runtimeOnce: locals.runtimeOnce, loadChartScripts: locals.loadChartScripts }) %>

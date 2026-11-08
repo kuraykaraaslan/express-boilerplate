@@ -1,0 +1,318 @@
+<%
+  var _id         = locals.id         || 'select-' + Math.random().toString(36).substr(2, 9);
+  var _dis        = !!locals.disabled;
+  var _req        = !!locals.required;
+  var _opts       = locals.options    || [];
+  var _searchable = !!locals.searchable;
+  var _hasIcons   = _opts.some(function (o) { return !!o.icon; });
+  var _useCombo   = _searchable || _hasIcons;
+
+  var _val        = (locals.value !== undefined && locals.value !== null) ? String(locals.value) : '';
+
+  var _hintId  = (locals.hint  && !locals.error) ? (_id + '-hint')  : '';
+  var _errorId = locals.error ? (_id + '-error') : '';
+  var _describedBy = [_hintId, _errorId].filter(function (x) { return !!x; }).join(' ');
+
+  // Built-in strings, overridable through `messages` (kui-react Select `messages`).
+  var _msgDefaults = { noResults: 'No results found.', search: 'Search…', placeholder: 'Select…', required: '(required)' };
+  var _msgIn = (locals.messages && typeof locals.messages === 'object') ? locals.messages : {};
+  var _m = {};
+  Object.keys(_msgDefaults).forEach(function (k) { _m[k] = typeof _msgIn[k] === 'string' ? _msgIn[k] : _msgDefaults[k]; });
+
+  var _selected = null;
+  for (var i = 0; i < _opts.length; i++) {
+    if (String(_opts[i].value) === _val) { _selected = _opts[i]; break; }
+  }
+%>
+<% if (_useCombo) { %>
+  <%
+    // Same classes kui-react's CustomSelect resolves through cn()/tailwind-merge: a later
+    // background (error, then disabled) replaces the earlier one instead of competing with it.
+    var comboClass = 'flex items-center gap-2 w-full rounded-md border px-3 py-2 text-sm transition-colors '
+      + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus ';
+    comboClass += locals.error ? 'border-error ring-1 ring-error ' : 'border-border ';
+    comboClass += _dis ? 'opacity-50 cursor-not-allowed bg-surface-sunken' : ('cursor-pointer ' + (locals.error ? 'bg-error-subtle' : 'bg-surface-base'));
+  %>
+  <div
+    class="space-y-1 <%= locals.className || '' %>"
+    data-combobox-root
+    data-combobox-id="<%= _id %>"
+    data-combobox-searchable="<%= _searchable ? '1' : '0' %>"
+  >
+    <label id="<%= _id %>-label" class="<%= locals.hideLabel ? 'sr-only' : 'block text-sm font-medium text-text-primary' %>">
+      <%= locals.label || '' %><% if (_req) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only"><%= _m.required %></span><% } %>
+    </label>
+
+    <input type="hidden" name="<%= locals.name || _id %>" value="<%= _val %>" data-combobox-value />
+
+    <div
+      id="<%= _id %>"
+      role="combobox"
+      tabindex="<%= _dis ? '-1' : '0' %>"
+      aria-haspopup="listbox"
+      aria-expanded="false"
+      aria-labelledby="<%= _id %>-label"
+      <% if (_describedBy) { %>aria-describedby="<%= _describedBy %>"<% } %>
+      aria-disabled="<%= _dis ? 'true' : 'false' %>"
+      aria-required="<%= _req ? 'true' : 'false' %>"
+      aria-invalid="<%= locals.error ? 'true' : 'false' %>"
+      data-testid="select-<%= _id %>"
+      data-combobox-trigger
+      class="<%= comboClass %>"
+    >
+      <% if (_selected && _selected.icon) { %>
+        <span class="shrink-0" data-combobox-selected-icon><%- _selected.icon %></span>
+      <% } %>
+      <span
+        class="flex-1 <%= _selected ? '' : 'text-text-disabled' %>"
+        data-combobox-display
+      ><%= _selected ? _selected.label : (locals.placeholder || _m.placeholder) %></span>
+      <i class="fa-solid fa-chevron-down w-3 h-3 text-text-disabled" data-combobox-chevron aria-hidden="true"></i>
+    </div>
+
+    <div
+      class="z-20 w-full rounded-md border border-border bg-surface-raised shadow-lg overflow-hidden hidden"
+      data-combobox-panel
+    >
+      <% if (_searchable) { %>
+        <div class="p-2 border-b border-border">
+          <input
+            type="text"
+            placeholder="<%= _m.search %>"
+            aria-label="<%= _m.search %>"
+            data-combobox-search
+            class="block w-full rounded-md border border-border bg-surface-base px-3 py-1.5 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+          />
+        </div>
+      <% } %>
+      <ul
+        role="listbox"
+        aria-labelledby="<%= _id %>-label"
+        class="py-1 max-h-48 overflow-y-auto"
+        data-combobox-list
+      >
+        <% if (locals.placeholder) { %>
+          <li
+            role="option"
+            aria-selected="<%= _val === '' ? 'true' : 'false' %>"
+            tabindex="0"
+            data-combobox-option=""
+            class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer text-text-disabled select-none hover:bg-surface-overlay focus-visible:outline-none focus-visible:bg-surface-overlay"
+          ><%= locals.placeholder %></li>
+        <% } %>
+        <% _opts.forEach(function (opt) { %>
+          <% var active = String(opt.value) === _val; %>
+          <li
+            role="option"
+            aria-selected="<%= active ? 'true' : 'false' %>"
+            tabindex="0"
+            data-combobox-option="<%= opt.value %>"
+            data-combobox-label="<%= opt.label %>"
+            class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer select-none hover:bg-surface-overlay transition-colors focus-visible:outline-none focus-visible:bg-surface-overlay <%= active ? 'text-primary font-medium' : '' %>"
+          >
+            <% if (opt.icon) { %><span class="shrink-0" aria-hidden="true" data-combobox-option-icon><%- opt.icon %></span><% } %>
+            <span><%= opt.label %></span>
+            <% if (active) { %>
+              <i class="fa-solid fa-check ml-auto w-3 h-3 text-primary" aria-hidden="true" data-combobox-check></i>
+            <% } %>
+          </li>
+        <% }); %>
+        <li class="px-3 py-4 text-sm text-center text-text-secondary hidden" data-combobox-empty><%= _m.noResults %></li>
+      </ul>
+    </div>
+
+    <% if (_hintId) { %><p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= locals.hint %></p><% } %>
+    <% if (_errorId) { %><p id="<%= _errorId %>" class="text-xs text-error" role="alert"><%= locals.error %></p><% } %>
+  </div>
+
+  <script>
+  (function () {
+    if (window.__kuiComboBound) return;
+    window.__kuiComboBound = true;
+
+    function closeAll(except) {
+      document.querySelectorAll('[data-combobox-root]').forEach(function (root) {
+        if (root === except) return;
+        var panel   = root.querySelector('[data-combobox-panel]');
+        var trigger = root.querySelector('[data-combobox-trigger]');
+        var chev    = root.querySelector('[data-combobox-chevron]');
+        if (panel)   panel.classList.add('hidden');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        if (chev) { chev.classList.remove('fa-chevron-up'); chev.classList.add('fa-chevron-down'); }
+      });
+    }
+
+    document.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (!(t instanceof Element)) return;
+
+      var trigger = t.closest('[data-combobox-trigger]');
+      if (trigger) {
+        var root  = trigger.closest('[data-combobox-root]');
+        if (!root || root.querySelector('[data-combobox-trigger]').getAttribute('aria-disabled') === 'true') return;
+        var panel = root.querySelector('[data-combobox-panel]');
+        var chev  = root.querySelector('[data-combobox-chevron]');
+        var open  = panel.classList.contains('hidden');
+        closeAll(root);
+        panel.classList.toggle('hidden', !open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (chev) {
+          chev.classList.toggle('fa-chevron-up', open);
+          chev.classList.toggle('fa-chevron-down', !open);
+        }
+        if (open && root.dataset.comboboxSearchable === '1') {
+          var s = root.querySelector('[data-combobox-search]');
+          if (s) setTimeout(function () { s.focus(); }, 30);
+        }
+        return;
+      }
+
+      var opt = t.closest('[data-combobox-option]');
+      if (opt) {
+        var oRoot = opt.closest('[data-combobox-root]');
+        if (!oRoot) return;
+        var val = opt.getAttribute('data-combobox-option');
+        var lbl = opt.getAttribute('data-combobox-label') || opt.textContent.trim();
+        var hidden  = oRoot.querySelector('[data-combobox-value]');
+        var display = oRoot.querySelector('[data-combobox-display]');
+        var panel   = oRoot.querySelector('[data-combobox-panel]');
+        var trig    = oRoot.querySelector('[data-combobox-trigger]');
+        var chev    = oRoot.querySelector('[data-combobox-chevron]');
+        if (hidden)  { hidden.value = val; hidden.dispatchEvent(new Event('change', { bubbles: true })); }
+        if (display) {
+          // The placeholder row's text is the placeholder itself.
+          display.textContent = lbl;
+          display.classList.toggle('text-text-disabled', val === '');
+        }
+        oRoot.querySelectorAll('[data-combobox-option]').forEach(function (li) {
+          var on = li === opt && val !== '';
+          li.setAttribute('aria-selected', li === opt ? 'true' : 'false');
+          li.classList.toggle('text-primary', on);
+          li.classList.toggle('font-medium', on);
+          // The check mark follows the selection, as in kui-react.
+          var check = li.querySelector('[data-combobox-check]');
+          if (on && !check) {
+            check = document.createElement('i');
+            check.className = 'fa-solid fa-check ml-auto w-3 h-3 text-primary';
+            check.setAttribute('aria-hidden', 'true');
+            check.setAttribute('data-combobox-check', '');
+            li.appendChild(check);
+          } else if (!on && check) {
+            check.parentNode.removeChild(check);
+          }
+        });
+        // The trigger shows the chosen option's icon, as in kui-react.
+        var trigIcon = trig ? trig.querySelector('[data-combobox-selected-icon]') : null;
+        var optIcon = opt.querySelector('[data-combobox-option-icon]');
+        if (trigIcon && !optIcon) trigIcon.parentNode.removeChild(trigIcon);
+        if (optIcon && trig) {
+          if (!trigIcon) {
+            trigIcon = document.createElement('span');
+            trigIcon.className = 'shrink-0';
+            trigIcon.setAttribute('data-combobox-selected-icon', '');
+            trig.insertBefore(trigIcon, display);
+          }
+          trigIcon.innerHTML = optIcon.innerHTML;
+        }
+        if (panel) panel.classList.add('hidden');
+        if (trig)  trig.setAttribute('aria-expanded', 'false');
+        if (chev) { chev.classList.remove('fa-chevron-up'); chev.classList.add('fa-chevron-down'); }
+        return;
+      }
+
+      if (!t.closest('[data-combobox-root]')) closeAll(null);
+    });
+
+    // Escape inside an open list (trigger, search box, an option) closes that
+    // list only. It runs in the capture phase and marks the event handled, so an
+    // enclosing Modal / Drawer (listening on document) stays open. With the list
+    // closed, Escape reaches the overlay as usual.
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      var t = ev.target;
+      if (!(t instanceof Element)) return;
+      var root = t.closest('[data-combobox-root]');
+      var panel = root ? root.querySelector('[data-combobox-panel]') : null;
+      if (!panel || panel.classList.contains('hidden')) return;
+      ev.preventDefault();
+      closeAll(null);
+      var trig = root.querySelector('[data-combobox-trigger]');
+      if (trig) trig.focus();
+    }, true);
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') closeAll(null);
+      var t = ev.target;
+      if (!(t instanceof Element)) return;
+      var trigger = t.closest('[data-combobox-trigger]');
+      if (trigger && (ev.key === 'Enter' || ev.key === ' ')) {
+        ev.preventDefault();
+        trigger.click();
+      }
+      var opt = t.closest('[data-combobox-option]');
+      if (opt && (ev.key === 'Enter' || ev.key === ' ')) {
+        ev.preventDefault();
+        opt.click();
+      }
+    });
+
+    document.addEventListener('input', function (ev) {
+      var t = ev.target;
+      if (!(t instanceof Element)) return;
+      if (!t.matches('[data-combobox-search]')) return;
+      var root = t.closest('[data-combobox-root]');
+      if (!root) return;
+      var q = t.value.toLowerCase();
+      var any = false;
+      root.querySelectorAll('[data-combobox-option]').forEach(function (li) {
+        var label = (li.getAttribute('data-combobox-label') || li.textContent || '').toLowerCase();
+        var match = !q || label.indexOf(q) !== -1;
+        li.classList.toggle('hidden', !match);
+        if (match) any = true;
+      });
+      var empty = root.querySelector('[data-combobox-empty]');
+      if (empty) empty.classList.toggle('hidden', any);
+    });
+  })();
+  </script>
+<% } else { %>
+  <%
+    // Identical to kui-react's native Select: `appearance-none` drops the native arrow, so the
+    // chevron is drawn on top, and `pl-3 pr-8` keeps the text clear of it.
+    var baseClass = 'block w-full rounded-md border pl-3 pr-8 py-2 text-sm transition-colors appearance-none '
+      + (locals.error ? '' : 'bg-surface-base ') + 'text-text-primary '
+      + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:border-border-focus '
+      + 'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-surface-sunken ';
+    // The error background replaces bg-surface-base, as tailwind-merge does in kui-react.
+    baseClass += locals.error
+      ? 'border-error ring-1 ring-error bg-error-subtle'
+      : 'border-border';
+  %>
+  <div class="space-y-1 <%= locals.className || '' %>">
+    <label for="<%= _id %>" class="<%= locals.hideLabel ? 'sr-only' : 'block text-sm font-medium text-text-primary' %>">
+      <%= locals.label || '' %><% if (_req) { %><span class="text-error ml-1" aria-hidden="true">*</span><span class="sr-only"><%= _m.required %></span><% } %>
+    </label>
+    <div class="relative">
+      <select
+        id="<%= _id %>"
+        class="<%= baseClass %>"
+        <% if (_dis) { %>disabled<% } %>
+        <% if (_req) { %>required<% } %>
+        <% if (locals.name) { %>name="<%= locals.name %>"<% } %>
+        aria-invalid="<%= locals.error ? 'true' : 'false' %>"
+        <% if (_describedBy) { %>aria-describedby="<%= _describedBy %>"<% } %>
+        data-testid="select-<%= _id %>"
+      >
+        <% if (locals.placeholder) { %>
+          <option value="" <%= _val === '' ? 'selected' : '' %>><%= locals.placeholder %></option>
+        <% } %>
+        <% _opts.forEach(function (opt) { %>
+          <option value="<%= opt.value %>" <%= String(opt.value) === _val ? 'selected' : '' %>><%= opt.label %></option>
+        <% }); %>
+      </select>
+      <i class="fa-solid fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-text-disabled" aria-hidden="true"></i>
+    </div>
+    <% if (_hintId) { %><p id="<%= _hintId %>" class="text-xs text-text-secondary"><%= locals.hint %></p><% } %>
+    <% if (_errorId) { %><p id="<%= _errorId %>" class="text-xs text-error" role="alert"><%= locals.error %></p><% } %>
+  </div>
+<% } %>

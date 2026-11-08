@@ -1,0 +1,15 @@
+<%#
+  heatmap: a colour grid; a low-to-high colour scale, or colour ranges (bands) with their legend (kui-react
+  HeatmapView). Nothing to draw is an empty box.
+  Locals: model (heatmapModel + id, locale, colorFor).
+%><%_
+  var _m = locals.model;
+  var _props = Object.assign({
+    id: _m.id, cells: _m.cells, min: _m.min, max: _m.max, color: _m.color, colorLow: _m.colorLow, colorFor: _m.colorFor || undefined,
+    valueFormat: _m.valueFormat, legendFormat: _m.legendFormat, valueLabel: _m.valueLabel, showValues: _m.showValues,
+    valueLabelStyle: _m.valueLabelStyle, cellGap: _m.cellGap, cellRadius: _m.cellRadius, showLegend: _m.showLegend,
+    legendPosition: _m.legendPosition, legendItems: _m.legendItems, showTooltip: _m.showTooltip, tickStyle: _m.tickStyle,
+    animate: _m.animate, ariaLabel: _m.ariaLabel, locale: _m.locale
+  }, {});
+_%>
+<% if (_m.empty) { %><div class="h-full"></div><% } else { %><%- include('_chart', { type: 'heatmap', props: _props, runtimeOnce: locals.runtimeOnce, loadChartScripts: locals.loadChartScripts }) %><% } %>

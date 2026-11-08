@@ -1,0 +1,11 @@
+<%#
+  The blocks of a markdown text. Locals: model.
+%><%_ var _m = locals.model; var _ts = widgetKit.style(_m.textStyle); _%>
+<div class="<%= _m.textClass %>"<% if (_ts) { %> style="<%= _ts %>"<% } %>><% _m.blocks.forEach(function (b) { %><%
+  if (b.t === 'heading') { var _hs = widgetKit.style(b.style); %><p class="<%= b.className %>"<% if (_hs) { %> style="<%= _hs %>"<% } %>><%- include('_md-inline', { nodes: b.children }) %></p><% }
+  else if (b.t === 'paragraph') { %><p class="<%= b.className %>"><%- include('_md-inline', { nodes: b.children }) %></p><% }
+  else if (b.t === 'quote') { %><blockquote class="<%= b.className %>"><%- include('_md-inline', { nodes: b.children }) %></blockquote><% }
+  else if (b.t === 'code') { %><pre class="<%= b.className %>"><%= b.text %></pre><% }
+  else if (b.t === 'hr') { %><hr class="<%= b.className %>"><% }
+  else if (b.t === 'ul' || b.t === 'ol') { %><<%= b.t %> class="<%= b.className %>"><% b.items.forEach(function (it) { %><li class="<%= it.className %>"><%- include('_md-inline', { nodes: it.children }) %></li><% }); %></<%= b.t %>><% }
+%><% }); %></div>

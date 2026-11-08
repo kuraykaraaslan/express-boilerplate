@@ -1,0 +1,4 @@
+<%#
+  The table's footer pager: "1–10 of 42" on the left, previous / page / next on the right. Locals: footer, m (table messages).
+%><%_ var _f = locals.footer; var _m = locals.m; var _t = widgetKit.table; _%>
+<nav class="flex min-h-8 items-center justify-between gap-2 px-2" aria-label="<%= _m.pager %>"><%- include('../_meta', { text: _f.info, className: 'tabular-nums' }) %><span class="flex items-center gap-1"><button type="button" data-wk-page="prev" class="<%= _t.PAGE_BUTTON %>" aria-label="<%= _m.previous %>" title="<%= _m.previous %>"<% if (_f.page <= 1) { %> disabled<% } %>><%- include('_table-svg', { d: _t.ICON_PREV }) %></button><span class="px-1 text-xs tabular-nums text-text-secondary"><%= _f.pageOf %></span><button type="button" data-wk-page="next" class="<%= _t.PAGE_BUTTON %>" aria-label="<%= _m.next %>" title="<%= _m.next %>"<% if (!_f.canNext) { %> disabled<% } %>><%- include('_table-svg', { d: _t.ICON_NEXT }) %></button></span></nav>

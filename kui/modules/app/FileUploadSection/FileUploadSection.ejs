@@ -1,0 +1,67 @@
+<%
+  // ─── FileUploadSection (EJS) ─────────────────────────────────────────────
+  //
+  // Pixel-identical sibling of
+  // /home/kuray/01_NextJS_Components/modules/app/FileUploadSection/index.tsx.
+  //
+  // Locals:
+  //   id            — optional, auto-generated otherwise
+  //   title         — heading shown above the drop zone
+  //   hint          — small help text under the drop zone copy
+  //   accept        — MIME / extension pattern (e.g. "image/*,.pdf")
+  //   multiple      — default true
+  //   maxSizeBytes  — per-file limit
+  //   maxFiles      — total count cap
+  //   disabled
+  //   enablePaste   — listens for clipboard image paste while focused
+  //   className     — extra classes on root
+  //   messages      — { invalidSize, invalidType, tooMany } for i18n
+  //
+  // TODO M2: imageCrop, enableThumbnails.
+  // TODO M3: upload config (url, chunkSize, maxConcurrent, headers).
+  // TODO M4: enableCamera, reorderable, tus.io adapter.
+  // TODO M5: aria-live progress + i18n.
+
+  var _id          = locals.id || ('fus-' + Math.random().toString(36).substr(2, 9));
+  var _multiple    = locals.multiple === false ? false : true;
+  var _accept      = locals.accept || '';
+  var _dis         = !!locals.disabled;
+  var _maxBytes    = (typeof locals.maxSizeBytes === 'number') ? locals.maxSizeBytes : 0;
+  var _maxFiles    = (typeof locals.maxFiles === 'number') ? locals.maxFiles : 0;
+  var _enablePaste = !!locals.enablePaste;
+  var _emptyMsg    = (locals.messages && locals.messages.emptyState) || 'No files selected yet.';
+
+  var _opts = {
+    multiple:     _multiple,
+    accept:       _accept,
+    maxSizeBytes: _maxBytes,
+    maxFiles:     _maxFiles,
+    disabled:     _dis,
+    enablePaste:  _enablePaste,
+    messages:     locals.messages || {}
+  };
+%>
+<section
+  data-fus-root="<%= _id %>"
+  data-fus-options="<%= JSON.stringify(_opts) %>"
+  class="space-y-3<%= locals.className ? ' ' + locals.className : '' %>"
+  aria-label="<%= locals.title || 'File upload' %>"
+>
+  <% if (locals.title) { %>
+    <h3 class="text-sm font-medium text-text-primary"><%= locals.title %></h3>
+  <% } %>
+
+  <%- include('./partials/_dropzone', {
+    _id: _id, _multiple: _multiple, _accept: _accept, _dis: _dis,
+    _enablePaste: _enablePaste, hint: locals.hint
+  }) %>
+
+  <p class="text-xs text-text-disabled" data-fus-empty><%= _emptyMsg %></p>
+  <ul class="space-y-1.5 hidden" data-fus-list aria-label="Selected files"></ul>
+
+  <p class="text-sm text-error hidden" data-fus-error role="alert"></p>
+</section>
+
+<script>
+<%- include('scripts/file-upload-section.js') %>
+</script>
