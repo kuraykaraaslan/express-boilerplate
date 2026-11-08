@@ -1,0 +1,48 @@
+<%
+  // Sign-up page: the NB register page's flow on kui-ejs partials. Behaviour in /js/register.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="register-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary">Create an account</h1>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="register-banner" role="alert" class="hidden"></div>
+
+      <div id="register-loading" class="flex justify-center py-6" role="status"><i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i></div>
+
+      <p id="register-closed" role="status" class="hidden rounded-lg border border-border bg-surface-base px-4 py-3 text-center text-sm text-text-secondary">
+        Sign-up is not open here. Ask an administrator for an invitation.
+      </p>
+
+      <div id="register-success" class="hidden space-y-3 text-center focus:outline-none" tabindex="-1" data-testid="register-success">
+        <div class="flex items-start gap-3 rounded-lg border p-3 text-left bg-success-subtle border-success text-success-fg text-sm">
+          <i class="fa-solid fa-circle-check mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong class="block">Account created!</strong><span id="register-success-message"></span></span>
+        </div>
+        <a id="register-continue" href="/auth/login" class="hidden text-sm text-primary font-medium hover:underline" data-testid="register-continue">Sign in to continue</a>
+        <p id="register-onboarding" class="hidden text-xs text-text-secondary"><i class="fa-solid fa-spinner fa-spin mr-1" aria-hidden="true"></i>Taking you to set up your organization…</p>
+      </div>
+
+      <div id="register-form-area" class="hidden space-y-4">
+        <div id="register-sso" class="hidden space-y-4">
+          <%- include('../../kui/modules/domain/common/auth/OAuthButtons', { providers: ['GOOGLE', 'GITHUB', 'DISCORD', 'MICROSOFT'], action: '#' }) %>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 h-px bg-border" aria-hidden="true"></div>
+            <span class="text-xs text-text-secondary">or register with email</span>
+            <div class="flex-1 h-px bg-border" aria-hidden="true"></div>
+          </div>
+        </div>
+        <%- include('../../kui/modules/domain/common/auth/RegisterForm', { action: '#', method: 'post' }) %>
+      </div>
+    </div>
+
+    <p class="text-center text-sm text-text-secondary">
+      Already have an account? <a id="register-signin" href="/auth/login" class="text-primary font-medium hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/register.js"></script>

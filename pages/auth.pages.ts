@@ -14,6 +14,11 @@ const pages: { page: string; view: string; title: string }[] = [
   { page: 'login', view: 'auth/login', title: 'Sign in' },
   { page: 'forgot-password', view: 'auth/forgot-password', title: 'Reset your password' },
   { page: 'reset-password', view: 'auth/reset-password', title: 'Set a new password' },
+  { page: 'register', view: 'auth/register', title: 'Create an account' },
+  { page: 'change-password', view: 'auth/change-password', title: 'Change your password' },
+  { page: 'select-tenant', view: 'auth/select-tenant', title: 'Choose an organization' },
+  { page: 'verify-email', view: 'auth/verify-email', title: 'Verify your email' },
+  { page: 'logout', view: 'auth/logout', title: 'Signing out' },
 ];
 
 for (const p of pages) {

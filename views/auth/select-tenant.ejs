@@ -1,0 +1,26 @@
+<%
+  // Organization picker. Behaviour in /js/select-tenant.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="pick-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary">Choose an organization</h1>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="pick-loading" class="flex justify-center py-8" role="status"><i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i></div>
+      <div id="pick-banner" role="alert" class="hidden"></div>
+      <p id="pick-empty" class="hidden text-center text-sm text-text-secondary py-4">You don't belong to any organizations yet.</p>
+      <div id="pick-list" class="space-y-2"></div>
+
+      <div class="pt-2 border-t border-border space-y-2">
+        <div id="pick-fleet-wrap" class="hidden"><a id="pick-fleet" href="#" rel="noreferrer" class="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-overlay"><i class="fa-solid fa-id-badge" aria-hidden="true"></i>All my Fleet ID workspaces</a></div>
+        <div id="pick-create-wrap" class="hidden"><a id="pick-create" href="/auth/onboarding" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-overlay"><i class="fa-solid fa-plus" aria-hidden="true"></i>Create new organization</a></div>
+        <div id="pick-settings-wrap" class="hidden"><a id="pick-settings" href="/admin/settings" class="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-overlay"><i class="fa-solid fa-gear" aria-hidden="true"></i>Platform Settings</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/select-tenant.js"></script>

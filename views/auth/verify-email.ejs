@@ -1,0 +1,50 @@
+<%
+  // Email verification page (the link in the verification email: ?token=&email=). Behaviour in /js/verify-email.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="verify-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-2xl font-semibold text-text-primary">Verify your email</h1>
+    </div>
+
+    <div class="rounded-xl border border-border bg-surface-raised p-6 space-y-4 shadow-sm">
+      <div id="verify-verifying" class="flex flex-col items-center gap-3 py-6" role="status">
+        <i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i>
+        <p class="text-sm text-text-secondary" id="verify-verifying-text">Verifying your email…</p>
+      </div>
+
+      <form id="verify-password-form" novalidate class="hidden space-y-4">
+        <div id="verify-confirm-banner" role="alert" class="hidden"></div>
+        <p class="text-sm text-text-secondary">Enter the password of this account to confirm the address.</p>
+        <%- include('../../kui/modules/ui/Input', { id: 'verify-email-address', label: 'Email', type: 'email', name: 'email', required: true }) %>
+        <%- include('../../kui/modules/ui/Input', { id: 'verify-email-password', label: 'Password', type: 'password', name: 'password', required: true }) %>
+        <%- include('../../kui/modules/ui/Button', { type: 'submit', fullWidth: true, children: 'Verify email' }) %>
+      </form>
+
+      <div id="verify-ok" class="hidden space-y-4 focus:outline-none" tabindex="-1">
+        <div class="flex items-start gap-3 rounded-lg border p-3 bg-success-subtle border-success text-success-fg text-sm">
+          <i class="fa-solid fa-circle-check mt-0.5 shrink-0" aria-hidden="true"></i><span id="verify-ok-text"></span>
+        </div>
+        <div id="verify-ok-link"><%- include('../../kui/modules/ui/Button', { element: 'a', href: '/admin', fullWidth: true, children: 'Continue' }) %></div>
+      </div>
+
+      <div id="verify-error" class="hidden space-y-4 focus:outline-none" tabindex="-1">
+        <div class="flex items-start gap-3 rounded-lg border p-3 bg-error-subtle border-error text-error-fg text-sm" role="alert">
+          <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i><span id="verify-error-text"></span>
+        </div>
+        <div id="verify-resent" class="hidden focus:outline-none" tabindex="-1">
+          <div class="flex items-start gap-3 rounded-lg border p-3 bg-success-subtle border-success text-success-fg text-sm">
+            <i class="fa-solid fa-circle-check mt-0.5 shrink-0" aria-hidden="true"></i><span>A new verification link has been sent.</span>
+          </div>
+        </div>
+        <div id="verify-resend-box" class="space-y-3">
+          <%- include('../../kui/modules/ui/Button', { type: 'button', variant: 'outline', fullWidth: true, children: 'Resend verification email' }) %>
+          <div id="verify-resend-banner" role="alert" class="hidden"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/verify-email.js"></script>

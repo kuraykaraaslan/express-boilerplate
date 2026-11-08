@@ -1,0 +1,33 @@
+<%
+  // Sign-out page: signs out on load. Behaviour in /js/logout.js.
+%>
+<div class="min-h-screen flex items-center justify-center px-4 py-10" id="logout-root" data-tenant-id="<%= locals.tenantId || '' %>">
+  <div class="w-full max-w-md">
+    <div class="rounded-2xl border border-border bg-surface-raised shadow-sm p-6 sm:p-8 text-center space-y-4">
+      <div id="logout-working" role="status" class="space-y-4">
+        <div class="flex justify-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-text-secondary" aria-hidden="true"></i></div>
+        <p class="text-sm text-text-secondary">Signing out…</p>
+      </div>
+      <div id="logout-device-only" class="hidden space-y-4">
+        <div class="flex items-start gap-3 rounded-lg border p-3 text-left bg-warning-subtle border-warning text-warning-fg text-sm">
+          <i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong class="block">Signed out on this device only</strong>This device is signed out, but your session could not be ended on the server. After you sign in again, you can end it under Security on your profile page.</span>
+        </div>
+        <a class="logout-continue inline-block text-sm text-primary hover:underline" href="/auth/login">Continue to sign in</a>
+      </div>
+      <div id="logout-failed" class="hidden space-y-4">
+        <div class="flex items-start gap-3 rounded-lg border p-3 text-left bg-error-subtle border-error text-error-fg text-sm" role="alert">
+          <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong class="block">Could not sign you out</strong><span id="logout-failed-message"></span></span>
+        </div>
+        <div class="flex flex-col items-center gap-3">
+          <%- include('../../kui/modules/ui/Button', { type: 'button', children: 'Try again' }) %>
+          <a class="logout-continue text-sm text-primary hover:underline" href="/auth/login">Continue to sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/js/kui-api.js"></script>
+<script src="/js/auth-ui.js"></script>
+<script src="/js/logout.js"></script>
