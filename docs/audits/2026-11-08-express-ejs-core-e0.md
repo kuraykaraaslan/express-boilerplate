@@ -114,3 +114,69 @@ Owner decisions: copy straight over (no workspaces, no package.json per module);
 - 18 npm packages the core server code imports were missing in Express (socket.io, yaml, prom-client, isolated-vm, jspdf, ...); added to package.json at NB's versions, `npm install` is the owner's step.
 - Replaced: `router/*`, `modules_express/*` and `server.ts` (they imported the old module layout) by `router/dispatch.ts` (the NB catch-all, ported), `boot.ts` (NB instrumentation) and `index.ts`.
 - Not yet done: a type check, any run. Non-core Express modules (payment, coupon, auth_saml, ...) still import the old layout and do not compile until they are ported or removed. NB's 12 file routes (health, cron, streaming) are not mounted.
+
+## E0b: pages and components (2026-11-08)
+
+Method: for each of the 123 core `*.page.tsx`, the components it imports from `common/ui` (the generic kit, taken from kui-react) and from module-owned `ui/` folders. Generic names were matched against kui-ejs partials by name; types (DataTable*, PageHeaderAction, DateRange, FieldSchema, TreeNode, TreeMoveTarget) are not components and were ignored.
+
+| Result | Count |
+|---|---|
+| Pages | 123 |
+| Generic component uses | 544 |
+| Generic components with no kui-ejs partial | 5 (below) |
+| Module-owned components (forms, panels, tables) | 202 distinct, 276 uses |
+
+**Generic gaps in kui-ejs** (build in kui-react first where absent there, per the design rule):
+
+| Component | Used by | In kui-react | In kui-ejs | Action |
+|---|---|---|---|---|
+| SchemaForm | 1 page | yes (`modules/app/SchemaForm`) | no | port to kui-ejs |
+| LineChart | 1 page | not found by name | `Chart`, `DayBarChart` exist; check coverage | verify, then port or reuse |
+| AvatarUpload | 1 page | not found | `Avatar` only | build in kui-react, then kui-ejs |
+| ModuleIcon | 1 page | not found | no | build in kui-react, then kui-ejs (small) |
+| EntityPanels | 1 page | not found | no | build in kui-react, then kui-ejs |
+
+The generic kit is therefore almost complete in kui-ejs. The real work is the 202 module-owned components (for example `UserProfileForm`, `ActiveSessionsPanel`, `TrustedDevicesTable`): each needs an EJS partial plus a small client script that calls the module API through the dispatcher.
+
+| Module | Pages | Generic uses | Module-owned components |
+|---|---|---|---|
+| account | 1 | 6 | 11 |
+| ai_firewall | 4 | 35 | 12 |
+| api_key | 4 | 31 | 6 |
+| approval | 5 | 27 | 8 |
+| audit_log | 2 | 7 | 5 |
+| auth | 13 | 46 | 14 |
+| auth_abac | 6 | 27 | 5 |
+| dashboard | 7 | 30 | 12 |
+| limiter | 1 | 0 | 1 |
+| mcp_server | 3 | 11 | 1 |
+| module_lifecycle | 3 | 4 | 3 |
+| notification_inapp | 1 | 0 | 1 |
+| notification_mail | 2 | 0 | 3 |
+| notification_push | 1 | 0 | 1 |
+| notification_sms | 1 | 0 | 2 |
+| observability | 18 | 96 | 52 |
+| organization | 4 | 30 | 2 |
+| plugin_local | 2 | 0 | 2 |
+| plugin_runtime | 2 | 1 | 2 |
+| redis_idempotency | 1 | 0 | 1 |
+| shell_menu | 1 | 11 | 18 |
+| storage | 1 | 0 | 2 |
+| telemetry | 2 | 6 | 1 |
+| tenant | 4 | 23 | 12 |
+| tenant_branding | 1 | 8 | 2 |
+| tenant_domain | 5 | 45 | 5 |
+| tenant_invitation | 5 | 22 | 4 |
+| tenant_member | 5 | 31 | 10 |
+| tenant_session | 1 | 0 | 2 |
+| tenant_setting | 5 | 6 | 5 |
+| tenant_usage | 2 | 1 | 2 |
+| translation | 1 | 6 | 5 |
+| user | 2 | 19 | 8 |
+| user_preferences | 1 | 0 | 1 |
+| user_profile | 1 | 0 | 1 |
+| user_security | 1 | 0 | 1 |
+| user_session | 1 | 0 | 1 |
+| webhook | 3 | 15 | 9 |
+
+Build order for E5: auth (13 pages, login first), account, tenant and members, then the platform modules by page count (observability 18 last, it is the largest).
