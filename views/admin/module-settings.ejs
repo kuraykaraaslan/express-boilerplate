@@ -1,0 +1,75 @@
+<%
+  // The generic module settings page (the port of tenant_setting's ModuleSettingsPage): the form is drawn here from the module's
+  // field list (SettingFieldDef[]); /js/module-settings.js loads the saved values from /api/admin-settings and saves what changed.
+  var s = locals.settings;
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+%>
+<div class="space-y-6" id="ms-root" data-tenant-id="<%= locals.tenantId %>" data-fields="<%= JSON.stringify(s.fields.map(function (f) { return { key: f.key, type: f.type, defaultValue: f.defaultValue || '' }; })) %>">
+  <%- include('../../kui/modules/ui/Breadcrumb', { items: [{ label: s.crumb.label, href: s.crumbHref }, { label: 'Settings' }] }) %>
+  <%- include('../../kui/modules/ui/PageHeader', { title: s.title, subtitle: s.subtitle }) %>
+
+  <div id="ms-loading" class="flex justify-center py-20" role="status"><i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i></div>
+  <div id="ms-load-error" class="hidden space-y-3" role="alert">
+    <div class="flex items-start gap-3 rounded-lg border p-3 bg-error-subtle border-error text-error-fg text-sm">
+      <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i><span id="ms-load-error-text"></span>
+    </div>
+    <button type="button" id="ms-retry" class="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm text-text-primary hover:bg-surface-overlay">Retry</button>
+  </div>
+  <% if (s.extras) { %><p class="hidden" id="ms-extras"></p><% } %>
+
+  <form id="ms-form" class="hidden space-y-6" novalidate>
+    <% locals.groups.forEach(function (g) { %>
+    <section class="rounded-xl border border-border bg-surface-raised shadow-sm">
+      <h2 class="px-5 py-3 border-b border-border text-sm font-semibold text-text-primary"><%= g.group %></h2>
+      <div class="p-5 space-y-4">
+        <% g.items.forEach(function (f) { var help = f.description || ''; %>
+          <div data-field="<%= f.key %>">
+          <% if (f.type === 'boolean') { %>
+            <%- include('../../kui/modules/ui/Toggle', { id: f.key, label: f.label, description: help, checked: false }) %>
+          <% } else if (f.type === 'select' || f.type === 'flag-select') { %>
+            <%- include('../../kui/modules/ui/Select', { id: f.key, label: f.label, hint: help, options: f.options || [], placeholder: f.placeholder || '', value: '' }) %>
+          <% } else if (f.type === 'flag-multiselect') { %>
+            <div class="space-y-1">
+              <label for="<%= f.key %>" class="block text-sm font-medium text-text-primary"><%= f.label %></label>
+              <input id="<%= f.key %>" type="text" placeholder="<%= f.placeholder || 'Comma-separated values' %>"
+                class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+              <% if (help) { %><p class="text-xs text-text-secondary"><%= help %></p><% } %>
+            </div>
+          <% } else if (f.type === 'textarea') { %>
+            <div class="space-y-1">
+              <label for="<%= f.key %>" class="block text-sm font-medium text-text-primary"><%= f.label %></label>
+              <textarea id="<%= f.key %>" rows="4" placeholder="<%= f.placeholder || '' %>"
+                class="w-full rounded-lg border border-border bg-surface-base px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-border-focus resize-y"></textarea>
+              <% if (help) { %><p class="text-xs text-text-secondary"><%= help %></p><% } %>
+            </div>
+          <% } else if (f.type === 'secret') { %>
+            <div class="space-y-1">
+              <label for="<%= f.key %>" class="block text-sm font-medium text-text-primary"><%= f.label %></label>
+              <div class="flex gap-2">
+                <input id="<%= f.key %>" type="password" autocomplete="new-password" placeholder="<%= f.placeholder || '' %>" data-secret
+                  class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+                <button type="button" data-secret-clear="<%= f.key %>" class="hidden shrink-0 rounded-md border border-border px-3 py-2 text-sm text-text-primary hover:bg-surface-overlay">Clear</button>
+              </div>
+              <p class="text-xs text-text-secondary hidden" data-secret-state="<%= f.key %>"></p>
+              <% if (help) { %><p class="text-xs text-text-secondary"><%= help %></p><% } %>
+            </div>
+          <% } else { %>
+            <%- include('../../kui/modules/ui/Input', {
+              id: f.key, label: f.label, hint: help, placeholder: f.placeholder || '',
+              type: f.type === 'number' ? 'number' : f.type === 'url' ? 'url' : f.type === 'email' ? 'email' : f.type === 'date' ? 'date' : 'text'
+            }) %>
+          <% } %>
+          </div>
+        <% }); %>
+      </div>
+    </section>
+    <% }); %>
+
+    <div class="space-y-3">
+      <div id="ms-notice" class="hidden" role="status"></div>
+      <div class="flex justify-end">
+        <%- include('../../kui/modules/ui/Button', { type: 'submit', iconLeft: '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>', children: 'Save Settings' }) %>
+      </div>
+    </div>
+  </form>
+</div>

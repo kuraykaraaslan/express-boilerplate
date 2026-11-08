@@ -1,0 +1,7 @@
+<div class="space-y-6">
+  <%- include('../../kui/modules/ui/PageHeader', { title: locals.title || 'Page', subtitle: 'This page is not available on this server yet.' }) %>
+  <div class="rounded-xl border border-border bg-surface-raised p-6 text-sm text-text-secondary space-y-2">
+    <p>The page exists in the platform, but its Express version has not been built yet.</p>
+    <p class="font-mono text-xs text-text-disabled"><%= locals.componentId %></p>
+  </div>
+</div>

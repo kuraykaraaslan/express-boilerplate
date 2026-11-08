@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" class="<%= locals.theme === 'dark' ? 'dark' : '' %>">
+  <%- include('../../kui/views/partials/_head') %>
+  <body class="font-sans bg-surface-base text-text-primary antialiased">
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-fg focus:rounded-md focus:text-sm focus:font-medium focus:ring-2 focus:ring-border-focus">
+      Skip to main content
+    </a>
+
+    <%
+      var _e = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      var sidebar = include('../../kui/modules/app/AppSidebar', { id: 'admin-sidebar', navGroups: locals.navGroups || [], activeId: locals.activeId || '' });
+      var mobileSidebar = include('../../kui/modules/app/AppSidebar', { id: 'admin-sidebar-mobile', navGroups: locals.navGroups || [], activeId: locals.activeId || '' });
+      var logo = '<a href="' + _e(locals.homeHref || '/admin') + '" class="flex items-center gap-2 font-semibold text-text-primary truncate">' +
+        '<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-fg text-sm font-bold">' +
+        _e(String(locals.tenantName || 'A').charAt(0).toUpperCase()) + '</span>' +
+        '<span class="truncate">' + _e(locals.tenantName || 'Admin') + '</span></a>';
+      var topbar = '<div class="flex w-full items-center gap-3"><span class="text-sm text-text-secondary truncate">' + _e(locals.title || '') + '</span>' +
+        '<div class="ml-auto flex items-center gap-2"><a href="' + _e(locals.logoutHref || '/auth/logout') + '" class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-overlay">' +
+        '<i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Sign out</span></a></div></div>';
+    %>
+    <%- include('../../kui/modules/app/AppShell', {
+      id: 'admin-shell',
+      logoContent: logo,
+      sidebarContent: sidebar,
+      mobileSidebarContent: mobileSidebar,
+      topbarContent: topbar,
+      children: body
+    }) %>
+
+    <div id="toast-region" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
+    <%- include('../../kui/modules/ui/ConfirmHost') %>
+    <script src="/assets/js/main.js" defer></script>
+    <%- locals.extraScripts || '' %>
+  </body>
+</html>

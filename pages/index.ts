@@ -6,6 +6,7 @@ import express, { type Express } from 'express';
 import expressLayouts from 'express-ejs-layouts';
 import helmet from 'helmet';
 import authPages from './auth.pages';
+import adminPages from './admin.pages';
 import { tenantOfHost } from '../router/dispatch';
 import { hostWithoutPort } from '@kuraykaraaslan-labs/common/server/tenant-host';
 
@@ -34,7 +35,8 @@ export function mountPages(app: Express): void {
   app.use(async (req, res, next) => {
     res.locals.extraHead = app.locals.tenancyHead;
     // The tenant this page is for: explicit in the path, else the host's (domain tenancy).
-    const explicit = req.path.match(/^\/(?:tenant|t)\/([^/]+)/)?.[1];
+    const tenantPrefix = (process.env.TENANT_PATH_PREFIX || 't').replace(/[^A-Za-z0-9_-]/g, '');
+    const explicit = req.path.match(new RegExp(`^/(?:tenant|${tenantPrefix})/([^/]+)`))?.[1];
     res.locals.tenantId = explicit ?? (await tenantOfHost(hostWithoutPort(req.headers.host ?? ''))) ?? '';
     res.locals.currentPath = req.path;
     res.locals.theme = req.headers.cookie?.includes('theme=dark') ? 'dark' : 'light';
@@ -43,5 +45,6 @@ export function mountPages(app: Express): void {
   });
 
   app.use(authPages);
+  app.use(adminPages);
   app.use((_req, res) => { res.status(404).render('404', { title: 'Not found' }); });
 }

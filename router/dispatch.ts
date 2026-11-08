@@ -128,7 +128,7 @@ async function dispatch(method: string, request: NextRequest, target: Target): P
 }
 
 /** Express request -> web request. Next fills x-forwarded-* when no proxy did; the same is done here. */
-function toNextRequest(req: ExpressRequest): NextRequest {
+export function toNextRequest(req: ExpressRequest): NextRequest {
   const headers = new Headers();
   for (const [k, v] of Object.entries(req.headers)) {
     if (v === undefined) continue;
