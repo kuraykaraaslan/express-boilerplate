@@ -5,10 +5,12 @@
 %>
 <div class="space-y-6" id="dl-page" data-tenant-id="<%= locals.tenantId %>" data-root="<%= locals.isRoot ? '1' : '0' %>">
   <%- include('../../kui/modules/ui/PageHeader', { title: spec.title, subtitle: spec.subtitle, actions: spec.actions || [] }) %>
+  <div id="dl-notice" class="hidden" role="status"></div>
   <%- spec.above || '' %>
   <div id="dl-root"></div>
   <% if (spec.drawer) { %>
     <%- include('../../kui/modules/ui/Drawer', { id: 'dl-drawer', title: spec.drawer, children: '<div id="dl-drawer-body" class="space-y-5 text-sm"></div>' }) %>
   <% } %>
+  <% if (spec.partial) { %><%- include('lists/' + spec.partial) %><% } %>
   <%- spec.below || '' %>
 </div>

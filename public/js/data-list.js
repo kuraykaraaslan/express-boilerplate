@@ -174,5 +174,18 @@
     return api_;
   }
 
-  window.KuiList = { mount: mount, esc: esc, badge: badge, when: when, shortId: shortId };
+  // The page's notice line (#dl-notice): a success hides itself.
+  var noticeTimer = null;
+  function notice(kind, text) {
+    var el = document.getElementById('dl-notice'); if (!el) return;
+    clearTimeout(noticeTimer);
+    var tone = { error: 'bg-error-subtle border-error text-error-fg', success: 'bg-success-subtle border-success text-success-fg', info: 'bg-info-subtle border-info text-info-fg', warning: 'bg-warning-subtle border-warning text-warning-fg' }[kind];
+    var icon = { error: 'fa-circle-xmark', success: 'fa-circle-check', info: 'fa-circle-info', warning: 'fa-triangle-exclamation' }[kind];
+    el.className = 'flex items-start gap-3 rounded-lg border p-3 text-sm ' + tone;
+    el.innerHTML = '<i class="fa-solid ' + icon + ' mt-0.5 shrink-0" aria-hidden="true"></i><span></span>';
+    el.lastChild.textContent = text;
+    if (kind === 'success') noticeTimer = setTimeout(function () { el.className = 'hidden'; el.textContent = ''; }, 4000);
+  }
+
+  window.KuiList = { notice: notice, mount: mount, esc: esc, badge: badge, when: when, shortId: shortId };
 })();

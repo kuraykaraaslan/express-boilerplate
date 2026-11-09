@@ -47,7 +47,7 @@ export async function renderAdminPage(input: AdminPageInput): Promise<AdminPage>
       title: list.title,
       locals: {
         spec: list, isRoot: isRootTenant(tenantId),
-        extraScripts: `<script src="/js/kui-api.js"></script><script src="/js/data-list.js"></script><script src="${list.script}"></script>`,
+        extraScripts: ['/js/kui-api.js', '/js/auth-ui.js', '/js/data-list.js', ...(list.scripts ?? []), list.script].map((src) => `<script src="${src}"></script>`).join(''),
       },
     };
   }

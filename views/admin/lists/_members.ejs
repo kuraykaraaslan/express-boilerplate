@@ -1,0 +1,22 @@
+<%# The member list's dialogs: invite and edit. Opened by /js/lists/members.js (openModal / closeModal). %>
+<%
+  var roleOpts = function (roles) { return roles.map(function (r) { return { value: r, label: { OWNER: 'Owner', ADMIN: 'Admin', USER: 'User' }[r] }; }); };
+  var statusOpts = [{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }, { value: 'SUSPENDED', label: 'Suspended' }, { value: 'PENDING', label: 'Pending' }];
+  var cancel = 'inline-flex items-center justify-center rounded-md font-medium px-4 py-2 text-sm bg-transparent text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var primary = 'inline-flex items-center justify-center rounded-md font-medium px-4 py-2 text-sm bg-primary text-primary-fg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+%>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'mb-invite', title: 'Invite Member', description: 'Send an invitation email to add someone to this organization.',
+  children: '<form id="mb-invite-form" class="space-y-4" novalidate><div id="mb-invite-error" class="hidden" role="alert"></div>'
+    + include('../../../kui/modules/ui/Input', { id: 'mb-invite-email', label: 'Email address', type: 'email', required: true, placeholder: 'colleague@example.com' })
+    + '<div id="mb-invite-role-box">' + include('../../../kui/modules/ui/Select', { id: 'mb-invite-role', label: 'Role', options: roleOpts(['ADMIN', 'USER']), value: 'USER' }) + '</div></form>',
+  footer: '<div class="flex justify-end gap-2"><button type="button" data-close="mb-invite" class="' + cancel + '">Cancel</button><button type="submit" form="mb-invite-form" id="mb-invite-send" class="' + primary + '">Send Invite</button></div>'
+}) %>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'mb-edit', title: 'Edit Member', description: 'Update the member’s role and status.',
+  children: '<form id="mb-edit-form" class="space-y-4" novalidate><div id="mb-edit-error" class="hidden" role="alert"></div>'
+    + '<div id="mb-edit-role-box">' + include('../../../kui/modules/ui/Select', { id: 'mb-edit-role', label: 'Role', options: roleOpts(['OWNER', 'ADMIN', 'USER']), value: 'USER' }) + '</div>'
+    + '<p id="mb-edit-owner-hint" class="hidden text-xs text-text-secondary">The Owner role cannot be given here. Ownership is handed over with a transfer.</p>'
+    + include('../../../kui/modules/ui/Select', { id: 'mb-edit-status', label: 'Status', options: statusOpts, value: 'ACTIVE' }) + '</form>',
+  footer: '<div class="flex justify-end gap-2"><button type="button" data-close="mb-edit" class="' + cancel + '">Cancel</button><button type="submit" form="mb-edit-form" id="mb-edit-save" class="' + primary + '">Save Changes</button></div>'
+}) %>

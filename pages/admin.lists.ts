@@ -9,10 +9,17 @@ export type ListSpec = {
   drawer?: string;
   /** Static HTML above and below the list (banners, stat cards the script fills). */
   above?: string; below?: string;
+  /** A view under views/admin/lists/ drawn after the list (the modals the page opens). */
+  partial?: string;
+  /** Extra scripts loaded before the page script. */
+  scripts?: string[];
 };
 
 type Ctx = { tenantId: string; isRoot: boolean };
 const gear = (href: string, label: string): ListAction => ({ label: `<i class="fa-solid fa-gear" aria-hidden="true"></i><span class="sr-only">${label}</span>`, href, variant: 'ghost' });
+
+const btn = 'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-sm';
+export const BTN = { primary: `${btn} bg-primary text-primary-fg hover:bg-primary-hover`, ghost: `${btn} bg-transparent text-text-primary hover:bg-surface-overlay` };
 
 const lists: Record<string, (c: Ctx) => ListSpec> = {
   'audit_log/ui/audit-logs.page': ({ tenantId, isRoot }) => ({
@@ -24,6 +31,17 @@ const lists: Record<string, (c: Ctx) => ListSpec> = {
     ],
     script: '/js/lists/audit-logs.js',
     drawer: 'Audit Log Detail',
+  }),
+  'tenant_member/ui/members.page': ({ tenantId }) => ({
+    title: 'Members',
+    subtitle: 'People with access to this organization',
+    actions: [
+      { label: 'Report', href: tenantPath(tenantId, '/admin/members/report'), variant: 'outline' },
+      gear(tenantPath(tenantId, '/admin/members/settings'), 'Member settings'),
+    ],
+    script: '/js/lists/members.js',
+    scripts: ['/js/step-up.js'],
+    partial: 'members',
   }),
 };
 
