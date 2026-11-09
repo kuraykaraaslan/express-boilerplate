@@ -54,6 +54,15 @@ const lists: Record<string, (c: Ctx) => ListSpec> = {
     scripts: ['/js/step-up.js', '/js/permission-picker.js'],
     partial: 'api-keys',
   }),
+  'webhook/ui/webhooks.page': ({ tenantId, isRoot }) => ({
+    title: isRoot ? 'Platform Webhooks' : 'Webhooks',
+    subtitle: isRoot ? 'Send real-time HTTP notifications for platform-wide events.' : 'Receive real-time HTTP notifications when events occur in your tenant.',
+    actions: [gear(tenantPath(tenantId, '/admin/webhooks/settings'), 'Webhook settings')],
+    script: '/js/lists/webhooks.js',
+    scripts: ['/js/webhook-ui.js'],
+    above: '<div id="wh-report"></div><div id="wh-metrics"></div>',
+    partial: 'webhooks',
+  }),
 };
 
 export function listSpecFor(componentId: string, ctx: Ctx): ListSpec | undefined {

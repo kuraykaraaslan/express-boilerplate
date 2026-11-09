@@ -1,0 +1,34 @@
+<%# The webhook list's dialogs: create/edit, trigger and deliveries. Driven by /js/lists/webhooks.js. %>
+<%
+  var cancel = 'inline-flex items-center justify-center rounded-md font-medium px-4 py-2 text-sm bg-transparent text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var primary = 'inline-flex items-center justify-center gap-2 rounded-md font-medium px-4 py-2 text-sm bg-primary text-primary-fg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var nbsp = ' ';
+%>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'wh-form', size: 'xl', title: 'New Webhook', description: nbsp,
+  children: '<div class="space-y-4"><div id="wh-form-error" class="hidden" role="alert"></div><div class="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">'
+    + '<div class="space-y-4">'
+    + include('../../../kui/modules/ui/Input', { id: 'webhook-name', label: 'Name', placeholder: 'My webhook', required: true })
+    + include('../../../kui/modules/ui/Input', { id: 'webhook-url', label: 'URL', placeholder: 'https://your-service.com/webhook', required: true })
+    + include('../../../kui/modules/ui/Input', { id: 'webhook-description', label: 'Description (optional)', placeholder: 'What is this webhook for?' })
+    + include('../../../kui/modules/ui/Input', { id: 'webhook-tags', label: 'Tags (optional, comma-separated)', placeholder: 'billing, prod' })
+    + include('../../../kui/modules/ui/Input', { id: 'webhook-rate-limit', label: 'Rate limit (optional, deliveries/minute)', type: 'number', placeholder: 'Unlimited' })
+    + '<div role="group" aria-labelledby="wh-headers-title"><div class="flex items-center justify-between mb-2"><p id="wh-headers-title" class="text-sm font-medium text-text-primary">Custom headers (optional)</p>'
+    + '<button type="button" id="wh-add-header" class="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-overlay">Add header</button></div>'
+    + '<p id="wh-no-headers" class="text-xs text-text-secondary">No custom headers. Reserved headers (Content-Type, X-Webhook-*, User-Agent) can\'t be overridden.</p><div id="wh-headers" class="space-y-2"></div></div>'
+    + '</div><div class="space-y-4"><div role="group" aria-labelledby="wh-events-title"><p id="wh-events-title" class="text-sm font-medium text-text-primary mb-2">Events</p><div id="wh-events"></div></div>'
+    + include('../../../kui/modules/ui/Textarea', { id: 'webhook-filters', label: 'Event filters (optional, advanced)', rows: 4, className: 'font-mono', placeholder: '{\n  "payment.completed": { "currency": "USD" }\n}', hint: 'JSON map of { "event": { "data.path": value } }. A delivery is skipped when the payload doesn\'t match.' })
+    + '</div></div></div>',
+  footer: '<div class="flex justify-end gap-2"><button type="button" data-close="wh-form" class="' + cancel + '">Cancel</button><button type="button" id="wh-form-save" class="' + primary + '">Create</button></div>'
+}) %>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'wh-trigger', title: 'Trigger event', description: nbsp,
+  children: '<div class="space-y-4"><div id="wh-trigger-error" class="hidden" role="alert"></div>'
+    + '<div class="space-y-1"><label for="wh-trigger-event" class="block text-sm font-medium text-text-primary">Event</label><select id="wh-trigger-event" class="block w-full rounded-md border border-border bg-surface-base px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"></select></div>'
+    + include('../../../kui/modules/ui/Textarea', { id: 'wh-trigger-payload', label: 'Sample payload (JSON)', rows: 6, className: 'font-mono', value: '{}' }) + '</div>',
+  footer: '<div class="flex justify-end gap-2"><button type="button" data-close="wh-trigger" class="' + cancel + '">Cancel</button><button type="button" id="wh-trigger-send" class="' + primary + '">Trigger</button></div>'
+}) %>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'wh-deliveries', size: 'xl', title: 'Deliveries', description: nbsp,
+  children: '<div id="wh-deliveries-body"></div>'
+}) %>
