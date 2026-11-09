@@ -137,7 +137,7 @@
       var tr = e.target.closest('tr[data-i]'); if (!tr) return;
       var row = rows[Number(tr.getAttribute('data-i'))];
       var ab = e.target.closest('[data-act]');
-      if (ab) { var a = actions.filter(function (x) { return x.id === ab.getAttribute('data-act'); })[0]; if (a) a.onClick(row, api_); return; }
+      if (ab) { var a = actions.filter(function (x) { return x.id === ab.getAttribute('data-act'); })[0]; if (a) a.onClick(row, api_); else if (cfg.onCellAction) cfg.onCellAction(ab.getAttribute('data-act'), row, api_); return; }
       if (e.target.closest('a,button,input,select')) return;
       if (cfg.onRowClick) cfg.onRowClick(row);
     });

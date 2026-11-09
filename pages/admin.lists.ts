@@ -43,6 +43,17 @@ const lists: Record<string, (c: Ctx) => ListSpec> = {
     scripts: ['/js/step-up.js'],
     partial: 'members',
   }),
+  'api_key/ui/api-keys.page': ({ tenantId }) => ({
+    title: 'API Keys',
+    subtitle: 'Programmatic access tokens for your integrations',
+    actions: [
+      { label: '<i class="fa-solid fa-chart-line" aria-hidden="true"></i> Reports', href: tenantPath(tenantId, '/admin/api-keys/reports'), variant: 'outline' },
+      gear(tenantPath(tenantId, '/admin/api-keys/settings'), 'API key settings'),
+    ],
+    script: '/js/lists/api-keys.js',
+    scripts: ['/js/step-up.js', '/js/permission-picker.js'],
+    partial: 'api-keys',
+  }),
 };
 
 export function listSpecFor(componentId: string, ctx: Ctx): ListSpec | undefined {

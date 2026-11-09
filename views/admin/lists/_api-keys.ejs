@@ -1,0 +1,31 @@
+<%# The API key list's dialogs: create and the one-time reveal. Driven by /js/lists/api-keys.js. %>
+<%
+  var cancel = 'inline-flex items-center justify-center rounded-md font-medium px-4 py-2 text-sm bg-transparent text-text-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var primary = 'inline-flex items-center justify-center gap-2 rounded-md font-medium px-4 py-2 text-sm bg-primary text-primary-fg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus';
+  var scopes = [['read', 'Read'], ['write', 'Write'], ['admin', 'Admin'], ['scim:read', 'SCIM Read'], ['scim:write', 'SCIM Write']];
+%>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'ak-create', size: 'lg', title: 'New API Key',
+  description: 'API keys grant programmatic access. Copy the key immediately after creation — it will not be shown again.',
+  children: '<form id="ak-create-form" class="space-y-4" novalidate><div id="ak-create-error" class="hidden" role="alert"></div><div id="ak-catalog-error" class="hidden" role="alert"></div>'
+    + include('../../../kui/modules/ui/Input', { id: 'key-name', label: 'Name', required: true, placeholder: 'e.g. Production webhook' })
+    + include('../../../kui/modules/ui/Input', { id: 'key-description', label: 'Description (optional)', placeholder: 'What is this key used for?' })
+    + '<div id="ak-picker"></div>'
+    + '<div class="grid gap-3 sm:grid-cols-2">'
+    + include('../../../kui/modules/ui/Input', { id: 'key-expiry', label: 'Expires on', type: 'date', required: true, hint: '90 days by default, at most a year.' })
+    + include('../../../kui/modules/ui/Textarea', { id: 'key-ip-allowlist', label: 'IP allowlist (optional)', rows: 2, hint: 'One subnet per line, e.g. 10.0.0.0/8 or 203.0.113.7/32. Empty: any address the workspace allows.' })
+    + '</div>'
+    + '<div class="border-t border-border pt-3"><button type="button" id="ak-scopes-toggle" class="flex items-center gap-2 text-sm font-medium text-text-primary" aria-expanded="false"><i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>Integration scopes (advanced)</button>'
+    + '<div id="ak-scopes" class="hidden mt-2 space-y-2"><p class="text-xs text-text-secondary">For machine endpoints with their own contract, such as SCIM provisioning. Module permissions above are what most integrations need.</p><div class="flex flex-wrap gap-4">'
+    + scopes.map(function (s) { return '<label class="flex items-center gap-1.5 cursor-pointer text-sm text-text-primary"><input type="checkbox" data-scope="' + s[0] + '" class="rounded border-border accent-primary">' + s[1] + '</label>'; }).join('')
+    + '</div></div></div></form>',
+  footer: '<div class="flex justify-end gap-2"><button type="button" data-close="ak-create" class="' + cancel + '">Cancel</button><button type="submit" form="ak-create-form" id="ak-create-submit" class="' + primary + '"><i class="fa-solid fa-key" aria-hidden="true"></i>Create Key</button></div>'
+}) %>
+<%- include('../../../kui/modules/ui/Modal', {
+  id: 'ak-reveal', title: 'Copy your API key', description: 'This key will only be shown once. Store it somewhere safe.',
+  children: '<div class="space-y-3"><div class="flex items-center gap-2 rounded-lg border border-border bg-surface-overlay p-3"><code id="ak-reveal-key" class="flex-1 text-xs font-mono break-all text-text-primary select-all"></code>'
+    + '<button type="button" id="ak-copy" aria-label="Copy API key" class="shrink-0 rounded-md p-2 text-text-secondary hover:bg-surface-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"><i class="fa-solid fa-copy" aria-hidden="true"></i></button></div>'
+    + '<p id="ak-copied" class="hidden text-xs text-success text-center">Copied to clipboard!</p>'
+    + '<div class="flex items-start gap-3 rounded-lg border p-3 bg-warning-subtle border-warning text-warning-fg text-sm"><i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0" aria-hidden="true"></i><span>You won\'t be able to see this key again. Make sure to copy it now.</span></div></div>',
+  footer: '<div class="flex justify-end"><button type="button" data-close="ak-reveal" class="' + primary + '">Done</button></div>'
+}) %>
