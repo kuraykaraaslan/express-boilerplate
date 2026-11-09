@@ -1,0 +1,48 @@
+<%
+  // My Profile (the port of account/ui/me.page.tsx): four tabs, filled by /js/account-me.js from the /api/auth/me/* routes.
+  // The forms are drawn here on kui-ejs partials; the lists (sessions, trusted devices, connected accounts) are built in the
+  // browser because their rows come from the API.
+  var themeOptions = [{ value: 'LIGHT', label: 'Light' }, { value: 'DARK', label: 'Dark' }, { value: 'SYSTEM', label: 'System' }];
+%>
+<div class="space-y-6" id="am-root" data-tenant-id="<%= locals.tenantId %>">
+  <%- include('../../kui/modules/ui/PageHeader', {
+    title: 'My Profile',
+    subtitle: 'Manage your personal information for this organization',
+    badge: '<span id="am-role"></span>'
+  }) %>
+
+  <div id="am-loading" class="flex items-center justify-center py-24" role="status"><i class="fa-solid fa-spinner fa-spin text-xl text-text-secondary" aria-hidden="true"></i></div>
+  <div id="am-load-error" class="hidden space-y-3" role="alert">
+    <div class="flex items-start gap-3 rounded-lg border p-3 bg-error-subtle border-error text-error-fg text-sm">
+      <i class="fa-solid fa-circle-xmark mt-0.5 shrink-0" aria-hidden="true"></i><span id="am-load-error-text" class="flex-1"></span>
+      <button type="button" id="am-retry" class="shrink-0 underline underline-offset-2">Retry</button>
+    </div>
+  </div>
+
+  <div id="am-content" class="hidden space-y-6">
+    <div id="am-notice" class="hidden" role="status"></div>
+
+    <%
+      var profileTab = include('../../kui/modules/ui/Card', {
+        title: 'Profile Information', subtitle: 'Update your display name and bio',
+        children: include('account/_profile')
+      });
+      var securityTab = '<div class="space-y-4">' + include('account/_security') + '</div>';
+      var prefsTab = include('../../kui/modules/ui/Card', {
+        title: 'Preferences', subtitle: 'Notification and display settings',
+        children: include('account/_preferences', { themeOptions: themeOptions })
+      });
+      var connectedTab = include('account/_connected');
+    %>
+    <%- include('../../kui/modules/ui/TabGroup', {
+      id: 'am-tabs',
+      label: 'Profile sections',
+      tabs: [
+        { id: 'profile', label: 'Profile', content: profileTab },
+        { id: 'security', label: 'Security', content: securityTab },
+        { id: 'preferences', label: 'Preferences', content: prefsTab },
+        { id: 'connected', label: 'Connected Accounts', content: connectedTab }
+      ]
+    }) %>
+  </div>
+</div>

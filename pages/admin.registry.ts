@@ -4,6 +4,10 @@
 import type { RuntimePageRoute } from '@kuraykaraaslan-labs/common/server/module-registry';
 import { tenantPath } from '@kuraykaraaslan-labs/common/server/tenant-path';
 import { isRootTenant } from '@kuraykaraaslan-labs/common/server/tenant-constants';
+import { resolveTenantLanguages } from '@kuraykaraaslan-labs/tenant_setting/server/tenant_setting.languages';
+import { LANGUAGE_OPTIONS, narrowLanguages } from '@kuraykaraaslan-labs/localization/server/languages';
+import { TIMEZONE_OPTIONS } from '@kuraykaraaslan-labs/localization/server/timezones';
+import { DATE_FORMAT_OPTIONS, TIME_FORMAT_OPTIONS, FIRST_DAY_OPTIONS } from '@kuraykaraaslan-labs/localization/server/datetime';
 import { settingsPages } from './settings.manifest';
 
 export type AdminPageInput = { tenantId: string; adminPath: string; route?: RuntimePageRoute; params: Record<string, string> };
@@ -14,6 +18,26 @@ export async function renderAdminPage(input: AdminPageInput): Promise<AdminPage>
   if (!route) {
     // /admin itself (the dashboard module owns it in NB): a landing with the menu until that page is ported.
     return { view: 'admin/home', title: 'Home' };
+  }
+  if (route.componentId === 'account/ui/me.page') {
+    // Only the tenant's enabled languages are offered: the server clamps the application locale to that set.
+    const { enabledLanguages } = await resolveTenantLanguages(tenantId);
+    const languageOptions = narrowLanguages(LANGUAGE_OPTIONS.map((o) => o.value), enabledLanguages)
+      .map((code) => LANGUAGE_OPTIONS.find((o) => o.value === code))
+      .filter((o): o is NonNullable<typeof o> => !!o)
+      .map((o) => ({ value: o.value, label: o.label }));
+    return {
+      view: 'admin/account-me',
+      title: 'My Profile',
+      locals: {
+        languageOptions,
+        timezoneOptions: TIMEZONE_OPTIONS,
+        dateFormatOptions: DATE_FORMAT_OPTIONS,
+        timeFormatOptions: TIME_FORMAT_OPTIONS,
+        firstDayOptions: FIRST_DAY_OPTIONS,
+        extraScripts: '<script src="/js/kui-api.js"></script><script src="/js/auth-ui.js"></script><script src="/js/account-me.js"></script>',
+      },
+    };
   }
   const settings = settingsPages[route.componentId];
   if (settings) {

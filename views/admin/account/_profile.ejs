@@ -1,0 +1,36 @@
+<%# Profile tab: avatar (upload to /api/storage), display name, bio. /js/account-me.js sends only what changed. %>
+<form id="am-profile-form" novalidate>
+  <div class="space-y-6">
+
+    <div class="flex flex-col items-center gap-3" id="am-avatar">
+      <div class="relative group">
+        <span id="am-avatar-fallback" class="h-16 w-16 text-lg rounded-full bg-primary-subtle text-primary font-semibold flex items-center justify-center border border-primary-subtle select-none">?</span>
+        <img id="am-avatar-img" alt="" class="hidden h-16 w-16 rounded-full object-cover border border-border">
+        <div id="am-avatar-busy" class="hidden absolute inset-0 flex items-center justify-center rounded-full bg-black/40"><i class="fa-solid fa-spinner fa-spin text-white" aria-hidden="true"></i></div>
+        <button type="button" id="am-avatar-change" aria-label="Change profile picture"
+          class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus">
+          <i class="fa-solid fa-camera w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="am-avatar-upload" class="text-xs text-primary underline underline-offset-2 hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded">Upload photo</button>
+        <span id="am-avatar-sep" class="hidden text-xs text-text-disabled">·</span>
+        <button type="button" id="am-avatar-remove" class="hidden items-center gap-1 text-xs text-error hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus rounded"><i class="fa-solid fa-xmark w-3 h-3" aria-hidden="true"></i><span>Remove</span></button>
+      </div>
+      <p id="am-avatar-error" class="hidden text-xs text-error text-center" role="alert"></p>
+      <input id="am-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only" tabindex="-1">
+    </div>
+
+    <%- include('../../../kui/modules/ui/Input', { id: 'profile-name', label: 'Display Name', type: 'text' }) %>
+
+    <div class="space-y-1">
+      <label for="profile-bio" class="block text-sm font-medium text-text-primary">Bio</label>
+      <textarea id="profile-bio" rows="3"
+        class="block w-full rounded-md border px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-focus transition-colors resize-none border-border bg-surface-base"></textarea>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <%- include('../../../kui/modules/ui/Button', { type: 'submit', disabled: true, children: 'Save Profile' }) %>
+    </div>
+  </div>
+</form>

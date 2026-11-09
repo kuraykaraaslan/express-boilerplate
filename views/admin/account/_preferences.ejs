@@ -1,0 +1,36 @@
+<%# Preferences tab. The server picks the languages (tenant's enabled set); /js/account-me.js fills the values and sends only changes. %>
+<div id="am-prefs-loading" class="hidden flex justify-center py-8" role="status"><i class="fa-solid fa-spinner fa-spin text-text-secondary" aria-hidden="true"></i></div>
+<div id="am-prefs-error" class="hidden" role="alert"></div>
+<form id="am-prefs-form" novalidate>
+  <div class="space-y-6">
+    <div class="space-y-4">
+      <h3 class="text-sm font-semibold text-text-primary">Appearance &amp; Locale</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <%- include('../../../kui/modules/ui/Select', { id: 'theme', label: 'Theme', options: locals.themeOptions, value: 'SYSTEM' }) %>
+        <%- include('../../../kui/modules/ui/Select', {
+          id: 'language', label: 'Language', options: locals.languageOptions, searchable: true, value: 'en',
+          hint: locals.languageOptions.length < 2 ? 'Only one language is available. An administrator can add more under Settings → Localization.' : ''
+        }) %>
+        <%- include('../../../kui/modules/ui/Select', { id: 'timezone', label: 'Timezone', options: locals.timezoneOptions, searchable: true, value: 'UTC' }) %>
+        <%- include('../../../kui/modules/ui/Select', { id: 'date-format', label: 'Date Format', options: locals.dateFormatOptions, value: 'DD_MM_YYYY' }) %>
+        <%- include('../../../kui/modules/ui/Select', { id: 'time-format', label: 'Time Format', options: locals.timeFormatOptions, value: 'H24' }) %>
+        <%- include('../../../kui/modules/ui/Select', { id: 'first-day', label: 'First Day of Week', options: locals.firstDayOptions, value: 'MON' }) %>
+      </div>
+    </div>
+
+    <div class="space-y-3 pt-2 border-t border-border">
+      <h3 class="text-sm font-semibold text-text-primary pt-2">Notifications</h3>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'email-notifications', label: 'Email notifications', description: 'Receive updates and alerts via email.', checked: true }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'sms-notifications', label: 'SMS notifications', description: 'Receive alerts via text message.', checked: false }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'push-notifications', label: 'Push notifications', description: 'Receive in-browser push notifications.', checked: true }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'newsletter', label: 'Newsletter', description: 'Receive our monthly product newsletter.', checked: false }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'product-updates', label: 'Product updates', description: 'Receive news about new features and improvements.', checked: false }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'promotional-offers', label: 'Promotional offers', description: 'Receive special offers, discounts and price alerts.', checked: false }) %>
+      <%- include('../../../kui/modules/ui/Toggle', { id: 'announcements', label: 'Announcements', description: 'Receive general announcements by email, push and SMS. Maintenance notices always arrive.', checked: true }) %>
+    </div>
+
+    <div class="flex justify-end pt-2">
+      <%- include('../../../kui/modules/ui/Button', { type: 'submit', disabled: true, children: 'Save Preferences' }) %>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,46 @@
+<%# Security tab: the account overview, the active sessions and the trusted devices (lists are drawn by /js/account-me.js). %>
+<%
+  function row(icon, label, valueId, border) {
+    return '<div class="flex items-center justify-between gap-4 flex-wrap' + (border ? ' border-b border-border pb-4' : '') + '">'
+      + '<div class="flex items-center gap-2 text-sm text-text-secondary"><i class="fa-solid ' + icon + ' w-3.5 h-3.5 shrink-0" aria-hidden="true"></i>'
+      + '<span class="font-medium text-text-primary">' + label + '</span></div>'
+      + '<span id="' + valueId + '" class="text-sm text-text-primary"></span></div>';
+  }
+%>
+<%- include('../../../kui/modules/ui/Card', {
+  title: 'Account Security', subtitle: 'Overview of your account',
+  children: '<div class="space-y-4">'
+    + row('fa-envelope', 'Email', 'am-sec-email', true)
+    + '<div id="am-sec-role-row" class="hidden">' + row('fa-shield-halved', 'Global Role', 'am-sec-role', true) + '</div>'
+    + row('fa-layer-group', 'Tenant Role', 'am-sec-tenant-role', true)
+    + row('fa-circle-check', 'Email Verified', 'am-sec-verified', true)
+    + row('fa-clock', 'Last Login', 'am-sec-last-login', false)
+    + '</div>'
+}) %>
+
+<section class="rounded-xl border border-border overflow-hidden bg-surface-raised shadow-sm" id="am-sessions">
+  <div class="flex items-start justify-between gap-3 border-b border-border px-6 py-4">
+    <div>
+      <h3 class="text-sm font-semibold text-text-primary">Active Sessions</h3>
+      <p class="text-xs text-text-secondary mt-0.5" id="am-sessions-sub"></p>
+    </div>
+    <button type="button" id="am-sessions-revoke-others" class="hidden shrink-0 inline-flex items-center rounded-md border border-error text-error hover:bg-error-subtle px-3 py-1.5 text-xs font-medium disabled:opacity-50">
+      <i class="fa-solid fa-right-from-bracket w-3 h-3 mr-1.5" aria-hidden="true"></i>Sign out all other sessions
+    </button>
+  </div>
+  <div class="px-6 py-4" id="am-sessions-table"></div>
+</section>
+
+<section class="rounded-xl border border-border overflow-hidden bg-surface-raised shadow-sm" id="am-devices">
+  <div class="flex items-start justify-between gap-3 border-b border-border px-6 py-4">
+    <div>
+      <h3 class="text-sm font-semibold text-text-primary">Trusted devices</h3>
+      <p class="text-xs text-text-secondary mt-0.5">Browsers where you chose to skip the sign-in code. Revoke one you no longer use or do not recognise.</p>
+    </div>
+    <button type="button" id="am-devices-revoke-all" class="hidden shrink-0 inline-flex items-center rounded-md bg-error text-text-inverse hover:opacity-90 px-3 py-1.5 text-xs font-medium disabled:opacity-50">Revoke all</button>
+  </div>
+  <div class="px-6 py-4">
+    <div id="am-devices-error" class="hidden" role="alert"></div>
+    <div id="am-devices-table"></div>
+  </div>
+</section>
