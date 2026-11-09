@@ -9,6 +9,7 @@ import { LANGUAGE_OPTIONS, narrowLanguages } from '@kuraykaraaslan-labs/localiza
 import { TIMEZONE_OPTIONS } from '@kuraykaraaslan-labs/localization/server/timezones';
 import { DATE_FORMAT_OPTIONS, TIME_FORMAT_OPTIONS, FIRST_DAY_OPTIONS } from '@kuraykaraaslan-labs/localization/server/datetime';
 import { settingsPages } from './settings.manifest';
+import { listSpecFor } from './admin.lists';
 
 export type AdminPageInput = { tenantId: string; adminPath: string; route?: RuntimePageRoute; params: Record<string, string> };
 export type AdminPage = { view: string; title?: string; locals?: Record<string, unknown>; status?: number };
@@ -36,6 +37,17 @@ export async function renderAdminPage(input: AdminPageInput): Promise<AdminPage>
         timeFormatOptions: TIME_FORMAT_OPTIONS,
         firstDayOptions: FIRST_DAY_OPTIONS,
         extraScripts: '<script src="/js/kui-api.js"></script><script src="/js/auth-ui.js"></script><script src="/js/account-me.js"></script>',
+      },
+    };
+  }
+  const list = listSpecFor(route.componentId, { tenantId, isRoot: isRootTenant(tenantId) });
+  if (list) {
+    return {
+      view: 'admin/data-list',
+      title: list.title,
+      locals: {
+        spec: list, isRoot: isRootTenant(tenantId),
+        extraScripts: `<script src="/js/kui-api.js"></script><script src="/js/data-list.js"></script><script src="${list.script}"></script>`,
       },
     };
   }
